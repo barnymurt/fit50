@@ -1,7 +1,7 @@
 import Nav from '@/components/Nav';
 import Hero from '@/components/Hero';
-import Calculator from '@/components/Calculator';
 import Rules from '@/components/Rules';
+import Calculator from '@/components/Calculator';
 import Workouts from '@/components/Workouts';
 import Tracker from '@/components/Tracker';
 import Shop from '@/components/Shop';
@@ -13,11 +13,11 @@ export default function Home() {
     <main>
       <Nav />
       <Hero />
-      <div id="calculator">
-        <Calculator />
-      </div>
       <div id="rules">
         <Rules />
+      </div>
+      <div id="calculator">
+        <Calculator />
       </div>
       <div id="workouts">
         <Workouts />
