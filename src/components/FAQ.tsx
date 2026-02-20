@@ -64,6 +64,18 @@ export default function FAQ() {
             </div>
           ))}
         </div>
+
+        <div className="mt-16 text-center">
+          <p className="font-body text-[#2A2A2A] text-lg mb-6">
+            Still have questions? Let's get you started.
+          </p>
+          <button 
+            onClick={() => document.getElementById('tracker')?.scrollIntoView({ behavior: 'smooth' })}
+            className="bg-[#2A2A2A] text-[#FEFEFE] font-display text-sm px-8 py-4 uppercase tracking-wider hover:bg-[#2A2A2A]/80 transition-colors"
+          >
+            Begin The Challenge →
+          </button>
+        </div>
       </div>
     </WatercolourSection>
   );

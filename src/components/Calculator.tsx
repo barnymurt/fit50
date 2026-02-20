@@ -67,6 +67,12 @@ export default function Calculator() {
                   <p className="font-display text-2xl text-[#FEFEFE]">
                     {formatDate(finishDate)}
                   </p>
+                  <button
+                    onClick={() => document.getElementById('tracker')?.scrollIntoView({ behavior: 'smooth' })}
+                    className="mt-4 w-full bg-[#E88B5A] text-[#FEFEFE] font-display text-sm px-6 py-3 uppercase tracking-wider hover:bg-[#E88B5A]/80 transition-colors"
+                  >
+                    Start Tracking →
+                  </button>
                 </div>
               )}
             </div>

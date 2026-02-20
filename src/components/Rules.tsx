@@ -114,6 +114,18 @@ export default function Rules() {
             </div>
           ))}
         </div>
+
+        <div className="mt-16 text-center">
+          <p className="font-body text-[#FEFEFE] text-lg mb-6">
+            Ready to commit to the challenge?
+          </p>
+          <button 
+            onClick={() => document.getElementById('tracker')?.scrollIntoView({ behavior: 'smooth' })}
+            className="bg-[#E88B5A] text-[#FEFEFE] font-display text-sm px-8 py-4 uppercase tracking-wider hover:bg-[#E88B5A]/80 transition-colors"
+          >
+            Start Your Journey →
+          </button>
+        </div>
       </div>
     </WatercolourSection>
   );

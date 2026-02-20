@@ -16,7 +16,7 @@ export default function Nav() {
         <Link href="/" className="font-display text-2xl text-[#FEFEFE] tracking-wider">
           FIT50
         </Link>
-        <div className="hidden md:flex gap-8">
+        <div className="hidden md:flex gap-4 items-center">
           <button onClick={() => scrollToSection('rules')} className="text-[#FEFEFE]/80 hover:text-[#FEFEFE] font-body text-sm uppercase tracking-wider">
             Rules
           </button>
@@ -31,6 +31,12 @@ export default function Nav() {
           </button>
           <button onClick={() => scrollToSection('faq')} className="text-[#FEFEFE]/80 hover:text-[#FEFEFE] font-body text-sm uppercase tracking-wider">
             FAQ
+          </button>
+          <button 
+            onClick={() => scrollToSection('tracker')}
+            className="bg-[#E88B5A] text-[#FEFEFE] font-display text-xs px-4 py-2 uppercase tracking-wider hover:bg-[#E88B5A]/80 transition-colors"
+          >
+            Start Now
           </button>
         </div>
       </div>

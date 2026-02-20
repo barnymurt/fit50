@@ -77,6 +77,15 @@ export default function Workouts() {
             Repeat the pattern: A → B → C → D → A → B → C → D...
           </p>
         </div>
+
+        <div className="mt-12 text-center">
+          <button 
+            onClick={() => document.getElementById('tracker')?.scrollIntoView({ behavior: 'smooth' })}
+            className="bg-[#E88B5A] text-[#FEFEFE] font-display text-sm px-8 py-4 uppercase tracking-wider hover:bg-[#E88B5A]/80 transition-colors"
+          >
+            Start Tracking Now →
+          </button>
+        </div>
       </div>
     </WatercolourSection>
   );
