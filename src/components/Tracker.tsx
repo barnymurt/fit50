@@ -1,7 +1,9 @@
 'use client';
 
-import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
+import { useState, useEffect } from 'react';
 import WatercolourSection from './WatercolourSection';
+import EmailCaptureModal from './EmailCaptureModal';
+import { useEmailCapture } from './EmailCaptureContext';
 
 interface Habit {
   id: string;
@@ -74,6 +76,9 @@ const calculateStreak = (completions: { [key: string]: { [key: number]: boolean 
 export default function Tracker() {
   const [trackerData, setTrackerData] = useState<TrackerData>(getInitialData);
   const [loaded, setLoaded] = useState(false);
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [hasInteracted, setHasInteracted] = useState(false);
+  const { isCaptured } = useEmailCapture();
 
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -95,6 +100,12 @@ export default function Tracker() {
   }, [trackerData, loaded]);
 
   const toggleHabit = (habitId: string, day: number) => {
+    if (!hasInteracted && !isCaptured) {
+      setHasInteracted(true);
+      setShowEmailModal(true);
+      return;
+    }
+    
     setTrackerData(prev => {
       const newCompletions = { ...prev.habitCompletions };
       if (!newCompletions[habitId]) {
@@ -265,6 +276,13 @@ export default function Tracker() {
           </div>
         </div>
       </div>
+
+      <EmailCaptureModal 
+        isOpen={showEmailModal} 
+        onClose={() => setShowEmailModal(false)}
+        title="Save Your Progress"
+        message="Enter your email to save your tracker progress across devices and get daily reminders."
+      />
     </WatercolourSection>
   );
 }

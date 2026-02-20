@@ -1,11 +1,23 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import WatercolourSection from './WatercolourSection';
 import PaintDrips from './PaintDrips';
+import { useEmailCapture } from './EmailCaptureContext';
 
 export default function Hero() {
   const marqueeRef = useRef<HTMLDivElement>(null);
+  const { isCaptured, captureEmail } = useEmailCapture();
+  const [email, setEmail] = useState('');
+  const [submitted, setSubmitted] = useState(false);
+
+  const handleEmailSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (email) {
+      captureEmail(email);
+      setSubmitted(true);
+    }
+  };
 
   return (
     <div className="relative min-h-screen flex">
@@ -17,6 +29,39 @@ export default function Hero() {
           <p className="font-body text-xl md:text-2xl text-[#2A2A2A]/80 mt-6 max-w-md">
             50 Days. 9 Daily Tasks. 1 Life-Changing Habit.
           </p>
+          
+          {!isCaptured && !submitted && (
+            <div className="mt-8 p-4 bg-[#FEFEFE]/80 rounded-lg max-w-md">
+              <p className="font-body text-sm text-[#2A2A2A] mb-3">
+                Join 5,000+ building unbreakable habits:
+              </p>
+              <form onSubmit={handleEmailSubmit} className="flex gap-2">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="your@email.com"
+                  className="flex-1 p-3 bg-[#FEFEFE] text-[#2A2A2A] font-body rounded border-2 border-[#2A2A2A]/20 focus:border-[#2A2A2A] outline-none"
+                  required
+                />
+                <button
+                  type="submit"
+                  className="bg-[#2A2A2A] text-[#FEFEFE] font-display text-xs px-4 py-3 uppercase tracking-wider hover:bg-[#2A2A2A]/80 transition-colors whitespace-nowrap"
+                >
+                  Join Free
+                </button>
+              </form>
+            </div>
+          )}
+          
+          {submitted && (
+            <div className="mt-8 p-4 bg-[#4A9B9B] rounded-lg max-w-md">
+              <p className="font-body text-[#FEFEFE]">
+                ✓ You're on the list! Let's get after it.
+              </p>
+            </div>
+          )}
+
           <div className="mt-10 flex gap-4">
             <button 
               onClick={() => document.getElementById('tracker')?.scrollIntoView({ behavior: 'smooth' })}
@@ -53,7 +98,7 @@ export default function Hero() {
           <div ref={marqueeRef} className="flex animate-marquee whitespace-nowrap">
             {[...Array(10)].map((_, i) => (
               <span key={i} className="font-display text-xl text-[#FEFEFE] mx-8">
-                LET&apos;S GET AFTER IT! • 50 DAYS • BUILD YOUR BEST SELF • LET&apos;S GET AFTER IT! •
+                LET'S GET AFTER IT! • 50 DAYS • BUILD YOUR BEST SELF • LET'S GET AFTER IT! •
               </span>
             ))}
           </div>

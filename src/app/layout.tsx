@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Space_Grotesk, Titan_One } from "next/font/google";
+import Providers from "@/components/Providers";
 import "./globals.css";
 
 const spaceGrotesk = Space_Grotesk({
@@ -29,7 +30,9 @@ export default function RootLayout({
       <body
         className={`${spaceGrotesk.variable} ${titanOne.variable} antialiased`}
       >
-        {children}
+        <Providers>
+          {children}
+        </Providers>
       </body>
     </html>
   );
