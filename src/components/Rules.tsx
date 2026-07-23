@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import Section from './Section';
-import Heading from './Heading';
 import Icon, { IconName } from './Icon';
 import Button from './Button';
 import Marquee from './Marquee';
@@ -85,29 +84,31 @@ export default function Rules() {
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
   return (
-    <Section id="rules" tone="ink" className="relative bg-teal text-paper py-section overflow-hidden" contained>
-      <div className="absolute -top-12 left-0 right-0 z-0 pointer-events-none">
+    <Section
+      id="rules"
+      tone="ink"
+      className="relative bg-teal text-paper overflow-hidden pt-40 md:pt-56"
+    >
+      <h2 className="sr-only">The Nine Rules</h2>
+
+      <div className="absolute top-0 left-0 right-0 h-32 md:h-52 overflow-hidden pointer-events-none z-0 flex items-center">
         <Marquee
           text="NINE RULES · NINE HABITS · NON-NEGOTIABLES"
           separator="✦"
-          speed={120}
-          textClassName="text-paper/15"
+          speed={200}
+          textClassName="text-paper/40"
         />
       </div>
 
-      <div className="relative z-10">
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-12 mb-16 md:mb-20">
+      <div className="relative z-10 max-w-7xl mx-auto px-6 md:px-10 pb-section">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mb-16 md:mb-20">
           <div className="md:col-span-5">
-            <p className="font-body text-caption uppercase text-paper/70 mb-4">
+            <p className="font-body text-caption uppercase text-paper/80">
               The Rules · 01—09
             </p>
-            <Heading as="h2" size="display-2" className="text-paper">
-              Nine<br />
-              non&#8209;negotiables.
-            </Heading>
           </div>
-          <div className="md:col-span-6 md:col-start-7 flex items-end">
-            <p className="font-body text-lg text-paper/85 max-w-lg">
+          <div className="md:col-span-6 md:col-start-7">
+            <p className="font-body text-lg text-paper/90 max-w-lg">
               Every day, every one. No substitutions, no skip days, no compromises. That&apos;s the point.
             </p>
           </div>

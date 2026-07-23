@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import Section from './Section';
-import Heading from './Heading';
 import Button from './Button';
 import Marquee from './Marquee';
 
@@ -28,31 +27,37 @@ export default function Calculator() {
   };
 
   return (
-    <Section id="calculator" tone="ink" className="relative bg-lavender/50 text-ink py-section overflow-hidden" contained>
-      <div className="absolute -top-12 left-0 right-0 z-0 pointer-events-none">
+    <Section
+      id="calculator"
+      tone="ink"
+      className="relative bg-lavender/50 text-ink overflow-hidden pt-40 md:pt-56"
+    >
+      <h2 className="sr-only">Calculate your finish date</h2>
+
+      <div className="absolute top-0 left-0 right-0 h-32 md:h-52 overflow-hidden pointer-events-none z-0 flex items-center">
         <Marquee
           text="WHEN WILL YOU FINISH · 50 DAYS · MARK THE DATE"
           separator="✦"
-          speed={140}
-          textClassName="text-coral/25"
+          speed={220}
+          textClassName="text-coral/50"
         />
       </div>
 
-      <div className="relative z-10">
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-12 items-start mb-16">
+      <div className="relative z-10 max-w-7xl mx-auto px-6 md:px-10 pb-section">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mb-16">
           <div className="md:col-span-5">
-            <p className="font-body text-caption uppercase text-ink/60 mb-4">
+            <p className="font-body text-caption uppercase text-ink/60">
               The Calendar
             </p>
-            <Heading as="h2" size="display-2" className="mb-6">
-              Mark the day.<br />
-              See the finish.
-            </Heading>
+          </div>
+          <div className="md:col-span-6 md:col-start-7">
             <p className="font-body text-lg text-ink/70 max-w-md">
               Choose your start date. We&apos;ll show you exactly when you&apos;ll emerge — 50 days later, transformed.
             </p>
           </div>
+        </div>
 
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
           <div className="md:col-span-6 md:col-start-7">
             <div className="bg-paper border border-ink/10 p-8 md:p-10">
               <p className="font-body text-caption uppercase text-ink/50 mb-6">

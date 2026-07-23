@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import Section from './Section';
-import Heading from './Heading';
 import Button from './Button';
 import Icon, { IconName } from './Icon';
 import Marquee from './Marquee';
@@ -163,28 +162,30 @@ export default function Tracker() {
   const isCubeSolved = todayCompleted === 9;
 
   return (
-    <Section id="tracker" tone="paper" className="relative py-section overflow-hidden" contained>
-      <div className="absolute -top-12 left-0 right-0 z-0 pointer-events-none">
+    <Section
+      id="tracker"
+      tone="paper"
+      className="relative bg-paper text-ink overflow-hidden pt-40 md:pt-56"
+    >
+      <h2 className="sr-only">Check the box, build the streak</h2>
+
+      <div className="absolute top-0 left-0 right-0 h-32 md:h-52 overflow-hidden pointer-events-none z-0 flex items-center">
         <Marquee
           text="CHECK THE BOX · BUILD THE STREAK · DAY BY DAY"
           separator="✦"
-          speed={150}
-          textClassName="text-coral/30"
+          speed={240}
+          textClassName="text-coral/55"
         />
       </div>
 
-      <div className="relative z-10">
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-12 mb-12 md:mb-16">
+      <div className="relative z-10 max-w-7xl mx-auto px-6 md:px-10 pb-section">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mb-12 md:mb-16">
           <div className="md:col-span-7">
-            <p className="font-body text-caption uppercase text-coral mb-4">
+            <p className="font-body text-caption uppercase text-coral">
               Day {String(today).padStart(2, '0')} of 50
             </p>
-            <Heading as="h2" size="display-2">
-              Check the box.<br />
-              Build the streak.
-            </Heading>
           </div>
-          <div className="md:col-span-5 md:col-start-8 flex items-end">
+          <div className="md:col-span-5 md:col-start-8">
             <p className="font-body text-lg text-ink/70 max-w-md">
               Tap each habit as you complete it. Your streak calculates automatically. Local-first; no account needed to start.
             </p>

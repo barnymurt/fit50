@@ -1,5 +1,4 @@
 import Section from './Section';
-import Heading from './Heading';
 import Button from './Button';
 import Accordion from './Accordion';
 import Marquee from './Marquee';
@@ -33,28 +32,30 @@ const faqs = [
 
 export default function FAQ() {
   return (
-    <Section id="faq" tone="ink" className="relative bg-cream/60 text-ink py-section overflow-hidden" contained>
-      <div className="absolute -top-12 left-0 right-0 z-0 pointer-events-none">
+    <Section
+      id="faq"
+      tone="ink"
+      className="relative bg-cream/60 text-ink overflow-hidden pt-40 md:pt-56"
+    >
+      <h2 className="sr-only">Frequently asked questions</h2>
+
+      <div className="absolute top-0 left-0 right-0 h-32 md:h-52 overflow-hidden pointer-events-none z-0 flex items-center">
         <Marquee
           text="QUESTIONS · ANSWERS · STILL WONDERING"
           separator="✦"
-          speed={130}
-          textClassName="text-coral/35"
+          speed={200}
+          textClassName="text-coral/60"
         />
       </div>
 
-      <div className="relative z-10">
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-12 mb-12 md:mb-16">
+      <div className="relative z-10 max-w-7xl mx-auto px-6 md:px-10 pb-section">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mb-12 md:mb-16">
           <div className="md:col-span-5">
-            <p className="font-body text-caption uppercase text-ink/60 mb-4">
+            <p className="font-body text-caption uppercase text-ink/60">
               Questions
             </p>
-            <Heading as="h2" size="display-2">
-              Everything<br />
-              you might ask.
-            </Heading>
           </div>
-          <div className="md:col-span-6 md:col-start-7 flex items-end">
+          <div className="md:col-span-6 md:col-start-7">
             <p className="font-body text-lg text-ink/70 max-w-lg">
               Still wondering? Start anyway. The rules are simple, the structure is clear, and the only way to fail is to stop.
             </p>
