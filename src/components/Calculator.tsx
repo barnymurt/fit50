@@ -1,7 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import WatercolourSection from './WatercolourSection';
+import Section from './Section';
+import Heading from './Heading';
+import Button from './Button';
 
 export default function Calculator() {
   const [startDate, setStartDate] = useState('');
@@ -17,30 +19,36 @@ export default function Calculator() {
 
   const formatDate = (date: Date) => {
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-    return `${days[date.getDay()]}, ${date.getDate()} ${months[date.getMonth()]}`;
+    const months = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December',
+    ];
+    return `${days[date.getDay()]}, ${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
   };
 
   return (
-    <WatercolourSection color="#D8B8D0" className="py-24" seed={3}>
-      <div className="max-w-7xl mx-auto px-8">
-        <div className="flex flex-col md:flex-row gap-12 items-center">
-          <div className="md:w-1/2">
-            <h2 className="font-display text-4xl md:text-5xl text-[#2A2A2A]">
-              MARK YOUR<br />CALENDAR
-            </h2>
-            <p className="font-body text-lg text-[#2A2A2A]/80 mt-6 max-w-md">
-              Choose your start date and discover when you&apos;ll emerge transformed. 
-              Commit to the process and watch yourself change.
+    <Section id="calculator" tone="paper" className="py-section" contained>
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-12 items-start">
+        <div className="md:col-span-5">
+          <p className="font-body text-caption uppercase text-ink/50 mb-4">
+            The Calendar
+          </p>
+          <Heading as="h2" size="display-2" className="mb-6">
+            Mark the day.<br />
+            See the finish.
+          </Heading>
+          <p className="font-body text-lg text-ink/70 max-w-md">
+            Choose your start date. We&apos;ll show you exactly when you&apos;ll emerge — 50 days later, transformed.
+          </p>
+        </div>
+
+        <div className="md:col-span-6 md:col-start-7">
+          <div className="bg-white border border-rule p-8 md:p-10">
+            <p className="font-body text-caption uppercase text-ink/50 mb-6">
+              Your finish date
             </p>
-          </div>
-          
-          <div className="md:w-1/2">
-            <div className="bg-[#4A9B9B] p-8 rounded-lg">
-              <h3 className="font-display text-2xl text-[#FEFEFE] mb-6">
-                CALCULATE YOUR FINISH DATE
-              </h3>
-              
+
+            <div className="flex flex-col sm:flex-row gap-3 mb-6">
               <input
                 type="date"
                 value={startDate}
@@ -48,37 +56,40 @@ export default function Calculator() {
                   setStartDate(e.target.value);
                   setFinishDate(null);
                 }}
-                className="w-full p-4 bg-[#FEFEFE] text-[#2A2A2A] font-body rounded mb-4"
+                className="flex-1 px-4 py-3 bg-paper border border-rule text-ink font-body focus:border-ink outline-none rounded-none"
+                aria-label="Start date"
               />
-              
-              <button
+              <Button
                 onClick={calculateFinish}
                 disabled={!startDate}
-                className="w-full bg-[#2A2A2A] text-[#FEFEFE] font-display text-sm px-6 py-4 uppercase tracking-wider hover:bg-[#2A2A2A]/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                variant="primary"
+                tone="light"
+                className="!rounded-none whitespace-nowrap"
               >
-                Calculate Finish Date
-              </button>
-
-              {finishDate && (
-                <div className="mt-6 p-4 bg-[#FEFEFE]/20 rounded text-center">
-                  <p className="font-body text-[#FEFEFE]/80 text-sm uppercase tracking-wider mb-2">
-                    You&apos;ll Complete The Challenge On
-                  </p>
-                  <p className="font-display text-2xl text-[#FEFEFE]">
-                    {formatDate(finishDate)}
-                  </p>
-                  <button
-                    onClick={() => document.getElementById('tracker')?.scrollIntoView({ behavior: 'smooth' })}
-                    className="mt-4 w-full bg-[#E88B5A] text-[#FEFEFE] font-display text-sm px-6 py-3 uppercase tracking-wider hover:bg-[#E88B5A]/80 transition-colors"
-                  >
-                    Start Tracking →
-                  </button>
-                </div>
-              )}
+                Calculate
+              </Button>
             </div>
+
+            {finishDate ? (
+              <div className="border-t border-rule pt-6">
+                <p className="font-body text-caption uppercase text-ink/50 mb-2">
+                  You&apos;ll finish on
+                </p>
+                <p className="font-display text-h2 text-ink mb-6">
+                  {formatDate(finishDate)}
+                </p>
+                <Button href="#tracker" variant="secondary" tone="light" className="!rounded-none w-full sm:w-auto">
+                  Start tracking from today
+                </Button>
+              </div>
+            ) : (
+              <p className="font-body text-sm text-ink/50 border-t border-rule pt-6">
+                Pick a date above to see your finish line.
+              </p>
+            )}
           </div>
         </div>
       </div>
-    </WatercolourSection>
+    </Section>
   );
 }

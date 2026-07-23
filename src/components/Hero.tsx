@@ -1,120 +1,81 @@
 'use client';
 
-import { useState, useRef } from 'react';
-import WatercolourSection from './WatercolourSection';
-import PaintDrips from './PaintDrips';
+import Section from './Section';
+import Button from './Button';
+import Icon from './Icon';
 import { useEmailCapture } from './EmailCaptureContext';
 
 export default function Hero() {
-  const marqueeRef = useRef<HTMLDivElement>(null);
-  const { isCaptured, captureEmail } = useEmailCapture();
-  const [email, setEmail] = useState('');
-  const [submitted, setSubmitted] = useState(false);
-
-  const handleEmailSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (email) {
-      captureEmail(email);
-      setSubmitted(true);
-    }
-  };
+  const { isCaptured } = useEmailCapture();
 
   return (
-    <div className="relative min-h-screen flex">
-      <WatercolourSection color="#E88B5A" className="w-full md:w-3/5 min-h-screen" seed={1}>
-        <div className="pt-24 pb-16 px-8 md:px-16 flex flex-col justify-center h-full">
-          <h1 className="font-display text-5xl md:text-7xl text-[#2A2A2A] leading-tight">
-            THE<br />50-DAY<br />CHALLENGE
+    <Section tone="paper" className="relative pt-32 pb-24 md:pt-40 md:pb-32 overflow-hidden" contained>
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center min-h-[70vh]">
+        <div className="md:col-span-7 flex flex-col gap-8">
+          <p className="font-body text-caption uppercase text-ink/60">
+            50 Days · 9 Daily Tasks · 1 Life
+          </p>
+
+          <h1 className="font-display text-display-1 text-ink">
+            The<br />
+            50-Day<br />
+            <span className="italic text-coral">Challenge.</span>
           </h1>
-          <p className="font-body text-xl md:text-2xl text-[#2A2A2A]/80 mt-6 max-w-md">
-            50 Days. 9 Daily Tasks. 1 Life-Changing Habit.
+
+          <p className="font-body text-xl text-ink/70 max-w-xl">
+            A clean, accountable structure for building one habit that actually sticks. No fluff. No gimmicks. Fifty days, done.
           </p>
-          
-          {!isCaptured && !submitted && (
-            <div className="mt-8 p-4 bg-[#FEFEFE]/80 rounded-lg max-w-md">
-              <p className="font-body text-sm text-[#2A2A2A] mb-3">
-                Join 5,000+ building unbreakable habits:
-              </p>
-              <form onSubmit={handleEmailSubmit} className="flex gap-2">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="your@email.com"
-                  className="flex-1 p-3 bg-[#FEFEFE] text-[#2A2A2A] font-body rounded border-2 border-[#2A2A2A]/20 focus:border-[#2A2A2A] outline-none"
-                  required
-                />
-                <button
-                  type="submit"
-                  className="bg-[#2A2A2A] text-[#FEFEFE] font-display text-xs px-4 py-3 uppercase tracking-wider hover:bg-[#2A2A2A]/80 transition-colors whitespace-nowrap"
-                >
-                  Join Free
-                </button>
-              </form>
-            </div>
-          )}
-          
-          {submitted && (
-            <div className="mt-8 p-4 bg-[#4A9B9B] rounded-lg max-w-md">
-              <p className="font-body text-[#FEFEFE]">
-                ✓ You're on the list! Let's get after it.
-              </p>
-            </div>
-          )}
 
-          <div className="mt-10 flex gap-4">
-            <button 
-              onClick={() => document.getElementById('tracker')?.scrollIntoView({ behavior: 'smooth' })}
-              className="bg-[#2A2A2A] text-[#FEFEFE] font-display text-sm px-8 py-4 uppercase tracking-wider hover:bg-[#2A2A2A]/80 transition-colors"
+          <div className="flex flex-wrap items-center gap-4 pt-2">
+            <Button href="#tracker" variant="primary" tone="light">
+              Take the Challenge
+            </Button>
+            <a
+              href="#rules"
+              className="inline-flex items-center gap-2 font-body text-caption uppercase text-ink/70 hover:text-ink transition-colors group"
             >
-              Start Now
-            </button>
-            <button 
-              onClick={() => document.getElementById('rules')?.scrollIntoView({ behavior: 'smooth' })}
-              className="border-2 border-[#2A2A2A] text-[#2A2A2A] font-display text-sm px-8 py-4 uppercase tracking-wider hover:bg-[#2A2A2A]/10 transition-colors"
-            >
-              See Rules
-            </button>
-          </div>
-        </div>
-      </WatercolourSection>
-
-      <WatercolourSection color="#4A9B9B" className="hidden md:block w-2/5 min-h-screen" seed={2}>
-        <div className="pt-24 pb-16 px-8 flex flex-col justify-center items-center h-full">
-          <div className="w-48 h-48 rounded-full bg-[#FEFEFE]/20 flex items-center justify-center mb-8">
-            <span className="font-display text-5xl text-[#FEFEFE]">50</span>
-          </div>
-          <h2 className="font-display text-3xl text-[#FEFEFE] text-center">
-            DAYS
-          </h2>
-          <p className="font-body text-[#FEFEFE]/80 text-center mt-4">
-            Build Unbreakable Habits
-          </p>
-        </div>
-      </WatercolourSection>
-
-      <div className="absolute left-0 right-0 bottom-0 pointer-events-none" style={{ height: '60px', top: '60%' }}>
-        <div className="overflow-hidden bg-[#4A9B9B] h-12 flex items-center">
-          <div ref={marqueeRef} className="flex animate-marquee whitespace-nowrap">
-            {[...Array(10)].map((_, i) => (
-              <span key={i} className="font-display text-xl text-[#FEFEFE] mx-8">
-                LET'S GET AFTER IT! • 50 DAYS • BUILD YOUR BEST SELF • LET'S GET AFTER IT! •
+              How it works
+              <span className="transition-transform duration-200 group-hover:translate-x-1">
+                <Icon name="arrow-right" size={16} />
               </span>
-            ))}
+            </a>
+          </div>
+
+          {!isCaptured && (
+            <p className="font-body text-sm text-ink/50 pt-2">
+              Free to start. No signup required for the first 7 days.
+            </p>
+          )}
+        </div>
+
+        <div className="md:col-span-5 relative flex items-center justify-center">
+          <div className="relative aspect-square w-full max-w-md">
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span
+                className="font-display text-teal leading-none"
+                style={{ fontSize: 'clamp(14rem, 26vw, 22rem)', letterSpacing: '-0.06em' }}
+              >
+                50
+              </span>
+            </div>
+            <svg
+              className="absolute inset-0 w-full h-full text-ink/15"
+              viewBox="0 0 200 200"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="0.5"
+              aria-hidden="true"
+            >
+              <circle cx="100" cy="100" r="95" />
+              <circle cx="100" cy="100" r="75" strokeDasharray="2 4" />
+              <circle cx="100" cy="100" r="55" />
+            </svg>
+            <p className="absolute -bottom-2 left-0 right-0 text-center font-body text-caption uppercase text-ink/50">
+              days to change everything
+            </p>
           </div>
         </div>
-        <PaintDrips color="#4A9B9B" />
       </div>
-
-      <style jsx>{`
-        @keyframes marquee {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
-        }
-        .animate-marquee {
-          animation: marquee 20s linear infinite;
-        }
-      `}</style>
-    </div>
+    </Section>
   );
 }

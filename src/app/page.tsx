@@ -1,5 +1,6 @@
 import Nav from '@/components/Nav';
 import Hero from '@/components/Hero';
+import MarqueeBand from '@/components/MarqueeBand';
 import Rules from '@/components/Rules';
 import Calculator from '@/components/Calculator';
 import Workouts from '@/components/Workouts';
@@ -10,28 +11,19 @@ import Footer from '@/components/Footer';
 
 export default function Home() {
   return (
-    <main>
+    <>
       <Nav />
-      <Hero />
-      <div id="rules">
+      <main>
+        <Hero />
+        <MarqueeBand />
         <Rules />
-      </div>
-      <div id="calculator">
         <Calculator />
-      </div>
-      <div id="workouts">
         <Workouts />
-      </div>
-      <div id="tracker">
         <Tracker />
-      </div>
-      <div id="shop">
         <Shop />
-      </div>
-      <div id="faq">
         <FAQ />
-      </div>
+      </main>
       <Footer />
-    </main>
+    </>
   );
 }

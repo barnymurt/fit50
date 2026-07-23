@@ -1,22 +1,28 @@
 import type { Metadata } from "next";
-import { Space_Grotesk, Titan_One } from "next/font/google";
+import { Fraunces, Inter, Lilita_One } from "next/font/google";
 import Providers from "@/components/Providers";
 import "./globals.css";
 
-const spaceGrotesk = Space_Grotesk({
-  variable: "--font-body",
+const fraunces = Fraunces({
+  variable: "--font-display",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
 });
 
-const titanOne = Titan_One({
-  variable: "--font-display",
+const inter = Inter({
+  variable: "--font-body",
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+});
+
+const lilitaOne = Lilita_One({
+  variable: "--font-marquee",
   subsets: ["latin"],
   weight: "400",
 });
 
 export const metadata: Metadata = {
-  title: "FIT50 - 50-Day Fitness Challenge",
+  title: "FIT50 - The 50-Day Challenge",
   description: "50 Days. 9 Daily Tasks. 1 Life-Changing Habit. Build unbreakable habits with the FIT50 fitness challenge.",
 };
 
@@ -28,7 +34,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${spaceGrotesk.variable} ${titanOne.variable} antialiased`}
+        className={`${fraunces.variable} ${inter.variable} ${lilitaOne.variable} font-body text-ink bg-paper antialiased`}
       >
         <Providers>
           {children}

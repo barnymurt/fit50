@@ -1,45 +1,67 @@
 'use client';
 
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import Button from './Button';
+
+const links = [
+  { label: 'Rules', href: '#rules' },
+  { label: 'Workouts', href: '#workouts' },
+  { label: 'Tracker', href: '#tracker' },
+  { label: 'Shop', href: '#shop' },
+  { label: 'FAQ', href: '#faq' },
+];
 
 export default function Nav() {
-  const scrollToSection = (id: string) => {
-    const element = document.getElementById(id);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 24);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-[#2A2A2A]/90 backdrop-blur-sm">
-      <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-        <Link href="/" className="font-display text-2xl text-[#FEFEFE] tracking-wider">
+    <header
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ease-smooth ${
+        scrolled
+          ? 'bg-paper/90 backdrop-blur-md border-b border-rule'
+          : 'bg-transparent'
+      }`}
+    >
+      <div className="max-w-7xl mx-auto px-6 md:px-10 h-16 flex items-center justify-between">
+        <Link
+          href="/"
+          className="font-display text-2xl text-ink tracking-tightest"
+        >
           FIT50
         </Link>
-        <div className="hidden md:flex gap-4 items-center">
-          <button onClick={() => scrollToSection('rules')} className="text-[#FEFEFE]/80 hover:text-[#FEFEFE] font-body text-sm uppercase tracking-wider">
-            Rules
-          </button>
-          <button onClick={() => scrollToSection('workouts')} className="text-[#FEFEFE]/80 hover:text-[#FEFEFE] font-body text-sm uppercase tracking-wider">
-            Workouts
-          </button>
-          <button onClick={() => scrollToSection('tracker')} className="text-[#FEFEFE]/80 hover:text-[#FEFEFE] font-body text-sm uppercase tracking-wider">
-            Tracker
-          </button>
-          <button onClick={() => scrollToSection('shop')} className="text-[#FEFEFE]/80 hover:text-[#FEFEFE] font-body text-sm uppercase tracking-wider">
-            Shop
-          </button>
-          <button onClick={() => scrollToSection('faq')} className="text-[#FEFEFE]/80 hover:text-[#FEFEFE] font-body text-sm uppercase tracking-wider">
-            FAQ
-          </button>
-          <button 
-            onClick={() => scrollToSection('tracker')}
-            className="bg-[#E88B5A] text-[#FEFEFE] font-display text-xs px-4 py-2 uppercase tracking-wider hover:bg-[#E88B5A]/80 transition-colors"
+
+        <nav className="hidden md:flex items-center gap-8">
+          {links.map((l) => (
+            <a
+              key={l.href}
+              href={l.href}
+              className="font-body text-caption uppercase text-ink/70 hover:text-ink transition-colors duration-200"
+            >
+              {l.label}
+            </a>
+          ))}
+        </nav>
+
+        <div className="flex items-center gap-3">
+          <a
+            href="#tracker"
+            className="hidden md:inline-flex font-body text-caption uppercase text-ink/70 hover:text-ink transition-colors"
           >
-            Start Now
-          </button>
+            Sign in
+          </a>
+          <Button href="#tracker" variant="primary" tone="light" className="!px-5 !py-2.5 !text-xs">
+            Start
+          </Button>
         </div>
       </div>
-    </nav>
+    </header>
   );
 }

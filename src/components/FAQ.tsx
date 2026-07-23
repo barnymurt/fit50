@@ -1,20 +1,20 @@
-'use client';
-
-import { useState } from 'react';
-import WatercolourSection from './WatercolourSection';
+import Section from './Section';
+import Heading from './Heading';
+import Button from './Button';
+import Accordion from './Accordion';
 
 const faqs = [
   {
     question: 'What happens if I miss a day?',
-    answer: 'Life happens. If you miss a day, simply continue from where you are. The streak will reset, but your progress remains. The key is consistency over perfection.',
+    answer: 'Life happens. If you miss a day, simply continue from where you are. The streak resets, but your progress remains. The key is consistency over perfection — start again the next morning.',
   },
   {
     question: 'Can I modify the workouts?',
-    answer: 'Absolutely. The workouts are suggestions. Replace any exercise with a comparable movement. Push-ups → Dumbbell press, Pull-ups → Lat pulldowns, etc. The pattern (A→B→C→D) matters more than the specific exercises.',
+    answer: 'Absolutely. The workouts are suggestions, not scripture. Replace any exercise with a comparable movement: push-ups → dumbbell press, pull-ups → lat pulldowns, and so on. The A → B → C → D pattern matters more than the specific exercises.',
   },
   {
     question: 'Do audiobooks count for reading?',
-    answer: 'Yes! Audiobooks count. 10 minutes of listening equals 10 pages of reading. Some people absorb knowledge better through listening, and that\'s completely valid.',
+    answer: 'Yes. Audiobooks count. 10 minutes of listening equals 10 pages of reading. Some people absorb knowledge better through listening — that is completely valid.',
   },
   {
     question: 'How cold should the cold shower be?',
@@ -22,61 +22,44 @@ const faqs = [
   },
   {
     question: 'Can I start whenever I want?',
-    answer: 'Yes! Pick any date to start. Use our calculator to see your finish date. Many people start on a Monday or the 1st of a month, but there\'s no perfect time—only the time you commit.',
+    answer: 'Yes. Pick any date to start. Use the calculator above to see your finish date. Many people start on a Monday or the 1st of a month, but there is no perfect time — only the time you commit.',
   },
   {
     question: 'Do I need a gym membership?',
-    answer: 'No. All workouts can be done at home with minimal equipment. Bodyweight exercises work perfectly. If you have dumbbells, great. If not, improvise with household items or just use your bodyweight.',
+    answer: 'No. All workouts can be done at home with minimal equipment. Bodyweight exercises work perfectly. If you have dumbbells, great. If not, improvise with household items.',
   },
 ];
 
 export default function FAQ() {
-  const [openIndex, setOpenIndex] = useState<number | null>(null);
-
   return (
-    <WatercolourSection color="#D8B8D0" className="py-24" seed={8}>
-      <div className="max-w-4xl mx-auto px-8">
-        <h2 className="font-display text-4xl md:text-5xl text-[#2A2A2A] text-center mb-16">
-          FAQ
-        </h2>
-
-        <div className="space-y-4">
-          {faqs.map((faq, index) => (
-            <div
-              key={index}
-              onClick={() => setOpenIndex(openIndex === index ? null : index)}
-              className="bg-[#FEFEFE] p-6 rounded-lg cursor-pointer hover:bg-[#FEFEFE]/90 transition-colors"
-            >
-              <div className="flex justify-between items-center">
-                <h3 className="font-display text-lg text-[#2A2A2A]">
-                  {faq.question}
-                </h3>
-                <span className="text-[#4A9B9B] text-2xl">
-                  {openIndex === index ? '−' : '+'}
-                </span>
-              </div>
-              
-              {openIndex === index && (
-                <p className="font-body text-[#2A2A2A]/80 mt-4 pt-4 border-t border-[#2A2A2A]/10">
-                  {faq.answer}
-                </p>
-              )}
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-16 text-center">
-          <p className="font-body text-[#2A2A2A] text-lg mb-6">
-            Still have questions? Let's get you started.
+    <Section id="faq" tone="paper" className="py-section" contained>
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-12 mb-12 md:mb-16">
+        <div className="md:col-span-5">
+          <p className="font-body text-caption uppercase text-ink/50 mb-4">
+            Questions
           </p>
-          <button 
-            onClick={() => document.getElementById('tracker')?.scrollIntoView({ behavior: 'smooth' })}
-            className="bg-[#2A2A2A] text-[#FEFEFE] font-display text-sm px-8 py-4 uppercase tracking-wider hover:bg-[#2A2A2A]/80 transition-colors"
-          >
-            Begin The Challenge →
-          </button>
+          <Heading as="h2" size="display-2">
+            Everything<br />
+            you might ask.
+          </Heading>
+        </div>
+        <div className="md:col-span-6 md:col-start-7 flex items-end">
+          <p className="font-body text-lg text-ink/70 max-w-lg">
+            Still wondering? Start anyway. The rules are simple, the structure is clear, and the only way to fail is to stop.
+          </p>
         </div>
       </div>
-    </WatercolourSection>
+
+      <Accordion items={faqs} />
+
+      <div className="mt-16 md:mt-20 pt-12 border-t border-rule flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+        <p className="font-display text-h2 text-ink max-w-md">
+          Less thinking. More doing.
+        </p>
+        <Button href="#tracker" variant="primary" tone="light">
+          Take the Challenge
+        </Button>
+      </div>
+    </Section>
   );
 }

@@ -1,8 +1,14 @@
-'use client';
+import Section from './Section';
+import Heading from './Heading';
+import Button from './Button';
 
-import WatercolourSection from './WatercolourSection';
+interface Exercise {
+  name: string;
+  reps: string;
+  isFinisher?: boolean;
+}
 
-const workoutLines = {
+const workoutLines: Record<string, Exercise[]> = {
   A: [
     { name: 'Push-ups', reps: '5 × 10 reps' },
     { name: 'Goblet Squats', reps: '5 × 10 reps' },
@@ -35,58 +41,70 @@ const workoutLines = {
 
 export default function Workouts() {
   return (
-    <WatercolourSection color="#2A2A2A" className="py-24" seed={5}>
-      <div className="max-w-7xl mx-auto px-8">
-        <h2 className="font-display text-4xl md:text-5xl text-[#FEFEFE] text-center mb-16">
-          THE WORKOUTS
-        </h2>
-
-        <div className="space-y-8">
-          {Object.entries(workoutLines).map(([line, exercises]) => (
-            <div key={line} className="flex flex-col md:flex-row gap-4 items-start md:items-center">
-              <div className="w-16 h-16 rounded-full bg-[#E88B5A] flex items-center justify-center flex-shrink-0">
-                <span className="font-display text-2xl text-[#FEFEFE]">{line}</span>
-              </div>
-              
-              <div className="flex-1 grid grid-cols-1 md:grid-cols-5 gap-4 w-full">
-                {exercises.map((exercise, index) => (
-                  <div
-                    key={index}
-                    className={`p-4 rounded-lg ${
-                      exercise.isFinisher 
-                        ? 'bg-[#4A9B9B]' 
-                        : 'bg-[#FEFEFE]/10'
-                    }`}
-                  >
-                    <h4 className="font-body text-[#FEFEFE] font-medium">
-                      {exercise.name}
-                    </h4>
-                    <p className="font-body text-[#FEFEFE]/60 text-sm mt-1">
-                      {exercise.reps}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
+    <Section id="workouts" tone="ink" className="py-section" contained>
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-12 mb-16 md:mb-20">
+        <div className="md:col-span-7">
+          <p className="font-body text-caption uppercase text-paper/50 mb-4">
+            The Workouts
+          </p>
+          <Heading as="h2" size="display-2" className="text-paper">
+            Four lines.<br />
+            One day at a time.
+          </Heading>
         </div>
-
-        <div className="mt-12 p-6 bg-[#FEFEFE]/10 rounded-lg text-center">
-          <p className="font-body text-[#FEFEFE]/80">
-            <span className="font-display text-[#E88B5A]">A, B, C, D</span> — Complete one line per day. 
-            Repeat the pattern: A → B → C → D → A → B → C → D...
+        <div className="md:col-span-5 md:col-start-8 flex items-end">
+          <p className="font-body text-lg text-paper/70 max-w-md">
+            Repeat the cycle: <span className="text-coral">A · B · C · D · A · B · C · D</span>. One line per day. The pattern matters more than the specifics.
           </p>
         </div>
-
-        <div className="mt-12 text-center">
-          <button 
-            onClick={() => document.getElementById('tracker')?.scrollIntoView({ behavior: 'smooth' })}
-            className="bg-[#E88B5A] text-[#FEFEFE] font-display text-sm px-8 py-4 uppercase tracking-wider hover:bg-[#E88B5A]/80 transition-colors"
-          >
-            Start Tracking Now →
-          </button>
-        </div>
       </div>
-    </WatercolourSection>
+
+      <div className="space-y-0 border-t border-rule-light">
+        {Object.entries(workoutLines).map(([line, exercises]) => (
+          <div
+            key={line}
+            className="grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-10 items-start md:items-center py-10 md:py-12 border-b border-rule-light"
+          >
+            <div className="md:col-span-3">
+              <span
+                className="font-display text-paper leading-none"
+                style={{ fontSize: 'clamp(6rem, 12vw, 10rem)', letterSpacing: '-0.04em' }}
+              >
+                {line}
+              </span>
+            </div>
+
+            <div className="md:col-span-9 grid grid-cols-2 md:grid-cols-5 gap-x-6 gap-y-6">
+              {exercises.map((exercise, index) => (
+                <div
+                  key={index}
+                  className={`pl-4 ${
+                    exercise.isFinisher
+                      ? 'border-l-2 border-coral'
+                      : 'border-l border-rule-light'
+                  }`}
+                >
+                  <h4 className="font-display text-lg text-paper leading-tight mb-1">
+                    {exercise.name}
+                  </h4>
+                  <p className="font-body text-sm text-paper/50">
+                    {exercise.reps}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-16 md:mt-20 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+        <p className="font-display text-h2 text-paper max-w-md">
+          Day 1 starts when you do.
+        </p>
+        <Button href="#tracker" variant="primary" tone="dark">
+          Start tracking
+        </Button>
+      </div>
+    </Section>
   );
 }
