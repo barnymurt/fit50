@@ -9,17 +9,17 @@ export default function Hero() {
   const { isCaptured } = useEmailCapture();
 
   return (
-    <Section tone="paper" className="relative pt-32 pb-24 md:pt-40 md:pb-32 overflow-hidden" contained>
+    <Section tone="paper" className="relative pt-32 pb-32 md:pt-40 md:pb-40 overflow-hidden" contained>
       <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center min-h-[70vh]">
         <div className="md:col-span-7 flex flex-col gap-8">
-          <p className="font-body text-caption uppercase text-ink/60">
+          <p className="font-body text-caption uppercase text-coral">
             50 Days · 9 Daily Tasks · 1 Life
           </p>
 
           <h1 className="font-display text-display-1 text-ink">
             The<br />
             50-Day<br />
-            <span className="italic text-coral">Challenge.</span>
+            <span className="italic" style={{ color: '#E88B5A' }}>Challenge.</span>
           </h1>
 
           <p className="font-body text-xl text-ink/70 max-w-xl">
@@ -32,7 +32,7 @@ export default function Hero() {
             </Button>
             <a
               href="#rules"
-              className="inline-flex items-center gap-2 font-body text-caption uppercase text-ink/70 hover:text-ink transition-colors group"
+              className="inline-flex items-center gap-2 font-body text-caption uppercase text-ink/70 hover:text-coral transition-colors duration-200 group"
             >
               How it works
               <span className="transition-transform duration-200 group-hover:translate-x-1">
@@ -49,11 +49,16 @@ export default function Hero() {
         </div>
 
         <div className="md:col-span-5 relative flex items-center justify-center">
+          <div
+            className="absolute -top-8 -right-8 w-32 h-32 rounded-full opacity-80"
+            style={{ background: 'radial-gradient(circle, #E88B5A 0%, #D8B8D0 100%)' }}
+            aria-hidden="true"
+          />
           <div className="relative aspect-square w-full max-w-md">
             <div className="absolute inset-0 flex items-center justify-center">
               <span
-                className="font-display text-teal leading-none"
-                style={{ fontSize: 'clamp(14rem, 26vw, 22rem)', letterSpacing: '-0.06em' }}
+                className="font-display leading-none"
+                style={{ fontSize: 'clamp(14rem, 26vw, 22rem)', letterSpacing: '-0.06em', color: '#E88B5A' }}
               >
                 50
               </span>

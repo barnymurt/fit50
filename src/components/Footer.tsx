@@ -26,7 +26,6 @@ export default function Footer() {
             FIT50
           </h2>
           <p className="font-body text-paper/50 mt-4 max-w-sm">
-            Art by <span className="text-coral">@tommygraingerart</span>.
             50 days, 9 habits, 1 life.
           </p>
         </div>
@@ -66,9 +65,9 @@ export default function Footer() {
         </div>
       </div>
 
-      <div className="pt-8 border-t border-rule-light flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="pt-8 border-t border-paper/15 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <nav className="flex flex-wrap gap-x-8 gap-y-2">
-          {['Rules', 'Workouts', 'Tracker', 'Shop', 'FAQ'].map((label) => (
+          {['Rules', 'Workouts', 'Tracker', 'FAQ'].map((label) => (
             <a
               key={label}
               href={`#${label.toLowerCase()}`}

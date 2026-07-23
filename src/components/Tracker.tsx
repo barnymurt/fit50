@@ -5,6 +5,7 @@ import Section from './Section';
 import Heading from './Heading';
 import Button from './Button';
 import Icon, { IconName } from './Icon';
+import Marquee from './Marquee';
 import EmailCaptureModal from './EmailCaptureModal';
 import { useEmailCapture } from './EmailCaptureContext';
 
@@ -31,7 +32,7 @@ const habits: Habit[] = [
   { id: 'open-mind', icon: 'open-mind', name: 'Open Mind' },
   { id: 'move-body', icon: 'move-body', name: 'Move Your Body' },
   { id: 'wet-lips', icon: 'wet-lips', name: 'Wet The Lips' },
-  { id: 'keep-walking', icon: 'keep-walking', name: 'Keep Walking' },
+  { id: 'step-it-up', icon: 'step-it-up', name: 'Step It Up' },
   { id: 'feed-brain', icon: 'feed-brain', name: 'Feed Your Brain' },
 ];
 
@@ -159,166 +160,172 @@ export default function Tracker() {
   const today = trackerData.currentDay;
   const todayCompleted = getDayCompletion(today);
   const progressPct = Math.round((todayCompleted / 9) * 100);
+  const isCubeSolved = todayCompleted === 9;
 
   return (
-    <Section id="tracker" tone="paper" className="py-section" contained>
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-12 mb-12 md:mb-16">
-        <div className="md:col-span-7">
-          <p className="font-body text-caption uppercase text-ink/50 mb-4">
-            Day {String(today).padStart(2, '0')} of 50
-          </p>
-          <Heading as="h2" size="display-2">
-            Check the box.<br />
-            Build the streak.
-          </Heading>
-        </div>
-        <div className="md:col-span-5 md:col-start-8 flex items-end">
-          <p className="font-body text-lg text-ink/70 max-w-md">
-            Tap each habit as you complete it. Your streak calculates automatically. Local-first; no account needed to start.
-          </p>
-        </div>
+    <Section id="tracker" tone="paper" className="relative py-section overflow-hidden" contained>
+      <div className="absolute -top-12 left-0 right-0 z-0 pointer-events-none">
+        <Marquee
+          text="CHECK THE BOX · BUILD THE STREAK · DAY BY DAY"
+          separator="✦"
+          speed={150}
+          textClassName="text-coral/30"
+        />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div className="lg:col-span-4 bg-ink text-paper p-8 md:p-10 flex flex-col">
-          <p className="font-body text-caption uppercase text-paper/50 mb-3">
-            Current streak
-          </p>
-          <div className="flex items-baseline gap-3 mb-2">
-            <span
-              className="font-display leading-none text-coral"
-              style={{ fontSize: 'clamp(6rem, 12vw, 9rem)', letterSpacing: '-0.04em' }}
-            >
-              {trackerData.streakCount}
-            </span>
-            <span className="font-body text-paper/60 text-lg">days</span>
+      <div className="relative z-10">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-12 mb-12 md:mb-16">
+          <div className="md:col-span-7">
+            <p className="font-body text-caption uppercase text-coral mb-4">
+              Day {String(today).padStart(2, '0')} of 50
+            </p>
+            <Heading as="h2" size="display-2">
+              Check the box.<br />
+              Build the streak.
+            </Heading>
           </div>
-          <p className="font-body text-sm text-paper/50 mb-8">
-            in a row · best: {trackerData.longestStreak} {trackerData.longestStreak === 1 ? 'day' : 'days'}
-          </p>
-
-          <div className="mt-auto space-y-3">
-            <div className="flex items-center justify-between text-sm font-body mb-2">
-              <span className="text-paper/60">Today&apos;s progress</span>
-              <span className="text-paper">{todayCompleted} / 9</span>
-            </div>
-            <div className="h-1 bg-paper/10 overflow-hidden">
-              <div
-                className="h-full bg-coral transition-all duration-500 ease-smooth"
-                style={{ width: `${progressPct}%` }}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-3 pt-4">
-              <Button
-                onClick={advanceDay}
-                disabled={trackerData.currentDay >= 50}
-                variant="secondary"
-                tone="dark"
-                className="!rounded-none !px-4 !py-3 !text-xs"
-              >
-                Next day
-              </Button>
-              <button
-                onClick={resetTracker}
-                className="font-body text-caption uppercase text-paper/50 hover:text-paper transition-colors"
-              >
-                Reset
-              </button>
-            </div>
+          <div className="md:col-span-5 md:col-start-8 flex items-end">
+            <p className="font-body text-lg text-ink/70 max-w-md">
+              Tap each habit as you complete it. Your streak calculates automatically. Local-first; no account needed to start.
+            </p>
           </div>
         </div>
 
-        <div className="lg:col-span-8 bg-white border border-rule p-6 md:p-10">
-          <div className="flex items-center justify-between mb-6 pb-6 border-b border-rule">
-            <h3 className="font-display text-h2 text-ink">
-              {habits.length} habits today
-            </h3>
-            <p className="font-body text-sm text-ink/50">
-              {todayCompleted} complete
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="lg:col-span-4 bg-teal text-paper p-8 md:p-10 flex flex-col">
+            <p className="font-body text-caption uppercase text-paper/70 mb-3">
+              Current streak
             </p>
+            <div className="flex items-baseline gap-3 mb-2">
+              <span
+                className="font-display leading-none"
+                style={{ fontSize: 'clamp(6rem, 12vw, 9rem)', letterSpacing: '-0.04em', color: '#F2D9A2' }}
+              >
+                {trackerData.streakCount}
+              </span>
+              <span className="font-body text-paper/80 text-lg">days</span>
+            </div>
+            <p className="font-body text-sm text-paper/70 mb-8">
+              in a row · best: {trackerData.longestStreak} {trackerData.longestStreak === 1 ? 'day' : 'days'}
+            </p>
+
+            <div className="mt-auto space-y-3">
+              <div className="flex items-center justify-between text-sm font-body mb-2">
+                <span className="text-paper/80">Today&apos;s progress</span>
+                <span className="text-paper">{todayCompleted} / 9</span>
+              </div>
+              <div className="h-1.5 bg-paper/15 overflow-hidden">
+                <div
+                  className="h-full bg-coral transition-all duration-500 ease-smooth"
+                  style={{ width: `${progressPct}%` }}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3 pt-4">
+                <Button
+                  onClick={advanceDay}
+                  disabled={trackerData.currentDay >= 50}
+                  variant="secondary"
+                  tone="dark"
+                  className="!rounded-none !px-4 !py-3 !text-xs"
+                >
+                  Next day
+                </Button>
+                <button
+                  onClick={resetTracker}
+                  className="font-body text-caption uppercase text-paper/70 hover:text-paper transition-colors"
+                >
+                  Reset
+                </button>
+              </div>
+            </div>
           </div>
 
-          <ul className="divide-y divide-rule">
-            {habits.map((habit) => {
-              const isDone = trackerData.habitCompletions[habit.id]?.[today];
-              return (
-                <li key={habit.id}>
+          <div className="lg:col-span-8 bg-white border border-rule p-6 md:p-10">
+            <div className="flex items-end justify-between mb-8 pb-6 border-b border-rule">
+              <div>
+                <p className="font-body text-caption uppercase text-ink/50 mb-1">
+                  {isCubeSolved ? 'Cube solved for today' : 'Solve today\'s cube'}
+                </p>
+                <h3 className="font-display text-h2 text-ink">
+                  {todayCompleted} of 9
+                </h3>
+              </div>
+              <p className="font-body text-caption uppercase text-ink/50">
+                Tap to toggle
+              </p>
+            </div>
+
+            <div
+              className={`grid grid-cols-3 gap-px bg-ink border border-ink transition-shadow duration-500 ${
+                isCubeSolved ? 'shadow-[0_0_0_4px_rgba(232,139,90,0.35)]' : ''
+              }`}
+            >
+              {habits.map((habit) => {
+                const isDone = trackerData.habitCompletions[habit.id]?.[today];
+                return (
                   <button
+                    key={habit.id}
                     onClick={() => toggleHabit(habit.id, today)}
-                    className="w-full flex items-center gap-4 py-4 text-left group"
+                    className={`aspect-square p-3 md:p-5 flex flex-col items-center justify-center gap-2 md:gap-3 transition-colors duration-300 group ${
+                      isDone
+                        ? 'bg-coral text-paper'
+                        : 'bg-white hover:bg-paper text-ink'
+                    }`}
                     aria-pressed={isDone}
+                    aria-label={`${habit.name}${isDone ? ' - complete' : ''}`}
                   >
-                    <span
-                      className={`flex-shrink-0 w-6 h-6 border ${
-                        isDone
-                          ? 'bg-teal border-teal'
-                          : 'border-ink/30 group-hover:border-ink'
-                      } flex items-center justify-center transition-colors duration-200`}
-                      aria-hidden="true"
-                    >
-                      {isDone && (
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                      )}
-                    </span>
                     <Icon
                       name={habit.icon}
-                      size={20}
-                      className={`flex-shrink-0 transition-colors duration-200 ${
-                        isDone ? 'text-teal' : 'text-ink'
-                      }`}
+                      size={48}
+                      strokeWidth={1.5}
+                      className="transition-transform duration-300 group-hover:scale-105"
                     />
-                    <span
-                      className={`font-body text-body flex-1 transition-colors duration-200 ${
-                        isDone ? 'text-ink/40 line-through' : 'text-ink'
-                      }`}
-                    >
+                    <span className="font-body text-caption uppercase text-center leading-tight">
                       {habit.name}
                     </span>
                   </button>
-                </li>
-              );
-            })}
-          </ul>
-
-          <div className="mt-10 pt-8 border-t border-rule">
-            <div className="flex items-center justify-between mb-4">
-              <p className="font-body text-caption uppercase text-ink/50">
-                The 50 days
-              </p>
-              <p className="font-body text-caption uppercase text-ink/50">
-                Day {today} highlighted
-              </p>
-            </div>
-            <div className="grid grid-cols-10 gap-1.5">
-              {Array.from({ length: 50 }, (_, i) => i + 1).map((day) => {
-                const completed = getDayCompletion(day);
-                const isCurrent = day === today;
-                const isPast = day < today;
-                const isFuture = day > today;
-
-                let bg = 'bg-paper';
-                if (completed >= 7) bg = 'bg-teal';
-                else if (completed >= 5) bg = 'bg-coral/70';
-                else if (completed > 0) bg = 'bg-cream';
-
-                return (
-                  <div
-                    key={day}
-                    className={`aspect-square flex items-center justify-center text-[10px] font-body ${
-                      isCurrent
-                        ? 'ring-2 ring-ink ring-offset-2 ring-offset-white'
-                        : ''
-                    } ${bg} ${
-                      isFuture ? 'text-ink/30' : isPast ? 'text-ink' : 'text-ink'
-                    }`}
-                    title={`Day ${day}: ${completed}/9`}
-                  >
-                    {day}
-                  </div>
                 );
               })}
+            </div>
+
+            <div className="mt-10 pt-8 border-t border-rule">
+              <div className="flex items-center justify-between mb-4">
+                <p className="font-body text-caption uppercase text-ink/50">
+                  The 50 days
+                </p>
+                <p className="font-body text-caption uppercase text-ink/50">
+                  Day {today} highlighted
+                </p>
+              </div>
+              <div className="grid grid-cols-10 gap-1.5">
+                {Array.from({ length: 50 }, (_, i) => i + 1).map((day) => {
+                  const completed = getDayCompletion(day);
+                  const isCurrent = day === today;
+                  const isPast = day < today;
+                  const isFuture = day > today;
+
+                  let bg = 'bg-paper';
+                  if (completed >= 7) bg = 'bg-teal';
+                  else if (completed >= 5) bg = 'bg-coral';
+                  else if (completed > 0) bg = 'bg-cream';
+
+                  return (
+                    <div
+                      key={day}
+                      className={`aspect-square flex items-center justify-center text-[10px] font-body ${
+                        isCurrent
+                          ? 'ring-2 ring-ink ring-offset-2 ring-offset-white'
+                          : ''
+                      } ${bg} ${
+                        isFuture ? 'text-ink/30' : isPast ? 'text-ink' : 'text-ink'
+                      }`}
+                      title={`Day ${day}: ${completed}/9`}
+                    >
+                      {day}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>

@@ -6,27 +6,33 @@ interface MarqueeProps {
   text: string;
   separator?: string;
   speed?: number;
-  tone?: 'light' | 'dark';
   className?: string;
+  textClassName?: string;
 }
 
 export default function Marquee({
   text,
   separator = '•',
-  speed = 60,
-  tone = 'light',
+  speed = 120,
   className = '',
+  textClassName = '',
 }: MarqueeProps) {
-  const toneClass = tone === 'dark' ? 'text-paper' : 'text-ink';
   const item = `${text} ${separator} `;
-  const items = Array.from({ length: 12 }, (_, i) => (
-    <span key={i} className="font-marquee text-[clamp(5rem,11vw,9rem)] leading-none uppercase px-6">
+  const items = Array.from({ length: 8 }, (_, i) => (
+    <span
+      key={i}
+      className={`font-marquee leading-none uppercase pr-12 ${textClassName}`}
+      style={{ fontSize: 'clamp(5rem, 13vw, 12rem)' }}
+    >
       {item}
     </span>
   ));
 
   return (
-    <div className={`overflow-hidden whitespace-nowrap select-none ${toneClass} ${className}`}>
+    <div
+      className={`overflow-hidden whitespace-nowrap select-none ${className}`}
+      aria-hidden="true"
+    >
       <div
         className="inline-flex animate-marquee"
         style={{ animationDuration: `${speed}s` }}

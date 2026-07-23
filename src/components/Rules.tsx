@@ -5,6 +5,7 @@ import Section from './Section';
 import Heading from './Heading';
 import Icon, { IconName } from './Icon';
 import Button from './Button';
+import Marquee from './Marquee';
 
 interface Rule {
   id: number;
@@ -66,8 +67,8 @@ const rules: Rule[] = [
   },
   {
     id: 8,
-    icon: 'keep-walking',
-    title: 'Keep Walking',
+    icon: 'step-it-up',
+    title: 'Step It Up',
     description: 'Walk 10,000 steps every day. Your body was made to move.',
     tip: 'Park further away, take the stairs, or walk while you talk on the phone.',
   },
@@ -84,85 +85,107 @@ export default function Rules() {
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
   return (
-    <Section id="rules" tone="white" className="py-section" contained>
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-12 mb-16 md:mb-20">
-        <div className="md:col-span-5">
-          <p className="font-body text-caption uppercase text-ink/50 mb-4">
-            The Rules · 01—09
-          </p>
-          <Heading as="h2" size="display-2">
-            Nine<br />
-            non&#8209;negotiables.
-          </Heading>
-        </div>
-        <div className="md:col-span-6 md:col-start-7 flex items-end">
-          <p className="font-body text-lg text-ink/70 max-w-lg">
-            Every day, every one. No substitutions, no skip days, no compromises. That&apos;s the point.
-          </p>
-        </div>
+    <Section id="rules" tone="ink" className="relative bg-teal text-paper py-section overflow-hidden" contained>
+      <div className="absolute -top-12 left-0 right-0 z-0 pointer-events-none">
+        <Marquee
+          text="NINE RULES · NINE HABITS · NON-NEGOTIABLES"
+          separator="✦"
+          speed={120}
+          textClassName="text-paper/15"
+        />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 border-t border-l border-rule">
-        {rules.map((rule) => {
-          const isOpen = expandedId === rule.id;
-          return (
-            <div
-              key={rule.id}
-              className="border-r border-b border-rule p-6 md:p-8 group hover:bg-paper transition-colors duration-300"
-            >
-              <div className="flex items-start gap-4 mb-4">
-                <span className="font-display text-2xl text-teal tabular-nums">
-                  {String(rule.id).padStart(2, '0')}
-                </span>
-                <Icon name={rule.icon} className="text-ink" size={24} />
-              </div>
+      <div className="relative z-10">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-12 mb-16 md:mb-20">
+          <div className="md:col-span-5">
+            <p className="font-body text-caption uppercase text-paper/70 mb-4">
+              The Rules · 01—09
+            </p>
+            <Heading as="h2" size="display-2" className="text-paper">
+              Nine<br />
+              non&#8209;negotiables.
+            </Heading>
+          </div>
+          <div className="md:col-span-6 md:col-start-7 flex items-end">
+            <p className="font-body text-lg text-paper/85 max-w-lg">
+              Every day, every one. No substitutions, no skip days, no compromises. That&apos;s the point.
+            </p>
+          </div>
+        </div>
 
-              <h3 className="font-display text-h3 text-ink mb-3">
-                {rule.title}
-              </h3>
-
-              <p className="font-body text-body text-ink/70 mb-4">
-                {rule.description}
-              </p>
-
-              <button
-                onClick={() => setExpandedId(isOpen ? null : rule.id)}
-                className="font-body text-caption uppercase text-ink/50 hover:text-coral transition-colors duration-200 inline-flex items-center gap-2"
-                aria-expanded={isOpen}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 border-t border-l border-paper/20">
+          {rules.map((rule) => {
+            const isOpen = expandedId === rule.id;
+            return (
+              <div
+                key={rule.id}
+                className="border-r border-b border-paper/20 p-6 md:p-8 group hover:bg-paper/5 transition-colors duration-300"
               >
-                {isOpen ? 'Hide tip' : 'Show tip'}
-                <span
-                  className={`inline-block transition-transform duration-300 ${
-                    isOpen ? 'rotate-90' : ''
+                <div className="flex items-start justify-between mb-6">
+                  <span className="font-display text-xl text-coral tabular-nums">
+                    {String(rule.id).padStart(2, '0')}
+                  </span>
+                  <span className="font-body text-caption uppercase text-paper/60">
+                    50× reps
+                  </span>
+                </div>
+
+                <div className="mb-6 text-paper">
+                  <Icon
+                    name={rule.icon}
+                    size={88}
+                    strokeWidth={1.25}
+                    className="text-paper"
+                  />
+                </div>
+
+                <h3 className="font-display text-h2 text-paper mb-3">
+                  {rule.title}
+                </h3>
+
+                <p className="font-body text-body text-paper/80 mb-4">
+                  {rule.description}
+                </p>
+
+                <button
+                  onClick={() => setExpandedId(isOpen ? null : rule.id)}
+                  className="font-body text-caption uppercase text-paper/70 hover:text-coral transition-colors duration-200 inline-flex items-center gap-2"
+                  aria-expanded={isOpen}
+                >
+                  {isOpen ? 'Hide tip' : 'Show tip'}
+                  <span
+                    className={`inline-block transition-transform duration-300 ${
+                      isOpen ? 'rotate-90' : ''
+                    }`}
+                  >
+                    <Icon name="arrow-right" size={14} />
+                  </span>
+                </button>
+
+                <div
+                  className={`grid transition-all duration-300 ease-smooth ${
+                    isOpen ? 'grid-rows-[1fr] mt-4' : 'grid-rows-[0fr]'
                   }`}
                 >
-                  <Icon name="arrow-right" size={14} />
-                </span>
-              </button>
-
-              <div
-                className={`grid transition-all duration-300 ease-smooth ${
-                  isOpen ? 'grid-rows-[1fr] mt-4' : 'grid-rows-[0fr]'
-                }`}
-              >
-                <div className="overflow-hidden">
-                  <p className="font-body text-sm text-ink/60 italic border-l-2 border-coral pl-4">
-                    {rule.tip}
-                  </p>
+                  <div className="overflow-hidden">
+                    <p className="font-body text-sm text-paper/85 italic border-l-2 border-coral pl-4">
+                      {rule.tip}
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
 
-      <div className="mt-16 md:mt-20 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-        <p className="font-display text-h2 text-ink max-w-md">
-          Ready to commit to all nine?
-        </p>
-        <Button href="#tracker" variant="primary" tone="light">
-          Take the Challenge
-        </Button>
+        <div className="mt-16 md:mt-20 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          <p className="font-display text-h2 text-paper max-w-md">
+            Ready to commit to all nine?
+          </p>
+          <Button href="#tracker" variant="primary" tone="light">
+            Take the Challenge
+          </Button>
+        </div>
       </div>
     </Section>
   );
