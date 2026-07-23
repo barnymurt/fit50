@@ -59,14 +59,14 @@ export default function Workouts() {
 
       <div className="relative z-10 max-w-7xl mx-auto px-6 md:px-10 pb-section">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mb-16 md:mb-20">
-          <div className="md:col-span-7">
-            <p className="font-body text-caption uppercase text-coral">
-              The Workouts
+          <div className="md:col-span-8">
+            <p className="font-display text-3xl md:text-5xl text-paper/95 max-w-3xl leading-tight">
+              Repeat the cycle: <span className="text-coral">A · B · C · D · A · B · C · D</span>. One line per day. The pattern matters more than the specifics.
             </p>
           </div>
-          <div className="md:col-span-5 md:col-start-8">
-            <p className="font-body text-lg text-paper/70 max-w-md">
-              Repeat the cycle: <span className="text-coral">A · B · C · D · A · B · C · D</span>. One line per day. The pattern matters more than the specifics.
+          <div className="md:col-span-3 md:col-start-10">
+            <p className="font-body text-caption uppercase text-coral">
+              The Workouts
             </p>
           </div>
         </div>

@@ -93,7 +93,7 @@ export default function Rules() {
 
       <div className="absolute top-0 left-0 right-0 h-32 md:h-52 overflow-hidden pointer-events-none z-0 flex items-center">
         <Marquee
-          text="NINE RULES · NINE HABITS · NON-NEGOTIABLES"
+          text="NINE RULES · NON-NEGOTIABLES"
           separator="✦"
           speed={200}
           textClassName="text-paper/40"
@@ -102,14 +102,14 @@ export default function Rules() {
 
       <div className="relative z-10 max-w-7xl mx-auto px-6 md:px-10 pb-section">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mb-16 md:mb-20">
-          <div className="md:col-span-5">
-            <p className="font-body text-caption uppercase text-paper/80">
-              The Rules · 01—09
+          <div className="md:col-span-7">
+            <p className="font-display text-3xl md:text-5xl text-paper/95 max-w-2xl leading-tight">
+              Every day, every one. No substitutions, no skip days, no compromises. That&apos;s the point.
             </p>
           </div>
-          <div className="md:col-span-6 md:col-start-7">
-            <p className="font-body text-lg text-paper/90 max-w-lg">
-              Every day, every one. No substitutions, no skip days, no compromises. That&apos;s the point.
+          <div className="md:col-span-3 md:col-start-10">
+            <p className="font-body text-caption uppercase text-paper/70">
+              The Rules · 01—09
             </p>
           </div>
         </div>

@@ -45,14 +45,14 @@ export default function Calculator() {
 
       <div className="relative z-10 max-w-7xl mx-auto px-6 md:px-10 pb-section">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mb-16">
-          <div className="md:col-span-5">
-            <p className="font-body text-caption uppercase text-ink/60">
-              The Calendar
+          <div className="md:col-span-7">
+            <p className="font-display text-3xl md:text-5xl text-ink/85 max-w-2xl leading-tight">
+              Choose your start date. We&apos;ll show you exactly when you&apos;ll emerge — 50 days later, transformed.
             </p>
           </div>
-          <div className="md:col-span-6 md:col-start-7">
-            <p className="font-body text-lg text-ink/70 max-w-md">
-              Choose your start date. We&apos;ll show you exactly when you&apos;ll emerge — 50 days later, transformed.
+          <div className="md:col-span-3 md:col-start-10">
+            <p className="font-body text-caption uppercase text-ink/60">
+              The Calendar
             </p>
           </div>
         </div>

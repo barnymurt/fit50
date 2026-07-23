@@ -181,13 +181,13 @@ export default function Tracker() {
       <div className="relative z-10 max-w-7xl mx-auto px-6 md:px-10 pb-section">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mb-12 md:mb-16">
           <div className="md:col-span-7">
-            <p className="font-body text-caption uppercase text-coral">
-              Day {String(today).padStart(2, '0')} of 50
+            <p className="font-display text-3xl md:text-5xl text-ink/85 max-w-2xl leading-tight">
+              Tap each habit as you complete it. Your streak calculates automatically. Local-first; no account needed to start.
             </p>
           </div>
-          <div className="md:col-span-5 md:col-start-8">
-            <p className="font-body text-lg text-ink/70 max-w-md">
-              Tap each habit as you complete it. Your streak calculates automatically. Local-first; no account needed to start.
+          <div className="md:col-span-3 md:col-start-10">
+            <p className="font-body text-caption uppercase text-coral">
+              Day {String(today).padStart(2, '0')} of 50
             </p>
           </div>
         </div>

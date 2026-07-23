@@ -50,14 +50,14 @@ export default function FAQ() {
 
       <div className="relative z-10 max-w-7xl mx-auto px-6 md:px-10 pb-section">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mb-12 md:mb-16">
-          <div className="md:col-span-5">
-            <p className="font-body text-caption uppercase text-ink/60">
-              Questions
+          <div className="md:col-span-7">
+            <p className="font-display text-3xl md:text-5xl text-ink/85 max-w-2xl leading-tight">
+              Still wondering? Start anyway. The rules are simple, the structure is clear, and the only way to fail is to stop.
             </p>
           </div>
-          <div className="md:col-span-6 md:col-start-7">
-            <p className="font-body text-lg text-ink/70 max-w-lg">
-              Still wondering? Start anyway. The rules are simple, the structure is clear, and the only way to fail is to stop.
+          <div className="md:col-span-3 md:col-start-10">
+            <p className="font-body text-caption uppercase text-ink/60">
+              Questions
             </p>
           </div>
         </div>
