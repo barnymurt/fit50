@@ -93,7 +93,7 @@ export default function Rules() {
 
       <div className="absolute top-0 left-0 right-0 h-32 md:h-52 overflow-hidden pointer-events-none z-0 flex items-center">
         <Marquee
-          text="NINE RULES · NON-NEGOTIABLES"
+          text="NINE HABITS · NON-NEGOTIABLES"
           separator="✦"
           speed={200}
           textClassName="text-paper/40"
