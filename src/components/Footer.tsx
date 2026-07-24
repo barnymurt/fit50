@@ -19,7 +19,12 @@ export default function Footer() {
   };
 
   return (
-    <Section as="footer" tone="ink" className="py-20 md:py-24" contained>
+    <Section
+      as="footer"
+      className="text-paper py-20 md:py-24"
+      contained
+      style={{ backgroundColor: '#1A1A1A' }}
+    >
       <div className="grid grid-cols-1 md:grid-cols-12 gap-12 mb-16">
         <div className="md:col-span-5">
           <h2 className="font-display text-display-2 text-paper leading-none">

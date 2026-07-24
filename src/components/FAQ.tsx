@@ -35,7 +35,7 @@ export default function FAQ() {
     <Section
       id="faq"
       className="relative text-ink overflow-hidden pt-40 md:pt-56"
-      style={{ backgroundColor: '#F2D9A2' }}
+      style={{ backgroundColor: '#FFFFFF' }}
     >
       <h2 className="sr-only">Frequently asked questions</h2>
 
