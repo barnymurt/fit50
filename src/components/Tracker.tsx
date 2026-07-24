@@ -183,7 +183,7 @@ export default function Tracker() {
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mb-12 md:mb-16">
           <div className="md:col-span-7">
             <p className="font-display text-3xl md:text-5xl text-ink/85 max-w-2xl leading-tight">
-              Tap each habit as you complete it. Your streak calculates automatically. Local-first; no account needed to start.
+              Tap a habit off your list and watch your streak grow.
             </p>
           </div>
           <div className="md:col-span-3 md:col-start-10">
