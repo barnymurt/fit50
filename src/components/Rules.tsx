@@ -2,13 +2,14 @@
 
 import { useState } from 'react';
 import Section from './Section';
-import Icon, { IconName } from './Icon';
+import Icon from './Icon';
+import HabitIcon, { HabitIconName } from './HabitIcon';
 import Button from './Button';
 import Marquee from './Marquee';
 
 interface Rule {
   id: number;
-  icon: IconName;
+  icon: HabitIconName;
   title: string;
   description: string;
   tip: string;
@@ -132,11 +133,10 @@ export default function Rules() {
                 </div>
 
                 <div className="mb-6 text-paper">
-                  <Icon
+                  <HabitIcon
                     name={rule.icon}
                     size={88}
-                    strokeWidth={1.25}
-                    className="text-paper"
+                    tone="light"
                   />
                 </div>
 

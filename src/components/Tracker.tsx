@@ -3,14 +3,15 @@
 import { useState, useEffect } from 'react';
 import Section from './Section';
 import Button from './Button';
-import Icon, { IconName } from './Icon';
+import Icon from './Icon';
+import HabitIcon, { HabitIconName } from './HabitIcon';
 import Marquee from './Marquee';
 import EmailCaptureModal from './EmailCaptureModal';
 import { useEmailCapture } from './EmailCaptureContext';
 
 interface Habit {
   id: string;
-  icon: IconName;
+  icon: HabitIconName;
   name: string;
 }
 
@@ -275,10 +276,10 @@ export default function Tracker() {
                     aria-pressed={isDone}
                     aria-label={`${habit.name}${isDone ? ' - complete' : ''}`}
                   >
-                    <Icon
+                    <HabitIcon
                       name={habit.icon}
                       size={48}
-                      strokeWidth={1.5}
+                      tone={isDone ? 'light' : 'dark'}
                       className="transition-transform duration-300 group-hover:scale-105"
                     />
                     <span className="font-body text-caption uppercase text-center leading-tight">
