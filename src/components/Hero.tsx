@@ -17,13 +17,12 @@ export default function Hero() {
           </p>
 
           <h1 className="font-display text-display-1 text-ink">
-            The<br />
-            50-Day<br />
-            <span className="italic" style={{ color: '#E88B5A' }}>Challenge.</span>
+            The Fit50<br />
+            Challenge.
           </h1>
 
           <p className="font-body text-xl text-ink/70 max-w-xl">
-            A clean, accountable structure for building one habit that actually sticks. No fluff. No gimmicks. Fifty days, done.
+            Fifty days, nine habits, one simple test: can you show up every day? Let&apos;s find out.
           </p>
 
           <div className="flex flex-wrap items-center gap-4 pt-2">
