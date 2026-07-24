@@ -52,7 +52,7 @@ export default function FAQ() {
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mb-12 md:mb-16">
           <div className="md:col-span-7">
             <p className="font-display text-3xl md:text-5xl text-ink/85 max-w-2xl leading-tight">
-              Still wondering? Start anyway. The rules are simple, the structure is clear, and the only way to fail is to stop.
+              Still overthinking it? Don&apos;t! Just start! The only failure is quitting.
             </p>
           </div>
           <div className="md:col-span-3 md:col-start-10">

@@ -47,7 +47,7 @@ export default function Calculator() {
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mb-16">
           <div className="md:col-span-7">
             <p className="font-display text-3xl md:text-5xl text-ink/85 max-w-2xl leading-tight">
-              Pick your start date. We&apos;ll mark the finish line — 50 days to go.
+              Picked your start date? Now find your finish line.
             </p>
           </div>
           <div className="md:col-span-3 md:col-start-10">

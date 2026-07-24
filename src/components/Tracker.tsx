@@ -183,7 +183,7 @@ export default function Tracker() {
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mb-12 md:mb-16">
           <div className="md:col-span-7">
             <p className="font-display text-3xl md:text-5xl text-ink/85 max-w-2xl leading-tight">
-              Tap a habit off your list and watch your streak grow.
+              Watch your streak grow with every grid completed.
             </p>
           </div>
           <div className="md:col-span-3 md:col-start-10">

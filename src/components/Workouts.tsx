@@ -61,7 +61,7 @@ export default function Workouts() {
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mb-16 md:mb-20">
           <div className="md:col-span-8">
             <p className="font-display text-3xl md:text-5xl text-paper/95 max-w-3xl leading-tight">
-              Cycle through A · B · C · D, one a day, on repeat. Show up — the exact moves are flexible.
+              Choose a line a day, Repeat — Just show up.
             </p>
           </div>
           <div className="md:col-span-3 md:col-start-10">
