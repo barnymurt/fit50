@@ -29,8 +29,8 @@ export default function Calculator() {
   return (
     <Section
       id="calculator"
-      tone="ink"
-      className="relative bg-lavender text-ink overflow-hidden pt-40 md:pt-56"
+      className="relative text-ink overflow-hidden pt-40 md:pt-56"
+      style={{ backgroundColor: '#D8B8D0' }}
     >
       <h2 className="sr-only">Calculate your finish date</h2>
 

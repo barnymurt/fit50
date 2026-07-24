@@ -34,8 +34,8 @@ export default function FAQ() {
   return (
     <Section
       id="faq"
-      tone="ink"
-      className="relative bg-cream text-ink overflow-hidden pt-40 md:pt-56"
+      className="relative text-ink overflow-hidden pt-40 md:pt-56"
+      style={{ backgroundColor: '#F2D9A2' }}
     >
       <h2 className="sr-only">Frequently asked questions</h2>
 
