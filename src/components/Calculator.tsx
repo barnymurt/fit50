@@ -30,7 +30,7 @@ export default function Calculator() {
     <Section
       id="calculator"
       tone="ink"
-      className="relative bg-lavender/50 text-ink overflow-hidden pt-40 md:pt-56"
+      className="relative bg-lavender text-ink overflow-hidden pt-40 md:pt-56"
     >
       <h2 className="sr-only">Calculate your finish date</h2>
 

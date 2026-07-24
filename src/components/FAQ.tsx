@@ -35,7 +35,7 @@ export default function FAQ() {
     <Section
       id="faq"
       tone="ink"
-      className="relative bg-cream/60 text-ink overflow-hidden pt-40 md:pt-56"
+      className="relative bg-cream text-ink overflow-hidden pt-40 md:pt-56"
     >
       <h2 className="sr-only">Frequently asked questions</h2>
 
