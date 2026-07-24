@@ -132,11 +132,10 @@ export default function Rules() {
                   </span>
                 </div>
 
-                <div className="mb-6 text-paper">
+                <div className="mb-6 inline-block bg-white p-3">
                   <HabitIcon
                     name={rule.icon}
-                    size={88}
-                    tone="light"
+                    size={72}
                   />
                 </div>
 

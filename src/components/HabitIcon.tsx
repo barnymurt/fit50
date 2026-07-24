@@ -15,7 +15,6 @@ interface HabitIconProps {
   name: HabitIconName;
   size?: number;
   className?: string;
-  tone?: 'light' | 'dark';
 }
 
 const ICON_MAP: Record<HabitIconName, string> = {
@@ -34,10 +33,7 @@ export default function HabitIcon({
   name,
   size = 24,
   className = '',
-  tone = 'dark',
 }: HabitIconProps) {
-  const invert = tone === 'light';
-
   return (
     <img
       src={ICON_MAP[name]}
@@ -49,7 +45,6 @@ export default function HabitIcon({
         width: size,
         height: size,
         objectFit: 'contain',
-        filter: invert ? 'brightness(0) invert(1)' : undefined,
       }}
     />
   );

@@ -276,12 +276,16 @@ export default function Tracker() {
                     aria-pressed={isDone}
                     aria-label={`${habit.name}${isDone ? ' - complete' : ''}`}
                   >
-                    <HabitIcon
-                      name={habit.icon}
-                      size={48}
-                      tone={isDone ? 'light' : 'dark'}
-                      className="transition-transform duration-300 group-hover:scale-105"
-                    />
+                    <div
+                      className={`p-1.5 transition-transform duration-300 group-hover:scale-105 ${
+                        isDone ? 'bg-white' : ''
+                      }`}
+                    >
+                      <HabitIcon
+                        name={habit.icon}
+                        size={48}
+                      />
+                    </div>
                     <span className="font-body text-caption uppercase text-center leading-tight">
                       {habit.name}
                     </span>
