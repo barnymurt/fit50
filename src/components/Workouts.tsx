@@ -33,6 +33,7 @@ const workoutLines: Record<string, Exercise[]> = {
   ],
   D: [
     { slot: 'Push', name: 'Tricep Push-ups (elbows tucked)', reps: '5 × 10 reps' },
+    { slot: 'Pull', name: 'Wall Slides', reps: '5 × 10 reps' },
     { slot: 'Legs', name: 'Single-Leg Glute Bridges', reps: '5 × 10 reps (per leg)' },
     { slot: 'Core', name: 'Dead Bugs', reps: '5 × 10 reps (5 per side)' },
     { slot: 'Conditioning', name: 'Russian Twists', reps: '5 × 50 sec', isFinisher: true },
