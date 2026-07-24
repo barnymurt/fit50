@@ -13,7 +13,7 @@ export default function Hero() {
       <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center min-h-[70vh]">
         <div className="md:col-span-7 flex flex-col gap-8">
           <p className="font-body text-caption uppercase text-coral">
-            50 Days · 9 Daily Tasks · 1 Life
+            50 Days · 9 Habits · 1 Fresh Start
           </p>
 
           <h1 className="font-display text-display-1 text-ink">
@@ -42,7 +42,7 @@ export default function Hero() {
 
           {!isCaptured && (
             <p className="font-body text-sm text-ink/50 pt-2">
-              Free to start. No signup required for the first 7 days.
+              &nbsp;
             </p>
           )}
         </div>

@@ -186,11 +186,6 @@ export default function Tracker() {
               Watch your streak grow with every grid completed.
             </p>
           </div>
-          <div className="md:col-span-3 md:col-start-10">
-            <p className="font-body text-caption uppercase text-coral">
-              Day {String(today).padStart(2, '0')} of 50
-            </p>
-          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">

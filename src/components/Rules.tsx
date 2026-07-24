@@ -108,11 +108,6 @@ export default function Rules() {
               All nine, Every day — That&apos;s the challenge.
             </p>
           </div>
-          <div className="md:col-span-3 md:col-start-10">
-            <p className="font-body text-caption uppercase text-paper/70">
-              The Rules · 01—09
-            </p>
-          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 border-t border-l border-paper/20">

@@ -64,11 +64,6 @@ export default function Workouts() {
               Choose a line a day, Repeat — Just show up.
             </p>
           </div>
-          <div className="md:col-span-3 md:col-start-10">
-            <p className="font-body text-caption uppercase text-coral">
-              The Workouts
-            </p>
-          </div>
         </div>
 
         <div className="space-y-0 border-t border-paper/15">

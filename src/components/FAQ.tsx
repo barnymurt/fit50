@@ -55,11 +55,6 @@ export default function FAQ() {
               Still overthinking it? Don&apos;t! Just start! The only failure is quitting.
             </p>
           </div>
-          <div className="md:col-span-3 md:col-start-10">
-            <p className="font-body text-caption uppercase text-ink/60">
-              Questions
-            </p>
-          </div>
         </div>
 
         <Accordion items={faqs} />

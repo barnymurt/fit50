@@ -50,11 +50,6 @@ export default function Calculator() {
               Picked your start date? Now find your finish line.
             </p>
           </div>
-          <div className="md:col-span-3 md:col-start-10">
-            <p className="font-body text-caption uppercase text-ink/60">
-              The Calendar
-            </p>
-          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
