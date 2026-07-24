@@ -3,6 +3,7 @@ import Button from './Button';
 import Marquee from './Marquee';
 
 interface Exercise {
+  slot: string;
   name: string;
   reps: string;
   isFinisher?: boolean;
@@ -10,32 +11,31 @@ interface Exercise {
 
 const workoutLines: Record<string, Exercise[]> = {
   A: [
-    { name: 'Push-ups', reps: '5 × 10 reps' },
-    { name: 'Goblet Squats', reps: '5 × 10 reps' },
-    { name: 'Dumbbell Rows', reps: '5 × 10 reps' },
-    { name: 'Shoulder Press', reps: '5 × 10 reps' },
-    { name: 'Plank', reps: '5 × 50 sec', isFinisher: true },
+    { slot: 'Push', name: 'Push-ups', reps: '5 × 10 reps' },
+    { slot: 'Pull', name: 'Supermans', reps: '5 × 10 reps' },
+    { slot: 'Legs', name: 'Bodyweight Squats', reps: '5 × 10 reps' },
+    { slot: 'Core', name: 'Bird Dogs', reps: '5 × 10 reps (5 per side)' },
+    { slot: 'Conditioning', name: 'Plank', reps: '5 × 50 sec', isFinisher: true },
   ],
   B: [
-    { name: 'Pull-ups', reps: '5 × 10 reps' },
-    { name: 'Lunges', reps: '5 × 10 reps' },
-    { name: 'Bench Press', reps: '5 × 10 reps' },
-    { name: 'Bicep Curls', reps: '5 × 10 reps' },
-    { name: 'Burpees', reps: '5 × 50 sec', isFinisher: true },
+    { slot: 'Push', name: 'Wide Push-ups', reps: '5 × 10 reps' },
+    { slot: 'Pull', name: 'Reverse Snow Angels', reps: '5 × 10 reps' },
+    { slot: 'Legs', name: 'Lunges', reps: '5 × 10 reps' },
+    { slot: 'Core', name: 'Plank Shoulder Taps', reps: '5 × 10 reps (5 per side)' },
+    { slot: 'Conditioning', name: 'Burpees', reps: '5 × 50 sec', isFinisher: true },
   ],
   C: [
-    { name: 'Dips', reps: '5 × 10 reps' },
-    { name: 'Deadlifts', reps: '5 × 10 reps' },
-    { name: 'Face Pulls', reps: '5 × 10 reps' },
-    { name: 'Lateral Raises', reps: '5 × 10 reps' },
-    { name: 'Mountain Climbers', reps: '5 × 50 sec', isFinisher: true },
+    { slot: 'Push', name: 'Tricep Dips (floor)', reps: '5 × 10 reps' },
+    { slot: 'Pull', name: 'Prone Y-Raises', reps: '5 × 10 reps' },
+    { slot: 'Legs', name: 'Glute Bridges', reps: '5 × 10 reps' },
+    { slot: 'Core', name: 'Flutter Kicks', reps: '5 × 10 reps' },
+    { slot: 'Conditioning', name: 'Mountain Climbers', reps: '5 × 50 sec', isFinisher: true },
   ],
   D: [
-    { name: 'Chin-ups', reps: '5 × 10 reps' },
-    { name: 'Romanian Deadlifts', reps: '5 × 10 reps' },
-    { name: 'Incline Press', reps: '5 × 10 reps' },
-    { name: 'Tricep Extensions', reps: '5 × 10 reps' },
-    { name: 'Russian Twists', reps: '5 × 50 sec', isFinisher: true },
+    { slot: 'Push', name: 'Tricep Push-ups (elbows tucked)', reps: '5 × 10 reps' },
+    { slot: 'Legs', name: 'Single-Leg Glute Bridges', reps: '5 × 10 reps (per leg)' },
+    { slot: 'Core', name: 'Dead Bugs', reps: '5 × 10 reps (5 per side)' },
+    { slot: 'Conditioning', name: 'Russian Twists', reps: '5 × 50 sec', isFinisher: true },
   ],
 };
 
@@ -91,6 +91,13 @@ export default function Workouts() {
                         : 'border-l border-paper/15'
                     }`}
                   >
+                    <p
+                      className={`font-body text-caption uppercase tracking-widest mb-1.5 ${
+                        exercise.isFinisher ? 'text-coral' : 'text-paper/40'
+                      }`}
+                    >
+                      {exercise.slot}
+                    </p>
                     <h4 className="font-display text-lg text-paper leading-tight mb-1">
                       {exercise.name}
                     </h4>
