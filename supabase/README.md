@@ -72,9 +72,12 @@ The script writes to `.env.local` for local dev. You also need to add the same v
 
 1. Go to your Vercel project → **Settings** → **Environment Variables**
 2. Add:
-   - `NEXT_PUBLIC_SUPABASE_URL` = your Project URL
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY` = your anon key
+   - `NEXT_PUBLIC_SUPABASE_URL` = your Project URL *(Production + Preview)*
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY` = your anon key *(Production + Preview)*
+   - `NEXT_PUBLIC_SITE_URL` = `https://fit50challenge.io` *(Production only)*
 3. Redeploy
+
+> **See [`VERCEL_SETUP.md`](./VERCEL_SETUP.md) for the full production domain + preview workflow walkthrough.**
 
 ### 7. Test
 
@@ -100,4 +103,5 @@ Plus two triggers:
 
 - The env vars are `NEXT_PUBLIC_*` so they're available in the browser
 - After adding them, trigger a redeploy (Vercel → Deployments → Redeploy)
-- The magic link redirect goes to `NEXT_PUBLIC_SITE_URL` (defaults to `http://localhost:3000` in dev — set this to your production URL in Vercel)
+- The magic link redirect uses `NEXT_PUBLIC_SITE_URL` if set, otherwise `window.location.origin` — so it works automatically on Vercel preview URLs without any config
+- See [`VERCEL_SETUP.md`](./VERCEL_SETUP.md) for the full domain + DNS + production domain walkthrough
