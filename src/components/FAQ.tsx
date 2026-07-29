@@ -59,7 +59,7 @@ export default function FAQ() {
 
         <Accordion items={faqs} />
 
-        <div className="mt-16 md:mt-20 pt-12 border-t border-ink/15 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+        <div className="mt-16 md:mt-20 pt-12 border-t border-ink/15 flex flex-col items-center text-center gap-8">
           <p className="font-display text-h2 text-ink max-w-md">
             Less thinking. More doing.
           </p>

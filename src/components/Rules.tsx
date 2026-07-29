@@ -198,7 +198,7 @@ export default function Rules() {
           })}
         </div>
 
-        <div className="mt-16 md:mt-20 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+        <div className="mt-16 md:mt-20 flex flex-col items-center text-center gap-8">
           <p className="font-display text-h2 text-paper max-w-md">
             Ready to commit to all nine?
           </p>
