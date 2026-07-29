@@ -5,11 +5,27 @@ Complete the premium checkout flow in ~20 minutes.
 ## What you need to do
 
 1. Create a Lemon Squeezy account at https://www.lemonsqueezy.com
-2. Create a product for the €7.99 unlock
-3. Generate a webhook signing secret
-4. Set up the webhook to point at your Vercel deployment
-5. Add three env vars to Vercel
-6. Test the flow end-to-end
+2. Switch to **Test mode** (toggle in the dashboard top bar) — this lets you test the full flow with a test card and no real charges
+3. Create a product for the €7.99 unlock in test mode
+4. Get the test mode checkout URL and webhook signing secret
+5. Set up the webhook to point at your Vercel deployment
+6. Add three env vars to Vercel (use the test mode values)
+7. Test the flow end-to-end with a test card
+8. When ready for real customers, repeat steps 2–7 in **Live mode** and swap the env vars
+
+## Test mode vs Live mode
+
+The webhook code is identical for both — same endpoint, same HMAC verification, same Supabase update. The only difference is the keys you put in your env vars.
+
+| | Test mode | Live mode |
+|---|---|---|
+| **Checkout URL** | `https://yourstore.lemonsqueezy.com/buy/abc-123` (test store) | `https://yourstore.lemonsqueezy.com/buy/xyz-789` (live store) |
+| **Webhook secret** | One secret (test) | Different secret (live) |
+| **Card** | Use `4242 4242 4242 4242` with any future expiry and any CVC | Real card |
+| **Charges** | None — fully simulated | Real money |
+| **Switching** | Toggle in dashboard top bar | Toggle in dashboard top bar |
+
+**Run the full flow in test mode first**, confirm the dashboard shows the subscription and your Supabase profile shows `is_premium: true`, then switch to live mode and update the env vars.
 
 ---
 
