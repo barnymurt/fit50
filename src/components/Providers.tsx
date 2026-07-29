@@ -1,8 +1,8 @@
 'use client';
 
-import { EmailProvider } from '@/components/EmailCaptureContext';
+import { AuthProvider } from '@/contexts/AuthContext';
 import { ReactNode } from 'react';
 
 export default function Providers({ children }: { children: ReactNode }) {
-  return <EmailProvider>{children}</EmailProvider>;
+  return <AuthProvider>{children}</AuthProvider>;
 }

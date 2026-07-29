@@ -3,17 +3,11 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import Button from './Button';
-
-const links = [
-  { label: 'Rules', href: '#rules' },
-  { label: 'Workouts', href: '#workouts' },
-  { label: 'Tracker', href: '#tracker' },
-  { label: 'Shop', href: '#shop' },
-  { label: 'FAQ', href: '#faq' },
-];
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function Nav() {
   const [scrolled, setScrolled] = useState(false);
+  const { user, loading } = useAuth();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -39,24 +33,38 @@ export default function Nav() {
         </Link>
 
         <nav className="hidden md:flex items-center gap-8">
-          {links.map((l) => (
-            <a
-              key={l.href}
-              href={l.href}
-              className="font-body text-caption uppercase text-ink/70 hover:text-ink transition-colors duration-200"
-            >
-              {l.label}
-            </a>
-          ))}
+          <a href="#rules" className="font-body text-caption uppercase text-ink/70 hover:text-ink transition-colors duration-200">
+            Rules
+          </a>
+          <a href="#workouts" className="font-body text-caption uppercase text-ink/70 hover:text-ink transition-colors duration-200">
+            Workouts
+          </a>
+          <a href="#tracker" className="font-body text-caption uppercase text-ink/70 hover:text-ink transition-colors duration-200">
+            Tracker
+          </a>
+          <a href="#faq" className="font-body text-caption uppercase text-ink/70 hover:text-ink transition-colors duration-200">
+            FAQ
+          </a>
         </nav>
 
         <div className="flex items-center gap-3">
-          <a
-            href="#tracker"
-            className="hidden md:inline-flex font-body text-caption uppercase text-ink/70 hover:text-ink transition-colors"
-          >
-            Sign in
-          </a>
+          {loading ? (
+            <div className="hidden md:block w-24 h-4" />
+          ) : user ? (
+            <Link
+              href="/account"
+              className="hidden md:inline-flex font-body text-caption uppercase text-ink/70 hover:text-ink transition-colors"
+            >
+              Account
+            </Link>
+          ) : (
+            <a
+              href="#tracker"
+              className="hidden md:inline-flex font-body text-caption uppercase text-ink/70 hover:text-ink transition-colors"
+            >
+              Sign in
+            </a>
+          )}
           <Button href="#tracker" variant="primary" tone="light" className="!px-5 !py-2.5 !text-xs">
             Start
           </Button>

@@ -2,21 +2,34 @@
 
 import { useState } from 'react';
 import Section from './Section';
-import { useEmailCapture } from './EmailCaptureContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function Footer() {
-  const { isCaptured, captureEmail } = useEmailCapture();
+  const { user, signInWithMagicLink } = useAuth();
   const [email, setEmail] = useState('');
-  const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (email) {
-      captureEmail(email);
-      setSubmitted(true);
-      setEmail('');
+    if (!email) return;
+
+    setSubmitting(true);
+    setError(null);
+    const { error: err } = await signInWithMagicLink(email);
+    setSubmitting(false);
+
+    if (err) {
+      setError(err);
+      return;
     }
+
+    setSent(true);
+    setEmail('');
   };
+
+  const isSignedIn = !!user || sent;
 
   return (
     <Section
@@ -36,9 +49,11 @@ export default function Footer() {
         </div>
 
         <div className="md:col-span-6 md:col-start-7">
-          {isCaptured || submitted ? (
+          {isSignedIn ? (
             <p className="font-body text-paper/70">
-              You&apos;re on the list. We&apos;ll be in touch.
+              {sent
+                ? '✓ Sign-in link sent. Check your email.'
+                : '✓ You\'re signed in. Your progress is saved.'}
             </p>
           ) : (
             <form onSubmit={handleSubmit}>
@@ -56,15 +71,20 @@ export default function Footer() {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@email.com"
                   required
-                  className="flex-1 px-4 py-3 bg-transparent border border-paper/30 text-paper placeholder:text-paper/30 font-body focus:border-paper outline-none"
+                  disabled={submitting}
+                  className="flex-1 px-4 py-3 bg-transparent border border-paper/30 text-paper placeholder:text-paper/30 font-body focus:border-paper outline-none disabled:opacity-50"
                 />
                 <button
                   type="submit"
-                  className="px-7 py-3 bg-paper text-ink font-body text-caption uppercase hover:bg-coral hover:text-paper transition-colors duration-200"
+                  disabled={submitting}
+                  className="px-7 py-3 bg-paper text-ink font-body text-caption uppercase hover:bg-coral hover:text-paper transition-colors duration-200 disabled:opacity-50"
                 >
-                  Subscribe
+                  {submitting ? 'Sending…' : 'Subscribe'}
                 </button>
               </div>
+              {error && (
+                <p className="font-body text-sm text-coral mt-3">{error}</p>
+              )}
             </form>
           )}
         </div>

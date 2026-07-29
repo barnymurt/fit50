@@ -3,10 +3,10 @@
 import Section from './Section';
 import Button from './Button';
 import Icon from './Icon';
-import { useEmailCapture } from './EmailCaptureContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function Hero() {
-  const { isCaptured } = useEmailCapture();
+  const { user } = useAuth();
 
   return (
     <Section tone="paper" className="relative pt-32 pb-32 md:pt-40 md:pb-40 overflow-hidden" contained>
@@ -40,7 +40,7 @@ export default function Hero() {
             </a>
           </div>
 
-          {!isCaptured && (
+          {!user && (
             <p className="font-body text-sm text-ink/50 pt-2">
               &nbsp;
             </p>
