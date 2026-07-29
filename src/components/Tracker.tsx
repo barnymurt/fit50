@@ -224,7 +224,7 @@ export default function Tracker() {
                     aria-pressed={isDone}
                     aria-label={`${habit.name}${isDone ? ' - complete' : ''}`}
                   >
-                    <div className="inline-flex p-1 transition-transform duration-300 group-hover:scale-105">
+                    <div className="flex w-full items-center justify-center p-1 transition-transform duration-300 group-hover:scale-105">
                       <HabitIcon
                         name={habit.icon}
                         size={128}

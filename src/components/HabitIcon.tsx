@@ -43,7 +43,8 @@ export default function HabitIcon({
       className={className}
       style={{
         width: size,
-        height: size,
+        height: 'auto',
+        maxWidth: '100%',
         objectFit: 'contain',
       }}
     />
