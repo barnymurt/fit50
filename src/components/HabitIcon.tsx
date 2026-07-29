@@ -18,15 +18,15 @@ interface HabitIconProps {
 }
 
 const ICON_MAP: Record<HabitIconName, string> = {
-  'chill-out': '/icons/chill-out.png',
-  'fuel-right': '/icons/fuel-right.png',
-  'crispy-clarity': '/icons/crispy-clarity.png',
-  'fresh-lungs': '/icons/fresh-lungs.png',
-  'open-mind': '/icons/open-mind.png',
-  'move-body': '/icons/move-body.png',
-  'wet-lips': '/icons/wet-lips.png',
-  'step-it-up': '/icons/step-it-up.png',
-  'feed-brain': '/icons/feed-brain.png',
+  'chill-out': '/icons/chill-out.webp',
+  'fuel-right': '/icons/fuel-right.webp',
+  'crispy-clarity': '/icons/crispy-clarity.webp',
+  'fresh-lungs': '/icons/fresh-lungs.webp',
+  'open-mind': '/icons/open-mind.webp',
+  'move-body': '/icons/move-body.webp',
+  'wet-lips': '/icons/wet-lips.webp',
+  'step-it-up': '/icons/step-it-up.webp',
+  'feed-brain': '/icons/feed-brain.webp',
 };
 
 export default function HabitIcon({

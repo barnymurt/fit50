@@ -272,7 +272,7 @@ export default function Tracker() {
                     aria-label={`${habit.name}${isDone ? ' - complete' : ''}`}
                   >
                     <div
-                      className={`p-1.5 transition-transform duration-300 group-hover:scale-105 ${
+                      className={`inline-flex p-1.5 transition-transform duration-300 group-hover:scale-105 ${
                         isDone ? 'bg-white' : ''
                       }`}
                     >

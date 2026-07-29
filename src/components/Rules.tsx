@@ -127,11 +127,13 @@ export default function Rules() {
                   </span>
                 </div>
 
-                <div className="mb-6 inline-block bg-white p-3">
-                  <HabitIcon
-                    name={rule.icon}
-                    size={72}
-                  />
+                <div className="mb-6 flex justify-center">
+                  <div className="bg-white p-3 inline-flex items-center justify-center">
+                    <HabitIcon
+                      name={rule.icon}
+                      size={72}
+                    />
+                  </div>
                 </div>
 
                 <h3 className="font-display text-h2 text-paper mb-3">
