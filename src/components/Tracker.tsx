@@ -5,7 +5,6 @@ import Section from './Section';
 import Heading from './Heading';
 import HabitIcon, { HabitIconName } from './HabitIcon';
 import Marquee from './Marquee';
-import EmailCaptureModal from './EmailCaptureModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSyncTracker } from '@/hooks/useSyncTracker';
 import { useStreakProtection } from '@/hooks/useStreakProtection';
@@ -62,9 +61,6 @@ export default function Tracker() {
   const { data, loaded, toggleHabit, advanceDay, reset } = useSyncTracker();
   const { getProtectedDays, hasProtectionForWeek, redeemProtection } = useStreakProtection();
 
-  const [showEmailModal, setShowEmailModal] = useState(false);
-  const [hasInteracted, setHasInteracted] = useState(false);
-
   const protectedDays = getProtectedDays();
 
   const streak = calculateStreak(data.habitCompletions, data.currentDay);
@@ -74,11 +70,13 @@ export default function Tracker() {
   const isCubeSolved = todayCompleted === 9;
 
   const handleToggle = async (habitId: string, day: number) => {
-    if (!user && !hasInteracted) {
-      setHasInteracted(true);
-      setShowEmailModal(true);
-      return;
-    }
+    // Sign-up flow disabled until Phase 2 (account + tracking) is complete.
+    // When re-enabled, restore the email modal trigger:
+    //   if (!user && !hasInteracted) {
+    //     setHasInteracted(true);
+    //     setShowEmailModal(true);
+    //     return;
+    //   }
     toggleHabit(habitId, day);
   };
 
@@ -127,9 +125,6 @@ export default function Tracker() {
       <div className="relative z-10 max-w-7xl mx-auto px-6 md:px-10 pb-section">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mb-12 md:mb-16">
           <div className="md:col-span-7">
-            <p className="font-body text-caption uppercase text-coral mb-4">
-              Day {String(today).padStart(2, '0')} of 50
-            </p>
             <Heading as="h2" size="display-2">
               Check the box.<br />
               Build the streak.
@@ -156,9 +151,18 @@ export default function Tracker() {
             </p>
 
             {!isPremium && (
-              <p className="font-body text-xs text-paper/60 mb-4 italic">
-                🍌 Streak protection — Premium
-              </p>
+              <a
+                href="/upgrade"
+                className="block bg-paper/10 hover:bg-paper/15 transition-colors p-4 mb-4"
+              >
+                <p className="font-body text-caption uppercase text-paper/70 mb-1">
+                  🍌 Streak protection
+                </p>
+                <p className="font-body text-sm text-paper/85">
+                  Get 1 free pass a week. Miss a day, the streak holds.{' '}
+                  <span className="text-coral">Unlock for €7.99 →</span>
+                </p>
+              </a>
             )}
 
             <div className="mt-auto space-y-3">
@@ -285,11 +289,6 @@ export default function Tracker() {
           </div>
         </div>
       </div>
-
-      <EmailCaptureModal
-        isOpen={showEmailModal}
-        onClose={() => setShowEmailModal(false)}
-      />
     </Section>
   );
 }

@@ -14,7 +14,7 @@ const faqs = [
   },
   {
     question: 'Do audiobooks count for reading?',
-    answer: 'Yes. Audiobooks count. 10 minutes of listening equals 10 pages of reading. Some people absorb knowledge better through listening — that is completely valid.',
+    answer: 'Yes. Audiobooks absolutely count. The goal is to read 5 books in 50 days — audiobooks, ebooks, physical books, all of it. Read what you actually enjoy, just keep the pages turning.',
   },
   {
     question: 'How cold should the cold shower be?',

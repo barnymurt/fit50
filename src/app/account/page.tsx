@@ -1,14 +1,14 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import Section from '@/components/Section';
+import Button from '@/components/Button';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function AccountPage() {
   const router = useRouter();
   const { user, profile, loading, signOut } = useAuth();
-  const [signingOut, setSigningOut] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -17,7 +17,6 @@ export default function AccountPage() {
   }, [user, loading, router]);
 
   const handleSignOut = async () => {
-    setSigningOut(true);
     await signOut();
     router.push('/');
   };
@@ -64,10 +63,9 @@ export default function AccountPage() {
             </p>
             <button
               onClick={handleSignOut}
-              disabled={signingOut}
-              className="font-body text-caption uppercase text-ink/60 hover:text-ink transition-colors disabled:opacity-50"
+              className="font-body text-caption uppercase text-ink/60 hover:text-ink transition-colors"
             >
-              {signingOut ? 'Signing out…' : 'Sign out'}
+              Sign out
             </button>
           </div>
 
@@ -101,15 +99,9 @@ export default function AccountPage() {
                 <p className="font-body text-sm text-ink/60 mb-6">
                   Unlock cloud sync, streak protection, daily reminders, and the completion certificate.
                 </p>
-                <button
-                  className="bg-ink text-paper font-body text-sm px-6 py-3 uppercase tracking-wider hover:bg-ink/85 transition-colors"
-                  disabled
-                >
-                  Premium coming soon
-                </button>
-                <p className="font-body text-xs text-ink/40 mt-3">
-                  Payments via Lemon Squeezy launch in Phase 2.
-                </p>
+                <Button href="/upgrade" variant="primary" tone="light">
+                  Unlock for €7.99
+                </Button>
               </div>
             )}
           </div>

@@ -90,7 +90,7 @@ export default function Footer() {
         </div>
       </div>
 
-      <div className="pt-8 border-t border-paper/15 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="pt-8 border-t border-paper/15 flex flex-col md:flex-row md:items-center gap-4">
         <nav className="flex flex-wrap gap-x-8 gap-y-2">
           {['Rules', 'Workouts', 'Tracker', 'FAQ'].map((label) => (
             <a
@@ -103,17 +103,9 @@ export default function Footer() {
           ))}
         </nav>
 
-        <div className="flex items-center gap-6">
-          <a href="#" className="font-body text-caption uppercase text-paper/60 hover:text-paper transition-colors">
-            Instagram
-          </a>
-          <a href="#" className="font-body text-caption uppercase text-paper/60 hover:text-paper transition-colors">
-            Twitter
-          </a>
-          <a href="#" className="font-body text-caption uppercase text-paper/60 hover:text-paper transition-colors">
-            Contact
-          </a>
-        </div>
+        {/* Social links (Instagram, Twitter, Contact) removed for now —
+            accounts aren't set up and Contact has no form yet.
+            Re-enable when the socials are live or a contact form exists. */}
       </div>
 
       <p className="mt-10 font-body text-xs text-paper/40">
