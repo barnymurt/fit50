@@ -114,6 +114,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [supabase]);
 
+  const getSiteUrl = () => {
+    if (process.env.NEXT_PUBLIC_SITE_URL) {
+      return process.env.NEXT_PUBLIC_SITE_URL;
+    }
+    if (typeof window !== 'undefined') {
+      return window.location.origin;
+    }
+    return '';
+  };
+
   const signInWithMagicLink = async (emailAddress: string) => {
     if (!supabase) {
       setEmail(emailAddress);
@@ -121,10 +131,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { error: null };
     }
 
+    const siteUrl = getSiteUrl();
+    const redirectTo = siteUrl ? `${siteUrl}/account` : undefined;
+
     const { error } = await supabase.auth.signInWithOtp({
       email: emailAddress,
       options: {
-        emailRedirectTo: `${window.location.origin}/account`,
+        ...(redirectTo ? { emailRedirectTo: redirectTo } : {}),
       },
     });
 
