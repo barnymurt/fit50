@@ -54,18 +54,16 @@ export default function UpgradePage() {
     setCheckoutLoading(true);
     setError(null);
 
-    const checkoutUrl = process.env.NEXT_PUBLIC_LEMON_SQUEEZY_CHECKOUT_URL;
+    const checkoutUrl = process.env.NEXT_PUBLIC_CREEM_CHECKOUT_URL;
     if (!checkoutUrl) {
       setError('Checkout not configured. Please contact support.');
       setCheckoutLoading(false);
       return;
     }
 
-    const url = new URL(checkoutUrl);
-    url.searchParams.set('checkout[custom][user_id]', user.id);
-    url.searchParams.set('checkout[email]', user.email || '');
-
-    window.location.href = url.toString();
+    // Creem identifies the user by email match on the webhook side.
+    // The checkout URL is a direct link — no API call needed.
+    window.location.href = checkoutUrl;
   };
 
   if (loading || !user) {
@@ -144,7 +142,7 @@ export default function UpgradePage() {
             {checkoutLoading ? 'Opening checkout…' : 'Unlock for €7.99'}
           </button>
           <p className="font-body text-xs text-ink/50 mt-4">
-            Secure checkout via Lemon Squeezy. No subscription. One payment.
+            Secure checkout via Creem. No subscription. One payment.
           </p>
         </div>
       </div>
