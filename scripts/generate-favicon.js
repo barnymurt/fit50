@@ -2,7 +2,7 @@ const sharp = require('sharp');
 const path = require('path');
 const fs = require('fs');
 
-const SRC = 'C:\\Users\\bmurt\\Downloads\\illustration (12).png';
+const SRC = 'C:\\Users\\bmurt\\Downloads\\illustration (13).png';
 const APP_DIR = path.join(__dirname, '..', 'src', 'app');
 
 const THRESHOLD = 240;
