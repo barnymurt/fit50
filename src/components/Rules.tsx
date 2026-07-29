@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import Section from './Section';
-import Icon from './Icon';
 import HabitIcon, { HabitIconName } from './HabitIcon';
 import Button from './Button';
 import Marquee from './Marquee';
@@ -82,13 +81,13 @@ const rules: Rule[] = [
 ];
 
 export default function Rules() {
-  const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [flippedId, setFlippedId] = useState<number | null>(null);
 
   return (
     <Section
       id="rules"
-      tone="ink"
-      className="relative bg-teal text-paper overflow-hidden pt-40 md:pt-56"
+      className="relative text-paper overflow-hidden pt-40 md:pt-56"
+      style={{ backgroundColor: '#4A9B9B' }}
     >
       <h2 className="sr-only">The Nine Rules</h2>
 
@@ -110,64 +109,88 @@ export default function Rules() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 border-t border-l border-paper/20">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {rules.map((rule) => {
-            const isOpen = expandedId === rule.id;
+            const isFlipped = flippedId === rule.id;
             return (
               <div
                 key={rule.id}
-                className="border-r border-b border-paper/20 p-6 md:p-8 group hover:bg-paper/5 transition-colors duration-300"
+                className="relative min-h-[420px]"
+                style={{ perspective: '1200px' }}
               >
-                <div className="flex items-start justify-between mb-6">
-                  <span className="font-display text-xl text-coral tabular-nums">
-                    {String(rule.id).padStart(2, '0')}
-                  </span>
-                  <span className="font-body text-caption uppercase text-paper/60">
-                    50× reps
-                  </span>
-                </div>
-
-                <div className="mb-6 flex justify-center">
-                  <div className="bg-white p-3 inline-flex items-center justify-center">
-                    <HabitIcon
-                      name={rule.icon}
-                      size={72}
-                    />
-                  </div>
-                </div>
-
-                <h3 className="font-display text-h2 text-paper mb-3">
-                  {rule.title}
-                </h3>
-
-                <p className="font-body text-body text-paper/80 mb-4">
-                  {rule.description}
-                </p>
-
-                <button
-                  onClick={() => setExpandedId(isOpen ? null : rule.id)}
-                  className="font-body text-caption uppercase text-paper/70 hover:text-coral transition-colors duration-200 inline-flex items-center gap-2"
-                  aria-expanded={isOpen}
-                >
-                  {isOpen ? 'Hide tip' : 'Show tip'}
-                  <span
-                    className={`inline-block transition-transform duration-300 ${
-                      isOpen ? 'rotate-90' : ''
-                    }`}
-                  >
-                    <Icon name="arrow-right" size={14} />
-                  </span>
-                </button>
-
                 <div
-                  className={`grid transition-all duration-300 ease-smooth ${
-                    isOpen ? 'grid-rows-[1fr] mt-4' : 'grid-rows-[0fr]'
+                  className={`relative w-full h-full transition-transform duration-700 ease-smooth ${
+                    isFlipped ? '[transform:rotateY(180deg)]' : ''
                   }`}
+                  style={{ transformStyle: 'preserve-3d' }}
                 >
-                  <div className="overflow-hidden">
-                    <p className="font-body text-sm text-paper/85 italic border-l-2 border-coral pl-4">
+                  {/* Front */}
+                  <div
+                    className="absolute inset-0 flex flex-col items-center justify-center p-6 md:p-8 text-center border border-paper/20 hover:bg-paper/5 transition-colors"
+                    style={{ backfaceVisibility: 'hidden' }}
+                  >
+                    <div className="flex items-center justify-between w-full mb-6">
+                      <span className="font-display text-xl text-coral tabular-nums">
+                        {String(rule.id).padStart(2, '0')}
+                      </span>
+                      <span className="font-body text-caption uppercase text-paper/60">
+                        50× reps
+                      </span>
+                    </div>
+
+                    <div className="mb-6 text-paper">
+                      <HabitIcon
+                        name={rule.icon}
+                        size={144}
+                      />
+                    </div>
+
+                    <h3 className="font-display text-h2 text-paper mb-6 text-center">
+                      {rule.title}
+                    </h3>
+
+                    <button
+                      onClick={() => setFlippedId(rule.id)}
+                      className="mt-auto font-body text-caption uppercase text-paper/70 hover:text-coral transition-colors duration-200 inline-flex items-center gap-2"
+                      aria-expanded={isFlipped}
+                    >
+                      Show Rule
+                      <span className="inline-block">→</span>
+                    </button>
+                  </div>
+
+                  {/* Back */}
+                  <div
+                    className="absolute inset-0 flex flex-col items-center justify-center p-6 md:p-8 text-center border border-paper/20 bg-paper/5"
+                    style={{
+                      backfaceVisibility: 'hidden',
+                      transform: 'rotateY(180deg)',
+                    }}
+                  >
+                    <span className="font-display text-xl text-coral tabular-nums mb-6">
+                      {String(rule.id).padStart(2, '0')}
+                    </span>
+
+                    <p className="font-body text-h3 text-paper leading-snug mb-4 text-center">
+                      {rule.title}
+                    </p>
+
+                    <p className="font-body text-body text-paper/85 mb-6 text-center max-w-xs">
+                      {rule.description}
+                    </p>
+
+                    <p className="font-body text-sm text-paper/70 italic border-l-2 border-coral pl-4 mb-6 text-left max-w-xs">
                       {rule.tip}
                     </p>
+
+                    <button
+                      onClick={() => setFlippedId(null)}
+                      className="mt-auto font-body text-caption uppercase text-paper/70 hover:text-coral transition-colors duration-200 inline-flex items-center gap-2"
+                      aria-expanded={isFlipped}
+                    >
+                      <span className="inline-block">←</span>
+                      Hide Rule
+                    </button>
                   </div>
                 </div>
               </div>
