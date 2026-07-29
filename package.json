@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "setup:supabase": "node scripts/setup-supabase.js",
+    "verify:supabase": "node scripts/verify-supabase.js"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",
