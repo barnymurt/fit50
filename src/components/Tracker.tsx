@@ -272,11 +272,11 @@ export default function Tracker() {
                     aria-label={`${habit.name}${isDone ? ' - complete' : ''}`}
                   >
                     <div
-                      className={`inline-flex p-1.5 transition-transform duration-300 group-hover:scale-105`}
+                      className={`inline-flex p-1 transition-transform duration-300 group-hover:scale-105`}
                     >
                       <HabitIcon
                         name={habit.icon}
-                        size={48}
+                        size={128}
                       />
                     </div>
                     <span className="font-body text-caption uppercase text-center leading-tight">
