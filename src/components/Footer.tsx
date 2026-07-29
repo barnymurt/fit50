@@ -44,7 +44,7 @@ export default function Footer() {
             FIT50
           </h2>
           <p className="font-body text-paper/50 mt-4 max-w-sm">
-            50 days, 9 habits, 1 life.
+            50 days. 9 habits. 1 fresh start.
           </p>
         </div>
 
