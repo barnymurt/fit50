@@ -115,7 +115,7 @@ export default function Rules() {
             return (
               <div
                 key={rule.id}
-                className="relative min-h-[420px]"
+                className="relative min-h-[520px]"
                 style={{ perspective: '1200px' }}
               >
                 <div
@@ -126,10 +126,10 @@ export default function Rules() {
                 >
                   {/* Front */}
                   <div
-                    className="absolute inset-0 flex flex-col items-center justify-center p-6 md:p-8 text-center border border-paper/20 hover:bg-paper/5 transition-colors"
+                    className="absolute inset-0 flex flex-col items-center p-6 md:p-8 text-center border border-paper/20 hover:bg-paper/5 transition-colors"
                     style={{ backfaceVisibility: 'hidden' }}
                   >
-                    <div className="flex items-center justify-between w-full mb-6">
+                    <div className="flex items-center justify-between w-full mb-4">
                       <span className="font-display text-xl text-coral tabular-nums">
                         {String(rule.id).padStart(2, '0')}
                       </span>
@@ -138,20 +138,20 @@ export default function Rules() {
                       </span>
                     </div>
 
-                    <div className="mb-6 text-paper">
+                    <div className="flex-1 flex items-center justify-center w-full min-h-0">
                       <HabitIcon
                         name={rule.icon}
-                        size={144}
+                        size={280}
                       />
                     </div>
 
-                    <h3 className="font-display text-h2 text-paper mb-6 text-center">
+                    <h3 className="font-display text-h2 text-paper mb-4 text-center">
                       {rule.title}
                     </h3>
 
                     <button
                       onClick={() => setFlippedId(rule.id)}
-                      className="mt-auto font-body text-caption uppercase text-paper/70 hover:text-coral transition-colors duration-200 inline-flex items-center gap-2"
+                      className="font-body text-caption uppercase text-paper/70 hover:text-coral transition-colors duration-200 inline-flex items-center gap-2"
                       aria-expanded={isFlipped}
                     >
                       Show Rule
