@@ -75,8 +75,8 @@ const rules: Rule[] = [
     id: 9,
     icon: 'feed-brain',
     title: 'Feed Your Brain',
-    description: 'Read 10 pages every day. Feed your mind with knowledge.',
-    tip: 'Keep a book everywhere. Waiting becomes reading time.',
+    description: 'Finish 5 books in 50 days, or spend 30 mins a day on a personal project. Either counts.',
+    tip: 'Keep a book everywhere. Waiting becomes reading time. For personal projects, pick one and ship a little each day.',
   },
 ];
 

@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import Section from '@/components/Section';
 import Button from '@/components/Button';
+import Timer from '@/components/Timer';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function AccountPage() {
@@ -41,10 +42,7 @@ export default function AccountPage() {
     : '—';
 
   return (
-    <Section
-      className="relative py-section"
-      contained
-    >
+    <Section className="relative py-section" contained>
       <div className="max-w-3xl mx-auto">
         <p className="font-body text-caption uppercase text-coral mb-3">
           Account
@@ -105,6 +103,25 @@ export default function AccountPage() {
               </div>
             )}
           </div>
+
+          {profile?.is_premium && (
+            <div className="pt-8 border-t border-rule">
+              <p className="font-body text-caption uppercase text-ink/50 mb-2">
+                Tools
+              </p>
+              <p className="font-display text-h2 text-ink mb-6">
+                Built-in timer.
+              </p>
+              <p className="font-body text-base text-ink/70 mb-8 max-w-lg">
+                Pick a duration, hit start, get on with it. The 30-min default fits the Feed Your Brain rule perfectly.
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Timer label="Default · 30 min" defaultMinutes={30} />
+                <Timer label="Quick set · 15 min" defaultMinutes={15} />
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </Section>
