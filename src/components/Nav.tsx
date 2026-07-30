@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import Button from './Button';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function Nav() {
@@ -46,18 +47,27 @@ export default function Nav() {
           </a>
         </nav>
 
-        {/* Sign-up entry hidden until Phase 2 (account + tracking) is complete.
-            See scripts/lemonsqueezy-setup.md for the build plan.
-            Re-enable by restoring the <a> and <Button> below. */}
         <div className="flex items-center gap-3">
-          {loading ? null : user ? (
+          {loading ? (
+            <div className="hidden md:block w-16 h-4" />
+          ) : user ? (
             <Link
               href="/account"
               className="font-body text-caption uppercase text-ink/70 hover:text-ink transition-colors"
             >
               Account
             </Link>
-          ) : null}
+          ) : (
+            <Link
+              href="/account"
+              className="hidden md:inline-flex font-body text-caption uppercase text-ink/70 hover:text-ink transition-colors"
+            >
+              Sign in
+            </Link>
+          )}
+          <Button href="#tracker" variant="primary" tone="light" className="!px-5 !py-2.5 !text-xs">
+            Start
+          </Button>
         </div>
       </div>
     </header>
