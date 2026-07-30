@@ -1,7 +1,6 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Section from '@/components/Section';
 import Button from '@/components/Button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -34,23 +33,15 @@ const PREMIUM_FEATURES = [
 ];
 
 export default function UpgradePage() {
-  const router = useRouter();
   const { user, profile, loading } = useAuth();
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!loading && !user) {
-      router.push('/account');
-    }
-  }, [user, loading, router]);
+  // No auth gate — the Creem webhook matches by email, so users can
+  // pay even without a Supabase account. After paying, they sign in
+  // with the same email to see their premium status.
 
   const handleCheckout = async () => {
-    if (!user) {
-      router.push('/account');
-      return;
-    }
-
     setCheckoutLoading(true);
     setError(null);
 
@@ -61,20 +52,18 @@ export default function UpgradePage() {
       return;
     }
 
-    // Creem identifies the user by email match on the webhook side.
-    // The checkout URL is a direct link — no API call needed.
-    window.location.href = checkoutUrl;
+    // Pass the signed-in user's email to Creem via query param so
+    // it's prefilled. The webhook still matches by email server-side.
+    const url = new URL(checkoutUrl);
+    if (user?.email) {
+      url.searchParams.set('prefilled_email', user.email);
+    }
+
+    window.location.href = url.toString();
   };
 
-  if (loading || !user) {
-    return (
-      <Section className="relative py-section min-h-[60vh] flex items-center justify-center" contained>
-        <p className="font-body text-ink/50">Loading…</p>
-      </Section>
-    );
-  }
-
-  if (profile?.is_premium) {
+  // If already premium and signed in, show confirmation
+  if (!loading && user && profile?.is_premium) {
     return (
       <Section className="relative py-section" contained>
         <div className="max-w-2xl mx-auto text-center">
@@ -144,6 +133,11 @@ export default function UpgradePage() {
           <p className="font-body text-xs text-ink/50 mt-4">
             Secure checkout via Creem. No subscription. One payment.
           </p>
+          {!user && (
+            <p className="font-body text-xs text-ink/40 mt-2">
+              Pay with the same email you&apos;ll use to sign in, and your premium will unlock automatically.
+            </p>
+          )}
         </div>
       </div>
     </Section>
