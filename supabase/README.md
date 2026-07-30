@@ -77,7 +77,13 @@ The script writes to `.env.local` for local dev. You also need to add the same v
    - `NEXT_PUBLIC_SITE_URL` = `https://fit50challenge.io` *(Production only)*
 3. Redeploy
 
-> **See [`VERCEL_SETUP.md`](./VERCEL_SETUP.md) for the full production domain + preview workflow walkthrough.**
+> **See [`VERCEL_SETUP.md`](./VERCEL_SETUP.md) for the full production domain + preview workflow walkthrough.
+
+If sign-in magic links redirect to the wrong URL or emails aren't branded, see:
+- [`AUTH_SETUP.md`](./AUTH_SETUP.md) — Site URL, Redirect URLs, and auth debugging checklist
+- [`EMAIL_SETUP.md`](./EMAIL_SETUP.md) — Resend SMTP for branded magic-link emails
+
+For payments: see [`CREEM_SETUP.md`](./CREEM_SETUP.md).**
 
 ### 7. Test
 

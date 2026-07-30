@@ -128,11 +128,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!supabase) {
       setEmail(emailAddress);
       localStorage.setItem(EMAIL_STORAGE_KEY, emailAddress);
-      return { error: null };
+      return {
+        error:
+          'Auth not configured. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in Vercel env vars.',
+      };
     }
 
     const siteUrl = getSiteUrl();
     const redirectTo = siteUrl ? `${siteUrl}/account` : undefined;
+
+    if (typeof window !== 'undefined') {
+      console.log('[auth] signInWithMagicLink', {
+        siteUrl,
+        redirectTo,
+        supabaseConfigured: true,
+      });
+    }
 
     const { error } = await supabase.auth.signInWithOtp({
       email: emailAddress,
@@ -142,7 +153,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     if (error) {
-      return { error: error.message };
+      if (typeof window !== 'undefined') {
+        console.error('[auth] signInWithMagicLink error', error);
+      }
+      return {
+        error: `${error.message}. Check that ${redirectTo ?? 'your Site URL'} is in Supabase → Authentication → URL Configuration → Redirect URLs.`,
+      };
     }
 
     setEmail(emailAddress);
