@@ -48,23 +48,14 @@ export default function Nav() {
         </nav>
 
         <div className="flex items-center gap-3">
-          {loading ? (
-            <div className="hidden md:block w-16 h-4" />
-          ) : user ? (
+          {loading ? null : user ? (
             <Link
               href="/account"
               className="font-body text-caption uppercase text-ink/70 hover:text-ink transition-colors"
             >
               Account
             </Link>
-          ) : (
-            <Link
-              href="/account"
-              className="hidden md:inline-flex font-body text-caption uppercase text-ink/70 hover:text-ink transition-colors"
-            >
-              Sign in
-            </Link>
-          )}
+          ) : null}
           <Button href="#tracker" variant="primary" tone="light" className="!px-5 !py-2.5 !text-xs">
             Start
           </Button>
