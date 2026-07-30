@@ -60,20 +60,16 @@ https://www.creem.io/payment/prod_LIVE_xxxx
 1. **Developers** → **Webhooks** → **Add webhook**
 2. Configure:
    - **URL**: `https://fit50challenge.io/api/creem/webhook`
-   - **Events**: select all of these:
-     - `checkout.completed`
-     - `subscription.active`
-     - `subscription.paid`
-     - `subscription.trialing`
-     - `subscription.update`
-     - `subscription.canceled`
-     - `subscription.expired`
-     - `subscription.paused`
-     - `subscription.scheduled_cancel`
-     - `subscription.past_due`
-     - `refund.created`
+   - **Events**: select **only these two**:
+     - `checkout.completed` — fires on successful payment, flips `is_premium: true`
+     - `refund.created` — fires on refund, flips `is_premium: false`
+
+   Your product is a **one-time payment**, so all the `subscription.*` events are irrelevant — they won't fire. Select just the two above to keep the webhook signal clean.
+
 3. Save
 4. Copy the **Signing Secret** — this is `CREEM_WEBHOOK_SECRET`
+
+The webhook handler short-circuits on any other event type with a `skipped: true` response, so even if Creem sends extra events later, nothing breaks.
 
 ---
 
@@ -110,7 +106,7 @@ SUPABASE_SERVICE_ROLE_KEY=...  (already set)
 You can also test the webhook directly:
 1. In Creem → Developers → Webhooks → click your webhook
 2. Click **Send test event** → select `checkout.completed`
-3. Check the response and your Supabase profile
+3. Check the response (should be `{ received: true }`) and your Supabase profile (`is_premium` should now be `true`)
 
 ---
 
