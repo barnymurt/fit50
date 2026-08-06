@@ -48,14 +48,12 @@ export default function Nav() {
         </nav>
 
         <div className="flex items-center gap-3">
-          {loading ? null : user ? (
-            <Link
-              href="/account"
-              className="font-body text-caption uppercase text-ink/70 hover:text-ink transition-colors"
-            >
-              Account
-            </Link>
-          ) : null}
+          <Link
+            href="/account"
+            className="font-body text-caption uppercase text-ink/70 hover:text-ink transition-colors"
+          >
+            Account
+          </Link>
           <Button href="#tracker" variant="primary" tone="light" className="!px-5 !py-2.5 !text-xs">
             Start
           </Button>
