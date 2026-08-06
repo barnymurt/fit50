@@ -2,12 +2,16 @@
 -- Run this in Supabase SQL Editor (supabase.com/dashboard/project/djblhxwdsazksgubhlrn/sql/new)
 -- This drops all FIT50-related tables and recreates them from scratch.
 -- Use this if your project has leftover tables from a previous project.
+-- Idempotent: safe to run multiple times.
 
 -- Drop in reverse dependency order
 DROP TABLE IF EXISTS public.streak_protections CASCADE;
 DROP TABLE IF EXISTS public.tracker_progress CASCADE;
 DROP TABLE IF EXISTS public.newsletter_subscribers CASCADE;
 DROP TABLE IF EXISTS public.profiles CASCADE;
+
+-- Drop policies explicitly in case tables were dropped manually and policies remained
+DROP POLICY IF EXISTS "Anyone can subscribe" ON public.newsletter_subscribers;
 
 -- Drop the trigger function (used by handle_new_user)
 DROP FUNCTION IF EXISTS public.handle_new_user() CASCADE;
@@ -59,6 +63,8 @@ CREATE TABLE public.newsletter_subscribers (
 
 ALTER TABLE public.newsletter_subscribers ENABLE ROW LEVEL SECURITY;
 
+-- Drop and recreate the policy to be idempotent
+DROP POLICY IF EXISTS "Anyone can subscribe" ON public.newsletter_subscribers;
 CREATE POLICY "Anyone can subscribe"
   ON public.newsletter_subscribers FOR INSERT
   WITH CHECK (true);
@@ -67,6 +73,15 @@ CREATE POLICY "Anyone can subscribe"
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.tracker_progress ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.streak_protections ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can read own profile" ON public.profiles;
+DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
+DROP POLICY IF EXISTS "Users can read own tracker" ON public.tracker_progress;
+DROP POLICY IF EXISTS "Users can insert own tracker" ON public.tracker_progress;
+DROP POLICY IF EXISTS "Users can update own tracker" ON public.tracker_progress;
+DROP POLICY IF EXISTS "Users can delete own tracker" ON public.tracker_progress;
+DROP POLICY IF EXISTS "Users can read own protections" ON public.streak_protections;
+DROP POLICY IF EXISTS "Users can insert own protections" ON public.streak_protections;
 
 CREATE POLICY "Users can read own profile"
   ON public.profiles FOR SELECT
