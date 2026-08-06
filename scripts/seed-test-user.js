@@ -10,12 +10,30 @@
  *   node scripts/seed-test-user.js you@example.com yourpassword
  *   node scripts/seed-test-user.js you@example.com yourpassword --premium
  *
- * Requires env vars:
- *   NEXT_PUBLIC_SUPABASE_URL
- *   SUPABASE_SERVICE_ROLE_KEY
+ * Reads NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY from
+ * .env.local automatically. Falls back to process.env if running in CI.
  */
 
-const { createClient } = require('@supabase/supabase-js');
+const fs = require('fs');
+const path = require('path');
+
+// Load .env.local into process.env so the Supabase client picks them up
+const envLocal = path.join(__dirname, '..', '.env.local');
+if (fs.existsSync(envLocal)) {
+  const lines = fs.readFileSync(envLocal, 'utf8').split('\n');
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const eq = trimmed.indexOf('=');
+    if (eq < 0) continue;
+    const key = trimmed.slice(0, eq).trim();
+    let val = trimmed.slice(eq + 1).trim();
+    if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+      val = val.slice(1, -1);
+    }
+    if (!(key in process.env)) process.env[key] = val;
+  }
+}
 
 async function main() {
   const args = process.argv.slice(2);
@@ -31,9 +49,11 @@ async function main() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) {
-    console.error('Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
+    console.error('Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env.local');
     process.exit(1);
   }
+
+  const { createClient } = require('@supabase/supabase-js');
 
   const supabase = createClient(url, key, {
     auth: { persistSession: false, autoRefreshToken: false },
