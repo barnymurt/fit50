@@ -42,6 +42,12 @@ export default function Nav() {
           <a href="#tracker" className="font-body text-caption uppercase text-ink/70 hover:text-ink transition-colors duration-200">
             Tracker
           </a>
+          <Link
+            href="/fuel"
+            className="font-body text-caption uppercase text-ink/70 hover:text-ink transition-colors duration-200"
+          >
+            Fuel
+          </Link>
           <a href="#faq" className="font-body text-caption uppercase text-ink/70 hover:text-ink transition-colors duration-200">
             FAQ
           </a>
