@@ -10,14 +10,23 @@ DROP TABLE IF EXISTS public.tracker_progress CASCADE;
 DROP TABLE IF EXISTS public.newsletter_subscribers CASCADE;
 DROP TABLE IF EXISTS public.profiles CASCADE;
 
--- Drop policies explicitly in case tables were dropped manually and policies remained
+-- Drop any orphan policies (in case a partial run left them behind)
 DROP POLICY IF EXISTS "Anyone can subscribe" ON public.newsletter_subscribers;
+DROP POLICY IF EXISTS "Users can read own profile" ON public.profiles;
+DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
+DROP POLICY IF EXISTS "Users can read own tracker" ON public.tracker_progress;
+DROP POLICY IF EXISTS "Users can insert own tracker" ON public.tracker_progress;
+DROP POLICY IF EXISTS "Users can update own tracker" ON public.tracker_progress;
+DROP POLICY IF EXISTS "Users can delete own tracker" ON public.tracker_progress;
+DROP POLICY IF EXISTS "Users can read own protections" ON public.streak_protections;
+DROP POLICY IF EXISTS "Users can insert own protections" ON public.streak_protections;
 
--- Drop the trigger function (used by handle_new_user)
+-- Drop the trigger functions
 DROP FUNCTION IF EXISTS public.handle_new_user() CASCADE;
 DROP FUNCTION IF EXISTS public.handle_updated_at() CASCADE;
 
 -- profiles: one row per user, holds auth metadata + premium status
+DROP TABLE IF EXISTS public.profiles CASCADE;
 CREATE TABLE public.profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email TEXT NOT NULL,
@@ -30,6 +39,7 @@ CREATE TABLE public.profiles (
 );
 
 -- tracker_progress: which habits are checked on which day
+DROP TABLE IF EXISTS public.tracker_progress CASCADE;
 CREATE TABLE public.tracker_progress (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
@@ -43,6 +53,7 @@ CREATE TABLE public.tracker_progress (
 CREATE INDEX IF NOT EXISTS idx_tracker_progress_user ON public.tracker_progress(user_id);
 
 -- streak_protections: when a streak protection was redeemed (premium only)
+DROP TABLE IF EXISTS public.streak_protections CASCADE;
 CREATE TABLE public.streak_protections (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
@@ -55,15 +66,24 @@ CREATE TABLE public.streak_protections (
 CREATE INDEX IF NOT EXISTS idx_streak_protections_user ON public.streak_protections(user_id);
 
 -- newsletter_subscribers: email-only marketing list
-CREATE TABLE public.newsletter_subscribers (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  email TEXT NOT NULL UNIQUE,
-  subscribed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+-- Use a DO block to conditionally create so partial runs don't fail
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.tables
+    WHERE table_schema = 'public' AND table_name = 'newsletter_subscribers'
+  ) THEN
+    CREATE TABLE public.newsletter_subscribers (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      email TEXT NOT NULL UNIQUE,
+      subscribed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  END IF;
+END $$;
 
 ALTER TABLE public.newsletter_subscribers ENABLE ROW LEVEL SECURITY;
 
--- Drop and recreate the policy to be idempotent
+-- Drop and recreate the policy (the table definitely exists now)
 DROP POLICY IF EXISTS "Anyone can subscribe" ON public.newsletter_subscribers;
 CREATE POLICY "Anyone can subscribe"
   ON public.newsletter_subscribers FOR INSERT
