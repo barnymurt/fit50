@@ -1,0 +1,110 @@
+#!/usr/bin/env node
+/* eslint-disable */
+/**
+ * Create a test user via the Supabase admin API. Useful for:
+ *  - Testing login/logout without going through the sign-up form
+ *  - Seeding a premium user to test gated features
+ *  - Resetting your test account if you forgot the password
+ *
+ * Usage:
+ *   node scripts/seed-test-user.js you@example.com yourpassword
+ *   node scripts/seed-test-user.js you@example.com yourpassword --premium
+ *
+ * Requires env vars:
+ *   NEXT_PUBLIC_SUPABASE_URL
+ *   SUPABASE_SERVICE_ROLE_KEY
+ */
+
+const { createClient } = require('@supabase/supabase-js');
+
+async function main() {
+  const args = process.argv.slice(2);
+  if (args.length < 2) {
+    console.error('Usage: node scripts/seed-test-user.js <email> <password> [--premium]');
+    process.exit(1);
+  }
+
+  const email = args[0];
+  const password = args[1];
+  const makePremium = args.includes('--premium');
+
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) {
+    console.error('Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
+    process.exit(1);
+  }
+
+  const supabase = createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+
+  console.log(`Creating user ${email}…`);
+
+  // 1. Create or update the auth user
+  const { data: userData, error: userError } = await supabase.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+  });
+
+  if (userError && !userError.message.includes('already registered')) {
+    console.error('Failed to create user:', userError.message);
+    process.exit(1);
+  }
+
+  let userId;
+  if (userData?.user) {
+    userId = userData.user.id;
+  } else {
+    // Already exists — look it up
+    const { data: listData } = await supabase.auth.admin.listUsers();
+    const existing = listData?.users?.find((u) => u.email === email);
+    if (!existing) {
+      console.error('User exists but could not be looked up');
+      process.exit(1);
+    }
+    userId = existing.id;
+  }
+
+  console.log(`✓ User created: ${userId}`);
+
+  // 2. Update password (in case the user already existed with a different one)
+  const { error: pwError } = await supabase.auth.admin.updateUserById(userId, {
+    password,
+  });
+  if (pwError) {
+    console.error('Failed to update password:', pwError.message);
+  } else {
+    console.log(`✓ Password set`);
+  }
+
+  // 3. Upsert the profile row
+  const { error: profileError } = await supabase
+    .from('profiles')
+    .upsert({
+      id: userId,
+      email,
+      is_premium: makePremium,
+      premium_purchased_at: makePremium ? new Date().toISOString() : null,
+    });
+
+  if (profileError) {
+    console.error('Failed to upsert profile:', profileError.message);
+    process.exit(1);
+  }
+
+  console.log(`✓ Profile ${makePremium ? 'created (premium)' : 'created (free)'}`);
+  console.log('');
+  console.log('You can now sign in with:');
+  console.log(`  Email:    ${email}`);
+  console.log(`  Password: ${password}`);
+  if (makePremium) {
+    console.log('  Status:   ✓ Premium (streak protection unlocked)');
+  }
+}
+
+main().catch((e) => {
+  console.error('Failed:', e.message);
+  process.exit(1);
+});
