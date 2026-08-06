@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import Section from '@/components/Section';
 import Button from '@/components/Button';
 import Timer from '@/components/Timer';
@@ -36,30 +37,14 @@ const PREMIUM_FEATURES = [
 
 export default function AccountPage() {
   const router = useRouter();
-  const { user, profile, loading, signOut } = useAuth();
-
-  useEffect(() => {
-    if (!loading && !user) {
-      router.push('/');
-    }
-  }, [user, loading, router]);
-
-  const handleSignOut = async () => {
-    await signOut();
-    router.push('/');
-  };
-
-  if (loading || !user) {
-    return (
-      <Section
-        className="relative py-section min-h-[70vh] flex items-center justify-center"
-        tone="paper"
-        contained
-      >
-        <p className="font-body text-ink/50">Loading your account…</p>
-      </Section>
-    );
-  }
+  const { user, profile, loading, signIn, signUp, signOut, resetPassword } = useAuth();
+  const [authMode, setAuthMode] = useState<'signin' | 'signup' | 'forgot'>('signin');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [authHint, setAuthHint] = useState<string | null>(null);
+  const [resetSent, setResetSent] = useState(false);
 
   const challengeStarted = profile?.challenge_started_at
     ? new Date(profile.challenge_started_at).toLocaleDateString('en-GB', {
@@ -69,6 +54,219 @@ export default function AccountPage() {
       })
     : '—';
 
+  const handleAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) return;
+    setSubmitting(true);
+    setAuthError(null);
+    setAuthHint(null);
+
+    if (authMode === 'forgot') {
+      const { error: err } = await resetPassword(email);
+      setSubmitting(false);
+      if (err) {
+        setAuthError(err.message);
+        return;
+      }
+      setResetSent(true);
+      return;
+    }
+
+    if (authMode === 'signup') {
+      const { error: err } = await signUp(email, password);
+      setSubmitting(false);
+      if (err) {
+        setAuthError(err.message);
+        if (err.hint) setAuthHint(err.hint);
+        return;
+      }
+      return;
+    }
+
+    const { error: err } = await signIn(email, password);
+    setSubmitting(false);
+    if (err) {
+      setAuthError(err.message);
+      if (err.hint) setAuthHint(err.hint);
+      return;
+    }
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    router.push('/');
+  };
+
+  if (loading) {
+    return (
+      <Section
+        className="relative py-section min-h-[70vh] flex items-center justify-center"
+        tone="paper"
+        contained
+      >
+        <p className="font-body text-ink/50">Loading…</p>
+      </Section>
+    );
+  }
+
+  // Not signed in — show sign-in form
+  if (!user) {
+    return (
+      <Section
+        className="relative py-section min-h-[70vh] flex items-center"
+        tone="paper"
+        contained
+      >
+        <div className="max-w-md mx-auto w-full">
+          <p className="font-body text-caption uppercase text-coral mb-3 text-center">
+            Account
+          </p>
+          <h1 className="font-display text-display-2 text-ink mb-4 text-center">
+            {authMode === 'signup' && 'Create account.'}
+            {authMode === 'signin' && 'Sign in.'}
+            {authMode === 'forgot' && 'Reset password.'}
+          </h1>
+          <p className="font-body text-base text-ink/70 mb-10 text-center">
+            {authMode === 'signup' && 'Pick a password, start your 50 days.'}
+            {authMode === 'signin' && 'Welcome back.'}
+            {authMode === 'forgot' && "We'll email you a reset link."}
+          </p>
+
+          {resetSent ? (
+            <div className="bg-paper border border-ink/10 p-8 text-center">
+              <p className="font-display text-h2 text-teal mb-3">Check your email ✓</p>
+              <p className="font-body text-sm text-ink/70">
+                Reset link sent to <span className="text-ink">{email}</span>. Click the link in the email to set a new password. The link expires in 1 hour.
+              </p>
+              <button
+                onClick={() => { setAuthMode('signin'); setResetSent(false); setPassword(''); }}
+                className="mt-6 font-body text-caption uppercase text-coral hover:underline"
+              >
+                ← Back to sign in
+              </button>
+            </div>
+          ) : (
+            <form onSubmit={handleAuth} className="bg-paper border border-ink/10 p-8">
+              <label htmlFor="email" className="block font-body text-caption uppercase tracking-widest text-ink/50 mb-3">
+                Email address
+              </label>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@email.com"
+                required
+                disabled={submitting}
+                className="w-full p-4 bg-cream/30 border-2 border-ink/20 text-ink font-body focus:border-ink outline-none rounded-none mb-4 disabled:opacity-50"
+                autoFocus
+              />
+
+              {authMode !== 'forgot' && (
+                <>
+                  <label htmlFor="password" className="block font-body text-caption uppercase tracking-widest text-ink/50 mb-3">
+                    Password
+                  </label>
+                  <input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    required
+                    minLength={8}
+                    disabled={submitting}
+                    className="w-full p-4 bg-cream/30 border-2 border-ink/20 text-ink font-body focus:border-ink outline-none rounded-none mb-4 disabled:opacity-50"
+                  />
+                </>
+              )}
+
+              {authError && (
+                <p role="alert" className="font-body text-sm text-coral mb-2">{authError}</p>
+              )}
+              {authHint && (
+                <p className="font-body text-xs text-ink/50 mb-4">{authHint}</p>
+              )}
+
+              <button
+                type="submit"
+                disabled={submitting}
+                className="w-full bg-ink text-paper font-body text-sm px-6 py-4 uppercase tracking-wider hover:bg-ink/85 transition-colors disabled:opacity-50"
+              >
+                {submitting
+                  ? '...'
+                  : authMode === 'signin'
+                  ? 'Sign in'
+                  : authMode === 'signup'
+                  ? 'Create account'
+                  : 'Send reset link'}
+              </button>
+
+              <div className="mt-6 space-y-2 text-center">
+                {authMode === 'signin' && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => { setAuthMode('signup'); setAuthError(null); setAuthHint(null); }}
+                      className="block w-full font-body text-sm text-ink/60 hover:text-ink"
+                    >
+                      Don&apos;t have an account? <span className="text-coral">Create one</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setAuthMode('forgot'); setAuthError(null); setAuthHint(null); }}
+                      className="block w-full font-body text-sm text-ink/60 hover:text-ink"
+                    >
+                      Forgot password?
+                    </button>
+                  </>
+                )}
+                {authMode === 'signup' && (
+                  <button
+                    type="button"
+                    onClick={() => { setAuthMode('signin'); setAuthError(null); setAuthHint(null); }}
+                    className="block w-full font-body text-sm text-ink/60 hover:text-ink"
+                  >
+                    Already have an account? <span className="text-coral">Sign in</span>
+                  </button>
+                )}
+                {authMode === 'forgot' && (
+                  <button
+                    type="button"
+                    onClick={() => { setAuthMode('signin'); setAuthError(null); setAuthHint(null); }}
+                    className="block w-full font-body text-sm text-ink/60 hover:text-ink"
+                  >
+                    ← Back to sign in
+                  </button>
+                )}
+              </div>
+
+              {authMode !== 'forgot' && (
+                <>
+                  <div className="relative my-6">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-ink/10" />
+                    </div>
+                    <div className="relative flex justify-center">
+                      <span className="bg-paper px-3 font-body text-caption uppercase text-ink/40">or</span>
+                    </div>
+                  </div>
+                  <Link
+                    href="/toolkit"
+                    className="block text-center font-body text-caption uppercase tracking-widest text-ink/60 hover:text-ink"
+                  >
+                    Browse the toolkit →
+                  </Link>
+                </>
+              )}
+            </form>
+          )}
+        </div>
+      </Section>
+    );
+  }
+
+  // Signed in — show account content
   return (
     <Section className="relative py-section" tone="paper" contained>
       <div className="max-w-3xl mx-auto">
