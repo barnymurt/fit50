@@ -6,7 +6,9 @@ import Link from 'next/link';
 import Section from '@/components/Section';
 import Button from '@/components/Button';
 import Timer from '@/components/Timer';
+import ProjectBoard from '@/components/ProjectBoard';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSyncTracker } from '@/hooks/useSyncTracker';
 
 const PREMIUM_FEATURES = [
   {
@@ -35,9 +37,22 @@ const PREMIUM_FEATURES = [
   },
 ];
 
+const HABIT_LABELS: Record<string, string> = {
+  'chill-out': 'Chill Out',
+  'fuel-right': 'Fuel Right',
+  'crispy-clarity': 'Crispy Clarity',
+  'fresh-lungs': 'Fresh Lungs',
+  'open-mind': 'Open Mind',
+  'move-body': 'Move Your Body',
+  'wet-lips': 'Wet The Lips',
+  'step-it-up': 'Step It Up',
+  'feed-brain': 'Feed Your Brain',
+};
+
 export default function AccountPage() {
   const router = useRouter();
   const { user, profile, loading, signIn, signUp, signOut, resetPassword } = useAuth();
+  const { data: trackerData, loaded: trackerLoaded } = useSyncTracker();
   const [authMode, setAuthMode] = useState<'signin' | 'signup' | 'forgot'>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -53,6 +68,13 @@ export default function AccountPage() {
         year: 'numeric',
       })
     : '—';
+
+  // Tracker stats
+  const completedDays = Object.keys(trackerData.habitCompletions).reduce((acc, habitId) => {
+    return acc + Object.values(trackerData.habitCompletions[habitId] || {}).filter(Boolean).length;
+  }, 0);
+  const totalDays = trackerData.currentDay - 1; // Days completed (yesterday and before)
+  const completionPct = totalDays > 0 ? Math.round((completedDays / (totalDays * 9)) * 100) : 0;
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -294,16 +316,73 @@ export default function AccountPage() {
           </div>
 
           <div className="pt-8 border-t border-rule">
-            <p className="font-body text-caption uppercase text-ink/50 mb-2">
+            <p className="font-body text-caption uppercase text-ink/50 mb-3">
               Challenge
             </p>
-            <p className="font-body text-ink">
-              Started {challengeStarted}
-            </p>
+            {trackerLoaded ? (
+              <div>
+                <p className="font-body text-ink mb-4">
+                  Started {challengeStarted} · Day {trackerData.currentDay} of 50
+                </p>
+
+                {/* Completion summary */}
+                <div className="grid grid-cols-3 gap-3 mb-6">
+                  <div className="border border-ink/10 p-4">
+                    <p className="font-display text-2xl text-ink leading-none tabular-nums">
+                      {totalDays > 0 ? Math.round((completedDays / (totalDays * 9)) * 100) : 0}
+                      <span className="text-sm text-ink/50 font-body font-normal ml-1">%</span>
+                    </p>
+                    <p className="font-body text-caption uppercase tracking-widest text-ink/50 mt-2">
+                      Overall
+                    </p>
+                  </div>
+                  <div className="border border-ink/10 p-4">
+                    <p className="font-display text-2xl text-ink leading-none tabular-nums">
+                      {trackerData.streakCount}
+                    </p>
+                    <p className="font-body text-caption uppercase tracking-widest text-ink/50 mt-2">
+                      Streak
+                    </p>
+                  </div>
+                  <div className="border border-ink/10 p-4">
+                    <p className="font-display text-2xl text-ink leading-none tabular-nums">
+                      {completedDays}
+                    </p>
+                    <p className="font-body text-caption uppercase tracking-widest text-ink/50 mt-2">
+                      Boxes
+                    </p>
+                  </div>
+                </div>
+
+                {/* Per-habit completion */}
+                <div className="border border-ink/10">
+                  {Object.entries(trackerData.habitCompletions).map(([habitId, days], i) => {
+                    const completed = Object.values(days).filter(Boolean).length;
+                    return (
+                      <div
+                        key={habitId}
+                        className={`flex items-center justify-between p-3 ${
+                          i < Object.keys(trackerData.habitCompletions).length - 1 ? 'border-b border-ink/10' : ''
+                        }`}
+                      >
+                        <p className="font-body text-sm text-ink">
+                          {HABIT_LABELS[habitId] || habitId}
+                        </p>
+                        <p className="font-body text-sm text-ink/60 tabular-nums">
+                          {completed} {completed === 1 ? 'day' : 'days'}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              <p className="font-body text-ink">Started {challengeStarted}</p>
+            )}
           </div>
 
           <div className="pt-8 border-t border-rule">
-            <p className="font-body text-caption uppercase text-ink/50 mb-3">
+            <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-3">
               Security
             </p>
             <p className="font-body text-sm text-ink/60 mb-3">
@@ -316,12 +395,12 @@ export default function AccountPage() {
             </button>
           </div>
 
-          <div className="pt-8 border-t border-rule">
-            <p className="font-body text-caption uppercase text-ink/50 mb-3">
-              Premium
-            </p>
-            {profile?.is_premium ? (
-              <div>
+          {profile?.is_premium && (
+            <>
+              <div className="pt-8 border-t border-rule">
+                <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-3">
+                  Premium
+                </p>
                 <p className="font-display text-h3 text-teal mb-4">
                   ✓ Premium unlocked
                 </p>
@@ -352,37 +431,54 @@ export default function AccountPage() {
                   Open macro calculator <span>→</span>
                 </a>
               </div>
-            ) : (
-              <div>
-                <p className="font-body text-ink mb-3">
-                  Free tier. Track locally on this device.
-                </p>
-                <p className="font-body text-sm text-ink/60 mb-6">
-                  Unlock cloud sync, streak protection, daily reminders, and the completion certificate.
-                </p>
-                <Button href="/upgrade" variant="primary" tone="light">
-                  Unlock for £7.99
-                </Button>
-              </div>
-            )}
-          </div>
 
-          {profile?.is_premium && (
+              <div className="pt-8 border-t border-rule">
+                <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-2">
+                  Tools
+                </p>
+                <p className="font-display text-h2 text-ink mb-2">
+                  Built-in timer.
+                </p>
+                <p className="font-body text-base text-ink/70 mb-8 max-w-lg">
+                  Pick a duration, hit start, get on with it. The 30-min default fits the Feed Your Brain rule perfectly.
+                </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+                  <Timer label="Default · 30 min" defaultMinutes={30} />
+                  <Timer label="Quick set · 15 min" defaultMinutes={15} />
+                </div>
+              </div>
+
+              <div className="pt-8 border-t border-rule">
+                <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-2">
+                  Project board
+                </p>
+                <p className="font-display text-h2 text-ink mb-2">
+                  To do · In progress · Done.
+                </p>
+                <p className="font-body text-base text-ink/70 mb-8 max-w-lg">
+                  Plan your 50 days. Add tasks, move them as you go. Saves locally — premium gets Supabase sync.
+                </p>
+
+                <ProjectBoard />
+              </div>
+            </>
+          )}
+
+          {!profile?.is_premium && (
             <div className="pt-8 border-t border-rule">
-              <p className="font-body text-caption uppercase text-ink/50 mb-2">
-                Tools
+              <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-3">
+                Premium
               </p>
-              <p className="font-display text-h2 text-ink mb-6">
-                Built-in timer.
+              <p className="font-body text-ink mb-3">
+                Free tier. Track locally on this device.
               </p>
-              <p className="font-body text-base text-ink/70 mb-8 max-w-lg">
-                Pick a duration, hit start, get on with it. The 30-min default fits the Feed Your Brain rule perfectly.
+              <p className="font-body text-sm text-ink/60 mb-6">
+                Unlock cloud sync, streak protection, daily reminders, the macro calculator, and the project board.
               </p>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Timer label="Default · 30 min" defaultMinutes={30} />
-                <Timer label="Quick set · 15 min" defaultMinutes={15} />
-              </div>
+              <Button href="/upgrade" variant="primary" tone="light">
+                Unlock for £7.99
+              </Button>
             </div>
           )}
         </div>
