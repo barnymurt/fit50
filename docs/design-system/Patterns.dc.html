@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&family=Inter:wght@400;500;600&family=Lilita+One&display=swap" rel="stylesheet" />
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #FAF6EE; color: #1A1A1A; font-family: Inter, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  a { color: #1A1A1A; text-decoration: none; }
+  a:hover { color: #E88B5A; }
+  ::selection { background: #E88B5A; color: #FAF6EE; }
+  @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+</style>
+</helmet>
+
+<div style="min-height: 100vh; background: #FAF6EE;">
+
+  <header style="position: sticky; top: 0; z-index: 50; background: rgba(250,246,238,0.92); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(26,26,26,0.12);">
+    <div style="max-width: 1280px; margin: 0 auto; padding: 0 40px; height: 64px; display: flex; align-items: center; justify-content: space-between; gap: 24px;">
+      <span style="font-family: Fraunces, Georgia, serif; font-size: 24px; letter-spacing: -0.04em;">FIT50</span>
+      <nav style="display: flex; align-items: center; gap: 28px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase;">
+        <a href="Foundations.dc.html" style="color: rgba(26,26,26,0.7);">Foundations</a>
+        <a href="Components.dc.html" style="color: rgba(26,26,26,0.7);">Components</a>
+        <span style="color: #E88B5A;">Patterns</span>
+      </nav>
+      <span style="font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(26,26,26,0.4);">03 / 03</span>
+    </div>
+  </header>
+
+  <section style="position: relative; overflow: hidden; padding: 96px 0 80px;">
+    <div style="position: absolute; top: 0; left: 0; right: 0; height: 180px; overflow: hidden; pointer-events: none; display: flex; align-items: center; white-space: nowrap; user-select: none;">
+      <div style="display: inline-flex; animation: marquee 240s linear infinite;">
+        <span style="font-family: 'Lilita One', system-ui, sans-serif; font-size: clamp(5rem, 13vw, 12rem); line-height: 1; text-transform: uppercase; padding-right: 48px; color: rgba(232,139,90,0.55);">PATTERNS ✦ </span>
+        <span style="font-family: 'Lilita One', system-ui, sans-serif; font-size: clamp(5rem, 13vw, 12rem); line-height: 1; text-transform: uppercase; padding-right: 48px; color: rgba(232,139,90,0.55);">PATTERNS ✦ </span>
+        <span style="font-family: 'Lilita One', system-ui, sans-serif; font-size: clamp(5rem, 13vw, 12rem); line-height: 1; text-transform: uppercase; padding-right: 48px; color: rgba(232,139,90,0.55);">PATTERNS ✦ </span>
+        <span style="font-family: 'Lilita One', system-ui, sans-serif; font-size: clamp(5rem, 13vw, 12rem); line-height: 1; text-transform: uppercase; padding-right: 48px; color: rgba(232,139,90,0.55);">PATTERNS ✦ </span>
+        <span style="font-family: 'Lilita One', system-ui, sans-serif; font-size: clamp(5rem, 13vw, 12rem); line-height: 1; text-transform: uppercase; padding-right: 48px; color: rgba(232,139,90,0.55);">PATTERNS ✦ </span>
+        <span style="font-family: 'Lilita One', system-ui, sans-serif; font-size: clamp(5rem, 13vw, 12rem); line-height: 1; text-transform: uppercase; padding-right: 48px; color: rgba(232,139,90,0.55);">PATTERNS ✦ </span>
+      </div>
+    </div>
+    <div style="position: relative; z-index: 10; max-width: 1280px; margin: 0 auto; padding: 120px 40px 0;">
+      <p style="margin: 0 0 24px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: #E88B5A;">FIT50 Design System · Patterns</p>
+      <h1 style="margin: 0 0 24px; font-family: Fraunces, Georgia, serif; font-weight: 400; font-size: clamp(2.75rem, 6vw, 5rem); line-height: 1; letter-spacing: -0.02em;">How the pieces<br />sit together.</h1>
+      <p style="margin: 0; max-width: 620px; font-size: 20px; line-height: 1.6; color: rgba(26,26,26,0.7);">Section composition, the tracker in full, and the recurring layouts the site is built from. The tracker below is live — tap the squares.</p>
+    </div>
+  </section>
+
+  <section style="border-top: 1px solid rgba(26,26,26,0.12); padding: 80px 0; background: #FFFFFF;">
+    <div style="max-width: 1280px; margin: 0 auto; padding: 0 40px;">
+      <p style="margin: 0 0 8px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(26,26,26,0.5);">01 · Composition</p>
+      <h2 style="margin: 0 0 16px; font-family: Fraunces, Georgia, serif; font-weight: 400; font-size: clamp(2rem, 3.5vw, 2.75rem); line-height: 1.1; letter-spacing: -0.01em;">The section formula</h2>
+      <p style="margin: 0 0 40px; max-width: 640px; font-size: 15px; line-height: 1.7; color: rgba(26,26,26,0.7);">Every section below the hero is built the same way. Change the ground color and the marquee words; keep everything else.</p>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; margin-bottom: 40px;">
+        <div style="border: 1px solid rgba(26,26,26,0.12); padding: 28px;">
+          <p style="margin: 0 0 12px; font-family: Fraunces, Georgia, serif; font-size: 20px;">1 · Marquee band</p>
+          <p style="margin: 0; font-size: 14px; line-height: 1.7; color: rgba(26,26,26,0.7);">Absolute, top 0, height 128px (208px at md), z-0, pointer-events none, aria-hidden. The section pads its top to 160px / 224px to clear it.</p>
+        </div>
+        <div style="border: 1px solid rgba(26,26,26,0.12); padding: 28px;">
+          <p style="margin: 0 0 12px; font-family: Fraunces, Georgia, serif; font-size: 20px;">2 · Statement line</p>
+          <p style="margin: 0; font-size: 14px; line-height: 1.7; color: rgba(26,26,26,0.7);">A 7- or 8-column Fraunces paragraph at 30px / 48px, ground text at 85–95%. Two clauses, one em dash or comma. Never a heading tag — the real h2 is screen-reader-only.</p>
+        </div>
+        <div style="border: 1px solid rgba(26,26,26,0.12); padding: 28px;">
+          <p style="margin: 0 0 12px; font-family: Fraunces, Georgia, serif; font-size: 20px;">3 · Content grid</p>
+          <p style="margin: 0; font-size: 14px; line-height: 1.7; color: rgba(26,26,26,0.7);">64–80px below the statement. Cards at 24px gaps, or a bordered list at 1px dividers.</p>
+        </div>
+        <div style="border: 1px solid rgba(26,26,26,0.12); padding: 28px;">
+          <p style="margin: 0 0 12px; font-family: Fraunces, Georgia, serif; font-size: 20px;">4 · Closing CTA</p>
+          <p style="margin: 0; font-size: 14px; line-height: 1.7; color: rgba(26,26,26,0.7);">Centred, 64–80px above the section's bottom padding: an h2-sized Fraunces line, then one primary button. Every section funnels to the tracker.</p>
+        </div>
+      </div>
+
+      <div style="border: 1px solid rgba(26,26,26,0.12); overflow: hidden;">
+        <div style="position: relative; background: #4A9B9B; height: 380px; overflow: hidden;">
+          <div style="position: absolute; top: 0; left: 0; right: 0; height: 120px; overflow: hidden; display: flex; align-items: center; white-space: nowrap;">
+            <div style="display: inline-flex; animation: marquee 200s linear infinite;">
+              <span style="font-family: 'Lilita One', sans-serif; font-size: 96px; line-height: 1; text-transform: uppercase; padding-right: 48px; color: rgba(250,246,238,0.4);">NINE HABITS · NON-NEGOTIABLES ✦ </span>
+              <span style="font-family: 'Lilita One', sans-serif; font-size: 96px; line-height: 1; text-transform: uppercase; padding-right: 48px; color: rgba(250,246,238,0.4);">NINE HABITS · NON-NEGOTIABLES ✦ </span>
+              <span style="font-family: 'Lilita One', sans-serif; font-size: 96px; line-height: 1; text-transform: uppercase; padding-right: 48px; color: rgba(250,246,238,0.4);">NINE HABITS · NON-NEGOTIABLES ✦ </span>
+            </div>
+          </div>
+          <div style="position: relative; z-index: 10; padding: 140px 32px 0;">
+            <p style="margin: 0 0 40px; font-family: Fraunces, Georgia, serif; font-size: 44px; line-height: 1.15; color: rgba(250,246,238,0.95); max-width: 620px;">All nine, Every day — That's the challenge.</p>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;">
+              <div style="height: 90px; border: 1px solid rgba(250,246,238,0.2);"></div>
+              <div style="height: 90px; border: 1px solid rgba(250,246,238,0.2);"></div>
+              <div style="height: 90px; border: 1px solid rgba(250,246,238,0.2);"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p style="margin: 20px 0 0; font-size: 13px; line-height: 1.6; color: rgba(26,26,26,0.55);">Statement lines currently in use: "All nine, Every day — That's the challenge." (Rules) · "Picked your start date? Now find your finish line." (Calculator) · "Choose a line a day, Repeat — Just show up." (Workouts) · "Still overthinking it? Don't! Just start!" (FAQ)</p>
+    </div>
+  </section>
+
+  <section style="border-top: 1px solid rgba(26,26,26,0.12); padding: 80px 0;">
+    <div style="max-width: 1280px; margin: 0 auto; padding: 0 40px;">
+      <p style="margin: 0 0 8px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(26,26,26,0.5);">02 · Tracker.tsx</p>
+      <h2 style="margin: 0 0 16px; font-family: Fraunces, Georgia, serif; font-weight: 400; font-size: clamp(2rem, 3.5vw, 2.75rem); line-height: 1.1; letter-spacing: -0.01em;">The tracker</h2>
+      <p style="margin: 0 0 40px; max-width: 700px; font-size: 15px; line-height: 1.7; color: rgba(26,26,26,0.7);">The product's core screen, recreated live. A 4-column teal streak card beside an 8-column white panel holding the 3×3 cube and the 50-day grid. Splits at lg; stacks below.</p>
+
+      <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: stretch;">
+        <div style="flex: 1 1 300px; min-width: 0; background: #4A9B9B; color: #FAF6EE; padding: 40px; display: flex; flex-direction: column;">
+          <p style="margin: 0 0 12px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(250,246,238,0.7);">Current streak</p>
+          <div style="display: flex; align-items: baseline; gap: 12px; margin-bottom: 8px;">
+            <span style="font-family: Fraunces, Georgia, serif; font-size: clamp(6rem, 12vw, 9rem); line-height: 1; letter-spacing: -0.04em; color: #F2D9A2;">{{ streak }}</span>
+            <span style="font-size: 18px; color: rgba(250,246,238,0.8);">days</span>
+          </div>
+          <p style="margin: 0 0 32px; font-size: 14px; color: rgba(250,246,238,0.7);">in a row · best: {{ longestLabel }}</p>
+
+          <div style="background: rgba(250,246,238,0.1); padding: 16px; margin-bottom: 16px; transition: background 200ms cubic-bezier(0.4,0,0.2,1);" style-hover="background: rgba(250,246,238,0.15);">
+            <p style="margin: 0 0 4px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(250,246,238,0.7);">🍌 Streak protection</p>
+            <p style="margin: 0; font-size: 14px; color: rgba(250,246,238,0.85);">Get 1 free pass a week. Miss a day, the streak holds. <span style="color: #E88B5A;">Unlock for €7.99 →</span></p>
+          </div>
+
+          <div style="margin-top: auto;">
+            <div style="display: flex; align-items: center; justify-content: space-between; font-size: 14px; margin-bottom: 8px;">
+              <span style="color: rgba(250,246,238,0.8);">Today's progress</span>
+              <span>{{ todayCount }} / 9</span>
+            </div>
+            <div style="height: 6px; background: rgba(250,246,238,0.15); overflow: hidden;">
+              <div style="height: 100%; background: #E88B5A; transition: all 500ms cubic-bezier(0.4,0,0.2,1); width: {{ progressPct }};"></div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding-top: 16px;">
+              <button onClick="{{ advance }}" style="border: 1px solid rgba(250,246,238,0.3); color: #FAF6EE; background: none; font-family: Inter, sans-serif; font-size: 12px; padding: 12px 16px; text-transform: uppercase; letter-spacing: 0.08em; cursor: pointer; transition: all 200ms cubic-bezier(0.4,0,0.2,1);" style-hover="border-color: #FAF6EE; background: rgba(250,246,238,0.1);">Next day</button>
+              <button onClick="{{ reset }}" style="font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(250,246,238,0.7); background: none; border: 0; cursor: pointer; transition: color 200ms cubic-bezier(0.4,0,0.2,1);" style-hover="color: #FAF6EE;">Reset</button>
+            </div>
+          </div>
+        </div>
+
+        <div style="flex: 2 1 480px; min-width: 0; background: #FFFFFF; border: 1px solid rgba(26,26,26,0.12); padding: 40px;">
+          <div style="display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 1px solid rgba(26,26,26,0.12);">
+            <div>
+              <p style="margin: 0 0 4px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(26,26,26,0.5);">{{ cubeLabel }}</p>
+              <h3 style="margin: 0; font-family: Fraunces, Georgia, serif; font-weight: 400; font-size: clamp(1.5rem, 2vw, 1.875rem); line-height: 1.2;">{{ todayCount }} of 9</h3>
+            </div>
+            <p style="margin: 0; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(26,26,26,0.5);">Tap to toggle</p>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: #1A1A1A; border: 1px solid #1A1A1A; transition: box-shadow 500ms cubic-bezier(0.4,0,0.2,1); box-shadow: {{ cubeShadow }};">
+            <sc-for list="{{ tiles }}" as="tile" hint-placeholder-count="9">
+              <button onClick="{{ tile.toggle }}" aria-pressed="{{ tile.done }}" style="aspect-ratio: 1; min-width: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; border: 0; cursor: pointer; transition: background-color 300ms cubic-bezier(0.4,0,0.2,1), color 300ms cubic-bezier(0.4,0,0.2,1); background: {{ tile.bg }}; color: {{ tile.fg }};">
+                <div style="display: flex; width: 100%; min-width: 0; align-items: center; justify-content: center; padding: 4px;">
+                  <div role="img" style="width: 100%; max-width: 128px; aspect-ratio: 1; background-repeat: no-repeat; background-position: center; background-size: contain; background-image: {{ tile.bgImage }};"></div>
+                </div>
+                <span style="font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; text-align: center; line-height: 1.2;">{{ tile.name }}</span>
+              </button>
+            </sc-for>
+          </div>
+
+          <div style="margin-top: 40px; padding-top: 32px; border-top: 1px solid rgba(26,26,26,0.12);">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+              <p style="margin: 0; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(26,26,26,0.5);">The 50 days</p>
+              <p style="margin: 0; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(26,26,26,0.5);">Day {{ today }} highlighted</p>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(10, 1fr); gap: 6px;">
+              <sc-for list="{{ days }}" as="d" hint-placeholder-count="50">
+                <div title="{{ d.title }}" style="aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 10px; position: relative; background: {{ d.bg }}; color: {{ d.fg }}; box-shadow: {{ d.ring }};">{{ d.day }}</div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top: 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px;">
+        <div style="background: #FFFFFF; border: 1px solid rgba(26,26,26,0.12); padding: 28px;">
+          <p style="margin: 0 0 16px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(26,26,26,0.5);">Grid legend</p>
+          <div style="display: flex; flex-direction: column; gap: 12px; font-size: 14px; color: rgba(26,26,26,0.75);">
+            <div style="display: flex; align-items: center; gap: 12px;"><span style="width: 20px; height: 20px; background: #4A9B9B; flex-shrink: 0;"></span> 7–9 habits · counts toward the streak</div>
+            <div style="display: flex; align-items: center; gap: 12px;"><span style="width: 20px; height: 20px; background: #E88B5A; flex-shrink: 0;"></span> 5–6 habits · streak holds, doesn't grow</div>
+            <div style="display: flex; align-items: center; gap: 12px;"><span style="width: 20px; height: 20px; background: #F2D9A2; flex-shrink: 0;"></span> 1–4 habits · streak resets</div>
+            <div style="display: flex; align-items: center; gap: 12px;"><span style="width: 20px; height: 20px; background: #FAF6EE; border: 1px solid rgba(26,26,26,0.12); flex-shrink: 0;"></span> Nothing logged</div>
+            <div style="display: flex; align-items: center; gap: 12px;"><span style="width: 20px; height: 20px; background: #FCD34D; flex-shrink: 0;"></span> Protected · premium pass 🍌</div>
+            <div style="display: flex; align-items: center; gap: 12px;"><span style="width: 20px; height: 20px; background: #FAF6EE; box-shadow: 0 0 0 2px #FFFFFF, 0 0 0 4px #1A1A1A; flex-shrink: 0;"></span> Today · 2px ink ring, 2px offset</div>
+          </div>
+        </div>
+        <div style="background: #FFFFFF; border: 1px solid rgba(26,26,26,0.12); padding: 28px;">
+          <p style="margin: 0 0 16px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(26,26,26,0.5);">Cube rules</p>
+          <ul style="margin: 0; padding-left: 18px; font-size: 14px; line-height: 1.8; color: rgba(26,26,26,0.75);">
+            <li>1px gaps over an ink background make the rules — no borders on the tiles.</li>
+            <li>Untouched: white, ink text, hovering to paper. Done: coral fill, paper text, 300ms.</li>
+            <li>Illustration scales 105% on hover over 300ms.</li>
+            <li>All nine done adds a 4px coral/35 outer ring and the header flips to "Cube solved for today".</li>
+            <li>Past days aren't editable in the cube — the 50-day grid is a read-only history.</li>
+          </ul>
+        </div>
+        <div style="background: #FFFFFF; border: 1px solid rgba(26,26,26,0.12); padding: 28px;">
+          <p style="margin: 0 0 16px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(26,26,26,0.5);">Streak logic</p>
+          <ul style="margin: 0; padding-left: 18px; font-size: 14px; line-height: 1.8; color: rgba(26,26,26,0.75);">
+            <li>7 or more habits in a day extends the streak.</li>
+            <li>5 or 6 is a hold: neither extend nor reset.</li>
+            <li>Under 5 resets, and banks the run as "best".</li>
+            <li>The numeral is cream on teal — the only place cream carries type.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="border-top: 1px solid rgba(26,26,26,0.12); padding: 80px 0; background: #4A9B9B;">
+    <div style="max-width: 1280px; margin: 0 auto; padding: 0 40px;">
+      <p style="margin: 0 0 8px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(250,246,238,0.6);">03 · Rules.tsx</p>
+      <h2 style="margin: 0 0 16px; font-family: Fraunces, Georgia, serif; font-weight: 400; font-size: clamp(2rem, 3.5vw, 2.75rem); line-height: 1.1; letter-spacing: -0.01em; color: #FAF6EE;">The flip card</h2>
+      <p style="margin: 0 0 40px; max-width: 640px; font-size: 15px; line-height: 1.7; color: rgba(250,246,238,0.85);">One card per habit, min-height 520px, 1200px perspective, rotateY 180° over 700ms. Front: index, meta, illustration, title, "Show Rule". Back: index, title, description, and the tip on a 2px coral left rule. Only one card is flipped at a time.</p>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px;">
+        <div style="border: 1px solid rgba(250,246,238,0.2); min-height: 520px; padding: 32px; display: flex; flex-direction: column; align-items: center; text-align: center; color: #FAF6EE;">
+          <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; margin-bottom: 16px;">
+            <span style="font-family: Fraunces, Georgia, serif; font-size: 20px; color: #E88B5A; font-variant-numeric: tabular-nums;">01</span>
+            <span style="font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(250,246,238,0.6);">50× reps</span>
+          </div>
+          <div style="flex: 1; display: flex; align-items: center; justify-content: center; width: 100%; min-height: 0;">
+            <img src="public/icons/chill-out.webp" alt="" style="width: 100%; max-width: 280px; height: auto; object-fit: contain;" />
+          </div>
+          <h3 style="margin: 0 0 16px; font-family: Fraunces, Georgia, serif; font-weight: 400; font-size: clamp(1.5rem, 2vw, 1.875rem); line-height: 1.2;">Chill Out</h3>
+          <span style="font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(250,246,238,0.7);">Show Rule →</span>
+        </div>
+        <div style="border: 1px solid rgba(250,246,238,0.2); background: rgba(250,246,238,0.05); min-height: 520px; padding: 32px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: #FAF6EE;">
+          <span style="font-family: Fraunces, Georgia, serif; font-size: 20px; color: #E88B5A; font-variant-numeric: tabular-nums; margin-bottom: 24px;">01</span>
+          <p style="margin: 0 0 16px; font-size: clamp(1.25rem, 1.5vw, 1.5rem); line-height: 1.35;">Chill Out</p>
+          <p style="margin: 0 0 24px; max-width: 320px; font-size: 16px; line-height: 1.6; color: rgba(250,246,238,0.85);">Take a cold shower every day. End your regular shower with 30 seconds of cold water.</p>
+          <p style="margin: 0 0 24px; max-width: 320px; text-align: left; font-size: 14px; line-height: 1.6; font-style: italic; color: rgba(250,246,238,0.7); border-left: 2px solid #E88B5A; padding-left: 16px;">Start with 10 seconds and work your way up. The discomfort is temporary, the benefits are lasting.</p>
+          <span style="margin-top: auto; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(250,246,238,0.7);">← Hide Rule</span>
+        </div>
+      </div>
+      <p style="margin: 20px 0 0; font-size: 13px; line-height: 1.6; color: rgba(250,246,238,0.65);">Both faces use backface-visibility hidden inside a preserve-3d wrapper. Front hover lifts the ground to paper/5.</p>
+    </div>
+  </section>
+
+  <section style="border-top: 1px solid rgba(26,26,26,0.12); padding: 80px 0; background: #1A1A1A;">
+    <div style="max-width: 1280px; margin: 0 auto; padding: 0 40px;">
+      <p style="margin: 0 0 8px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(250,246,238,0.5);">04 · Workouts.tsx</p>
+      <h2 style="margin: 0 0 16px; font-family: Fraunces, Georgia, serif; font-weight: 400; font-size: clamp(2rem, 3.5vw, 2.75rem); line-height: 1.1; letter-spacing: -0.01em; color: #FAF6EE;">The line row</h2>
+      <p style="margin: 0 0 40px; max-width: 640px; font-size: 15px; line-height: 1.7; color: rgba(250,246,238,0.7);">A giant letter in 3 columns, five exercise slots in 9. Rows are separated by paper/15 rules, not cards. Each slot hangs off a 1px left rule; the conditioning finisher upgrades to a 2px coral rule and turns its label and reps coral.</p>
+      <div style="border-top: 1px solid rgba(250,246,238,0.15);">
+        <div style="display: grid; grid-template-columns: 3fr 9fr; gap: 40px; align-items: center; padding: 48px 0; border-bottom: 1px solid rgba(250,246,238,0.15);">
+          <span style="font-family: Fraunces, Georgia, serif; font-size: clamp(6rem, 12vw, 10rem); line-height: 1; letter-spacing: -0.04em; color: #FAF6EE;">A</span>
+          <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 24px;">
+            <div style="padding-left: 16px; border-left: 1px solid rgba(250,246,238,0.15);">
+              <p style="margin: 0 0 6px; font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(250,246,238,0.4);">Push</p>
+              <h4 style="margin: 0 0 4px; font-family: Fraunces, Georgia, serif; font-weight: 400; font-size: 18px; line-height: 1.2; color: #FAF6EE;">Push-ups</h4>
+              <p style="margin: 0; font-size: 14px; color: rgba(250,246,238,0.5);">5 × 10 reps</p>
+            </div>
+            <div style="padding-left: 16px; border-left: 1px solid rgba(250,246,238,0.15);">
+              <p style="margin: 0 0 6px; font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(250,246,238,0.4);">Pull</p>
+              <h4 style="margin: 0 0 4px; font-family: Fraunces, Georgia, serif; font-weight: 400; font-size: 18px; line-height: 1.2; color: #FAF6EE;">Supermans</h4>
+              <p style="margin: 0; font-size: 14px; color: rgba(250,246,238,0.5);">5 × 10 reps</p>
+            </div>
+            <div style="padding-left: 16px; border-left: 1px solid rgba(250,246,238,0.15);">
+              <p style="margin: 0 0 6px; font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(250,246,238,0.4);">Legs</p>
+              <h4 style="margin: 0 0 4px; font-family: Fraunces, Georgia, serif; font-weight: 400; font-size: 18px; line-height: 1.2; color: #FAF6EE;">Bodyweight Squats</h4>
+              <p style="margin: 0; font-size: 14px; color: rgba(250,246,238,0.5);">5 × 10 reps</p>
+            </div>
+            <div style="padding-left: 16px; border-left: 1px solid rgba(250,246,238,0.15);">
+              <p style="margin: 0 0 6px; font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(250,246,238,0.4);">Core</p>
+              <h4 style="margin: 0 0 4px; font-family: Fraunces, Georgia, serif; font-weight: 400; font-size: 18px; line-height: 1.2; color: #FAF6EE;">Bird Dogs</h4>
+              <p style="margin: 0; font-size: 14px; color: rgba(250,246,238,0.5);">5 × 10 reps (5 per side)</p>
+            </div>
+            <div style="padding-left: 16px; border-left: 2px solid #E88B5A;">
+              <p style="margin: 0 0 6px; font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; color: #E88B5A;">Conditioning</p>
+              <h4 style="margin: 0 0 4px; font-family: Fraunces, Georgia, serif; font-weight: 400; font-size: 18px; line-height: 1.2; color: #FAF6EE;">Plank</h4>
+              <p style="margin: 0; font-size: 14px; color: #E88B5A;">5 × 50 sec</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p style="margin: 20px 0 0; font-size: 13px; line-height: 1.6; color: rgba(250,246,238,0.5);">Slot labels use the widest tracking in the system, 0.18em. Below md the five slots become two columns and the letter sits above them.</p>
+    </div>
+  </section>
+
+  <section style="border-top: 1px solid rgba(26,26,26,0.12); padding: 80px 0; background: #D8B8D0;">
+    <div style="max-width: 1280px; margin: 0 auto; padding: 0 40px;">
+      <p style="margin: 0 0 8px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(26,26,26,0.55);">05 · Calculator.tsx</p>
+      <h2 style="margin: 0 0 16px; font-family: Fraunces, Georgia, serif; font-weight: 400; font-size: clamp(2rem, 3.5vw, 2.75rem); line-height: 1.1; letter-spacing: -0.01em;">The offset panel</h2>
+      <p style="margin: 0 0 40px; max-width: 640px; font-size: 15px; line-height: 1.7; color: rgba(26,26,26,0.75);">A single 6-column panel starting at column 7 — the left half stays empty so the marquee reads through. Inside: caption label, input + squared button, then a result block above a 1px rule. Buttons drop their pill radius in panels.</p>
+      <div style="display: grid; grid-template-columns: repeat(12, 1fr); gap: 24px;">
+        <div style="grid-column: 7 / span 6; background: #FAF6EE; border: 1px solid rgba(26,26,26,0.1); padding: 40px;">
+          <p style="margin: 0 0 24px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(26,26,26,0.5);">Your finish date</p>
+          <div style="display: flex; gap: 12px; margin-bottom: 24px;">
+            <input type="date" style="flex: 1; padding: 12px 16px; background: #FAF6EE; border: 1px solid rgba(26,26,26,0.2); border-radius: 0; font-family: Inter, sans-serif; font-size: 16px; color: #1A1A1A; outline: none;" />
+            <button style="padding: 14px 28px; font-family: Inter, sans-serif; font-size: 14px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; border: 0; background: #1A1A1A; color: #FAF6EE; cursor: pointer; white-space: nowrap;">Calculate</button>
+          </div>
+          <div style="border-top: 1px solid rgba(26,26,26,0.1); padding-top: 24px;">
+            <p style="margin: 0 0 8px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(26,26,26,0.5);">You'll finish on</p>
+            <p style="margin: 0 0 24px; font-family: Fraunces, Georgia, serif; font-size: clamp(1.5rem, 2vw, 1.875rem); line-height: 1.2;">Tuesday, 24 September 2026</p>
+            <button style="padding: 14px 28px; font-family: Inter, sans-serif; font-size: 14px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; border: 1px solid rgba(26,26,26,0.3); background: transparent; color: #1A1A1A; cursor: pointer;">Start tracking from today</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="border-top: 1px solid rgba(26,26,26,0.12); padding: 80px 0; background: #FFFFFF;">
+    <div style="max-width: 1280px; margin: 0 auto; padding: 0 40px;">
+      <p style="margin: 0 0 8px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(26,26,26,0.5);">06 · Responsive <span style="color: #E88B5A;">· extends the code</span></p>
+      <h2 style="margin: 0 0 16px; font-family: Fraunces, Georgia, serif; font-weight: 400; font-size: clamp(2rem, 3.5vw, 2.75rem); line-height: 1.1; letter-spacing: -0.01em;">On a phone</h2>
+      <p style="margin: 0 0 40px; max-width: 640px; font-size: 15px; line-height: 1.7; color: rgba(26,26,26,0.7);">Everything collapses to one column at md (768px); the tracker splits at lg (1024px). Type scales itself through clamp, so nothing needs a mobile override.</p>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px;">
+        <div style="border: 1px solid rgba(26,26,26,0.12); padding: 28px;">
+          <p style="margin: 0 0 16px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(26,26,26,0.5);">Set by the code</p>
+          <ul style="margin: 0; padding-left: 18px; font-size: 14px; line-height: 1.8; color: rgba(26,26,26,0.75);">
+            <li>Gutters 24px → 40px at md.</li>
+            <li>Panel padding 24px → 40px at md.</li>
+            <li>Marquee band 128px → 208px at md.</li>
+            <li>Cube tile padding 12px → 20px at md.</li>
+            <li>Nav links hide below md.</li>
+          </ul>
+        </div>
+        <div style="border: 1px solid rgba(26,26,26,0.12); border-left: 3px solid #E88B5A; padding: 28px;">
+          <p style="margin: 0 0 16px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: #E88B5A;">Open on mobile</p>
+          <ul style="margin: 0; padding-left: 18px; font-size: 14px; line-height: 1.8; color: rgba(26,26,26,0.75);">
+            <li>Nav links vanish below md with nothing replacing them — no drawer, no menu button. The Start button and wordmark are the only navigation on a phone.</li>
+            <li>The 50-day grid keeps ten columns, putting each cell near 28px. Tolerable as a read-only display, but the day numerals fall to the edge of legibility.</li>
+            <li>Cube tiles stay square in three columns, so each is roughly 100px wide — above the 44px minimum, but the caption wraps to three lines.</li>
+          </ul>
+        </div>
+        <div style="border: 1px solid rgba(26,26,26,0.12); padding: 28px;">
+          <p style="margin: 0 0 16px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(26,26,26,0.5);">Rules for new mobile work</p>
+          <ul style="margin: 0; padding-left: 18px; font-size: 14px; line-height: 1.8; color: rgba(26,26,26,0.75);">
+            <li>44px minimum for anything tappable.</li>
+            <li>Full-width square buttons in panels; keep pills for single marketing CTAs.</li>
+            <li>Stack input-and-button pairs vertically with a 12px gap — the codebase already does this with <code style="font-family: ui-monospace, Menlo, monospace; font-size: 13px;">flex-col sm:flex-row</code>.</li>
+            <li>Never shrink a caption below 12px; drop the label instead.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="border-top: 1px solid rgba(26,26,26,0.12); padding: 80px 0 96px;">
+    <div style="max-width: 1280px; margin: 0 auto; padding: 0 40px;">
+      <p style="margin: 0 0 8px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(26,26,26,0.5);">07 · Voice &amp; usage</p>
+      <h2 style="margin: 0 0 16px; font-family: Fraunces, Georgia, serif; font-weight: 400; font-size: clamp(2rem, 3.5vw, 2.75rem); line-height: 1.1; letter-spacing: -0.01em;">How it talks</h2>
+      <p style="margin: 0 0 40px; max-width: 640px; font-size: 15px; line-height: 1.7; color: rgba(26,26,26,0.7);">Short imperatives, second person, no hedging. Periods where you'd expect exclamation marks. Section headlines are two clauses split by a full stop or a dash: "Check the box. Build the streak."</p>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px;">
+        <div style="background: #FFFFFF; border: 1px solid rgba(26,26,26,0.12); border-left: 3px solid #4A9B9B; padding: 28px;">
+          <p style="margin: 0 0 18px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: #4A9B9B;">Do</p>
+          <ul style="margin: 0; padding-left: 18px; font-size: 15px; line-height: 1.75; color: rgba(26,26,26,0.75);">
+            <li>Open every section with a marquee, close it with one CTA.</li>
+            <li>Keep the real h2 screen-reader-only when the visible headline is a paragraph.</li>
+            <li>Signal state with fill color, not icons or badges.</li>
+            <li>Let one number dominate: the streak, the day, the count.</li>
+            <li>Write labels as commands — "Next day", "Show Rule", "Start tracking".</li>
+          </ul>
+        </div>
+        <div style="background: #FFFFFF; border: 1px solid rgba(26,26,26,0.12); border-left: 3px solid #E88B5A; padding: 28px;">
+          <p style="margin: 0 0 18px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: #E88B5A;">Don't</p>
+          <ul style="margin: 0; padding-left: 18px; font-size: 15px; line-height: 1.75; color: rgba(26,26,26,0.75);">
+            <li>Run two marquees in one section, or one on the hero.</li>
+            <li>Add a second CTA next to the closing button.</li>
+            <li>Explain the mechanic twice — the caption above the count already does it.</li>
+            <li>Use exclamation marks outside the FAQ statement line.</li>
+            <li>Congratulate at length; "✓ Done. Well executed." is the ceiling.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer style="background: #1A1A1A; color: #FAF6EE; padding: 64px 0;">
+    <div style="max-width: 1280px; margin: 0 auto; padding: 0 40px; display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 32px;">
+      <div>
+        <p style="margin: 0 0 8px; font-family: Fraunces, Georgia, serif; font-size: clamp(2.75rem, 6vw, 5rem); line-height: 1;">FIT50</p>
+        <p style="margin: 0; font-size: 14px; color: rgba(250,246,238,0.5);">Design system · built from barnymurt/fit50</p>
+      </div>
+      <nav style="display: flex; gap: 28px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase;">
+        <a href="Foundations.dc.html" style="color: rgba(250,246,238,0.6);">Foundations</a>
+        <a href="Components.dc.html" style="color: rgba(250,246,238,0.6);">Components</a>
+        <span style="color: #E88B5A;">Patterns</span>
+      </nav>
+    </div>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const HABITS = [
+  { id: 'chill-out', name: 'Chill Out' },
+  { id: 'fuel-right', name: 'Fuel Right' },
+  { id: 'crispy-clarity', name: 'Crispy Clarity' },
+  { id: 'fresh-lungs', name: 'Fresh Lungs' },
+  { id: 'open-mind', name: 'Open Mind' },
+  { id: 'move-body', name: 'Move Your Body' },
+  { id: 'wet-lips', name: 'Wet The Lips' },
+  { id: 'step-it-up', name: 'Step It Up' },
+  { id: 'feed-brain', name: 'Feed Your Brain' },
+];
+const SEED = [9, 9, 8, 7, 7, 9, 6, 4, 9, 8, 7];
+const PROTECTED = [8];
+
+function seedCompletions() {
+  const c = {};
+  HABITS.forEach((h) => { c[h.id] = {}; });
+  SEED.forEach((count, i) => {
+    for (let k = 0; k < count; k++) c[HABITS[k].id][i + 1] = true;
+  });
+  [0, 1, 2, 4, 6].forEach((k) => { c[HABITS[k].id][12] = true; });
+  return c;
+}
+
+class Component extends DCLogic {
+  state = { day: 12, completions: seedCompletions() };
+
+  countFor(day) {
+    return HABITS.filter((h) => this.state.completions[h.id] && this.state.completions[h.id][day]).length;
+  }
+
+  renderVals() {
+    const today = this.state.day;
+    let longest = 0, current = 0;
+    for (let d = 1; d <= today; d++) {
+      const n = this.countFor(d);
+      if (n >= 7) current++;
+      else if (n < 5) { longest = Math.max(longest, current); current = 0; }
+    }
+    longest = Math.max(longest, current);
+
+    const todayCount = this.countFor(today);
+    const solved = todayCount === 9;
+
+    const tiles = HABITS.map((h) => {
+      const done = !!(this.state.completions[h.id] && this.state.completions[h.id][today]);
+      return {
+        name: h.name,
+        bgImage: "url('public/icons/" + h.id + ".webp')",
+        done: done,
+        bg: done ? '#E88B5A' : '#FFFFFF',
+        fg: done ? '#FAF6EE' : '#1A1A1A',
+        toggle: () => this.setState((s) => {
+          const c = { ...s.completions, [h.id]: { ...s.completions[h.id] } };
+          if (c[h.id][today]) delete c[h.id][today]; else c[h.id][today] = true;
+          return { completions: c };
+        }),
+      };
+    });
+
+    const days = Array.from({ length: 50 }, (_, i) => i + 1).map((day) => {
+      const n = this.countFor(day);
+      const isProtected = PROTECTED.indexOf(day) !== -1;
+      let bg = '#FAF6EE';
+      if (isProtected) bg = '#FCD34D';
+      else if (n >= 7) bg = '#4A9B9B';
+      else if (n >= 5) bg = '#E88B5A';
+      else if (n > 0) bg = '#F2D9A2';
+      return {
+        day: day,
+        bg: bg,
+        fg: day < today ? '#1A1A1A' : 'rgba(26,26,26,0.3)',
+        ring: day === today ? '0 0 0 2px #FFFFFF, 0 0 0 4px #1A1A1A' : 'none',
+        title: isProtected ? 'Day ' + day + ': protected' : 'Day ' + day + ': ' + n + '/9',
+      };
+    });
+
+    return {
+      today: today,
+      streak: current,
+      longestLabel: longest + (longest === 1 ? ' day' : ' days'),
+      todayCount: todayCount,
+      progressPct: Math.round((todayCount / 9) * 100) + '%',
+      cubeLabel: solved ? 'Cube solved for today' : "Solve today's cube",
+      cubeShadow: solved ? '0 0 0 4px rgba(232,139,90,0.35)' : 'none',
+      tiles: tiles,
+      days: days,
+      advance: () => { if (this.state.day < 50) this.setState((s) => ({ day: s.day + 1 })); },
+      reset: () => this.setState({ day: 12, completions: seedCompletions() }),
+    };
+  }
+}
+</script>
+</body>
+</html>

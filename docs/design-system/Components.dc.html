@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&family=Inter:wght@400;500;600&family=Lilita+One&display=swap" rel="stylesheet" />
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #FAF6EE; color: #1A1A1A; font-family: Inter, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  a { color: #1A1A1A; text-decoration: none; }
+  a:hover { color: #E88B5A; }
+  ::selection { background: #E88B5A; color: #FAF6EE; }
+  @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</helmet>
+
+<div style="min-height: 100vh; background: #FAF6EE;">
+
+  <header style="position: sticky; top: 0; z-index: 50; background: rgba(250,246,238,0.92); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(26,26,26,0.12);">
+    <div style="max-width: 1280px; margin: 0 auto; padding: 0 40px; height: 64px; display: flex; align-items: center; justify-content: space-between; gap: 24px;">
+      <span style="font-family: Fraunces, Georgia, serif; font-size: 24px; letter-spacing: -0.04em;">FIT50</span>
+      <nav style="display: flex; align-items: center; gap: 28px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase;">
+        <a href="Foundations.dc.html" style="color: rgba(26,26,26,0.7);">Foundations</a>
+        <span style="color: #E88B5A;">Components</span>
+        <a href="Patterns.dc.html" style="color: rgba(26,26,26,0.7);">Patterns</a>
+      </nav>
+      <span style="font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(26,26,26,0.4);">02 / 03</span>
+    </div>
+  </header>
+
+  <section style="position: relative; overflow: hidden; padding: 96px 0 80px;">
+    <div style="position: absolute; top: 0; left: 0; right: 0; height: 180px; overflow: hidden; pointer-events: none; display: flex; align-items: center; white-space: nowrap; user-select: none;">
+      <div style="display: inline-flex; animation: marquee 240s linear infinite;">
+        <span style="font-family: 'Lilita One', system-ui, sans-serif; font-size: clamp(5rem, 13vw, 12rem); line-height: 1; text-transform: uppercase; padding-right: 48px; color: rgba(232,139,90,0.55);">COMPONENTS ✦ </span>
+        <span style="font-family: 'Lilita One', system-ui, sans-serif; font-size: clamp(5rem, 13vw, 12rem); line-height: 1; text-transform: uppercase; padding-right: 48px; color: rgba(232,139,90,0.55);">COMPONENTS ✦ </span>
+        <span style="font-family: 'Lilita One', system-ui, sans-serif; font-size: clamp(5rem, 13vw, 12rem); line-height: 1; text-transform: uppercase; padding-right: 48px; color: rgba(232,139,90,0.55);">COMPONENTS ✦ </span>
+        <span style="font-family: 'Lilita One', system-ui, sans-serif; font-size: clamp(5rem, 13vw, 12rem); line-height: 1; text-transform: uppercase; padding-right: 48px; color: rgba(232,139,90,0.55);">COMPONENTS ✦ </span>
+        <span style="font-family: 'Lilita One', system-ui, sans-serif; font-size: clamp(5rem, 13vw, 12rem); line-height: 1; text-transform: uppercase; padding-right: 48px; color: rgba(232,139,90,0.55);">COMPONENTS ✦ </span>
+        <span style="font-family: 'Lilita One', system-ui, sans-serif; font-size: clamp(5rem, 13vw, 12rem); line-height: 1; text-transform: uppercase; padding-right: 48px; color: rgba(232,139,90,0.55);">COMPONENTS ✦ </span>
+      </div>
+    </div>
+    <div style="position: relative; z-index: 10; max-width: 1280px; margin: 0 auto; padding: 120px 40px 0;">
+      <p style="margin: 0 0 24px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: #E88B5A;">FIT50 Design System · Components</p>
+      <h1 style="margin: 0 0 24px; font-family: Fraunces, Georgia, serif; font-weight: 400; font-size: clamp(2.75rem, 6vw, 5rem); line-height: 1; letter-spacing: -0.02em;">The parts,<br />and their states.</h1>
+      <p style="margin: 0; max-width: 620px; font-size: 20px; line-height: 1.6; color: rgba(26,26,26,0.7);">Live specimens for everything in <code style="font-family: ui-monospace, Menlo, monospace; font-size: 14px; background: rgba(26,26,26,0.06); padding: 2px 6px;">src/components</code>, plus the states the codebase doesn't cover yet — marked <span style="color: #E88B5A;">new</span>.</p>
+    </div>
+  </section>
+
+  <section style="border-top: 1px solid rgba(26,26,26,0.12); padding: 80px 0; background: #FFFFFF;">
+    <div style="max-width: 1280px; margin: 0 auto; padding: 0 40px;">
+      <p style="margin: 0 0 8px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(26,26,26,0.5);">01 · Button.tsx</p>
+      <h2 style="margin: 0 0 16px; font-family: Fraunces, Georgia, serif; font-weight: 400; font-size: clamp(2rem, 3.5vw, 2.75rem); line-height: 1.1; letter-spacing: -0.01em;">Button</h2>
+      <p style="margin: 0 0 40px; max-width: 640px; font-size: 15px; line-height: 1.7; color: rgba(26,26,26,0.7);">Three variants × two tones. Base: 28px / 14px padding, 14px Inter 500, uppercase, 0.08em tracking, pill radius, 200ms smooth. Pass <code style="font-family: ui-monospace, Menlo, monospace; font-size: 13px; background: rgba(26,26,26,0.06); padding: 2px 6px;">href</code> and it renders an anchor with identical styling.</p>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 0; border: 1px solid rgba(26,26,26,0.12);">
+        <div style="padding: 36px; border-right: 1px solid rgba(26,26,26,0.12);">
+          <p style="margin: 0 0 28px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(26,26,26,0.5);">tone="light"</p>
+          <div style="display: flex; flex-direction: column; gap: 20px; align-items: flex-start;">
+            <div style="display: flex; align-items: center; gap: 16px;">
+              <button style="display: inline-flex; align-items: center; gap: 8px; padding: 14px 28px; font-family: Inter, sans-serif; font-size: 14px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; border: 0; border-radius: 9999px; background: #1A1A1A; color: #FAF6EE; cursor: pointer; transition: all 200ms cubic-bezier(0.4,0,0.2,1);" style-hover="background: rgba(26,26,26,0.85);">Take the Challenge</button>
+              <span style="font-family: ui-monospace, Menlo, monospace; font-size: 12px; color: rgba(26,26,26,0.45);">primary</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 16px;">
+              <button style="display: inline-flex; align-items: center; gap: 8px; padding: 14px 28px; font-family: Inter, sans-serif; font-size: 14px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; border: 1px solid rgba(26,26,26,0.3); border-radius: 9999px; background: transparent; color: #1A1A1A; cursor: pointer; transition: all 200ms cubic-bezier(0.4,0,0.2,1);" style-hover="border-color: #1A1A1A; background: rgba(26,26,26,0.05);">Start tracking</button>
+              <span style="font-family: ui-monospace, Menlo, monospace; font-size: 12px; color: rgba(26,26,26,0.45);">secondary</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 16px;">
+              <button style="display: inline-flex; align-items: center; gap: 8px; padding: 14px 28px; font-family: Inter, sans-serif; font-size: 14px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; border: 0; background: transparent; color: #1A1A1A; cursor: pointer; transition: all 200ms cubic-bezier(0.4,0,0.2,1);" style-hover="color: #E88B5A;">How it works</button>
+              <span style="font-family: ui-monospace, Menlo, monospace; font-size: 12px; color: rgba(26,26,26,0.45);">ghost</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 16px;">
+              <button disabled="disabled" style="display: inline-flex; align-items: center; gap: 8px; padding: 14px 28px; font-family: Inter, sans-serif; font-size: 14px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; border: 0; border-radius: 9999px; background: #1A1A1A; color: #FAF6EE; opacity: 0.4; cursor: not-allowed;">Calculate</button>
+              <span style="font-family: ui-monospace, Menlo, monospace; font-size: 12px; color: rgba(26,26,26,0.45);">disabled · 40%</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 16px;">
+              <button style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; font-family: Inter, sans-serif; font-size: 12px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; border: 0; border-radius: 9999px; background: #1A1A1A; color: #FAF6EE; cursor: pointer;">Start</button>
+              <span style="font-family: ui-monospace, Menlo, monospace; font-size: 12px; color: rgba(26,26,26,0.45);">nav size · 20/10, 12px</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 16px;">
+              <button style="display: inline-flex; align-items: center; gap: 8px; padding: 14px 28px; font-family: Inter, sans-serif; font-size: 14px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; border: 0; border-radius: 0; background: #1A1A1A; color: #FAF6EE; cursor: pointer;">Calculate</button>
+              <span style="font-family: ui-monospace, Menlo, monospace; font-size: 12px; color: rgba(26,26,26,0.45);">squared · in panels</span>
+            </div>
+          </div>
+        </div>
+        <div style="padding: 36px; background: #1A1A1A;">
+          <p style="margin: 0 0 28px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(250,246,238,0.5);">tone="dark"</p>
+          <div style="display: flex; flex-direction: column; gap: 20px; align-items: flex-start;">
+            <div style="display: flex; align-items: center; gap: 16px;">
+              <button style="display: inline-flex; align-items: center; gap: 8px; padding: 14px 28px; font-family: Inter, sans-serif; font-size: 14px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; border: 0; border-radius: 9999px; background: #FAF6EE; color: #1A1A1A; cursor: pointer; transition: all 200ms cubic-bezier(0.4,0,0.2,1);" style-hover="background: rgba(250,246,238,0.85);">Start tracking</button>
+              <span style="font-family: ui-monospace, Menlo, monospace; font-size: 12px; color: rgba(250,246,238,0.45);">primary</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 16px;">
+              <button style="display: inline-flex; align-items: center; gap: 8px; padding: 14px 28px; font-family: Inter, sans-serif; font-size: 14px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; border: 1px solid rgba(250,246,238,0.3); border-radius: 9999px; background: transparent; color: #FAF6EE; cursor: pointer; transition: all 200ms cubic-bezier(0.4,0,0.2,1);" style-hover="border-color: #FAF6EE; background: rgba(250,246,238,0.1);">Next day</button>
+              <span style="font-family: ui-monospace, Menlo, monospace; font-size: 12px; color: rgba(250,246,238,0.45);">secondary</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 16px;">
+              <button style="display: inline-flex; align-items: center; gap: 8px; padding: 14px 28px; font-family: Inter, sans-serif; font-size: 14px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; border: 0; background: transparent; color: #FAF6EE; cursor: pointer; transition: all 200ms cubic-bezier(0.4,0,0.2,1);" style-hover="color: #E88B5A;">Reset</button>
+              <span style="font-family: ui-monospace, Menlo, monospace; font-size: 12px; color: rgba(250,246,238,0.45);">ghost</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 16px;">
+              <button style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 16px; font-family: Inter, sans-serif; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; border: 1px solid rgba(250,246,238,0.3); background: transparent; color: #FAF6EE; cursor: pointer;">Next day</button>
+              <span style="font-family: ui-monospace, Menlo, monospace; font-size: 12px; color: rgba(250,246,238,0.45);">squared · streak card</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 16px;">
+              <button style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 28px; font-family: Inter, sans-serif; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; border: 0; background: #FAF6EE; color: #1A1A1A; cursor: pointer; transition: all 200ms cubic-bezier(0.4,0,0.2,1);" style-hover="background: #E88B5A; color: #FAF6EE;">Subscribe</button>
+              <span style="font-family: ui-monospace, Menlo, monospace; font-size: 12px; color: rgba(250,246,238,0.45);">footer · coral on hover</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p style="margin: 20px 0 0; font-size: 13px; line-height: 1.6; color: rgba(26,26,26,0.55);">Two shapes exist in practice: the pill (marketing CTAs) and the square (inside panels — Calculator, Tracker, Timer, Footer). Pick by context, not preference.</p>
+    </div>
+  </section>
+
+  <section style="border-top: 1px solid rgba(26,26,26,0.12); padding: 80px 0;">
+    <div style="max-width: 1280px; margin: 0 auto; padding: 0 40px;">
+      <p style="margin: 0 0 8px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(26,26,26,0.5);">02 · Nav.tsx</p>
+      <h2 style="margin: 0 0 16px; font-family: Fraunces, Georgia, serif; font-weight: 400; font-size: clamp(2rem, 3.5vw, 2.75rem); line-height: 1.1; letter-spacing: -0.01em;">Nav</h2>
+      <p style="margin: 0 0 32px; max-width: 640px; font-size: 15px; line-height: 1.7; color: rgba(26,26,26,0.7);">Fixed, 64px tall, transparent at rest. Past 24px of scroll it gains paper at 90%, a 12px blur and the rule border, over 300ms.</p>
+      <div style="border: 1px solid rgba(26,26,26,0.12); background: #FFFFFF;">
+        <div style="padding: 20px 24px 0;"><p style="margin: 0; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(26,26,26,0.4);">At rest</p></div>
+        <div style="margin: 12px 24px 24px; background: #FAF6EE;">
+          <div style="height: 64px; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; gap: 24px;">
+            <span style="font-family: Fraunces, Georgia, serif; font-size: 24px; letter-spacing: -0.04em;">FIT50</span>
+            <nav style="display: flex; align-items: center; gap: 32px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(26,26,26,0.7);">
+              <span>Rules</span><span>Workouts</span><span>Tracker</span><span>FAQ</span>
+            </nav>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <span style="font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(26,26,26,0.7);">Account</span>
+              <button style="padding: 10px 20px; font-family: Inter, sans-serif; font-size: 12px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; border: 0; border-radius: 9999px; background: #1A1A1A; color: #FAF6EE; cursor: pointer;">Start</button>
+            </div>
+          </div>
+        </div>
+        <div style="padding: 0 24px;"><p style="margin: 0; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(26,26,26,0.4);">Scrolled</p></div>
+        <div style="margin: 12px 24px 24px; background: rgba(250,246,238,0.9); border-bottom: 1px solid rgba(26,26,26,0.12);">
+          <div style="height: 64px; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; gap: 24px;">
+            <span style="font-family: Fraunces, Georgia, serif; font-size: 24px; letter-spacing: -0.04em;">FIT50</span>
+            <nav style="display: flex; align-items: center; gap: 32px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(26,26,26,0.7);">
+              <span>Rules</span><span>Workouts</span><span style="color: #1A1A1A;">Tracker</span><span>FAQ</span>
+            </nav>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <span style="font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(26,26,26,0.7);">Account</span>
+              <button style="padding: 10px 20px; font-family: Inter, sans-serif; font-size: 12px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; border: 0; border-radius: 9999px; background: #1A1A1A; color: #FAF6EE; cursor: pointer;">Start</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="border-top: 1px solid rgba(26,26,26,0.12); padding: 80px 0; background: #4A9B9B;">
+    <div style="max-width: 1280px; margin: 0 auto; padding: 0 40px;">
+      <p style="margin: 0 0 8px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(250,246,238,0.6);">03 · Marquee.tsx</p>
+      <h2 style="margin: 0 0 16px; font-family: Fraunces, Georgia, serif; font-weight: 400; font-size: clamp(2rem, 3.5vw, 2.75rem); line-height: 1.1; letter-spacing: -0.01em; color: #FAF6EE;">Marquee</h2>
+      <p style="margin: 0 0 32px; max-width: 640px; font-size: 15px; line-height: 1.7; color: rgba(250,246,238,0.85);">Eight repeated spans, doubled, translated -50% on a linear loop. Lilita One at clamp(5rem, 13vw, 12rem), 48px right padding per item, separator <span style="font-family: Fraunces, serif;">✦</span>. Sits absolutely in the top 128–208px of a section at z-0, pointer-events off, aria-hidden. Speed is a duration in seconds: 200 for Rules and Workouts, 220 for Calculator, 240 for Tracker.</p>
+      <div style="border: 1px solid rgba(250,246,238,0.2); overflow: hidden; height: 180px; display: flex; align-items: center; white-space: nowrap; user-select: none;">
+        <div style="display: inline-flex; animation: marquee 200s linear infinite;">
+          <span style="font-family: 'Lilita One', sans-serif; font-size: clamp(5rem, 13vw, 12rem); line-height: 1; text-transform: uppercase; padding-right: 48px; color: rgba(250,246,238,0.4);">NINE HABITS · NON-NEGOTIABLES ✦ </span>
+          <span style="font-family: 'Lilita One', sans-serif; font-size: clamp(5rem, 13vw, 12rem); line-height: 1; text-transform: uppercase; padding-right: 48px; color: rgba(250,246,238,0.4);">NINE HABITS · NON-NEGOTIABLES ✦ </span>
+          <span style="font-family: 'Lilita One', sans-serif; font-size: clamp(5rem, 13vw, 12rem); line-height: 1; text-transform: uppercase; padding-right: 48px; color: rgba(250,246,238,0.4);">NINE HABITS · NON-NEGOTIABLES ✦ </span>
+          <span style="font-family: 'Lilita One', sans-serif; font-size: clamp(5rem, 13vw, 12rem); line-height: 1; text-transform: uppercase; padding-right: 48px; color: rgba(250,246,238,0.4);">NINE HABITS · NON-NEGOTIABLES ✦ </span>
+        </div>
+      </div>
+      <div style="margin-top: 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; font-size: 13px; line-height: 1.6; color: rgba(250,246,238,0.8);">
+        <p style="margin: 0;">On teal / ink: <code style="font-family: ui-monospace, Menlo, monospace;">paper/40</code></p>
+        <p style="margin: 0;">On paper / lavender: <code style="font-family: ui-monospace, Menlo, monospace;">coral/50–55</code></p>
+        <p style="margin: 0;">On white: <code style="font-family: ui-monospace, Menlo, monospace;">coral/60</code></p>
+      </div>
+    </div>
+  </section>
+
+  <section style="border-top: 1px solid rgba(26,26,26,0.12); padding: 80px 0; background: #FFFFFF;">
+    <div style="max-width: 1280px; margin: 0 auto; padding: 0 40px;">
+      <p style="margin: 0 0 8px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(26,26,26,0.5);">04 · Accordion.tsx</p>
+      <h2 style="margin: 0 0 16px; font-family: Fraunces, Georgia, serif; font-weight: 400; font-size: clamp(2rem, 3.5vw, 2.75rem); line-height: 1.1; letter-spacing: -0.01em;">Accordion</h2>
+      <p style="margin: 0 0 32px; max-width: 640px; font-size: 15px; line-height: 1.7; color: rgba(26,26,26,0.7);">One item open at a time. Question in Fraunces h3, coral on hover. The 32px circular toggle holds a 45°-rotated arrow and rotates a further 45° when open. The body animates via grid-template-rows 0fr → 1fr over 300ms.</p>
+      <div style="border-top: 1px solid rgba(26,26,26,0.12);">
+        <sc-for list="{{ faqs }}" as="item" hint-placeholder-count="3">
+          <div style="border-bottom: 1px solid rgba(26,26,26,0.12);">
+            <button onClick="{{ item.toggle }}" style="width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 24px 0; text-align: left; background: none; border: 0; cursor: pointer; color: #1A1A1A;">
+              <span style="font-family: Fraunces, Georgia, serif; font-size: clamp(1.25rem, 1.5vw, 1.5rem); line-height: 1.3;">{{ item.question }}</span>
+              <span style="flex-shrink: 0; width: 32px; height: 32px; border-radius: 9999px; border: 1px solid rgba(26,26,26,0.3); display: flex; align-items: center; justify-content: center; transition: transform 300ms cubic-bezier(0.4,0,0.2,1); transform: {{ item.rotate }};">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="transform: rotate(45deg);"><path d="M4 12h16"></path><path d="M14 6l6 6-6 6"></path></svg>
+              </span>
+            </button>
+            <div style="display: grid; transition: all 300ms cubic-bezier(0.4,0,0.2,1); grid-template-rows: {{ item.rows }}; padding-bottom: {{ item.pad }};">
+              <div style="overflow: hidden;">
+                <p style="margin: 0; max-width: 672px; padding-right: 48px; font-size: 16px; line-height: 1.6; color: rgba(26,26,26,0.7);">{{ item.answer }}</p>
+              </div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </section>
+
+  <section style="border-top: 1px solid rgba(26,26,26,0.12); padding: 80px 0;">
+    <div style="max-width: 1280px; margin: 0 auto; padding: 0 40px;">
+      <p style="margin: 0 0 8px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(26,26,26,0.5);">05 · Forms</p>
+      <h2 style="margin: 0 0 16px; font-family: Fraunces, Georgia, serif; font-weight: 400; font-size: clamp(2rem, 3.5vw, 2.75rem); line-height: 1.1; letter-spacing: -0.01em;">Inputs &amp; validation</h2>
+      <p style="margin: 0 0 40px; max-width: 640px; font-size: 15px; line-height: 1.7; color: rgba(26,26,26,0.7);">Square, transparent, 1px border at 20–30% of the ground's opposite. 16px / 12px padding, Inter 16px. Border goes solid on focus. Labels are captions above; help and error text is 14px below. <span style="color: #E88B5A;">Error, success and hint states are new</span> — the codebase only has default and disabled today.</p>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px;">
+        <div style="background: #FFFFFF; border: 1px solid rgba(26,26,26,0.12); padding: 32px; display: flex; flex-direction: column; gap: 28px;">
+          <p style="margin: 0; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(26,26,26,0.5);">On light</p>
+          <div>
+            <label style="display: block; margin-bottom: 10px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(26,26,26,0.5);">Start date</label>
+            <input type="date" style="width: 100%; padding: 12px 16px; background: #FAF6EE; border: 1px solid rgba(26,26,26,0.2); border-radius: 0; font-family: Inter, sans-serif; font-size: 16px; color: #1A1A1A; outline: none;" />
+            <p style="margin: 10px 0 0; font-size: 14px; color: rgba(26,26,26,0.5);">Pick a date above to see your finish line.</p>
+          </div>
+          <div>
+            <label style="display: block; margin-bottom: 10px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(26,26,26,0.5);">Focused</label>
+            <input type="text" value="12 August 2026" style="width: 100%; padding: 12px 16px; background: #FAF6EE; border: 1px solid #1A1A1A; border-radius: 0; font-family: Inter, sans-serif; font-size: 16px; color: #1A1A1A; outline: 2px solid #E88B5A; outline-offset: 3px;" />
+          </div>
+          <div>
+            <label style="display: block; margin-bottom: 10px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(26,26,26,0.5);">Error <span style="color: #E88B5A;">· new</span></label>
+            <input type="email" value="not-an-email" style="width: 100%; padding: 12px 16px; background: #FAF6EE; border: 1px solid #E88B5A; border-radius: 0; font-family: Inter, sans-serif; font-size: 16px; color: #1A1A1A; outline: none;" />
+            <p style="margin: 10px 0 0; font-size: 14px; color: #E88B5A;">That doesn't look like an email address.</p>
+          </div>
+          <div>
+            <label style="display: block; margin-bottom: 10px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(26,26,26,0.5);">Valid <span style="color: #E88B5A;">· new</span></label>
+            <input type="email" value="you@email.com" style="width: 100%; padding: 12px 16px; background: #FAF6EE; border: 1px solid #4A9B9B; border-radius: 0; font-family: Inter, sans-serif; font-size: 16px; color: #1A1A1A; outline: none;" />
+            <p style="margin: 10px 0 0; font-size: 14px; color: #4A9B9B;">✓ Looks good.</p>
+          </div>
+          <div>
+            <label style="display: block; margin-bottom: 10px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(26,26,26,0.35);">Disabled</label>
+            <input type="text" value="Saving…" disabled="disabled" style="width: 100%; padding: 12px 16px; background: #FAF6EE; border: 1px solid rgba(26,26,26,0.2); border-radius: 0; font-family: Inter, sans-serif; font-size: 16px; color: #1A1A1A; opacity: 0.5; outline: none;" />
+          </div>
+        </div>
+
+        <div style="background: #1A1A1A; padding: 32px; display: flex; flex-direction: column; gap: 28px;">
+          <p style="margin: 0; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(250,246,238,0.5);">On ink · the newsletter</p>
+          <div>
+            <label style="display: block; margin-bottom: 12px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(250,246,238,0.5);">The newsletter</label>
+            <div style="display: flex; gap: 12px;">
+              <input type="email" placeholder="you@email.com" style="flex: 1; padding: 12px 16px; background: transparent; border: 1px solid rgba(250,246,238,0.3); border-radius: 0; font-family: Inter, sans-serif; font-size: 16px; color: #FAF6EE; outline: none;" />
+              <button style="padding: 12px 28px; font-family: Inter, sans-serif; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; border: 0; background: #FAF6EE; color: #1A1A1A; cursor: pointer; transition: all 200ms cubic-bezier(0.4,0,0.2,1); white-space: nowrap;" style-hover="background: #E88B5A; color: #FAF6EE;">Subscribe</button>
+            </div>
+            <p style="margin: 12px 0 0; font-size: 13px; color: rgba(250,246,238,0.4);">Placeholder sits at paper/30. Border goes solid paper on focus.</p>
+          </div>
+          <div>
+            <label style="display: block; margin-bottom: 12px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(250,246,238,0.5);">Submitting</label>
+            <div style="display: flex; gap: 12px; opacity: 0.5;">
+              <input type="email" value="you@email.com" disabled="disabled" style="flex: 1; padding: 12px 16px; background: transparent; border: 1px solid rgba(250,246,238,0.3); border-radius: 0; font-family: Inter, sans-serif; font-size: 16px; color: #FAF6EE; outline: none;" />
+              <button disabled="disabled" style="padding: 12px 28px; font-family: Inter, sans-serif; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; border: 0; background: #FAF6EE; color: #1A1A1A; white-space: nowrap;">Sending…</button>
+            </div>
+          </div>
+          <div>
+            <label style="display: block; margin-bottom: 12px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(250,246,238,0.5);">Error</label>
+            <div style="display: flex; gap: 12px;">
+              <input type="email" value="you@email.com" style="flex: 1; padding: 12px 16px; background: transparent; border: 1px solid #E88B5A; border-radius: 0; font-family: Inter, sans-serif; font-size: 16px; color: #FAF6EE; outline: none;" />
+              <button style="padding: 12px 28px; font-family: Inter, sans-serif; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; border: 0; background: #FAF6EE; color: #1A1A1A; cursor: pointer; white-space: nowrap;">Subscribe</button>
+            </div>
+            <p style="margin: 12px 0 0; font-size: 14px; color: #E88B5A;">Could not subscribe. Try again later.</p>
+          </div>
+          <div>
+            <label style="display: block; margin-bottom: 12px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(250,246,238,0.5);">Sent</label>
+            <p style="margin: 0; font-size: 16px; color: rgba(250,246,238,0.7);">✓ You're on the list. We'll be in touch.</p>
+            <p style="margin: 12px 0 0; font-size: 13px; color: rgba(250,246,238,0.4);">Success replaces the whole form. No toast, no icon.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="border-top: 1px solid rgba(26,26,26,0.12); padding: 80px 0; background: #FFFFFF;">
+    <div style="max-width: 1280px; margin: 0 auto; padding: 0 40px;">
+      <p style="margin: 0 0 8px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(26,26,26,0.5);">06 · Timer.tsx</p>
+      <h2 style="margin: 0 0 16px; font-family: Fraunces, Georgia, serif; font-weight: 400; font-size: clamp(2rem, 3.5vw, 2.75rem); line-height: 1.1; letter-spacing: -0.01em;">Timer</h2>
+      <p style="margin: 0 0 40px; max-width: 640px; font-size: 15px; line-height: 1.7; color: rgba(26,26,26,0.7);">A paper panel with a 1px ink/10 border. Countdown in Fraunces with tabular-nums at clamp(3.5rem, 8vw, 5rem); a 1px coral progress bar; square controls; duration chips that turn coral when selected. On completion the numerals turn teal.</p>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px;">
+        <div style="background: #FAF6EE; border: 1px solid rgba(26,26,26,0.1); padding: 32px; text-align: center;">
+          <p style="margin: 0 0 12px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(26,26,26,0.5);">Open Mind · meditation</p>
+          <div style="font-family: Fraunces, Georgia, serif; font-size: clamp(3.5rem, 8vw, 5rem); line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; margin-bottom: 24px;">10:00</div>
+          <div style="height: 4px; background: rgba(26,26,26,0.1); margin-bottom: 24px; overflow: hidden;"><div style="height: 100%; width: 0%; background: #E88B5A;"></div></div>
+          <div style="display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 24px;">
+            <button style="background: #1A1A1A; color: #FAF6EE; font-family: Inter, sans-serif; font-size: 14px; letter-spacing: 0.08em; text-transform: uppercase; padding: 12px 24px; border: 0; cursor: pointer;">Start</button>
+            <button style="font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(26,26,26,0.6); background: none; border: 0; padding: 12px 16px; cursor: pointer;">Reset</button>
+          </div>
+          <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+            <button style="font-size: 12px; padding: 4px 12px; border: 1px solid rgba(26,26,26,0.2); background: none; color: rgba(26,26,26,0.6); cursor: pointer;">15m</button>
+            <button style="font-size: 12px; padding: 4px 12px; border: 1px solid #E88B5A; background: none; color: #E88B5A; cursor: pointer;">30m</button>
+            <button style="font-size: 12px; padding: 4px 12px; border: 1px solid rgba(26,26,26,0.2); background: none; color: rgba(26,26,26,0.6); cursor: pointer;">45m</button>
+            <button style="font-size: 12px; padding: 4px 12px; border: 1px solid rgba(26,26,26,0.2); background: none; color: rgba(26,26,26,0.6); cursor: pointer;">60m</button>
+          </div>
+        </div>
+        <div style="background: #FAF6EE; border: 1px solid rgba(26,26,26,0.1); padding: 32px; text-align: center;">
+          <p style="margin: 0 0 12px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(26,26,26,0.5);">Running</p>
+          <div style="font-family: Fraunces, Georgia, serif; font-size: clamp(3.5rem, 8vw, 5rem); line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; margin-bottom: 24px;">17:42</div>
+          <div style="height: 4px; background: rgba(26,26,26,0.1); margin-bottom: 24px; overflow: hidden;"><div style="height: 100%; width: 41%; background: #E88B5A;"></div></div>
+          <div style="display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 24px;">
+            <button style="background: #1A1A1A; color: #FAF6EE; font-family: Inter, sans-serif; font-size: 14px; letter-spacing: 0.08em; text-transform: uppercase; padding: 12px 24px; border: 0; cursor: pointer;">Pause</button>
+            <button style="font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(26,26,26,0.6); background: none; border: 0; padding: 12px 16px; cursor: pointer;">Reset</button>
+          </div>
+          <p style="margin: 0; font-size: 13px; color: rgba(26,26,26,0.45);">Bar transitions 1000ms linear.</p>
+        </div>
+        <div style="background: #FAF6EE; border: 1px solid rgba(26,26,26,0.1); padding: 32px; text-align: center;">
+          <p style="margin: 0 0 12px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(26,26,26,0.5);">Complete</p>
+          <div style="font-family: Fraunces, Georgia, serif; font-size: clamp(3.5rem, 8vw, 5rem); line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; margin-bottom: 24px; color: #4A9B9B;">00:00</div>
+          <div style="height: 4px; background: rgba(26,26,26,0.1); margin-bottom: 24px; overflow: hidden;"><div style="height: 100%; width: 100%; background: #E88B5A;"></div></div>
+          <p style="margin: 0 0 16px; font-size: 14px; color: #4A9B9B;">✓ Done. Well executed.</p>
+          <div style="display: flex; align-items: center; justify-content: center; gap: 12px;">
+            <button disabled="disabled" style="background: #1A1A1A; color: #FAF6EE; font-family: Inter, sans-serif; font-size: 14px; letter-spacing: 0.08em; text-transform: uppercase; padding: 12px 24px; border: 0; opacity: 0.5;">Done</button>
+            <button style="font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(26,26,26,0.6); background: none; border: 0; padding: 12px 16px; cursor: pointer;">Reset</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="border-top: 1px solid rgba(26,26,26,0.12); padding: 80px 0;">
+    <div style="max-width: 1280px; margin: 0 auto; padding: 0 40px;">
+      <p style="margin: 0 0 8px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(26,26,26,0.5);">07 · HabitIcon.tsx &amp; Icon.tsx</p>
+      <h2 style="margin: 0 0 16px; font-family: Fraunces, Georgia, serif; font-weight: 400; font-size: clamp(2rem, 3.5vw, 2.75rem); line-height: 1.1; letter-spacing: -0.01em;">Two icon sets</h2>
+      <p style="margin: 0 0 40px; max-width: 720px; font-size: 15px; line-height: 1.7; color: rgba(26,26,26,0.7);">The nine habit marks are raster <code style="font-family: ui-monospace, Menlo, monospace; font-size: 13px; background: rgba(26,26,26,0.06); padding: 2px 6px;">.webp</code> illustrations served from <code style="font-family: ui-monospace, Menlo, monospace; font-size: 13px; background: rgba(26,26,26,0.06); padding: 2px 6px;">/icons</code>. They are the product's face: 128px in the tracker cube, 280px on the rule cards. Width is set, height stays auto, object-fit contain, alt empty.</p>
+
+      <div style="background: #FFFFFF; border: 1px solid rgba(26,26,26,0.12); padding: 32px; margin-bottom: 32px;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 24px;">
+          <div style="text-align: center;"><img src="public/icons/chill-out.webp" alt="" style="width: 100%; max-width: 110px; height: auto; object-fit: contain;" /><p style="margin: 10px 0 0; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase;">Chill Out</p><p style="margin: 4px 0 0; font-family: ui-monospace, Menlo, monospace; font-size: 11px; color: rgba(26,26,26,0.45);">chill-out</p></div>
+          <div style="text-align: center;"><img src="public/icons/fuel-right.webp" alt="" style="width: 100%; max-width: 110px; height: auto; object-fit: contain;" /><p style="margin: 10px 0 0; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase;">Fuel Right</p><p style="margin: 4px 0 0; font-family: ui-monospace, Menlo, monospace; font-size: 11px; color: rgba(26,26,26,0.45);">fuel-right</p></div>
+          <div style="text-align: center;"><img src="public/icons/crispy-clarity.webp" alt="" style="width: 100%; max-width: 110px; height: auto; object-fit: contain;" /><p style="margin: 10px 0 0; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase;">Crispy Clarity</p><p style="margin: 4px 0 0; font-family: ui-monospace, Menlo, monospace; font-size: 11px; color: rgba(26,26,26,0.45);">crispy-clarity</p></div>
+          <div style="text-align: center;"><img src="public/icons/fresh-lungs.webp" alt="" style="width: 100%; max-width: 110px; height: auto; object-fit: contain;" /><p style="margin: 10px 0 0; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase;">Fresh Lungs</p><p style="margin: 4px 0 0; font-family: ui-monospace, Menlo, monospace; font-size: 11px; color: rgba(26,26,26,0.45);">fresh-lungs</p></div>
+          <div style="text-align: center;"><img src="public/icons/open-mind.webp" alt="" style="width: 100%; max-width: 110px; height: auto; object-fit: contain;" /><p style="margin: 10px 0 0; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase;">Open Mind</p><p style="margin: 4px 0 0; font-family: ui-monospace, Menlo, monospace; font-size: 11px; color: rgba(26,26,26,0.45);">open-mind</p></div>
+          <div style="text-align: center;"><img src="public/icons/move-body.webp" alt="" style="width: 100%; max-width: 110px; height: auto; object-fit: contain;" /><p style="margin: 10px 0 0; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase;">Move Your Body</p><p style="margin: 4px 0 0; font-family: ui-monospace, Menlo, monospace; font-size: 11px; color: rgba(26,26,26,0.45);">move-body</p></div>
+          <div style="text-align: center;"><img src="public/icons/wet-lips.webp" alt="" style="width: 100%; max-width: 110px; height: auto; object-fit: contain;" /><p style="margin: 10px 0 0; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase;">Wet The Lips</p><p style="margin: 4px 0 0; font-family: ui-monospace, Menlo, monospace; font-size: 11px; color: rgba(26,26,26,0.45);">wet-lips</p></div>
+          <div style="text-align: center;"><img src="public/icons/step-it-up.webp" alt="" style="width: 100%; max-width: 110px; height: auto; object-fit: contain;" /><p style="margin: 10px 0 0; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase;">Step It Up</p><p style="margin: 4px 0 0; font-family: ui-monospace, Menlo, monospace; font-size: 11px; color: rgba(26,26,26,0.45);">step-it-up</p></div>
+          <div style="text-align: center;"><img src="public/icons/feed-brain.webp" alt="" style="width: 100%; max-width: 110px; height: auto; object-fit: contain;" /><p style="margin: 10px 0 0; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase;">Feed Your Brain</p><p style="margin: 4px 0 0; font-family: ui-monospace, Menlo, monospace; font-size: 11px; color: rgba(26,26,26,0.45);">feed-brain</p></div>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px;">
+        <div style="background: #FFFFFF; border: 1px solid rgba(26,26,26,0.12); padding: 28px;">
+          <p style="margin: 0 0 16px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(26,26,26,0.5);">Sizes in use</p>
+          <div style="display: flex; align-items: flex-end; gap: 24px; margin-bottom: 16px;">
+            <div style="text-align: center;"><img src="public/icons/step-it-up.webp" alt="" style="width: 48px; height: auto;" /><p style="margin: 8px 0 0; font-family: ui-monospace, Menlo, monospace; font-size: 11px; color: rgba(26,26,26,0.45);">48</p></div>
+            <div style="text-align: center;"><img src="public/icons/step-it-up.webp" alt="" style="width: 96px; height: auto;" /><p style="margin: 8px 0 0; font-family: ui-monospace, Menlo, monospace; font-size: 11px; color: rgba(26,26,26,0.45);">128 · cube</p></div>
+          </div>
+          <p style="margin: 0; font-size: 13px; line-height: 1.6; color: rgba(26,26,26,0.6);">Never below 48px — the illustrations lose their read. Below that, use a caption instead of an icon.</p>
+        </div>
+        <div style="background: #FFFFFF; border: 1px solid rgba(26,26,26,0.12); border-left: 3px solid #E88B5A; padding: 28px;">
+          <p style="margin: 0 0 16px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: #E88B5A;">Icon.tsx · needs cleanup</p>
+          <p style="margin: 0 0 16px; font-size: 14px; line-height: 1.7; color: rgba(26,26,26,0.75);">A second, stroke-based SVG set duplicates all nine habit names at 24×24, 1.5 stroke, round caps. Only <code style="font-family: ui-monospace, Menlo, monospace; font-size: 13px;">arrow-right</code> is actually used in the UI (Hero, Accordion).</p>
+          <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 16px;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1A1A1A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h16"></path><path d="M14 6l6 6-6 6"></path></svg>
+            <span style="font-family: ui-monospace, Menlo, monospace; font-size: 12px; color: rgba(26,26,26,0.5);">arrow-right — the only one shipping</span>
+          </div>
+          <ul style="margin: 0; padding-left: 18px; font-size: 14px; line-height: 1.8; color: rgba(26,26,26,0.7);">
+            <li>The <code style="font-family: ui-monospace, Menlo, monospace; font-size: 13px;">step-it-up</code> path is truncated mid-command and renders broken.</li>
+            <li>Several paths draw outside the 24 viewBox (crispy-clarity reaches y=-0.5).</li>
+            <li>Two sets of nine icons under the same names invite the wrong import.</li>
+          </ul>
+          <p style="margin: 16px 0 0; font-size: 14px; line-height: 1.7; color: rgba(26,26,26,0.75);">Recommendation: cut the nine SVG habit paths, keep <code style="font-family: ui-monospace, Menlo, monospace; font-size: 13px;">Icon</code> as a UI-glyph set (arrows, close, check, chevron), and leave habits to <code style="font-family: ui-monospace, Menlo, monospace; font-size: 13px;">HabitIcon</code>.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="border-top: 1px solid rgba(26,26,26,0.12); padding: 80px 0; background: #FFFFFF;">
+    <div style="max-width: 1280px; margin: 0 auto; padding: 0 40px;">
+      <p style="margin: 0 0 8px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(26,26,26,0.5);">08 · Cards <span style="color: #E88B5A;">· extends the code</span></p>
+      <h2 style="margin: 0 0 16px; font-family: Fraunces, Georgia, serif; font-weight: 400; font-size: clamp(2rem, 3.5vw, 2.75rem); line-height: 1.1; letter-spacing: -0.01em;">Cards &amp; data display</h2>
+      <p style="margin: 0 0 40px; max-width: 640px; font-size: 15px; line-height: 1.7; color: rgba(26,26,26,0.7);">Three card shapes cover everything: a bordered panel on light, a filled tone panel, and a stat block. All square, all 1px rules, all padded 32–40px.</p>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 24px;">
+        <div style="background: #FFFFFF; border: 1px solid rgba(26,26,26,0.12); padding: 32px;">
+          <p style="margin: 0 0 12px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(26,26,26,0.5);">Panel · bordered</p>
+          <p style="margin: 0 0 12px; font-family: Fraunces, Georgia, serif; font-size: clamp(1.5rem, 2vw, 1.875rem); line-height: 1.2;">Your finish date</p>
+          <p style="margin: 0; font-size: 15px; line-height: 1.6; color: rgba(26,26,26,0.7);">Content panels on paper or a tone ground. Border ink/10 to ink/12.</p>
+        </div>
+        <div style="background: #4A9B9B; padding: 32px; color: #FAF6EE;">
+          <p style="margin: 0 0 12px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(250,246,238,0.7);">Panel · filled</p>
+          <p style="margin: 0 0 12px; font-family: Fraunces, Georgia, serif; font-size: clamp(1.5rem, 2vw, 1.875rem); line-height: 1.2;">Current streak</p>
+          <p style="margin: 0; font-size: 15px; line-height: 1.6; color: rgba(250,246,238,0.85);">No border — the fill is the edge. Inner surfaces are paper at 10%, hovering to 15%.</p>
+        </div>
+        <div style="background: #FFFFFF; border: 1px solid rgba(26,26,26,0.12); padding: 32px;">
+          <p style="margin: 0 0 4px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(26,26,26,0.5);">Stat block</p>
+          <p style="margin: 0; font-family: Fraunces, Georgia, serif; font-size: 72px; line-height: 1; letter-spacing: -0.04em; font-variant-numeric: tabular-nums;">7<span style="font-size: 20px; letter-spacing: 0; color: rgba(26,26,26,0.5); font-family: Inter, sans-serif;"> / 9</span></p>
+          <p style="margin: 8px 0 0; font-size: 14px; color: rgba(26,26,26,0.55);">Label above, numeral in Fraunces, unit in Inter at 50%.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="border-top: 1px solid rgba(26,26,26,0.12); padding: 80px 0;">
+    <div style="max-width: 1280px; margin: 0 auto; padding: 0 40px;">
+      <p style="margin: 0 0 8px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(26,26,26,0.5);">09 · Overlays <span style="color: #E88B5A;">· extends the code</span></p>
+      <h2 style="margin: 0 0 16px; font-family: Fraunces, Georgia, serif; font-weight: 400; font-size: clamp(2rem, 3.5vw, 2.75rem); line-height: 1.1; letter-spacing: -0.01em;">Modal &amp; toast</h2>
+      <p style="margin: 0 0 32px; max-width: 640px; font-size: 15px; line-height: 1.7; color: rgba(26,26,26,0.7);">The email-capture modal referenced in <code style="font-family: ui-monospace, Menlo, monospace; font-size: 13px; background: rgba(26,26,26,0.06); padding: 2px 6px;">Tracker.tsx</code> is commented out pending Phase 2. When it returns, it should look like this: a paper sheet on an ink/60 scrim, square, max 480px, no shadow.</p>
+      <div style="display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 32px;">
+        <button onClick="{{ openModal }}" style="padding: 14px 28px; font-family: Inter, sans-serif; font-size: 14px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; border: 0; border-radius: 9999px; background: #1A1A1A; color: #FAF6EE; cursor: pointer;">Open modal</button>
+        <button onClick="{{ fireToast }}" style="padding: 14px 28px; font-family: Inter, sans-serif; font-size: 14px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; border: 1px solid rgba(26,26,26,0.3); border-radius: 9999px; background: transparent; color: #1A1A1A; cursor: pointer;">Fire toast</button>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px;">
+        <div style="background: rgba(26,26,26,0.6); padding: 48px 32px; display: flex; align-items: center; justify-content: center;">
+          <div style="background: #FAF6EE; width: 100%; max-width: 420px; padding: 40px;">
+            <p style="margin: 0 0 12px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(26,26,26,0.5);">Save your progress</p>
+            <p style="margin: 0 0 16px; font-family: Fraunces, Georgia, serif; font-size: clamp(1.5rem, 2vw, 1.875rem); line-height: 1.2;">Where should we send your streak?</p>
+            <p style="margin: 0 0 24px; font-size: 15px; line-height: 1.6; color: rgba(26,26,26,0.7);">Drop your email and day one is saved. No spam, just the challenge.</p>
+            <input type="email" placeholder="you@email.com" style="width: 100%; padding: 12px 16px; background: transparent; border: 1px solid rgba(26,26,26,0.2); border-radius: 0; font-family: Inter, sans-serif; font-size: 16px; color: #1A1A1A; outline: none; margin-bottom: 16px;" />
+            <div style="display: flex; gap: 12px; align-items: center;">
+              <button style="padding: 12px 24px; font-family: Inter, sans-serif; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; border: 0; background: #1A1A1A; color: #FAF6EE; cursor: pointer;">Save my streak</button>
+              <button style="font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(26,26,26,0.6); background: none; border: 0; padding: 12px; cursor: pointer;">Not now</button>
+            </div>
+          </div>
+        </div>
+        <div style="background: #FFFFFF; border: 1px solid rgba(26,26,26,0.12); padding: 32px; display: flex; flex-direction: column; gap: 16px; justify-content: center;">
+          <p style="margin: 0 0 8px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(26,26,26,0.5);">Toasts · ink sheet, 16px, bottom-right</p>
+          <div style="background: #1A1A1A; color: #FAF6EE; padding: 16px 20px; display: flex; align-items: center; gap: 14px;">
+            <span style="width: 8px; height: 8px; background: #4A9B9B; flex-shrink: 0;"></span>
+            <p style="margin: 0; font-size: 14px;">Day 12 saved. 7 of 9 done.</p>
+          </div>
+          <div style="background: #1A1A1A; color: #FAF6EE; padding: 16px 20px; display: flex; align-items: center; gap: 14px;">
+            <span style="width: 8px; height: 8px; background: #E88B5A; flex-shrink: 0;"></span>
+            <p style="margin: 0; font-size: 14px;">Couldn't sync. We'll retry.</p>
+          </div>
+          <div style="background: #1A1A1A; color: #FAF6EE; padding: 16px 20px; display: flex; align-items: center; gap: 14px;">
+            <span style="width: 8px; height: 8px; background: #F2D9A2; flex-shrink: 0;"></span>
+            <p style="margin: 0; font-size: 14px;">Streak protection used for this week.</p>
+          </div>
+          <p style="margin: 8px 0 0; font-size: 13px; line-height: 1.6; color: rgba(26,26,26,0.6);">A 8px square, not an icon, carries the status: teal success, coral failure, cream informational. Auto-dismiss at 4s; never stack more than three.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="border-top: 1px solid rgba(26,26,26,0.12); padding: 80px 0; background: #FFFFFF;">
+    <div style="max-width: 1280px; margin: 0 auto; padding: 0 40px;">
+      <p style="margin: 0 0 8px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(26,26,26,0.5);">10 · System states</p>
+      <h2 style="margin: 0 0 16px; font-family: Fraunces, Georgia, serif; font-weight: 400; font-size: clamp(2rem, 3.5vw, 2.75rem); line-height: 1.1; letter-spacing: -0.01em;">Loading, empty, error</h2>
+      <p style="margin: 0 0 40px; max-width: 720px; font-size: 15px; line-height: 1.7; color: rgba(26,26,26,0.7);">Note a live inconsistency: <code style="font-family: ui-monospace, Menlo, monospace; font-size: 13px; background: rgba(26,26,26,0.06); padding: 2px 6px;">loading.tsx</code>, <code style="font-family: ui-monospace, Menlo, monospace; font-size: 13px; background: rgba(26,26,26,0.06); padding: 2px 6px;">error.tsx</code> and <code style="font-family: ui-monospace, Menlo, monospace; font-size: 13px; background: rgba(26,26,26,0.06); padding: 2px 6px;">not-found.tsx</code> hardcode <code style="font-family: ui-monospace, Menlo, monospace; font-size: 13px;">#FEFEFE</code> and <code style="font-family: ui-monospace, Menlo, monospace; font-size: 13px;">#2A2A2A</code> instead of paper and ink, and use coral pill-less buttons. The specimens below are those routes corrected to the tokens.</p>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px;">
+        <div style="background: #FAF6EE; border: 1px solid rgba(26,26,26,0.12); min-height: 300px; display: flex; align-items: center; justify-content: center; text-align: center; padding: 32px;">
+          <div>
+            <div style="width: 64px; height: 64px; border: 4px solid #E88B5A; border-top-color: transparent; border-radius: 9999px; margin: 0 auto 16px; animation: spin 1s linear infinite;"></div>
+            <p style="margin: 0; font-size: 16px; color: rgba(26,26,26,0.7);">Loading…</p>
+            <p style="margin: 12px 0 0; font-family: ui-monospace, Menlo, monospace; font-size: 11px; color: rgba(26,26,26,0.4);">route · loading.tsx</p>
+          </div>
+        </div>
+        <div style="background: #FAF6EE; border: 1px solid rgba(26,26,26,0.12); min-height: 300px; display: flex; align-items: center; justify-content: center; text-align: center; padding: 32px;">
+          <div>
+            <p style="margin: 0 0 16px; font-family: Fraunces, Georgia, serif; font-size: 40px; line-height: 1.1;">Something went wrong</p>
+            <p style="margin: 0 0 24px; font-size: 16px; color: rgba(26,26,26,0.7);">We encountered an error. Please try again.</p>
+            <button style="padding: 12px 24px; font-family: Inter, sans-serif; font-size: 14px; letter-spacing: 0.08em; text-transform: uppercase; border: 0; background: #1A1A1A; color: #FAF6EE; cursor: pointer;">Try again</button>
+            <p style="margin: 16px 0 0; font-family: ui-monospace, Menlo, monospace; font-size: 11px; color: rgba(26,26,26,0.4);">route · error.tsx</p>
+          </div>
+        </div>
+        <div style="background: #FAF6EE; border: 1px solid rgba(26,26,26,0.12); min-height: 300px; display: flex; align-items: center; justify-content: center; text-align: center; padding: 32px;">
+          <div>
+            <p style="margin: 0 0 16px; font-family: Fraunces, Georgia, serif; font-size: 72px; line-height: 1; letter-spacing: -0.04em;">404</p>
+            <p style="margin: 0 0 24px; font-size: 16px; color: rgba(26,26,26,0.7);">This page doesn't exist.</p>
+            <button style="padding: 12px 24px; font-family: Inter, sans-serif; font-size: 14px; letter-spacing: 0.08em; text-transform: uppercase; border: 0; background: #1A1A1A; color: #FAF6EE; cursor: pointer;">Go home</button>
+            <p style="margin: 16px 0 0; font-family: ui-monospace, Menlo, monospace; font-size: 11px; color: rgba(26,26,26,0.4);">route · not-found.tsx</p>
+          </div>
+        </div>
+        <div style="background: #FAF6EE; border: 1px solid rgba(26,26,26,0.12); min-height: 300px; display: flex; align-items: center; justify-content: center; text-align: center; padding: 32px;">
+          <div>
+            <p style="margin: 0 0 12px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(26,26,26,0.5);">Empty <span style="color: #E88B5A;">· new</span></p>
+            <p style="margin: 0 0 12px; font-family: Fraunces, Georgia, serif; font-size: 30px; line-height: 1.2;">Day 1 starts when you do.</p>
+            <p style="margin: 0 0 24px; font-size: 15px; line-height: 1.6; color: rgba(26,26,26,0.7);">Nothing tracked yet. Tap any square above.</p>
+            <button style="padding: 12px 24px; font-family: Inter, sans-serif; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; border: 1px solid rgba(26,26,26,0.3); background: transparent; color: #1A1A1A; cursor: pointer;">Start tracking</button>
+            <p style="margin: 16px 0 0; font-size: 13px; line-height: 1.5; color: rgba(26,26,26,0.5);">Empty states borrow the site's imperative voice. No illustration.</p>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top: 24px; background: #FAF6EE; border: 1px solid rgba(26,26,26,0.12); padding: 28px;">
+        <p style="margin: 0 0 12px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(26,26,26,0.5);">In-section loading</p>
+        <p style="margin: 0; font-size: 15px; line-height: 1.7; color: rgba(26,26,26,0.7);">The tracker doesn't spin. While auth and stored progress resolve it holds a 400px-tall block with a single centred line at ink/50: <span style="color: rgba(26,26,26,0.5);">Loading…</span>. Prefer that over skeletons — the layout is already sparse.</p>
+      </div>
+    </div>
+  </section>
+
+  <section style="border-top: 1px solid rgba(26,26,26,0.12); padding: 80px 0 96px;">
+    <div style="max-width: 1280px; margin: 0 auto; padding: 0 40px;">
+      <p style="margin: 0 0 8px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(26,26,26,0.5);">11 · Usage</p>
+      <h2 style="margin: 0 0 48px; font-family: Fraunces, Georgia, serif; font-weight: 400; font-size: clamp(2rem, 3.5vw, 2.75rem); line-height: 1.1; letter-spacing: -0.01em;">Do / don't</h2>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px;">
+        <div style="background: #FFFFFF; border: 1px solid rgba(26,26,26,0.12); border-left: 3px solid #4A9B9B; padding: 28px;">
+          <p style="margin: 0 0 18px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: #4A9B9B;">Do</p>
+          <ul style="margin: 0; padding-left: 18px; font-size: 15px; line-height: 1.75; color: rgba(26,26,26,0.75);">
+            <li>Use one primary button per section, and make its label a verb.</li>
+            <li>Pass <code style="font-family: ui-monospace, Menlo, monospace; font-size: 13px;">tone="dark"</code> on ink and teal grounds rather than overriding colors.</li>
+            <li>Replace a submitted form with its confirmation line.</li>
+            <li>Keep habit illustrations at 48px or larger.</li>
+            <li>Give every toggle an <code style="font-family: ui-monospace, Menlo, monospace; font-size: 13px;">aria-pressed</code> and a spoken label.</li>
+          </ul>
+        </div>
+        <div style="background: #FFFFFF; border: 1px solid rgba(26,26,26,0.12); border-left: 3px solid #E88B5A; padding: 28px;">
+          <p style="margin: 0 0 18px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: #E88B5A;">Don't</p>
+          <ul style="margin: 0; padding-left: 18px; font-size: 15px; line-height: 1.75; color: rgba(26,26,26,0.75);">
+            <li>Override Button padding with <code style="font-family: ui-monospace, Menlo, monospace; font-size: 13px;">!important</code> utilities — add a size prop instead.</li>
+            <li>Mix pill and square buttons in the same panel.</li>
+            <li>Use the SVG habit icons; they're the stale set.</li>
+            <li>Introduce a skeleton loader — the site loads a line of text.</li>
+            <li>Hardcode <code style="font-family: ui-monospace, Menlo, monospace; font-size: 13px;">#FEFEFE</code> / <code style="font-family: ui-monospace, Menlo, monospace; font-size: 13px;">#2A2A2A</code> as the route files do.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer style="background: #1A1A1A; color: #FAF6EE; padding: 64px 0;">
+    <div style="max-width: 1280px; margin: 0 auto; padding: 0 40px; display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 32px;">
+      <div>
+        <p style="margin: 0 0 8px; font-family: Fraunces, Georgia, serif; font-size: clamp(2.75rem, 6vw, 5rem); line-height: 1;">FIT50</p>
+        <p style="margin: 0; font-size: 14px; color: rgba(250,246,238,0.5);">Design system · built from barnymurt/fit50</p>
+      </div>
+      <nav style="display: flex; gap: 28px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase;">
+        <a href="Foundations.dc.html" style="color: rgba(250,246,238,0.6);">Foundations</a>
+        <span style="color: #E88B5A;">Components</span>
+        <a href="Patterns.dc.html" style="color: rgba(250,246,238,0.6);">Patterns</a>
+      </nav>
+    </div>
+  </footer>
+
+  <sc-if value="{{ modalOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position: fixed; inset: 0; z-index: 100; background: rgba(26,26,26,0.6); display: flex; align-items: center; justify-content: center; padding: 24px;">
+      <div style="background: #FAF6EE; width: 100%; max-width: 480px; padding: 40px;">
+        <p style="margin: 0 0 12px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(26,26,26,0.5);">Save your progress</p>
+        <p style="margin: 0 0 16px; font-family: Fraunces, Georgia, serif; font-size: clamp(1.5rem, 2vw, 1.875rem); line-height: 1.2;">Where should we send your streak?</p>
+        <p style="margin: 0 0 24px; font-size: 15px; line-height: 1.6; color: rgba(26,26,26,0.7);">Drop your email and day one is saved. No spam, just the challenge.</p>
+        <input type="email" placeholder="you@email.com" style="width: 100%; padding: 12px 16px; background: transparent; border: 1px solid rgba(26,26,26,0.2); border-radius: 0; font-family: Inter, sans-serif; font-size: 16px; color: #1A1A1A; outline: none; margin-bottom: 16px;" />
+        <div style="display: flex; gap: 12px; align-items: center;">
+          <button onClick="{{ closeModal }}" style="padding: 12px 24px; font-family: Inter, sans-serif; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; border: 0; background: #1A1A1A; color: #FAF6EE; cursor: pointer;">Save my streak</button>
+          <button onClick="{{ closeModal }}" style="font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(26,26,26,0.6); background: none; border: 0; padding: 12px; cursor: pointer;">Not now</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ toastOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position: fixed; bottom: 24px; right: 24px; z-index: 110; background: #1A1A1A; color: #FAF6EE; padding: 16px 20px; display: flex; align-items: center; gap: 14px;">
+      <span style="width: 8px; height: 8px; background: #4A9B9B; flex-shrink: 0;"></span>
+      <p style="margin: 0; font-size: 14px;">Day 12 saved. 7 of 9 done.</p>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { open: null, modalOpen: false, toastOpen: false };
+
+  faqData = [
+    { question: 'What happens if I miss a day?', answer: 'Life happens. If you miss a day, simply continue from where you are. The streak resets, but your progress remains. The key is consistency over perfection — start again the next morning.' },
+    { question: 'Can I modify the workouts?', answer: 'Absolutely. The workouts are suggestions, not scripture. Replace any exercise with a comparable movement. The A → B → C → D pattern matters more than the specific exercises.' },
+    { question: 'Do audiobooks count for reading?', answer: 'Yes. Audiobooks absolutely count. The goal is to read 5 books in 50 days — audiobooks, ebooks, physical books, all of it.' },
+  ];
+
+  componentWillUnmount() { clearTimeout(this._t); }
+
+  renderVals() {
+    const open = this.state.open;
+    return {
+      faqs: this.faqData.map((f, i) => ({
+        question: f.question,
+        answer: f.answer,
+        rotate: open === i ? 'rotate(45deg)' : 'rotate(0deg)',
+        rows: open === i ? '1fr' : '0fr',
+        pad: open === i ? '24px' : '0px',
+        toggle: () => this.setState({ open: open === i ? null : i }),
+      })),
+      modalOpen: this.state.modalOpen,
+      toastOpen: this.state.toastOpen,
+      openModal: () => this.setState({ modalOpen: true }),
+      closeModal: () => this.setState({ modalOpen: false }),
+      fireToast: () => {
+        this.setState({ toastOpen: true });
+        clearTimeout(this._t);
+        this._t = setTimeout(() => this.setState({ toastOpen: false }), 4000);
+      },
+    };
+  }
+}
+</script>
+</body>
+</html>
