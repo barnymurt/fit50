@@ -27,29 +27,23 @@ export default function CalculatorSection() {
         />
       </div>
 
-      <div className="relative z-10 max-w-7xl mx-auto px-6 md:px-10 pb-section">
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mb-16 md:mb-20">
-          <div className="md:col-span-7">
-            <p
-              className="font-display text-ink/95 leading-tight"
-              style={{ fontSize: 'clamp(1.875rem, 3vw, 3rem)', lineHeight: '1.15', letterSpacing: '-0.01em' }}
-            >
-              {COPY.statementLine}
-            </p>
-          </div>
+      <div className="relative z-10 max-w-3xl mx-auto px-6 md:px-10 pb-section">
+        <div className="text-center mb-16 md:mb-20">
+          <p
+            className="font-display text-ink/95 leading-tight mb-3"
+            style={{ fontSize: 'clamp(1.875rem, 3vw, 3rem)', lineHeight: '1.15', letterSpacing: '-0.01em' }}
+          >
+            {COPY.statementLine}
+          </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-          <div className="md:col-span-6 md:col-start-7">
-            <CalculatorPanel
-              results={results}
-              setResults={setResults}
-              onCalculated={() => {
-                /* results render is already driven by state */
-              }}
-            />
-          </div>
-        </div>
+        <CalculatorPanel
+          results={results}
+          setResults={setResults}
+          onCalculated={() => {
+            /* results render is already driven by state */
+          }}
+        />
 
         <div className="flex flex-col items-center text-center mt-16 md:mt-20">
           <p className="font-display text-ink leading-tight mb-6"

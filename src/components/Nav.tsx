@@ -43,10 +43,10 @@ export default function Nav() {
             Tracker
           </a>
           <Link
-            href="/fuel"
+            href="/toolkit"
             className="font-body text-caption uppercase text-ink/70 hover:text-ink transition-colors duration-200"
           >
-            Fuel
+            Toolkit
           </Link>
           <a href="#faq" className="font-body text-caption uppercase text-ink/70 hover:text-ink transition-colors duration-200">
             FAQ

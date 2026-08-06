@@ -4,13 +4,6 @@ import { useState } from 'react';
 import Section from '@/components/Section';
 import { useAuth } from '@/contexts/AuthContext';
 
-interface ToolkitItem {
-  category: string;
-  title: string;
-  description: string;
-  href: string;
-}
-
 const PREMIUM_FEATURES = [
   {
     title: 'Cloud sync',
@@ -35,45 +28,6 @@ const PREMIUM_FEATURES = [
   {
     title: 'Data export',
     description: 'Your 50 days as a CSV. Yours to keep, analyse, or print and pin somewhere you see it every morning.',
-  },
-];
-
-const TOOLKIT: ToolkitItem[] = [
-  {
-    category: 'Smoking cessation',
-    title: 'Quit resources',
-    description: 'Curated links to NHS Smokefree, Quit.org, and the Smokefree app — pick the one that fits your style.',
-    href: 'https://www.nhs.uk/smokefree',
-  },
-  {
-    category: 'Drinking less',
-    title: 'Non-alcoholic recipes',
-    description: '50 zero-proof cocktails, mocktails, and infusions so the "no alcohol" rule never feels like a punishment.',
-    href: 'https://www.bonappetit.com/recipes/slideshow/non-alcoholic-cocktail-recipes',
-  },
-  {
-    category: 'Nutrition',
-    title: 'Macro calculator',
-    description: 'Plug in your stats, get a daily protein/carb/fat target. No app install, no sign-up, just numbers.',
-    href: '/fuel',
-  },
-  {
-    category: 'Meditation',
-    title: 'Meditation apps',
-    description: 'Direct links to Headspace, Calm, Waking Up, and Insight Timer — with a note on which one fits which kind of brain.',
-    href: 'https://www.headspace.com',
-  },
-  {
-    category: 'Movement',
-    title: 'Workout inspiration',
-    description: 'YouTube channels and free programs for the 50 days. Beginner to advanced, all bodyweight.',
-    href: 'https://www.youtube.com/results?search_query=bodyweight+workout+50+days',
-  },
-  {
-    category: 'Tracking',
-    title: 'Sleep + steps',
-    description: "How to use your phone's built-in sleep and step tracking so the \"10K steps\" rule is friction-free.",
-    href: 'https://support.apple.com/en-us/108789',
   },
 ];
 
@@ -107,12 +61,20 @@ export default function UpgradePage() {
           <p className="font-body text-lg text-ink/70 mb-8">
             All premium features are active. Thank you for the support.
           </p>
-          <a
-            href="/account"
-            className="inline-flex items-center justify-center bg-ink text-paper font-body text-sm px-10 py-5 uppercase tracking-wider hover:bg-ink/85 transition-colors"
-          >
-            Back to account
-          </a>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <a
+              href="/macrocalc"
+              className="inline-flex items-center justify-center bg-ink text-paper font-body text-sm px-10 py-4 uppercase tracking-wider hover:bg-ink/85 transition-colors"
+            >
+              Open macro calculator
+            </a>
+            <a
+              href="/account"
+              className="inline-flex items-center justify-center border border-ink/30 text-ink font-body text-sm px-10 py-4 uppercase tracking-wider hover:border-ink hover:bg-ink/5 transition-colors"
+            >
+              Back to account
+            </a>
+          </div>
         </div>
       </Section>
     );
@@ -234,54 +196,6 @@ export default function UpgradePage() {
         </div>
       </Section>
 
-      {/* The toolkit — what you also get */}
-      <Section tone="ink" className="relative py-section" contained>
-        <div className="max-w-5xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mb-12">
-            <div className="md:col-span-7">
-              <p className="font-body text-caption uppercase text-coral mb-3">
-                The toolkit
-              </p>
-              <h2 className="font-display text-display-2 text-paper">
-                All the links you need.
-              </h2>
-            </div>
-            <div className="md:col-span-5 md:col-start-8 flex items-end">
-              <p className="font-body text-base text-paper/70">
-                Curated resources for each of the 9 rules. No googling. No scrolling. Open the link, do the thing.
-              </p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 border-t border-l border-paper/15">
-            {TOOLKIT.map((item, i) => (
-              <a
-                key={item.title}
-                href={item.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`p-6 md:p-8 group hover:bg-paper/5 transition-colors block ${
-                  i % 2 === 0 ? 'border-r border-paper/15' : ''
-                } ${i < TOOLKIT.length - 2 ? 'border-b border-paper/15' : ''}`}
-              >
-                <p className="font-body text-caption uppercase text-coral mb-2">
-                  {item.category}
-                </p>
-                <h3 className="font-display text-h3 text-paper mb-2 flex items-center gap-2">
-                  {item.title}
-                  <span className="text-paper/40 group-hover:text-coral group-hover:translate-x-1 transition-all">
-                    →
-                  </span>
-                </h3>
-                <p className="font-body text-sm text-paper/60">
-                  {item.description}
-                </p>
-              </a>
-            ))}
-          </div>
-        </div>
-      </Section>
-
       {/* CTA */}
       <Section tone="paper" className="relative py-section" contained>
         <div className="max-w-3xl mx-auto text-center">
@@ -313,6 +227,22 @@ export default function UpgradePage() {
               Pay with the same email you&apos;ll use to sign in, and your premium unlocks automatically.
             </p>
           )}
+
+          {/* Free extras */}
+          <div className="mt-16 pt-12 border-t border-ink/10">
+            <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-4">
+              Free for everyone
+            </p>
+            <p className="font-body text-base text-ink/70 mb-6">
+              The curated toolkit — quit resources, macro calculator, meditation apps, non-alcoholic recipes, sleep and step tracking — is open to everyone, no sign-up needed.
+            </p>
+            <a
+              href="/toolkit"
+              className="inline-flex items-center gap-2 font-body text-caption uppercase tracking-wider text-coral hover:text-ink transition-colors"
+            >
+              Open the toolkit <span>→</span>
+            </a>
+          </div>
         </div>
       </Section>
     </>
