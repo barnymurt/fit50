@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Fraunces, Inter, Lilita_One } from "next/font/google";
 import Providers from "@/components/Providers";
+import Nav from "@/components/Nav";
+import Footer from "@/components/Footer";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -37,7 +39,11 @@ export default function RootLayout({
         className={`${fraunces.variable} ${inter.variable} ${lilitaOne.variable} font-body text-ink bg-paper antialiased`}
       >
         <Providers>
-          {children}
+          <div className="min-h-screen flex flex-col">
+            <Nav />
+            <main className="flex-1">{children}</main>
+            <Footer />
+          </div>
         </Providers>
       </body>
     </html>

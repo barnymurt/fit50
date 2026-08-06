@@ -90,9 +90,5 @@ export default function MacrocalcPage() {
     );
   }
 
-  return (
-    <main>
-      <CalculatorSection />
-    </main>
-  );
+  return <CalculatorSection />;
 }
