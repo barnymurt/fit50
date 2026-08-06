@@ -3,33 +3,54 @@
 import { useState } from 'react';
 import Section from './Section';
 import { useAuth } from '@/contexts/AuthContext';
+import { createClient, isSupabaseConfigured } from '@/lib/supabase';
 
 export default function Footer() {
-  const { user, signInWithMagicLink } = useAuth();
+  const { user } = useAuth();
   const [email, setEmail] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Footer newsletter is a pure email capture for marketing. We store
+  // it in a separate 'newsletter_subscribers' table. Falls back to a
+  // local-only "subscribed" state if Supabase isn't configured.
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
 
     setSubmitting(true);
     setError(null);
-    const { error: err } = await signInWithMagicLink(email);
+
+    if (!isSupabaseConfigured) {
+      setSent(true);
+      setEmail('');
+      setSubmitting(false);
+      return;
+    }
+
+    const supabase = createClient();
+    if (!supabase) {
+      setSent(true);
+      setEmail('');
+      setSubmitting(false);
+      return;
+    }
+
+    const { error: err } = await supabase
+      .from('newsletter_subscribers')
+      .upsert({ email: email.toLowerCase() }, { onConflict: 'email' });
+
     setSubmitting(false);
 
     if (err) {
-      setError(err);
+      setError('Could not subscribe. Try again later.');
       return;
     }
 
     setSent(true);
     setEmail('');
   };
-
-  const isSignedIn = !!user || sent;
 
   return (
     <Section
@@ -49,11 +70,13 @@ export default function Footer() {
         </div>
 
         <div className="md:col-span-6 md:col-start-7">
-          {isSignedIn ? (
+          {user ? (
             <p className="font-body text-paper/70">
-              {sent
-                ? '✓ Sign-in link sent. Check your email.'
-                : '✓ You\'re signed in. Your progress is saved.'}
+              ✓ You&apos;re signed in. Your progress is saved.
+            </p>
+          ) : sent ? (
+            <p className="font-body text-paper/70">
+              ✓ You&apos;re on the list. We&apos;ll be in touch.
             </p>
           ) : (
             <form onSubmit={handleSubmit}>
@@ -102,10 +125,6 @@ export default function Footer() {
             </a>
           ))}
         </nav>
-
-        {/* Social links (Instagram, Twitter, Contact) removed for now —
-            accounts aren't set up and Contact has no form yet.
-            Re-enable when the socials are live or a contact form exists. */}
       </div>
 
       <p className="mt-10 font-body text-xs text-paper/40">

@@ -6,46 +6,87 @@ import Section from '@/components/Section';
 import Button from '@/components/Button';
 import Timer from '@/components/Timer';
 import { useAuth } from '@/contexts/AuthContext';
-import type { User } from '@supabase/supabase-js';
-import type { Database } from '@/lib/supabase';
 
-type Profile = Database['public']['Tables']['profiles']['Row'];
+type AuthMode = 'signin' | 'signup' | 'forgot' | 'reset-sent';
 
 export default function AccountPage() {
   const router = useRouter();
-  const { user, profile, loading, signInWithMagicLink } = useAuth();
-  const [email, setEmail] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const [sent, setSent] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { user, profile, loading, signIn, signUp, signInWithPasskey, enrollPasskey, resetPassword, signOut } = useAuth();
 
-  const handleSignIn = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email) return;
-    setSubmitting(true);
-    setError(null);
-    const { error: err } = await signInWithMagicLink(email);
-    setSubmitting(false);
-    if (err) {
-      setError(err);
-      return;
+  const [mode, setMode] = useState<AuthMode>('signin');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [enrolling, setEnrolling] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [hint, setHint] = useState<string | null>(null);
+  const [resetSent, setResetSent] = useState(false);
+
+  // When the user just reset their password, Supabase signs them in
+  // automatically once they click the link. So if we land here with
+  // a fresh session, just show the account content.
+  useEffect(() => {
+    if (!loading && user) {
+      setMode('signin');
     }
-    setSent(true);
-  };
+  }, [user, loading]);
 
   if (loading) {
     return (
-      <Section
-        className="relative py-section min-h-[60vh] flex items-center justify-center"
-        contained
-      >
+      <Section className="relative py-section min-h-[70vh] flex items-center justify-center" contained>
         <p className="font-body text-ink/50">Loading…</p>
       </Section>
     );
   }
 
-  // Not signed in — show sign-in form
+  // Not signed in — show the auth form
   if (!user) {
+    const handleSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!email) return;
+      setError(null);
+      setHint(null);
+      setSubmitting(true);
+
+      if (mode === 'signin') {
+        const { error: err } = await signIn(email, password);
+        if (err) {
+          setError(err.message);
+          if (err.hint) setHint(err.hint);
+        }
+      } else if (mode === 'signup') {
+        const { error: err } = await signUp(email, password);
+        if (err) {
+          setError(err.message);
+          if (err.hint) setHint(err.hint);
+        } else {
+          // Supabase auto-signs in after sign up
+          // (if email confirmation is required, this won't fire)
+        }
+      } else if (mode === 'forgot') {
+        const { error: err } = await resetPassword(email);
+        if (err) {
+          setError(err.message);
+        } else {
+          setResetSent(true);
+          setMode('reset-sent');
+        }
+      }
+
+      setSubmitting(false);
+    };
+
+    const handlePasskeySignIn = async () => {
+      setError(null);
+      setHint(null);
+      setSubmitting(true);
+      const { error: err } = await signInWithPasskey();
+      setSubmitting(false);
+      if (err) {
+        setError(err.message);
+      }
+    };
+
     return (
       <Section className="relative py-section min-h-[70vh] flex items-center" contained>
         <div className="max-w-md mx-auto w-full">
@@ -53,48 +94,171 @@ export default function AccountPage() {
             Account
           </p>
           <h1 className="font-display text-display-2 text-ink mb-4 text-center">
-            Sign in.
+            {mode === 'signup' && 'Create account.'}
+            {mode === 'signin' && 'Sign in.'}
+            {mode === 'forgot' && 'Reset password.'}
+            {mode === 'reset-sent' && 'Check your email.'}
           </h1>
           <p className="font-body text-base text-ink/70 mb-10 text-center">
-            Enter your email — we&apos;ll send a one-tap link to save your progress and unlock your premium features.
+            {mode === 'signup' && 'Pick a password, start your 50 days.'}
+            {mode === 'signin' && 'Welcome back.'}
+            {mode === 'forgot' && 'We\u2019ll email you a reset link.'}
+            {mode === 'reset-sent' && `Reset link sent to ${email}.`}
           </p>
 
-          {sent ? (
+          {mode === 'reset-sent' ? (
             <div className="bg-paper border border-ink/10 p-8 text-center">
-              <p className="font-display text-h2 text-teal mb-3">Check your email ✓</p>
-              <p className="font-body text-sm text-ink/70">
-                Sign-in link sent to <span className="text-ink">{email}</span>. Click the link in the email to sign in. The link expires in 1 hour.
+              <p className="font-body text-sm text-ink/70 mb-6">
+                Check your inbox and click the link to set a new password. The link expires in 1 hour.
               </p>
+              <button
+                onClick={() => { setMode('signin'); setResetSent(false); setPassword(''); }}
+                className="font-body text-caption uppercase text-coral hover:underline"
+              >
+                ← Back to sign in
+              </button>
             </div>
           ) : (
-            <form onSubmit={handleSignIn} className="bg-paper border border-ink/10 p-8">
-              <label htmlFor="email" className="font-body text-caption uppercase text-ink/50 block mb-3">
-                Email address
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@email.com"
-                required
-                disabled={submitting}
-                className="w-full p-4 bg-cream/30 border-2 border-ink/20 text-ink font-body focus:border-coral outline-none rounded-none mb-4 disabled:opacity-50"
-                autoFocus
-              />
-              {error && (
-                <p className="font-body text-sm text-coral mb-4">{error}</p>
+            <form onSubmit={handleSubmit} className="bg-paper border border-ink/10 p-8">
+              {mode !== 'forgot' && (
+                <>
+                  <label htmlFor="email" className="font-body text-caption uppercase text-ink/50 block mb-3">
+                    Email address
+                  </label>
+                  <input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@email.com"
+                    required
+                    disabled={submitting}
+                    className="w-full p-4 bg-cream/30 border-2 border-ink/20 text-ink font-body focus:border-coral outline-none rounded-none mb-4 disabled:opacity-50"
+                    autoFocus
+                  />
+                </>
               )}
+
+              {mode === 'forgot' && (
+                <>
+                  <label htmlFor="email" className="font-body text-caption uppercase text-ink/50 block mb-3">
+                    Your email
+                  </label>
+                  <input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@email.com"
+                    required
+                    disabled={submitting}
+                    className="w-full p-4 bg-cream/30 border-2 border-ink/20 text-ink font-body focus:border-coral outline-none rounded-none mb-4 disabled:opacity-50"
+                    autoFocus
+                  />
+                </>
+              )}
+
+              {mode !== 'forgot' && (
+                <>
+                  <label htmlFor="password" className="font-body text-caption uppercase text-ink/50 block mb-3">
+                    Password
+                  </label>
+                  <input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    required
+                    minLength={8}
+                    disabled={submitting}
+                    className="w-full p-4 bg-cream/30 border-2 border-ink/20 text-ink font-body focus:border-coral outline-none rounded-none mb-4 disabled:opacity-50"
+                  />
+                </>
+              )}
+
+              {error && (
+                <p className="font-body text-sm text-coral mb-2">{error}</p>
+              )}
+              {hint && (
+                <p className="font-body text-xs text-ink/50 mb-4">{hint}</p>
+              )}
+
               <button
                 type="submit"
                 disabled={submitting}
                 className="w-full bg-ink text-paper font-body text-sm px-6 py-4 uppercase tracking-wider hover:bg-ink/85 transition-colors disabled:opacity-50"
               >
-                {submitting ? 'Sending…' : 'Send sign-in link'}
+                {submitting
+                  ? '...'
+                  : mode === 'signin'
+                  ? 'Sign in'
+                  : mode === 'signup'
+                  ? 'Create account'
+                  : 'Send reset link'}
               </button>
-              <p className="font-body text-xs text-ink/40 mt-4 text-center">
-                No password. We&apos;ll email you a one-tap link.
-              </p>
+
+              {/* Mode switches */}
+              <div className="mt-6 space-y-2 text-center">
+                {mode === 'signin' && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => { setMode('signup'); setError(null); setHint(null); }}
+                      className="block w-full font-body text-sm text-ink/60 hover:text-ink"
+                    >
+                      Don&apos;t have an account? <span className="text-coral">Create one</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setMode('forgot'); setError(null); setHint(null); }}
+                      className="block w-full font-body text-sm text-ink/60 hover:text-ink"
+                    >
+                      Forgot password?
+                    </button>
+                  </>
+                )}
+                {mode === 'signup' && (
+                  <button
+                    type="button"
+                    onClick={() => { setMode('signin'); setError(null); setHint(null); }}
+                    className="block w-full font-body text-sm text-ink/60 hover:text-ink"
+                  >
+                    Already have an account? <span className="text-coral">Sign in</span>
+                  </button>
+                )}
+                {mode === 'forgot' && (
+                  <button
+                    type="button"
+                    onClick={() => { setMode('signin'); setError(null); setHint(null); }}
+                    className="block w-full font-body text-sm text-ink/60 hover:text-ink"
+                  >
+                    ← Back to sign in
+                  </button>
+                )}
+              </div>
+
+              {mode !== 'forgot' && (
+                <>
+                  <div className="relative my-6">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-ink/10" />
+                    </div>
+                    <div className="relative flex justify-center">
+                      <span className="bg-paper px-3 font-body text-caption uppercase text-ink/40">or</span>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handlePasskeySignIn}
+                    disabled={submitting}
+                    className="w-full border-2 border-ink/20 text-ink font-body text-sm px-6 py-4 uppercase tracking-wider hover:border-ink/40 transition-colors disabled:opacity-50"
+                  >
+                    Sign in with passkey
+                  </button>
+                </>
+              )}
             </form>
           )}
         </div>
@@ -104,7 +268,21 @@ export default function AccountPage() {
 
   return (
     <Section className="relative py-section" contained>
-      <AccountContent user={user} profile={profile} />
+      <AccountContent
+        user={user}
+        profile={profile}
+        hasPasskey={false}
+        onSignOut={async () => { await signOut(); router.push('/'); }}
+        onEnrollPasskey={async () => {
+          setEnrolling(true);
+          const { error: err } = await enrollPasskey();
+          setEnrolling(false);
+          if (err) setError(err.message);
+        }}
+        error={error}
+        clearError={() => setError(null)}
+        enrolling={enrolling}
+      />
     </Section>
   );
 }
@@ -112,19 +290,24 @@ export default function AccountPage() {
 function AccountContent({
   user,
   profile,
+  hasPasskey,
+  onSignOut,
+  onEnrollPasskey,
+  error,
+  clearError,
+  enrolling,
 }: {
-  user: User;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  user: any;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   profile: any;
+  hasPasskey: boolean;
+  onSignOut: () => void;
+  onEnrollPasskey: () => void;
+  error: string | null;
+  clearError: () => void;
+  enrolling: boolean;
 }) {
-  const router = useRouter();
-  const { signOut } = useAuth();
-
-  const handleSignOut = async () => {
-    await signOut();
-    router.push('/');
-  };
-
   const challengeStarted = profile?.challenge_started_at
     ? new Date(profile.challenge_started_at).toLocaleDateString('en-GB', {
         day: 'numeric',
@@ -151,7 +334,7 @@ function AccountContent({
             {user.email}
           </p>
           <button
-            onClick={handleSignOut}
+            onClick={onSignOut}
             className="font-body text-caption uppercase text-ink/60 hover:text-ink transition-colors"
           >
             Sign out
@@ -165,6 +348,25 @@ function AccountContent({
           <p className="font-body text-ink">
             Started {challengeStarted}
           </p>
+        </div>
+
+        <div className="pt-8 border-t border-rule">
+          <p className="font-body text-caption uppercase text-ink/50 mb-3">
+            Security
+          </p>
+          <p className="font-body text-sm text-ink/60 mb-3">
+            Passkeys (Face ID, Touch ID, Windows Hello) sign you in with one tap — no password, no email.
+          </p>
+          {error && (
+            <p className="font-body text-sm text-coral mb-3">{error}</p>
+          )}
+          <button
+            onClick={() => { clearError(); onEnrollPasskey(); }}
+            disabled={enrolling}
+            className="border-2 border-ink/20 text-ink font-body text-sm px-6 py-3 uppercase tracking-wider hover:border-ink/40 transition-colors disabled:opacity-50"
+          >
+            {enrolling ? 'Setting up…' : hasPasskey ? 'Add another device' : 'Set up passkey'}
+          </button>
         </div>
 
         <div className="pt-8 border-t border-rule">

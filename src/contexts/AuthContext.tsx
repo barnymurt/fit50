@@ -12,22 +12,29 @@ interface Profile {
   challenge_started_at: string;
 }
 
+export type AuthError = {
+  message: string;
+  hint?: string;
+};
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   profile: Profile | null;
   email: string | null;
-  isCaptured: boolean;
   loading: boolean;
   configured: boolean;
-  signInWithMagicLink: (email: string) => Promise<{ error: string | null }>;
+  hasPasskey: boolean;
+  signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
+  signUp: (email: string, password: string) => Promise<{ error: AuthError | null }>;
+  signInWithPasskey: () => Promise<{ error: AuthError | null }>;
+  enrollPasskey: () => Promise<{ error: AuthError | null; credentialId?: string }>;
+  resetPassword: (email: string) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-const EMAIL_STORAGE_KEY = 'fit50_email';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -35,6 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [email, setEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [hasPasskey, setHasPasskey] = useState(false);
 
   const supabase = isSupabaseConfigured ? createClient() : null;
 
@@ -53,10 +61,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return data as Profile | null;
   };
 
+  const checkPasskey = async (userId: string) => {
+    if (!supabase) return;
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data } = await (supabase as any)
+        .from('user_factors')
+        .select('factor_type')
+        .eq('user_id', userId)
+        .eq('factor_type', 'webauthn');
+      setHasPasskey((data?.length ?? 0) > 0);
+    } catch {
+      setHasPasskey(false);
+    }
+  };
+
   const refreshProfile = async () => {
-    if (user && supabase) {
+    if (user) {
       const p = await fetchProfile(user.id);
       setProfile(p);
+      await checkPasskey(user.id);
     }
   };
 
@@ -64,16 +88,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let mounted = true;
 
     if (!supabase) {
-      const storedEmail = localStorage.getItem(EMAIL_STORAGE_KEY);
-      if (storedEmail) setEmail(storedEmail);
       setLoading(false);
       return;
     }
 
     const init = async () => {
-      const storedEmail = localStorage.getItem(EMAIL_STORAGE_KEY);
-      if (storedEmail) setEmail(storedEmail);
-
       const { data: { session: currentSession } } = await supabase.auth.getSession();
       if (!mounted) return;
 
@@ -82,7 +101,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (currentSession?.user) {
         const p = await fetchProfile(currentSession.user.id);
-        if (mounted) setProfile(p);
+        if (mounted) {
+          setProfile(p);
+          if (p) setEmail(p.email);
+        }
+        await checkPasskey(currentSession.user.id);
       }
 
       if (mounted) setLoading(false);
@@ -98,12 +121,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (newSession?.user) {
           const p = await fetchProfile(newSession.user.id);
           setProfile(p);
-          setEmail(newSession.user.email ?? null);
-          if (newSession.user.email) {
-            localStorage.setItem(EMAIL_STORAGE_KEY, newSession.user.email);
-          }
+          if (p) setEmail(p.email);
+          await checkPasskey(newSession.user.id);
         } else {
           setProfile(null);
+          setHasPasskey(false);
         }
       }
     );
@@ -114,55 +136,104 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [supabase]);
 
-  const getSiteUrl = () => {
-    if (process.env.NEXT_PUBLIC_SITE_URL) {
-      return process.env.NEXT_PUBLIC_SITE_URL;
-    }
-    if (typeof window !== 'undefined') {
-      return window.location.origin;
-    }
-    return '';
-  };
-
-  const signInWithMagicLink = async (emailAddress: string) => {
+  const signIn = async (emailAddress: string, password: string) => {
     if (!supabase) {
-      setEmail(emailAddress);
-      localStorage.setItem(EMAIL_STORAGE_KEY, emailAddress);
-      return {
-        error:
-          'Auth not configured. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in Vercel env vars.',
-      };
+      return { error: { message: 'Supabase not configured. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.' } };
     }
 
-    const siteUrl = getSiteUrl();
-    const redirectTo = siteUrl ? `${siteUrl}/account` : undefined;
-
-    if (typeof window !== 'undefined') {
-      console.log('[auth] signInWithMagicLink', {
-        siteUrl,
-        redirectTo,
-        supabaseConfigured: true,
-      });
-    }
-
-    const { error } = await supabase.auth.signInWithOtp({
+    const { error } = await supabase.auth.signInWithPassword({
       email: emailAddress,
-      options: {
-        ...(redirectTo ? { emailRedirectTo: redirectTo } : {}),
-      },
+      password,
     });
 
     if (error) {
-      if (typeof window !== 'undefined') {
-        console.error('[auth] signInWithMagicLink error', error);
+      if (error.message.toLowerCase().includes('invalid login')) {
+        return { error: { message: 'Email or password is incorrect.', hint: 'Check your details, or create an account if you don\'t have one yet.' } };
       }
-      return {
-        error: `${error.message}. Check that ${redirectTo ?? 'your Site URL'} is in Supabase → Authentication → URL Configuration → Redirect URLs.`,
-      };
+      return { error: { message: error.message } };
     }
 
-    setEmail(emailAddress);
-    localStorage.setItem(EMAIL_STORAGE_KEY, emailAddress);
+    return { error: null };
+  };
+
+  const signUp = async (emailAddress: string, password: string) => {
+    if (!supabase) {
+      return { error: { message: 'Supabase not configured.' } };
+    }
+
+    if (password.length < 8) {
+      return { error: { message: 'Password must be at least 8 characters.' } };
+    }
+
+    const { error } = await supabase.auth.signUp({
+      email: emailAddress,
+      password,
+    });
+
+    if (error) {
+      if (error.message.toLowerCase().includes('already registered') || error.message.toLowerCase().includes('already been registered')) {
+        return { error: { message: 'An account with this email already exists.', hint: 'Try signing in instead, or use the forgot password link.' } };
+      }
+      return { error: { message: error.message } };
+    }
+
+    return { error: null };
+  };
+
+  const signInWithPasskey = async () => {
+    if (!supabase) {
+      return { error: { message: 'Supabase not configured.' } };
+    }
+    if (typeof window === 'undefined' || !window.PublicKeyCredential) {
+      return { error: { message: 'Passkeys not supported in this browser. Use email + password instead.' } };
+    }
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase.auth as any).signInWithWebAuthn();
+      if (error) return { error: { message: error.message ?? 'Passkey sign-in failed.' } };
+      return { error: null };
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Passkey sign-in failed.';
+      return { error: { message: msg } };
+    }
+  };
+
+  const enrollPasskey = async () => {
+    if (!supabase || !user) {
+      return { error: { message: 'Sign in first before adding a passkey.' } };
+    }
+    if (typeof window === 'undefined' || !window.PublicKeyCredential) {
+      return { error: { message: 'Passkeys not supported in this browser.' } };
+    }
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase.auth as any).signUpWebAuthn({
+        friendlyName: 'This device',
+      });
+      if (error) return { error: { message: error.message ?? 'Could not register passkey.' } };
+      await checkPasskey(user.id);
+      return { error: null, credentialId: data?.id };
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Could not register passkey.';
+      return { error: { message: msg } };
+    }
+  };
+
+  const resetPassword = async (emailAddress: string) => {
+    if (!supabase) {
+      return { error: { message: 'Supabase not configured.' } };
+    }
+
+    const { error } = await supabase.auth.resetPasswordForEmail(emailAddress, {
+      redirectTo: `${typeof window !== 'undefined' ? window.location.origin : ''}/account`,
+    });
+
+    if (error) {
+      return { error: { message: error.message } };
+    }
+
     return { error: null };
   };
 
@@ -173,9 +244,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setSession(null);
     setProfile(null);
+    setHasPasskey(false);
   };
-
-  const isCaptured = !!email;
 
   return (
     <AuthContext.Provider
@@ -184,10 +254,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         session,
         profile,
         email,
-        isCaptured,
         loading,
         configured: isSupabaseConfigured,
-        signInWithMagicLink,
+        hasPasskey,
+        signIn,
+        signUp,
+        signInWithPasskey,
+        enrollPasskey,
+        resetPassword,
         signOut,
         refreshProfile,
       }}
