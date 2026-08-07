@@ -3,6 +3,9 @@
 -- This drops all FIT50-related tables and recreates them from scratch.
 -- Use this if your project has leftover tables from a previous project.
 -- Idempotent: safe to run multiple times.
+-- Note: do not paste file names that begin with digits in comments.
+-- The SQL parser treats leading digits as numeric literals and the
+-- rest of the line as junk.
 
 -- Drop in reverse dependency order
 DROP TABLE IF EXISTS public.streak_protections CASCADE;
