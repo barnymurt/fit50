@@ -5,6 +5,7 @@ import Section from './Section';
 import Heading from './Heading';
 import HabitIcon, { HabitIconName } from './HabitIcon';
 import Marquee from './Marquee';
+import BalloonBurst from './BalloonBurst';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSyncTracker } from '@/hooks/useSyncTracker';
 import { useStreakProtection } from '@/hooks/useStreakProtection';
@@ -69,15 +70,30 @@ export default function Tracker() {
   const progressPct = Math.round((todayCompleted / 9) * 100);
   const isCubeSolved = todayCompleted === 9;
 
-  const handleToggle = async (habitId: string, day: number) => {
-    // Sign-up flow disabled until Phase 2 (account + tracking) is complete.
-    // When re-enabled, restore the email modal trigger:
-    //   if (!user && !hasInteracted) {
-    //     setHasInteracted(true);
-    //     setShowEmailModal(true);
-    //     return;
-    //   }
+  const [pulsingHabit, setPulsingHabit] = useState<string | null>(null);
+  const [balloons, setBalloons] = useState(false);
+
+  const handleToggle = (habitId: string, day: number) => {
+    const wasDone = !!data.habitCompletions[habitId]?.[day];
+    if (!wasDone) {
+      setPulsingHabit(habitId);
+      setTimeout(() => setPulsingHabit(null), 600);
+    }
     toggleHabit(habitId, day);
+
+    if (!wasDone) {
+      // After toggling, will the day be complete?
+      const newCompleted = HABIT_IDS.filter((id) => {
+        if (id === habitId) return true;
+        return !!data.habitCompletions[id]?.[day];
+      }).length;
+      if (newCompleted === 9) {
+        setTimeout(() => {
+          setBalloons(true);
+          setTimeout(() => setBalloons(false), 2400);
+        }, 300);
+      }
+    }
   };
 
   const handleAdvance = async () => {
@@ -89,6 +105,12 @@ export default function Tracker() {
         await redeemProtection(today);
       }
     }
+  };
+
+  const handleUseBanana = async () => {
+    if (!isPremium) return;
+    if (hasProtectionForWeek(new Date())) return;
+    await redeemProtection(today);
   };
 
   if (authLoading || !loaded) {
@@ -160,7 +182,7 @@ export default function Tracker() {
                 </p>
                 <p className="font-body text-sm text-paper/85">
                   Get 1 free pass a week. Miss a day, the streak holds.{' '}
-                  <span className="text-coral">Unlock for €7.99 →</span>
+                  <span className="text-coral">Unlock for £7.99 →</span>
                 </p>
               </a>
             )}
@@ -194,7 +216,7 @@ export default function Tracker() {
             </div>
           </div>
 
-          <div className="lg:col-span-8 bg-white border border-rule p-6 md:p-10">
+          <div className="lg:col-span-8 bg-white border border-rule p-6 md:p-10 relative">
             <div className="flex items-end justify-between mb-8 pb-6 border-b border-rule">
               <div>
                 <p className="font-body text-caption uppercase text-ink/50 mb-1">
@@ -210,21 +232,22 @@ export default function Tracker() {
             </div>
 
             <div
-              className={`grid grid-cols-3 gap-px bg-ink border border-ink transition-shadow duration-500 ${
+              className={`grid grid-cols-3 gap-px bg-ink border border-ink transition-shadow duration-500 relative ${
                 isCubeSolved ? 'shadow-[0_0_0_4px_rgba(232,139,90,0.35)]' : ''
               }`}
             >
               {habits.map((habit) => {
                 const isDone = data.habitCompletions[habit.id]?.[today];
+                const isPulsing = pulsingHabit === habit.id;
                 return (
                   <button
                     key={habit.id}
                     onClick={() => handleToggle(habit.id, today)}
-                    className={`aspect-square p-3 md:p-5 flex flex-col items-center justify-center gap-2 md:gap-3 transition-colors duration-300 group ${
+                    className={`aspect-square p-3 md:p-5 flex flex-col items-center justify-center gap-2 md:gap-3 transition-all duration-300 group ${
                       isDone
                         ? 'bg-coral text-paper'
                         : 'bg-white hover:bg-paper text-ink'
-                    }`}
+                    } ${isPulsing ? 'scale-110 ring-2 ring-coral' : 'scale-100'}`}
                     aria-pressed={isDone}
                     aria-label={`${habit.name}${isDone ? ' - complete' : ''}`}
                   >
@@ -240,6 +263,7 @@ export default function Tracker() {
                   </button>
                 );
               })}
+              {balloons && <BalloonBurst />}
             </div>
 
             <div className="mt-10 pt-8 border-t border-rule">
@@ -255,7 +279,6 @@ export default function Tracker() {
                 {Array.from({ length: 50 }, (_, i) => i + 1).map((day) => {
                   const completed = HABIT_IDS.filter((id) => data.habitCompletions[id]?.[day]).length;
                   const isCurrent = day === today;
-                  const isPast = day < today;
                   const isProtected = protectedDays.includes(day);
 
                   let bg = 'bg-paper';
@@ -274,7 +297,7 @@ export default function Tracker() {
                       key={day}
                       className={`aspect-square flex items-center justify-center text-[10px] font-body relative ${
                         isCurrent ? 'ring-2 ring-ink ring-offset-2 ring-offset-white' : ''
-                      } ${bg} ${isPast ? 'text-ink' : 'text-ink/30'}`}
+                      } ${bg} ${isCurrent ? 'text-ink' : 'text-ink/30'}`}
                       title={isProtected ? `Day ${day}: 🛡️ protected` : `Day ${day}: ${completed}/9`}
                     >
                       {day}
@@ -287,6 +310,25 @@ export default function Tracker() {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Reset + Banana row */}
+        <div className="mt-10 flex flex-col items-center gap-3">
+          {isPremium && (
+            <button
+              onClick={handleUseBanana}
+              disabled={hasProtectionForWeek(new Date())}
+              className="font-body text-caption uppercase text-ink hover:text-coral transition-colors disabled:opacity-40"
+            >
+              {hasProtectionForWeek(new Date()) ? '🍌 used this week' : '🍌 use a streak pass'}
+            </button>
+          )}
+          <button
+            onClick={reset}
+            className="font-body text-caption uppercase text-ink/50 hover:text-ink transition-colors"
+          >
+            Reset all progress
+          </button>
         </div>
       </div>
     </Section>

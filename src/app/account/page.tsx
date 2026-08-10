@@ -254,15 +254,6 @@ export default function AccountPage() {
 
   return (
     <>
-      {/* ============ Signed-in header (minimal) ============ */}
-      <Section className="relative py-12" tone="paper" contained>
-        <div className="max-w-5xl mx-auto">
-          <p className="font-body text-sm text-ink/60">
-            Signed in as <span className="text-ink">{user.email}</span>.
-          </p>
-        </div>
-      </Section>
-
       {/* ============ The tracker ============ */}
       <Section className="relative py-section" tone="paper" contained>
         <div className="max-w-5xl mx-auto">
