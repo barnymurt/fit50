@@ -1,44 +1,20 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Section from '@/components/Section';
-import Button from '@/components/Button';
-import Title from '@/components/Title';
 import Heading from '@/components/Heading';
+import Title from '@/components/Title';
 import Timer from '@/components/Timer';
 import ProjectBoard from '@/components/ProjectBoard';
-import Marquee from '@/components/Marquee';
+import CalculatorForm from '@/components/macro-calculator/CalculatorForm';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSyncTracker } from '@/hooks/useSyncTracker';
-
-const PREMIUM_FEATURES = [
-  {
-    title: 'Cloud sync',
-    description: 'Your progress follows you. Phone, laptop, tablet — pick up where you left off on any device.',
-  },
-  {
-    title: 'Streak protection',
-    description: 'One free pass a week. Miss a day and the streak holds. Each save becomes a 🍌 on your certificate.',
-  },
-  {
-    title: 'Daily reminders',
-    description: 'A nudge at the time you pick. Never forget to check the boxes after a long day.',
-  },
-  {
-    title: 'Photo proof',
-    description: 'Attach a photo to any check-in. See the streak build in images, not just ticks.',
-  },
-  {
-    title: 'Completion certificate',
-    description: 'A printable PDF on day 50 plus a shareable link. Show the world you finished what you started.',
-  },
-  {
-    title: 'Data export',
-    description: 'Your 50 days as a CSV. Yours to keep, analyse, or print and pin somewhere you see it every morning.',
-  },
-];
+import { useStreakProtection } from '@/hooks/useStreakProtection';
+import { usePremium } from '@/hooks/usePremium';
+import { calculateMacros } from '@/components/macro-calculator/formulas';
+import type { Goal, Diet, Activity, Sex, HeightUnit, WeightUnit } from '@/components/macro-calculator/types';
 
 const HABIT_LABELS: Record<string, string> = {
   'chill-out': 'Chill Out',
@@ -52,10 +28,23 @@ const HABIT_LABELS: Record<string, string> = {
   'feed-brain': 'Feed Your Brain',
 };
 
+const HABIT_IDS = Object.keys(HABIT_LABELS);
+
+const PREMIUM_FEATURES = [
+  { title: 'Cloud sync', description: 'Your progress follows you across every device.' },
+  { title: 'Streak protection', description: 'One free pass a week. Miss a day, the streak holds.' },
+  { title: 'Daily reminders', description: 'A nudge at the time you pick.' },
+  { title: 'Photo proof', description: 'Attach a photo to any check-in.' },
+  { title: 'Completion certificate', description: 'A printable PDF on day 50 plus a shareable link.' },
+  { title: 'Data export', description: 'Your 50 days as a CSV.' },
+];
+
 export default function AccountPage() {
   const router = useRouter();
   const { user, profile, loading, signIn, signUp, signOut, resetPassword } = useAuth();
   const { data: trackerData, loaded: trackerLoaded } = useSyncTracker();
+  const { isPremium } = usePremium();
+  const { totalUsed, hasProtectionForWeek, redeemProtection } = useStreakProtection();
   const [authMode, setAuthMode] = useState<'signin' | 'signup' | 'forgot'>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -63,6 +52,8 @@ export default function AccountPage() {
   const [authError, setAuthError] = useState<string | null>(null);
   const [authHint, setAuthHint] = useState<string | null>(null);
   const [resetSent, setResetSent] = useState(false);
+  const [streakRedeeming, setStreakRedeeming] = useState(false);
+  const [streakMessage, setStreakMessage] = useState<string | null>(null);
 
   const challengeStarted = profile?.challenge_started_at
     ? new Date(profile.challenge_started_at).toLocaleDateString('en-GB', {
@@ -77,6 +68,7 @@ export default function AccountPage() {
   }, 0);
   const totalDays = trackerData.currentDay - 1;
   const completionPct = totalDays > 0 ? Math.round((completedDays / (totalDays * 9)) * 100) : 0;
+  const progressPct = Math.min(100, Math.round((trackerData.currentDay - 1) / 50 * 100));
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,14 +80,10 @@ export default function AccountPage() {
     if (authMode === 'forgot') {
       const { error: err } = await resetPassword(email);
       setSubmitting(false);
-      if (err) {
-        setAuthError(err.message);
-        return;
-      }
+      if (err) { setAuthError(err.message); return; }
       setResetSent(true);
       return;
     }
-
     if (authMode === 'signup') {
       const { error: err } = await signUp(email, password);
       setSubmitting(false);
@@ -106,13 +94,11 @@ export default function AccountPage() {
       }
       return;
     }
-
     const { error: err } = await signIn(email, password);
     setSubmitting(false);
     if (err) {
       setAuthError(err.message);
       if (err.hint) setAuthHint(err.hint);
-      return;
     }
   };
 
@@ -121,13 +107,22 @@ export default function AccountPage() {
     router.push('/');
   };
 
+  const handleRedeemStreak = async () => {
+    if (!isPremium) return;
+    setStreakRedeeming(true);
+    setStreakMessage(null);
+    const success = await redeemProtection(trackerData.currentDay);
+    setStreakRedeeming(false);
+    if (success) {
+      setStreakMessage('✓ Streak protected. Your day is banked.');
+    } else {
+      setStreakMessage('You already used this week\'s protection. Try again next week.');
+    }
+  };
+
   if (loading) {
     return (
-      <Section
-        className="relative py-section min-h-[70vh] flex items-center justify-center"
-        tone="paper"
-        contained
-      >
+      <Section className="relative py-section min-h-[70vh] flex items-center justify-center" tone="paper" contained>
         <p className="font-body text-ink/50">Loading…</p>
       </Section>
     );
@@ -136,11 +131,7 @@ export default function AccountPage() {
   // ---------- Not signed in: sign-in form ----------
   if (!user) {
     return (
-      <Section
-        className="relative py-section min-h-[70vh] flex items-center"
-        tone="paper"
-        contained
-      >
+      <Section className="relative py-section min-h-[70vh] flex items-center" tone="paper" contained>
         <div className="max-w-md mx-auto w-full">
           <p className="font-body text-caption uppercase text-coral mb-3 text-center">
             Account
@@ -171,9 +162,7 @@ export default function AccountPage() {
             </div>
           ) : (
             <form onSubmit={handleAuth} className="bg-paper border border-ink/10 p-8">
-              <label htmlFor="email" className="block font-body text-caption uppercase tracking-widest text-ink/50 mb-3">
-                Email address
-              </label>
+              <label htmlFor="email" className="block font-body text-caption uppercase tracking-widest text-ink/50 mb-3">Email address</label>
               <input
                 id="email"
                 type="email"
@@ -188,9 +177,7 @@ export default function AccountPage() {
 
               {authMode !== 'forgot' && (
                 <>
-                  <label htmlFor="password" className="block font-body text-caption uppercase tracking-widest text-ink/50 mb-3">
-                    Password
-                  </label>
+                  <label htmlFor="password" className="block font-body text-caption uppercase tracking-widest text-ink/50 mb-3">Password</label>
                   <input
                     id="password"
                     type="password"
@@ -205,61 +192,35 @@ export default function AccountPage() {
                 </>
               )}
 
-              {authError && (
-                <p role="alert" className="font-body text-sm text-coral mb-2">{authError}</p>
-              )}
-              {authHint && (
-                <p className="font-body text-xs text-ink/50 mb-4">{authHint}</p>
-              )}
+              {authError && <p role="alert" className="font-body text-sm text-coral mb-2">{authError}</p>}
+              {authHint && <p className="font-body text-xs text-ink/50 mb-4">{authHint}</p>}
 
               <button
                 type="submit"
                 disabled={submitting}
                 className="w-full bg-ink text-paper font-body text-sm px-6 py-4 uppercase tracking-wider hover:bg-ink/85 transition-colors disabled:opacity-50"
               >
-                {submitting
-                  ? '...'
-                  : authMode === 'signin'
-                  ? 'Sign in'
-                  : authMode === 'signup'
-                  ? 'Create account'
-                  : 'Send reset link'}
+                {submitting ? '...' : authMode === 'signin' ? 'Sign in' : authMode === 'signup' ? 'Create account' : 'Send reset link'}
               </button>
 
               <div className="mt-6 space-y-2 text-center">
                 {authMode === 'signin' && (
                   <>
-                    <button
-                      type="button"
-                      onClick={() => { setAuthMode('signup'); setAuthError(null); setAuthHint(null); }}
-                      className="block w-full font-body text-sm text-ink/60 hover:text-ink"
-                    >
+                    <button type="button" onClick={() => { setAuthMode('signup'); setAuthError(null); setAuthHint(null); }} className="block w-full font-body text-sm text-ink/60 hover:text-ink">
                       Don&apos;t have an account? <span className="text-coral">Create one</span>
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => { setAuthMode('forgot'); setAuthError(null); setAuthHint(null); }}
-                      className="block w-full font-body text-sm text-ink/60 hover:text-ink"
-                    >
+                    <button type="button" onClick={() => { setAuthMode('forgot'); setAuthError(null); setAuthHint(null); }} className="block w-full font-body text-sm text-ink/60 hover:text-ink">
                       Forgot password?
                     </button>
                   </>
                 )}
                 {authMode === 'signup' && (
-                  <button
-                    type="button"
-                    onClick={() => { setAuthMode('signin'); setAuthError(null); setAuthHint(null); }}
-                    className="block w-full font-body text-sm text-ink/60 hover:text-ink"
-                  >
+                  <button type="button" onClick={() => { setAuthMode('signin'); setAuthError(null); setAuthHint(null); }} className="block w-full font-body text-sm text-ink/60 hover:text-ink">
                     Already have an account? <span className="text-coral">Sign in</span>
                   </button>
                 )}
                 {authMode === 'forgot' && (
-                  <button
-                    type="button"
-                    onClick={() => { setAuthMode('signin'); setAuthError(null); setAuthHint(null); }}
-                    className="block w-full font-body text-sm text-ink/60 hover:text-ink"
-                  >
+                  <button type="button" onClick={() => { setAuthMode('signin'); setAuthError(null); setAuthHint(null); }} className="block w-full font-body text-sm text-ink/60 hover:text-ink">
                     ← Back to sign in
                   </button>
                 )}
@@ -275,10 +236,7 @@ export default function AccountPage() {
                       <span className="bg-paper px-3 font-body text-caption uppercase text-ink/40">or</span>
                     </div>
                   </div>
-                  <Link
-                    href="/toolkit"
-                    className="block text-center font-body text-caption uppercase tracking-widest text-ink/60 hover:text-ink"
-                  >
+                  <Link href="/toolkit" className="block text-center font-body text-caption uppercase tracking-widest text-ink/60 hover:text-ink">
                     Browse the toolkit →
                   </Link>
                 </>
@@ -290,197 +248,124 @@ export default function AccountPage() {
     );
   }
 
-  // ---------- Signed in: account content with proper section structure ----------
-  const totalForProgress = trackerData.currentDay - 1;
-  const progressPct = Math.min(100, Math.round((trackerData.currentDay - 1) / 50 * 100));
+  // ---------- Signed in: account content ----------
+  const todayDone = HABIT_IDS.filter((h) => trackerData.habitCompletions[h]?.[trackerData.currentDay]).length;
+  const todayTotal = HABIT_IDS.length;
 
   return (
     <>
-      {/* ============ HERO: paper, with marquee ============ */}
-      <Section
-        className="relative pt-40 md:pt-56 pb-section overflow-hidden"
-        tone="paper"
-        contained
-      >
-        <div className="absolute top-0 left-0 right-0 h-32 md:h-52 overflow-hidden pointer-events-none z-0 flex items-center">
-          <Marquee
-            text="YOUR ACCOUNT · THE FIFTY · PREMIUM TOOLS"
-            separator="✦"
-            speed={240}
-            textClassName="text-paper/10"
-          />
-        </div>
-
-        <div className="relative z-10 max-w-5xl mx-auto">
-          <p className="font-body text-caption uppercase text-coral mb-3">
-            FIT50 Account
+      {/* ============ Signed-in header (minimal) ============ */}
+      <Section className="relative py-12" tone="paper" contained>
+        <div className="max-w-5xl mx-auto">
+          <p className="font-body text-sm text-ink/60">
+            Signed in as <span className="text-ink">{user.email}</span>.
           </p>
-          <Title>You’re in.</Title>
-          <p className="font-body text-lg text-ink/70 mt-6 max-w-2xl">
-            Signed in as <span className="text-ink">{user.email}</span>. {profile?.is_premium ? 'Premium tools are active.' : 'Free tier. Track locally on this device.'}
-          </p>
-          <button
-            onClick={handleSignOut}
-            className="mt-4 font-body text-caption uppercase text-ink/60 hover:text-coral transition-colors"
-          >
-            Sign out
-          </button>
         </div>
       </Section>
 
-      {/* ============ CHALLENGE: ink, with marquee ============ */}
-      <Section
-        className="relative py-section overflow-hidden"
-        tone="ink"
-        contained
-      >
-        <div className="absolute top-0 left-0 right-0 h-32 md:h-52 overflow-hidden pointer-events-none z-0 flex items-center">
-          <Marquee
-            text="DAY BY DAY · THE FIFTY · TRACKER · STREAKS"
-            separator="✦"
-            speed={220}
-            textClassName="text-coral/55"
-          />
-        </div>
-
-        <div className="relative z-10 max-w-5xl mx-auto">
-          <p className="font-body text-caption uppercase text-coral mb-4">
-            The challenge
-          </p>
-          <Title tone="dark">Day {trackerData.currentDay} of 50.</Title>
-
-          <div className="mt-8 mb-6">
-            <p className="font-body text-paper/70">
-              Started {challengeStarted} · {progressPct}% done
-            </p>
-          </div>
-
-          {/* progress bar */}
-          <div className="h-1.5 bg-paper/15 mb-12 overflow-hidden">
-            <div
-              className="h-full bg-coral"
-              style={{ width: `${progressPct}%` }}
-            />
-          </div>
-
-          {trackerLoaded ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-0 border border-paper/15 mb-8">
-              <div className="p-6 border-b md:border-b-0 md:border-r border-paper/15">
-                <p className="font-display text-display-2 text-paper leading-none tabular-nums">
-                  {completionPct}
-                  <span className="text-2xl text-paper/50 font-body font-normal ml-1">%</span>
-                </p>
-                <p className="font-body text-caption uppercase tracking-widest text-paper/50 mt-2">
-                  Overall complete
-                </p>
-              </div>
-              <div className="p-6 border-b md:border-b-0 md:border-r border-paper/15">
-                <p className="font-display text-display-2 text-paper leading-none tabular-nums">
-                  {trackerData.streakCount}
-                </p>
-                <p className="font-body text-caption uppercase tracking-widest text-paper/50 mt-2">
-                  Current streak
-                </p>
-              </div>
-              <div className="p-6">
-                <p className="font-display text-display-2 text-paper leading-none tabular-nums">
-                  {completedDays}
-                </p>
-                <p className="font-body text-caption uppercase tracking-widest text-paper/50 mt-2">
-                  Boxes ticked
-                </p>
-              </div>
-            </div>
-          ) : (
-            <p className="font-body text-paper/40">Loading tracker data…</p>
-          )}
-
-          {/* Per-habit breakdown */}
-          <div className="border border-paper/15">
-            {Object.entries(trackerData.habitCompletions).map(([habitId, days], i, arr) => {
-              const completed = Object.values(days).filter(Boolean).length;
-              return (
-                <div
-                  key={habitId}
-                  className={`flex items-center justify-between p-4 ${
-                    i < arr.length - 1 ? 'border-b border-paper/15' : ''
-                  }`}
-                >
-                  <p className="font-body text-paper">
-                    {HABIT_LABELS[habitId] || habitId}
-                  </p>
-                  <p className="font-body text-sm text-paper/60 tabular-nums">
-                    {completed} {completed === 1 ? 'day' : 'days'}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </Section>
-
-      {/* ============ SECURITY: paper, plain ============ */}
+      {/* ============ The tracker ============ */}
       <Section className="relative py-section" tone="paper" contained>
         <div className="max-w-5xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mb-8">
-            <div className="md:col-span-5">
-              <p className="font-body text-caption uppercase text-ink/50 mb-3">
-                Security
-              </p>
-              <Heading>One tap. No password.</Heading>
+          <p className="font-body text-caption uppercase text-ink/50 mb-3">
+            The tracker
+          </p>
+          <Title>Day {trackerData.currentDay} of 50.</Title>
+
+          <div className="mt-4 mb-8 grid grid-cols-2 md:grid-cols-4 gap-0 border border-ink/15">
+            <div className="p-4 border-b md:border-b-0 md:border-r border-ink/15">
+              <p className="font-display text-2xl text-ink leading-none tabular-nums">{progressPct}<span className="text-base text-ink/50 font-body font-normal ml-1">%</span></p>
+              <p className="font-body text-caption uppercase tracking-widest text-ink/50 mt-2">Challenge</p>
             </div>
-            <div className="md:col-span-6 md:col-start-7 flex items-end">
-              <p className="font-body text-base text-ink/70">
-                Add a passkey to sign in with Face ID, Touch ID, or Windows Hello. Free for everyone.
-              </p>
+            <div className="p-4 border-b md:border-b-0 md:border-r border-ink/15">
+              <p className="font-display text-2xl text-ink leading-none tabular-nums">{trackerData.streakCount}</p>
+              <p className="font-body text-caption uppercase tracking-widest text-ink/50 mt-2">Streak</p>
+            </div>
+            <div className="p-4 border-b md:border-b-0 md:border-r border-ink/15">
+              <p className="font-display text-2xl text-ink leading-none tabular-nums">{completedDays}</p>
+              <p className="font-body text-caption uppercase tracking-widest text-ink/50 mt-2">Boxes ticked</p>
+            </div>
+            <div className="p-4">
+              <p className="font-display text-2xl text-ink leading-none tabular-nums">{todayDone}<span className="text-base text-ink/50 font-body font-normal"> / {todayTotal}</span></p>
+              <p className="font-body text-caption uppercase tracking-widest text-ink/50 mt-2">Today</p>
             </div>
           </div>
-          <button
-            className="border-2 border-ink/20 text-ink font-body text-sm px-6 py-3 uppercase tracking-wider hover:border-ink/40 transition-colors"
-          >
-            Set up passkey
-          </button>
+
+          {/* Progress bar */}
+          <div className="h-1.5 bg-ink/10 mb-8 overflow-hidden">
+            <div className="h-full bg-coral" style={{ width: `${progressPct}%` }} />
+          </div>
+
+          {streakMessage && (
+            <p className="font-body text-sm text-teal mb-6">{streakMessage}</p>
+          )}
+
+          {/* Streak protection (premium only) */}
+          {isPremium && (
+            <div className="border border-ink/15 p-4 mb-8">
+              <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-2">
+                Streak protection
+              </p>
+              <p className="font-body text-base text-ink mb-3">
+                One free pass a week. Use it to bank today&apos;s day if you miss it.
+              </p>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleRedeemStreak}
+                  disabled={streakRedeeming || hasProtectionForWeek(new Date())}
+                  className="bg-ink text-paper font-body text-sm px-6 py-3 uppercase tracking-wider hover:bg-ink/85 transition-colors disabled:opacity-50"
+                >
+                  {streakRedeeming ? 'Banking…' : hasProtectionForWeek(new Date()) ? 'Already banked this week' : 'Bank today'}
+                </button>
+                <span className="font-body text-caption uppercase text-ink/50 tabular-nums">
+                  {totalUsed} used this cycle
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* 50-day grid */}
+          <div className="border border-ink/15">
+            <div className="p-4 border-b border-ink/15">
+              <p className="font-body text-caption uppercase tracking-widest text-ink/50">
+                The 50 days
+              </p>
+            </div>
+            <div className="grid grid-cols-5 sm:grid-cols-10">
+              {Array.from({ length: 50 }, (_, i) => i + 1).map((day) => {
+                const completed = HABIT_IDS.filter((h) => trackerData.habitCompletions[h]?.[day]).length;
+                const isCurrent = day === trackerData.currentDay;
+                let bg = 'bg-paper';
+                if (completed >= 7) bg = 'bg-teal';
+                else if (completed >= 5) bg = 'bg-coral';
+                else if (completed > 0) bg = 'bg-cream';
+                return (
+                  <div
+                    key={day}
+                    className={`aspect-square flex items-center justify-center text-xs font-body tabular-nums border-b border-r border-ink/10 ${
+                      isCurrent ? 'ring-2 ring-ink ring-inset' : ''
+                    } ${bg}`}
+                  >
+                    {day}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </Section>
 
-      {/* ============ PREMIUM TOOLS ============ */}
+      {/* ============ Premium tools ============ */}
       {profile?.is_premium ? (
         <>
-          {/* Premium intro: ink, with marquee */}
+          {/* Macro calculator inline */}
           <Section
-            className="relative py-section overflow-hidden"
-            tone="ink"
-            contained
-          >
-            <div className="absolute top-0 left-0 right-0 h-32 md:h-52 overflow-hidden pointer-events-none z-0 flex items-center">
-              <Marquee
-                text="PREMIUM TOOLS · THE FIFTY · MACRO CALCULATOR · TIMER · PROJECT BOARD"
-                separator="✦"
-                speed={200}
-                textClassName="text-coral/55"
-              />
-            </div>
-
-            <div className="relative z-10 max-w-5xl mx-auto">
-              <p className="font-body text-caption uppercase text-coral mb-3">
-                Premium
-              </p>
-              <Title tone="dark">Premium unlocked.</Title>
-              <p className="font-body text-lg text-paper/70 mt-4 max-w-2xl">
-                All six premium features are active. The macro calculator, the timer, and the project board are all yours.
-              </p>
-            </div>
-          </Section>
-
-          {/* Macro calculator CTA: teal */}
-          <Section
-            className="relative py-section overflow-hidden"
+            className="relative py-section"
             style={{ backgroundColor: '#4A9B9B' }}
             contained
           >
             <div className="max-w-5xl mx-auto">
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
-                <div className="md:col-span-7">
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mb-8">
+                <div className="md:col-span-5">
                   <p className="font-body text-caption uppercase text-paper/70 mb-3">
                     Macro calculator
                   </p>
@@ -488,28 +373,26 @@ export default function AccountPage() {
                     Know your numbers.
                   </h2>
                   <p className="font-body text-base text-paper/85 mt-4 max-w-md">
-                    BMR, TDEE, protein, carbs, fat, water. Built for the 50-day challenge — adjust for your goal, sync with your tracker.
+                    BMR, TDEE, protein, carbs, fat, water. Built for the 50-day challenge.
                   </p>
                 </div>
-                <div className="md:col-span-5 md:text-right">
-                  <Link
-                    href="/macrocalc"
-                    className="inline-flex items-center justify-center bg-ink text-paper font-body text-sm px-8 py-4 uppercase tracking-wider hover:bg-ink/85 transition-colors"
-                  >
-                    Open macro calculator <span className="ml-2">→</span>
-                  </Link>
+                <div className="md:col-span-6 md:col-start-7 flex items-end">
+                  <p className="font-body text-base text-paper/70">
+                    Enter your stats, get your daily targets. Adjust for your goal.
+                  </p>
                 </div>
               </div>
+
+              <MacroCalculatorInline />
             </div>
           </Section>
 
-          {/* Timer + Project board side by side: paper */}
+          {/* Timer + Project board */}
           <Section className="relative py-section" tone="paper" contained>
             <div className="max-w-5xl mx-auto">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-                {/* Timer */}
                 <div>
-                  <p className="font-body text-caption uppercase text-ink/50 mb-3">
+                  <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-3">
                     The timer
                   </p>
                   <Heading>Feed Your Brain.</Heading>
@@ -520,33 +403,34 @@ export default function AccountPage() {
                     label="Feed Your Brain"
                     context="Read 5 books in 50 days · 30 mins/day on personal projects"
                     defaultMinutes={30}
-                    preset={[15, 30, 50]}
                   />
                 </div>
 
-                {/* Project board */}
                 <div>
-                  <p className="font-body text-caption uppercase text-ink/50 mb-3">
+                  <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-3">
                     The board
                   </p>
                   <Heading>To do · In progress · Done.</Heading>
                   <p className="font-body text-base text-ink/70 mt-3 mb-8">
                     Plan the 50 days. Add tasks, move them when you finish.
                   </p>
-                  <ProjectBoard />
                 </div>
+              </div>
+
+              <div className="mt-12">
+                <ProjectBoard />
               </div>
             </div>
           </Section>
 
-          {/* The six features: cream */}
+          {/* The six features */}
           <Section
             className="relative py-section"
             style={{ backgroundColor: '#F2D9A2' }}
             contained
           >
             <div className="max-w-5xl mx-auto">
-              <p className="font-body text-caption uppercase text-ink/50 mb-3">
+              <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-3">
                 The six features
               </p>
               <h2 className="font-display text-display-2 text-ink leading-[0.95] mb-12">
@@ -572,22 +456,12 @@ export default function AccountPage() {
           </Section>
         </>
       ) : (
-        // Free tier
         <Section
-          className="relative py-section overflow-hidden"
+          className="relative py-section"
           tone="ink"
           contained
         >
-          <div className="absolute top-0 left-0 right-0 h-32 md:h-52 overflow-hidden pointer-events-none z-0 flex items-center">
-            <Marquee
-              text="UNLOCK PREMIUM · THE FIFTY · MACRO CALCULATOR · TIMER · PROJECT BOARD"
-              separator="✦"
-              speed={220}
-              textClassName="text-coral/55"
-            />
-          </div>
-
-          <div className="relative z-10 max-w-3xl mx-auto text-center">
+          <div className="max-w-3xl mx-auto text-center">
             <p className="font-body text-caption uppercase text-coral mb-3">
               Free tier
             </p>
@@ -595,14 +469,148 @@ export default function AccountPage() {
             <p className="font-body text-lg text-paper/70 mt-4 mb-8">
               Get the macro calculator, the timer, the project board, and the rest of the premium tools. One payment, yours forever.
             </p>
-            <div className="flex justify-center">
-              <Button href="/upgrade" variant="primary" tone="light">
-                Unlock for £7.99
-              </Button>
-            </div>
+            <Link
+              href="/upgrade"
+              className="inline-flex items-center justify-center bg-coral text-paper font-body text-sm px-10 py-5 uppercase tracking-wider hover:bg-coral/85 transition-colors"
+            >
+              Unlock for £7.99
+            </Link>
           </div>
         </Section>
       )}
     </>
+  );
+}
+
+// ---------- Inline macro calculator ----------
+function MacroCalculatorInline() {
+  const [age, setAge] = useState('');
+  const [sex, setSex] = useState<Sex | null>(null);
+  const [heightVal, setHeightVal] = useState('');
+  const [heightUnit, setHeightUnit] = useState<HeightUnit>('cm');
+  const [weightVal, setWeightVal] = useState('');
+  const [weightUnit, setWeightUnit] = useState<WeightUnit>('kg');
+  const [bodyFat, setBodyFat] = useState('');
+  const [activity, setActivity] = useState<Activity | null>(null);
+  const [goal, setGoal] = useState<Goal>('loss');
+  const [diet, setDiet] = useState<Diet>('balanced');
+  const [results, setResults] = useState<ReturnType<typeof calculateMacros> | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleCalculate = () => {
+    setError(null);
+    if (!age || !sex) {
+      setError('Enter age and select sex.');
+      return;
+    }
+    const heightNum = parseFloat(heightVal);
+    const weightNum = parseFloat(weightVal);
+    if (!heightNum || !weightNum) {
+      setError('Enter height and weight.');
+      return;
+    }
+    if (!activity) {
+      setError('Select activity level.');
+      return;
+    }
+    const height = heightUnit === 'cm'
+      ? { value: heightNum, unit: 'cm' as HeightUnit }
+      : { value: heightNum, unit: 'ftin' as HeightUnit, feet: Math.floor(heightNum), inches: 0 };
+    const weight = { value: weightNum, unit: weightUnit };
+    const bodyFatNum = bodyFat ? parseFloat(bodyFat) : null;
+    try {
+      const r = calculateMacros({
+        age: parseInt(age),
+        sex,
+        height,
+        weight,
+        bodyFat: bodyFatNum,
+        activity,
+        goal,
+        diet,
+      });
+      setResults(r);
+    } catch (e) {
+      setError('Could not calculate. Check your inputs.');
+    }
+  };
+
+  return (
+    <div className="bg-paper border border-ink/10 p-6 md:p-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <CalculatorForm
+          age={age}
+          setAge={setAge}
+          sex={sex}
+          setSex={setSex}
+          heightVal={heightVal}
+          setHeightVal={setHeightVal}
+          heightUnit={heightUnit}
+          setHeightUnit={setHeightUnit}
+          weightVal={weightVal}
+          setWeightVal={setWeightVal}
+          weightUnit={weightUnit}
+          setWeightUnit={setWeightUnit}
+          bodyFat={bodyFat}
+          setBodyFat={setBodyFat}
+          activity={activity}
+          setActivity={setActivity}
+          goal={goal}
+          setGoal={setGoal}
+          diet={diet}
+          setDiet={setDiet}
+        />
+      </div>
+
+      <div className="flex justify-end mb-6">
+        <button
+          onClick={handleCalculate}
+          className="bg-ink text-paper font-body text-sm px-6 py-3 uppercase tracking-wider hover:bg-ink/85 transition-colors"
+        >
+          Calculate my macros
+        </button>
+      </div>
+
+      {error && <p className="font-body text-sm text-coral mb-4">{error}</p>}
+
+      {results && (
+        <>
+          <div className="border-t border-ink/10 pt-6 mb-4">
+            <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-3">
+              Daily calories
+            </p>
+            <p className="font-display text-5xl text-ink leading-none tabular-nums">
+              {results.calories.toLocaleString()}
+              <span className="text-lg text-ink/50 font-body font-normal ml-3">kcal</span>
+            </p>
+          </div>
+          <div className="border-t border-ink/10">
+            <Row label="Protein" grams={results.proteinG} kcal={results.proteinG * 4} total={results.calories} />
+            <Row label="Carbs" grams={results.carbsG} kcal={results.carbsG * 4} total={results.calories} />
+            <Row label="Fat" grams={results.fatG} kcal={results.fatG * 9} total={results.calories} />
+            <Row label="Water" grams={results.waterL} suffix="L" />
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function Row({ label, grams, kcal, total, suffix }: { label: string; grams: number; kcal?: number; total?: number; suffix?: string }) {
+  const pct = kcal !== undefined && total !== undefined ? Math.round((kcal / total) * 100) : 0;
+  return (
+    <div className="flex items-center justify-between py-4 border-b border-ink/10 last:border-b-0">
+      <p className="font-body text-caption uppercase tracking-widest text-ink/50">{label}</p>
+      <div className="flex items-baseline gap-6">
+        <p className="font-display text-2xl text-ink tabular-nums leading-none">
+          {grams}<span className="text-base text-ink/50 font-body font-normal ml-1">{suffix || 'g'}</span>
+        </p>
+        {kcal !== undefined && total !== undefined && (
+          <p className="font-body text-sm text-ink/60 tabular-nums">
+            {pct}% <span className="text-ink/40">·</span> {kcal} kcal
+          </p>
+        )}
+      </div>
+    </div>
   );
 }
