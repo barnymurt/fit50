@@ -15,7 +15,7 @@ interface BoardItem {
 interface BoardColumn {
   id: ColumnId;
   label: string;
-  color: typeof COLUMN_COLORS[number] | string;
+  color: string;
 }
 
 interface BoardState {
@@ -42,19 +42,13 @@ const STORAGE_KEY = 'fit50-board-v2';
 
 const COLUMN_COLORS = ['paper', 'teal', 'coral', 'cream', 'lavender', 'ink'] as const;
 
-export default function ProjectBoard() {
+export function useBoardState() {
   const [state, setState] = useState<BoardState>(DEFAULT_BOARD);
   const [hydrated, setHydrated] = useState(false);
-  const [editingItemId, setEditingItemId] = useState<string | null>(null);
-  const [editingText, setEditingText] = useState('');
-  const [editingColumnId, setEditingColumnId] = useState<ColumnId | null>(null);
-  const [editingColumnLabel, setEditingColumnLabel] = useState('');
-  const [showAddColumn, setShowAddColumn] = useState(false);
-  const [newColumnLabel, setNewColumnLabel] = useState('');
-  const [newColumnColor, setNewColumnColor] = useState<typeof COLUMN_COLORS[number]>('paper');
-
   const dragItem = useRef<{ id: string; fromColumnId: ColumnId | 'todos' } | null>(null);
   const [dragOverTarget, setDragOverTarget] = useState<string | null>(null);
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [editingText, setEditingText] = useState('');
 
   useEffect(() => {
     const saved = loadJson<BoardState>(STORAGE_KEY, DEFAULT_BOARD);
@@ -149,27 +143,19 @@ export default function ProjectBoard() {
     });
   };
 
-  const addColumn = () => {
-    const label = newColumnLabel.trim();
-    if (!label) return;
+  const addColumn = (label: string, color: typeof COLUMN_COLORS[number]) => {
     setState((prev) => ({
       ...prev,
       columns: [
         ...prev.columns,
-        {
-          id: `col-${Date.now()}`,
-          label,
-          color: newColumnColor,
-        },
+        { id: `col-${Date.now()}`, label, color },
       ],
     }));
-    setNewColumnLabel('');
-    setShowAddColumn(false);
   };
 
   const removeColumn = (columnId: ColumnId) => {
     setState((prev) => {
-      if (prev.columns.length <= 1) return prev; // at least 1 column
+      if (prev.columns.length <= 1) return prev;
       const items = prev.items.filter((i) => i.columnId !== columnId);
       const columns = prev.columns.filter((c) => c.id !== columnId);
       return { ...prev, columns, items };
@@ -214,41 +200,48 @@ export default function ProjectBoard() {
     setDragOverTarget(null);
   };
 
-  const COLOR_STYLES: Record<string, { bg: string; border: string }> = {
-    paper: { bg: 'bg-paper', border: 'border-ink/15' },
-    teal: { bg: 'bg-teal', border: 'border-teal' },
-    coral: { bg: 'bg-coral', border: 'border-coral' },
-    cream: { bg: 'bg-cream/40', border: 'border-ink/15' },
-    lavender: { bg: 'bg-lavender/40', border: 'border-ink/15' },
-    ink: { bg: 'bg-ink', border: 'border-ink' },
+  return {
+    state,
+    dragOverTarget,
+    editingItemId,
+    editingText,
+    addItem,
+    addTodo,
+    moveItem,
+    deleteItem,
+    updateItemText,
+    addColumn,
+    removeColumn,
+    renameColumn,
+    changeColumnColor,
+    setEditingItemId,
+    setEditingText,
+    setDragOverTarget,
+    handleDragStart,
+    handleDragOver,
+    handleDragLeave,
+    handleDrop,
   };
+}
+
+const COLOR_STYLES: Record<string, { bg: string; border: string }> = {
+  paper: { bg: 'bg-paper', border: 'border-ink/15' },
+  teal: { bg: 'bg-teal', border: 'border-teal' },
+  coral: { bg: 'bg-coral', border: 'border-coral' },
+  cream: { bg: 'bg-cream/40', border: 'border-ink/15' },
+  lavender: { bg: 'bg-lavender/40', border: 'border-ink/15' },
+  ink: { bg: 'bg-ink', border: 'border-ink' },
+};
+
+export function Board() {
+  const board = useBoardState();
+  const [showAddColumn, setShowAddColumn] = useState(false);
+  const [newColumnLabel, setNewColumnLabel] = useState('');
+  const [newColumnColor, setNewColumnColor] = useState<typeof COLUMN_COLORS[number]>('paper');
 
   return (
-    <div className="w-full">
-      {/* Top: Todo list (outside the columns) */}
-      <TodoList
-        todos={state.todos}
-        dragOverTarget={dragOverTarget}
-        onDragStart={handleDragStart}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-        onAdd={addTodo}
-        onDelete={(id) => deleteItem(id, 'todos')}
-        onMove={(id) => {
-          // move to first column
-          const first = state.columns[0]?.id;
-          if (first) moveItem(id, 'todos', first);
-        }}
-        onEdit={(id, text) => updateItemText(id, 'todos', text)}
-        editingItemId={editingItemId}
-        editingText={editingText}
-        setEditingItemId={setEditingItemId}
-        setEditingText={setEditingText}
-      />
-
-      {/* Board: full-width columns */}
-      <div className="flex items-center justify-between mb-4 mt-12">
+    <div>
+      <div className="flex items-center justify-between mb-4">
         <h3 className="font-body text-caption uppercase tracking-widest text-ink/50">
           The board
         </h3>
@@ -289,7 +282,13 @@ export default function ProjectBoard() {
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={addColumn}
+              onClick={() => {
+                const label = newColumnLabel.trim();
+                if (!label) return;
+                board.addColumn(label, newColumnColor);
+                setNewColumnLabel('');
+                setShowAddColumn(false);
+              }}
               className="bg-ink text-paper font-body text-xs px-4 py-2 uppercase tracking-wider hover:bg-ink/85 transition-colors"
             >
               Add column
@@ -305,30 +304,196 @@ export default function ProjectBoard() {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {state.columns.map((col) => (
+        {board.state.columns.map((col) => (
           <Column
             key={col.id}
             column={col}
-            items={state.items.filter((i) => i.columnId === col.id)}
-            colorStyles={COLOR_STYLES[col.color]}
-            dragOverTarget={dragOverTarget}
-            onAdd={(text) => addItem(col.id, text)}
-            onDelete={(id) => deleteItem(id, col.id)}
-            onRename={(label) => renameColumn(col.id, label)}
-            onRemoveColumn={() => removeColumn(col.id)}
-            onChangeColor={(color) => changeColumnColor(col.id, color)}
-            onDragStart={(id) => handleDragStart(id, col.id)}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={(e) => handleDrop(e, col.id)}
-            onEdit={(id, text) => updateItemText(id, col.id, text)}
-            editingItemId={editingItemId}
-            editingText={editingText}
-            setEditingItemId={setEditingItemId}
-            setEditingText={setEditingText}
+            items={board.state.items.filter((i) => i.columnId === col.id)}
+            colorStyles={COLOR_STYLES[col.color] || COLOR_STYLES.paper}
+            dragOverTarget={board.dragOverTarget}
+            onAdd={(text) => board.addItem(col.id, text)}
+            onDelete={(id) => board.deleteItem(id, col.id)}
+            onRename={(label) => board.renameColumn(col.id, label)}
+            onRemoveColumn={() => board.removeColumn(col.id)}
+            onChangeColor={(color) => board.changeColumnColor(col.id, color)}
+            onDragStart={(id) => board.handleDragStart(id, col.id)}
+            onDragOver={board.handleDragOver}
+            onDragLeave={board.handleDragLeave}
+            onDrop={(e) => board.handleDrop(e, col.id)}
+            onEdit={(id, text) => board.updateItemText(id, col.id, text)}
+            editingItemId={board.editingItemId}
+            editingText={board.editingText}
+            setEditingItemId={board.setEditingItemId}
+            setEditingText={board.setEditingText}
           />
         ))}
       </div>
+    </div>
+  );
+}
+
+export function TodoList() {
+  const board = useBoardState();
+
+  return (
+    <div
+      onDragOver={(e) => board.handleDragOver(e, 'todos')}
+      onDragLeave={board.handleDragLeave}
+      onDrop={(e) => board.handleDrop(e, 'todos')}
+      className={`border border-ink/20 p-4 transition-all ${
+        board.dragOverTarget === 'todos' ? 'ring-2 ring-ink' : ''
+      }`}
+    >
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="font-body text-caption uppercase tracking-widest text-ink/50">
+          The to-do list
+        </h3>
+        <span className="font-body text-caption uppercase text-ink/30 tabular-nums">
+          [{board.state.todos.length}]
+        </span>
+      </div>
+      <TodoListBody
+        todos={board.state.todos}
+        dragOverTarget={board.dragOverTarget}
+        onDragStart={board.handleDragStart}
+        onDragOver={board.handleDragOver}
+        onDragLeave={board.handleDragLeave}
+        onDrop={board.handleDragOver}
+        onAdd={board.addTodo}
+        onDelete={(id) => board.deleteItem(id, 'todos')}
+        onMove={(id) => {
+          const first = board.state.columns[0]?.id;
+          if (first) board.moveItem(id, 'todos', first);
+        }}
+        onEdit={(id, text) => board.updateItemText(id, 'todos', text)}
+        editingItemId={board.editingItemId}
+        editingText={board.editingText}
+        setEditingItemId={board.setEditingItemId}
+        setEditingText={board.setEditingText}
+      />
+    </div>
+  );
+}
+
+function TodoListBody(props: {
+  todos: BoardItem[];
+  dragOverTarget: string | null;
+  onDragStart: (id: string, fromColumnId: ColumnId | 'todos') => void;
+  onDragOver: (e: React.DragEvent, targetId: string) => void;
+  onDragLeave: () => void;
+  onDrop: (e: React.DragEvent, targetId: string) => void;
+  onAdd: (text: string) => void;
+  onDelete: (id: string) => void;
+  onMove: (id: string) => void;
+  onEdit: (id: string, text: string) => void;
+  editingItemId: string | null;
+  editingText: string;
+  setEditingItemId: (id: string | null) => void;
+  setEditingText: (text: string) => void;
+}) {
+  const [adding, setAdding] = useState(false);
+  const [newText, setNewText] = useState('');
+
+  const handleAdd = () => {
+    const trimmed = newText.trim();
+    if (!trimmed) return;
+    props.onAdd(trimmed);
+    setNewText('');
+  };
+
+  return (
+    <div>
+      <div className="space-y-2 mb-3">
+        {props.todos.length === 0 && (
+          <p className="font-body text-sm text-ink/40 italic px-2 py-3">
+            Nothing in your to do list. Add one or drag tasks here from the board.
+          </p>
+        )}
+        {props.todos.map((t) => (
+          <div
+            key={t.id}
+            draggable
+            onDragStart={(e) => {
+              e.dataTransfer.setData('text/plain', t.id);
+              props.onDragStart(t.id, 'todos');
+            }}
+            className="bg-paper border border-ink/15 p-3 flex items-start gap-2 cursor-grab active:cursor-grabbing"
+          >
+            {props.editingItemId === t.id ? (
+              <input
+                type="text"
+                value={props.editingText}
+                onChange={(e) => props.setEditingText(e.target.value)}
+                onBlur={() => { props.onEdit(t.id, props.editingText); props.setEditingItemId(null); }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') { props.onEdit(t.id, props.editingText); props.setEditingItemId(null); }
+                  if (e.key === 'Escape') { props.setEditingItemId(null); }
+                }}
+                autoFocus
+                className="flex-1 font-body text-sm text-ink bg-cream/30 border border-ink/30 px-1 py-0.5 outline-none"
+              />
+            ) : (
+              <p
+                className="flex-1 font-body text-sm text-ink leading-snug cursor-pointer"
+                onClick={() => { props.setEditingText(t.text); props.setEditingItemId(t.id); }}
+              >
+                {t.text}
+              </p>
+            )}
+            <button
+              onClick={() => props.onMove(t.id)}
+              className="font-body text-xs text-ink/40 hover:text-ink transition-colors whitespace-nowrap"
+            >
+              → board
+            </button>
+            <button
+              onClick={() => { props.setEditingText(t.text); props.setEditingItemId(t.id); }}
+              className="font-body text-xs text-ink/40 hover:text-ink transition-colors"
+            >
+              edit
+            </button>
+            <button
+              onClick={() => props.onDelete(t.id)}
+              className="font-body text-xs text-ink/40 hover:text-coral transition-colors"
+              aria-label="Delete"
+            >
+              ×
+            </button>
+          </div>
+        ))}
+      </div>
+      {adding ? (
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={newText}
+            onChange={(e) => setNewText(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
+            placeholder="New todo"
+            autoFocus
+            className="flex-1 px-2 py-1 bg-paper border border-ink/20 font-body text-sm focus:border-ink outline-none"
+          />
+          <button
+            onClick={handleAdd}
+            className="bg-ink text-paper font-body text-xs px-2 py-1 uppercase"
+          >
+            Add
+          </button>
+          <button
+            onClick={() => { setAdding(false); setNewText(''); }}
+            className="font-body text-xs opacity-50 hover:opacity-100"
+          >
+            ×
+          </button>
+        </div>
+      ) : (
+        <button
+          onClick={() => setAdding(true)}
+          className="font-body text-caption uppercase tracking-widest opacity-50 hover:opacity-100 text-left"
+        >
+          + Add todo
+        </button>
+      )}
     </div>
   );
 }
@@ -409,7 +574,6 @@ function Column({
       }`}
       style={{ color: column.color === 'ink' ? '#FAF6EE' : '#1A1A1A' }}
     >
-      {/* Header */}
       <div className="flex items-center justify-between mb-3">
         {renaming ? (
           <input
@@ -473,7 +637,6 @@ function Column({
         </div>
       )}
 
-      {/* Cards */}
       <div className="space-y-2 mb-3 flex-1 min-h-[40px]">
         {items.length === 0 && (
           <div className="border-2 border-dashed border-current opacity-20 p-4 text-center font-body text-caption uppercase tracking-widest">
@@ -495,7 +658,6 @@ function Column({
         ))}
       </div>
 
-      {/* Add */}
       {adding ? (
         <div className="flex gap-2">
           <input
@@ -595,159 +757,10 @@ function Card({ item, onDragStart, onDelete, onEdit, editingItemId, editingText,
   );
 }
 
-interface TodoListProps {
-  todos: BoardItem[];
-  dragOverTarget: string | null;
-  onDragStart: (id: string, fromColumnId: ColumnId | 'todos') => void;
-  onDragOver: (e: React.DragEvent, targetId: string) => void;
-  onDragLeave: () => void;
-  onDrop: (e: React.DragEvent, targetId: string) => void;
-  onAdd: (text: string) => void;
-  onDelete: (id: string) => void;
-  onMove: (id: string) => void;
-  onEdit: (id: string, text: string) => void;
-  editingItemId: string | null;
-  editingText: string;
-  setEditingItemId: (id: string | null) => void;
-  setEditingText: (text: string) => void;
-}
-
-function TodoList({
-  todos,
-  dragOverTarget,
-  onDragStart,
-  onDragOver,
-  onDragLeave,
-  onDrop,
-  onAdd,
-  onDelete,
-  onMove,
-  onEdit,
-  editingItemId,
-  editingText,
-  setEditingItemId,
-  setEditingText,
-}: TodoListProps) {
-  const [adding, setAdding] = useState(false);
-  const [newText, setNewText] = useState('');
-
-  const handleAdd = () => {
-    const trimmed = newText.trim();
-    if (!trimmed) return;
-    onAdd(trimmed);
-    setNewText('');
-  };
-
+export default function ProjectBoard() {
   return (
-    <div
-      onDragOver={(e) => onDragOver(e, 'todos')}
-      onDragLeave={onDragLeave}
-      onDrop={(e) => onDrop(e, 'todos')}
-      className={`border border-ink/20 p-4 mb-6 transition-all ${
-        dragOverTarget === 'todos' ? 'ring-2 ring-ink' : ''
-      }`}
-    >
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="font-body text-caption uppercase tracking-widest text-ink/50">
-          To do list
-        </h3>
-        <span className="font-body text-caption uppercase text-ink/30 tabular-nums">
-          [{todos.length}]
-        </span>
-      </div>
-
-      <div className="space-y-2 mb-3">
-        {todos.length === 0 && (
-          <p className="font-body text-sm text-ink/40 italic px-2 py-3">
-            Nothing in your to do list. Add one or drag tasks here from the board.
-          </p>
-        )}
-        {todos.map((t) => (
-          <div
-            key={t.id}
-            draggable
-            onDragStart={(e) => {
-              e.dataTransfer.setData('text/plain', t.id);
-              onDragStart(t.id, 'todos');
-            }}
-            className="bg-paper border border-ink/15 p-3 flex items-start gap-2 cursor-grab active:cursor-grabbing"
-          >
-            {editingItemId === t.id ? (
-              <input
-                type="text"
-                value={editingText}
-                onChange={(e) => setEditingText(e.target.value)}
-                onBlur={() => { onEdit(t.id, editingText); setEditingItemId(null); }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') { onEdit(t.id, editingText); setEditingItemId(null); }
-                  if (e.key === 'Escape') { setEditingItemId(null); }
-                }}
-                autoFocus
-                className="flex-1 font-body text-sm text-ink bg-cream/30 border border-ink/30 px-1 py-0.5 outline-none"
-              />
-            ) : (
-              <p
-                className="flex-1 font-body text-sm text-ink leading-snug cursor-pointer"
-                onClick={() => { setEditingText(t.text); setEditingItemId(t.id); }}
-              >
-                {t.text}
-              </p>
-            )}
-            <button
-              onClick={() => onMove(t.id)}
-              className="font-body text-xs text-ink/40 hover:text-ink transition-colors whitespace-nowrap"
-            >
-              → board
-            </button>
-              <button
-                onClick={() => { setEditingText(t.text); setEditingItemId(t.id); }}
-                className="font-body text-xs text-ink/40 hover:text-ink transition-colors"
-              >
-                edit
-              </button>
-            <button
-              onClick={() => onDelete(t.id)}
-              className="font-body text-xs text-ink/40 hover:text-coral transition-colors"
-              aria-label="Delete"
-            >
-              ×
-            </button>
-          </div>
-        ))}
-      </div>
-
-      {adding ? (
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={newText}
-            onChange={(e) => setNewText(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
-            placeholder="New todo"
-            autoFocus
-            className="flex-1 px-2 py-1 bg-paper border border-ink/20 font-body text-sm focus:border-ink outline-none"
-          />
-          <button
-            onClick={handleAdd}
-            className="bg-ink text-paper font-body text-xs px-2 py-1 uppercase"
-          >
-            Add
-          </button>
-          <button
-            onClick={() => { setAdding(false); setNewText(''); }}
-            className="font-body text-xs opacity-50 hover:opacity-100"
-          >
-            ×
-          </button>
-        </div>
-      ) : (
-        <button
-          onClick={() => setAdding(true)}
-          className="font-body text-caption uppercase tracking-widest opacity-50 hover:opacity-100 text-left"
-        >
-          + Add todo
-        </button>
-      )}
+    <div>
+      <Board />
     </div>
   );
 }

@@ -7,7 +7,7 @@ import Section from '@/components/Section';
 import Heading from '@/components/Heading';
 import Title from '@/components/Title';
 import Timer from '@/components/Timer';
-import ProjectBoard from '@/components/ProjectBoard';
+import { Board, TodoList, useBoardState } from '@/components/ProjectBoard';
 import CalculatorForm from '@/components/macro-calculator/CalculatorForm';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSyncTracker } from '@/hooks/useSyncTracker';
@@ -387,11 +387,11 @@ export default function AccountPage() {
             </div>
           </Section>
 
-          {/* Timer + Project board */}
+          {/* Timer + Board + To-do list */}
           <Section className="relative py-section" tone="paper" contained>
             <div className="max-w-5xl mx-auto">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-                <div>
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mb-12">
+                <div className="md:col-span-5">
                   <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-3">
                     The timer
                   </p>
@@ -399,27 +399,39 @@ export default function AccountPage() {
                   <p className="font-body text-base text-ink/70 mt-3 mb-8">
                     30 mins a day on a book or personal project. Start the timer, get to work.
                   </p>
-                  <Timer
-                    label="Feed Your Brain"
-                    context="Read 5 books in 50 days · 30 mins/day on personal projects"
-                    defaultMinutes={30}
-                  />
                 </div>
-
-                <div>
-                  <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-3">
-                    The board
-                  </p>
-                  <Heading>To do · In progress · Done.</Heading>
-                  <p className="font-body text-base text-ink/70 mt-3 mb-8">
-                    Plan the 50 days. Add tasks, move them when you finish.
+                <div className="md:col-span-6 md:col-start-7 flex items-end">
+                  <p className="font-body text-base text-ink/70">
+                    Set any custom time down to seconds. Pre-set at 30 mins for the Feed Your Brain rule.
                   </p>
                 </div>
               </div>
 
-              <div className="mt-12">
-                <ProjectBoard />
+              <div className="flex justify-center mb-16">
+                <Timer
+                  label="Feed Your Brain"
+                  context="Read 5 books in 50 days · 30 mins/day on personal projects"
+                  defaultMinutes={30}
+                />
               </div>
+
+              <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-3">
+                The board
+              </p>
+              <Heading>To do · In progress · Done.</Heading>
+              <p className="font-body text-base text-ink/70 mt-3 mb-8">
+                Plan the 50 days. Add tasks, move them when you finish. Drag between columns, double-click a column name to rename, or add a new one.
+              </p>
+              <Board />
+
+              <p className="font-body text-caption uppercase tracking-widest text-ink/50 mt-12 mb-3">
+                The to-do list
+              </p>
+              <Heading>Capture first. Sort later.</Heading>
+              <p className="font-body text-base text-ink/70 mt-3 mb-8">
+                Things you don't want to lose. Drop them here, drag them to the board when you're ready.
+              </p>
+              <TodoList />
             </div>
           </Section>
 
