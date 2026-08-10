@@ -5,10 +5,18 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 interface TimerProps {
   defaultMinutes?: number;
   label?: string;
+  context?: string;
+  preset?: number[];
   onComplete?: () => void;
 }
 
-export default function Timer({ defaultMinutes = 30, label, onComplete }: TimerProps) {
+export default function Timer({
+  defaultMinutes = 30,
+  label,
+  context,
+  preset = [15, 30, 50],
+  onComplete,
+}: TimerProps) {
   const [totalSeconds, setTotalSeconds] = useState(defaultMinutes * 60);
   const [remainingSeconds, setRemainingSeconds] = useState(defaultMinutes * 60);
   const [isRunning, setIsRunning] = useState(false);
@@ -68,19 +76,22 @@ export default function Timer({ defaultMinutes = 30, label, onComplete }: TimerP
   }, []);
 
   return (
-    <div className="bg-paper border border-ink/10 p-8 text-center">
+    <div className="bg-paper border border-ink/10 p-6 text-center">
       {label && (
-        <p className="font-body text-caption uppercase text-ink/50 mb-3">
+        <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-1">
           {label}
         </p>
       )}
+      {context && (
+        <p className="font-body text-xs text-ink/40 mb-4">{context}</p>
+      )}
 
-      <div className={`font-display tabular-nums mb-6 leading-none ${completed ? 'text-teal' : 'text-ink'}`}
-           style={{ fontSize: 'clamp(3.5rem, 8vw, 5rem)', letterSpacing: '-0.02em' }}>
+      <div className={`font-display tabular-nums mb-4 leading-none ${completed ? 'text-teal' : 'text-ink'}`}
+           style={{ fontSize: 'clamp(4rem, 10vw, 5.5rem)', letterSpacing: '-0.04em' }}>
         {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
       </div>
 
-      <div className="h-1 bg-ink/10 mb-6 overflow-hidden">
+      <div className="h-1 bg-ink/10 mb-5 overflow-hidden">
         <div
           className="h-full bg-coral transition-all duration-1000 ease-linear"
           style={{ width: `${progress}%` }}
@@ -93,7 +104,7 @@ export default function Timer({ defaultMinutes = 30, label, onComplete }: TimerP
         </p>
       )}
 
-      <div className="flex items-center justify-center gap-3 mb-6">
+      <div className="flex items-center justify-center gap-2 mb-3">
         {!isRunning ? (
           <button
             onClick={handleStart}
@@ -119,11 +130,11 @@ export default function Timer({ defaultMinutes = 30, label, onComplete }: TimerP
       </div>
 
       <div className="flex items-center justify-center gap-2">
-        {[15, 30, 45, 60].map((mins) => (
+        {preset.map((mins) => (
           <button
             key={mins}
             onClick={() => handleSetDuration(mins)}
-            className={`font-body text-xs px-3 py-1 border transition-colors ${
+            className={`font-body text-xs uppercase tracking-widest px-3 py-1 border transition-colors ${
               totalSeconds === mins * 60
                 ? 'border-coral text-coral'
                 : 'border-ink/20 text-ink/60 hover:border-ink/40'

@@ -1,12 +1,15 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import Section from '@/components/Section';
 import Button from '@/components/Button';
+import Title from '@/components/Title';
+import Heading from '@/components/Heading';
 import Timer from '@/components/Timer';
 import ProjectBoard from '@/components/ProjectBoard';
+import Marquee from '@/components/Marquee';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSyncTracker } from '@/hooks/useSyncTracker';
 
@@ -69,11 +72,10 @@ export default function AccountPage() {
       })
     : '—';
 
-  // Tracker stats
   const completedDays = Object.keys(trackerData.habitCompletions).reduce((acc, habitId) => {
     return acc + Object.values(trackerData.habitCompletions[habitId] || {}).filter(Boolean).length;
   }, 0);
-  const totalDays = trackerData.currentDay - 1; // Days completed (yesterday and before)
+  const totalDays = trackerData.currentDay - 1;
   const completionPct = totalDays > 0 ? Math.round((completedDays / (totalDays * 9)) * 100) : 0;
 
   const handleAuth = async (e: React.FormEvent) => {
@@ -131,7 +133,7 @@ export default function AccountPage() {
     );
   }
 
-  // Not signed in — show sign-in form
+  // ---------- Not signed in: sign-in form ----------
   if (!user) {
     return (
       <Section
@@ -288,201 +290,319 @@ export default function AccountPage() {
     );
   }
 
-  // Signed in — show account content
+  // ---------- Signed in: account content with proper section structure ----------
+  const totalForProgress = trackerData.currentDay - 1;
+  const progressPct = Math.min(100, Math.round((trackerData.currentDay - 1) / 50 * 100));
+
   return (
-    <Section className="relative py-section" tone="paper" contained>
-      <div className="max-w-3xl mx-auto">
-        <p className="font-body text-caption uppercase text-coral mb-3">
-          Account
-        </p>
-        <h1 className="font-display text-display-2 text-ink mb-12">
-          You&apos;re in.
-        </h1>
+    <>
+      {/* ============ HERO: paper, with marquee ============ */}
+      <Section
+        className="relative pt-40 md:pt-56 pb-section overflow-hidden"
+        tone="paper"
+        contained
+      >
+        <div className="absolute top-0 left-0 right-0 h-32 md:h-52 overflow-hidden pointer-events-none z-0 flex items-center">
+          <Marquee
+            text="YOUR ACCOUNT · THE FIFTY · PREMIUM TOOLS"
+            separator="✦"
+            speed={240}
+            textClassName="text-paper/10"
+          />
+        </div>
 
-        <div className="space-y-12">
-          <div>
-            <p className="font-body text-caption uppercase text-ink/50 mb-2">
-              Signed in as
+        <div className="relative z-10 max-w-5xl mx-auto">
+          <p className="font-body text-caption uppercase text-coral mb-3">
+            FIT50 Account
+          </p>
+          <Title>You’re in.</Title>
+          <p className="font-body text-lg text-ink/70 mt-6 max-w-2xl">
+            Signed in as <span className="text-ink">{user.email}</span>. {profile?.is_premium ? 'Premium tools are active.' : 'Free tier. Track locally on this device.'}
+          </p>
+          <button
+            onClick={handleSignOut}
+            className="mt-4 font-body text-caption uppercase text-ink/60 hover:text-coral transition-colors"
+          >
+            Sign out
+          </button>
+        </div>
+      </Section>
+
+      {/* ============ CHALLENGE: ink, with marquee ============ */}
+      <Section
+        className="relative py-section overflow-hidden"
+        tone="ink"
+        contained
+      >
+        <div className="absolute top-0 left-0 right-0 h-32 md:h-52 overflow-hidden pointer-events-none z-0 flex items-center">
+          <Marquee
+            text="DAY BY DAY · THE FIFTY · TRACKER · STREAKS"
+            separator="✦"
+            speed={220}
+            textClassName="text-coral/55"
+          />
+        </div>
+
+        <div className="relative z-10 max-w-5xl mx-auto">
+          <p className="font-body text-caption uppercase text-coral mb-4">
+            The challenge
+          </p>
+          <Title tone="dark">Day {trackerData.currentDay} of 50.</Title>
+
+          <div className="mt-8 mb-6">
+            <p className="font-body text-paper/70">
+              Started {challengeStarted} · {progressPct}% done
             </p>
-            <p className="font-display text-h2 text-ink mb-4">
-              {user.email}
-            </p>
-            <button
-              onClick={handleSignOut}
-              className="font-body text-caption uppercase text-ink/60 hover:text-ink transition-colors"
-            >
-              Sign out
-            </button>
           </div>
 
-          <div className="pt-8 border-t border-rule">
-            <p className="font-body text-caption uppercase text-ink/50 mb-3">
-              Challenge
-            </p>
-            {trackerLoaded ? (
-              <div>
-                <p className="font-body text-ink mb-4">
-                  Started {challengeStarted} · Day {trackerData.currentDay} of 50
-                </p>
-
-                {/* Completion summary */}
-                <div className="grid grid-cols-3 gap-3 mb-6">
-                  <div className="border border-ink/10 p-4">
-                    <p className="font-display text-2xl text-ink leading-none tabular-nums">
-                      {totalDays > 0 ? Math.round((completedDays / (totalDays * 9)) * 100) : 0}
-                      <span className="text-sm text-ink/50 font-body font-normal ml-1">%</span>
-                    </p>
-                    <p className="font-body text-caption uppercase tracking-widest text-ink/50 mt-2">
-                      Overall
-                    </p>
-                  </div>
-                  <div className="border border-ink/10 p-4">
-                    <p className="font-display text-2xl text-ink leading-none tabular-nums">
-                      {trackerData.streakCount}
-                    </p>
-                    <p className="font-body text-caption uppercase tracking-widest text-ink/50 mt-2">
-                      Streak
-                    </p>
-                  </div>
-                  <div className="border border-ink/10 p-4">
-                    <p className="font-display text-2xl text-ink leading-none tabular-nums">
-                      {completedDays}
-                    </p>
-                    <p className="font-body text-caption uppercase tracking-widest text-ink/50 mt-2">
-                      Boxes
-                    </p>
-                  </div>
-                </div>
-
-                {/* Per-habit completion */}
-                <div className="border border-ink/10">
-                  {Object.entries(trackerData.habitCompletions).map(([habitId, days], i) => {
-                    const completed = Object.values(days).filter(Boolean).length;
-                    return (
-                      <div
-                        key={habitId}
-                        className={`flex items-center justify-between p-3 ${
-                          i < Object.keys(trackerData.habitCompletions).length - 1 ? 'border-b border-ink/10' : ''
-                        }`}
-                      >
-                        <p className="font-body text-sm text-ink">
-                          {HABIT_LABELS[habitId] || habitId}
-                        </p>
-                        <p className="font-body text-sm text-ink/60 tabular-nums">
-                          {completed} {completed === 1 ? 'day' : 'days'}
-                        </p>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ) : (
-              <p className="font-body text-ink">Started {challengeStarted}</p>
-            )}
+          {/* progress bar */}
+          <div className="h-1.5 bg-paper/15 mb-12 overflow-hidden">
+            <div
+              className="h-full bg-coral"
+              style={{ width: `${progressPct}%` }}
+            />
           </div>
 
-          <div className="pt-8 border-t border-rule">
-            <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-3">
-              Security
-            </p>
-            <p className="font-body text-sm text-ink/60 mb-3">
-              Passkeys (Face ID, Touch ID, Windows Hello) sign you in with one tap — no password, no email.
-            </p>
-            <button
-              className="border-2 border-ink/20 text-ink font-body text-sm px-6 py-3 uppercase tracking-wider hover:border-ink/40 transition-colors"
-            >
-              Set up passkey
-            </button>
-          </div>
-
-          {profile?.is_premium && (
-            <>
-              <div className="pt-8 border-t border-rule">
-                <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-3">
-                  Premium
+          {trackerLoaded ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-0 border border-paper/15 mb-8">
+              <div className="p-6 border-b md:border-b-0 md:border-r border-paper/15">
+                <p className="font-display text-display-2 text-paper leading-none tabular-nums">
+                  {completionPct}
+                  <span className="text-2xl text-paper/50 font-body font-normal ml-1">%</span>
                 </p>
-                <p className="font-display text-h3 text-teal mb-4">
-                  ✓ Premium unlocked
+                <p className="font-body text-caption uppercase tracking-widest text-paper/50 mt-2">
+                  Overall complete
                 </p>
-                <p className="font-body text-sm text-ink/70 mb-6">
-                  All six premium features are active.
-                </p>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 border-t border-l border-ink/10 mb-6">
-                  {PREMIUM_FEATURES.map((feature, i) => (
-                    <div
-                      key={feature.title}
-                      className={`p-4 md:p-5 ${i % 2 === 0 ? 'border-r border-b border-ink/10' : 'border-b border-ink/10'}`}
-                    >
-                      <h4 className="font-display text-h3 text-ink mb-1">
-                        {feature.title}
-                      </h4>
-                      <p className="font-body text-sm text-ink/65">
-                        {feature.description}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-
-                <a
-                  href="/macrocalc"
-                  className="inline-flex items-center gap-2 font-body text-caption uppercase tracking-wider text-coral hover:text-ink transition-colors"
-                >
-                  Open macro calculator <span>→</span>
-                </a>
               </div>
-
-              <div className="pt-8 border-t border-rule">
-                <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-2">
-                  Tools
+              <div className="p-6 border-b md:border-b-0 md:border-r border-paper/15">
+                <p className="font-display text-display-2 text-paper leading-none tabular-nums">
+                  {trackerData.streakCount}
                 </p>
-                <p className="font-display text-h2 text-ink mb-2">
-                  Built-in timer.
+                <p className="font-body text-caption uppercase tracking-widest text-paper/50 mt-2">
+                  Current streak
                 </p>
-                <p className="font-body text-base text-ink/70 mb-8 max-w-lg">
-                  Pick a duration, hit start, get on with it. The 30-min default fits the Feed Your Brain rule perfectly.
-                </p>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
-                  <Timer label="Default · 30 min" defaultMinutes={30} />
-                  <Timer label="Quick set · 15 min" defaultMinutes={15} />
-                </div>
               </div>
-
-              <div className="pt-8 border-t border-rule">
-                <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-2">
-                  Project board
+              <div className="p-6">
+                <p className="font-display text-display-2 text-paper leading-none tabular-nums">
+                  {completedDays}
                 </p>
-                <p className="font-display text-h2 text-ink mb-2">
-                  To do · In progress · Done.
+                <p className="font-body text-caption uppercase tracking-widest text-paper/50 mt-2">
+                  Boxes ticked
                 </p>
-                <p className="font-body text-base text-ink/70 mb-8 max-w-lg">
-                  Plan your 50 days. Add tasks, move them as you go. Saves locally — premium gets Supabase sync.
-                </p>
-
-                <ProjectBoard />
               </div>
-            </>
+            </div>
+          ) : (
+            <p className="font-body text-paper/40">Loading tracker data…</p>
           )}
 
-          {!profile?.is_premium && (
-            <div className="pt-8 border-t border-rule">
-              <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-3">
+          {/* Per-habit breakdown */}
+          <div className="border border-paper/15">
+            {Object.entries(trackerData.habitCompletions).map(([habitId, days], i, arr) => {
+              const completed = Object.values(days).filter(Boolean).length;
+              return (
+                <div
+                  key={habitId}
+                  className={`flex items-center justify-between p-4 ${
+                    i < arr.length - 1 ? 'border-b border-paper/15' : ''
+                  }`}
+                >
+                  <p className="font-body text-paper">
+                    {HABIT_LABELS[habitId] || habitId}
+                  </p>
+                  <p className="font-body text-sm text-paper/60 tabular-nums">
+                    {completed} {completed === 1 ? 'day' : 'days'}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </Section>
+
+      {/* ============ SECURITY: paper, plain ============ */}
+      <Section className="relative py-section" tone="paper" contained>
+        <div className="max-w-5xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mb-8">
+            <div className="md:col-span-5">
+              <p className="font-body text-caption uppercase text-ink/50 mb-3">
+                Security
+              </p>
+              <Heading>One tap. No password.</Heading>
+            </div>
+            <div className="md:col-span-6 md:col-start-7 flex items-end">
+              <p className="font-body text-base text-ink/70">
+                Add a passkey to sign in with Face ID, Touch ID, or Windows Hello. Free for everyone.
+              </p>
+            </div>
+          </div>
+          <button
+            className="border-2 border-ink/20 text-ink font-body text-sm px-6 py-3 uppercase tracking-wider hover:border-ink/40 transition-colors"
+          >
+            Set up passkey
+          </button>
+        </div>
+      </Section>
+
+      {/* ============ PREMIUM TOOLS ============ */}
+      {profile?.is_premium ? (
+        <>
+          {/* Premium intro: ink, with marquee */}
+          <Section
+            className="relative py-section overflow-hidden"
+            tone="ink"
+            contained
+          >
+            <div className="absolute top-0 left-0 right-0 h-32 md:h-52 overflow-hidden pointer-events-none z-0 flex items-center">
+              <Marquee
+                text="PREMIUM TOOLS · THE FIFTY · MACRO CALCULATOR · TIMER · PROJECT BOARD"
+                separator="✦"
+                speed={200}
+                textClassName="text-coral/55"
+              />
+            </div>
+
+            <div className="relative z-10 max-w-5xl mx-auto">
+              <p className="font-body text-caption uppercase text-coral mb-3">
                 Premium
               </p>
-              <p className="font-body text-ink mb-3">
-                Free tier. Track locally on this device.
+              <Title tone="dark">Premium unlocked.</Title>
+              <p className="font-body text-lg text-paper/70 mt-4 max-w-2xl">
+                All six premium features are active. The macro calculator, the timer, and the project board are all yours.
               </p>
-              <p className="font-body text-sm text-ink/60 mb-6">
-                Unlock cloud sync, streak protection, daily reminders, the macro calculator, and the project board.
+            </div>
+          </Section>
+
+          {/* Macro calculator CTA: teal */}
+          <Section
+            className="relative py-section overflow-hidden"
+            style={{ backgroundColor: '#4A9B9B' }}
+            contained
+          >
+            <div className="max-w-5xl mx-auto">
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
+                <div className="md:col-span-7">
+                  <p className="font-body text-caption uppercase text-paper/70 mb-3">
+                    Macro calculator
+                  </p>
+                  <h2 className="font-display text-display-2 text-paper leading-[0.95]">
+                    Know your numbers.
+                  </h2>
+                  <p className="font-body text-base text-paper/85 mt-4 max-w-md">
+                    BMR, TDEE, protein, carbs, fat, water. Built for the 50-day challenge — adjust for your goal, sync with your tracker.
+                  </p>
+                </div>
+                <div className="md:col-span-5 md:text-right">
+                  <Link
+                    href="/macrocalc"
+                    className="inline-flex items-center justify-center bg-ink text-paper font-body text-sm px-8 py-4 uppercase tracking-wider hover:bg-ink/85 transition-colors"
+                  >
+                    Open macro calculator <span className="ml-2">→</span>
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </Section>
+
+          {/* Timer + Project board side by side: paper */}
+          <Section className="relative py-section" tone="paper" contained>
+            <div className="max-w-5xl mx-auto">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                {/* Timer */}
+                <div>
+                  <p className="font-body text-caption uppercase text-ink/50 mb-3">
+                    The timer
+                  </p>
+                  <Heading>Feed Your Brain.</Heading>
+                  <p className="font-body text-base text-ink/70 mt-3 mb-8">
+                    30 mins a day on a book or personal project. Start the timer, get to work.
+                  </p>
+                  <Timer
+                    label="Feed Your Brain"
+                    context="Read 5 books in 50 days · 30 mins/day on personal projects"
+                    defaultMinutes={30}
+                    preset={[15, 30, 50]}
+                  />
+                </div>
+
+                {/* Project board */}
+                <div>
+                  <p className="font-body text-caption uppercase text-ink/50 mb-3">
+                    The board
+                  </p>
+                  <Heading>To do · In progress · Done.</Heading>
+                  <p className="font-body text-base text-ink/70 mt-3 mb-8">
+                    Plan the 50 days. Add tasks, move them when you finish.
+                  </p>
+                  <ProjectBoard />
+                </div>
+              </div>
+            </div>
+          </Section>
+
+          {/* The six features: cream */}
+          <Section
+            className="relative py-section"
+            style={{ backgroundColor: '#F2D9A2' }}
+            contained
+          >
+            <div className="max-w-5xl mx-auto">
+              <p className="font-body text-caption uppercase text-ink/50 mb-3">
+                The six features
               </p>
+              <h2 className="font-display text-display-2 text-ink leading-[0.95] mb-12">
+                All active.
+              </h2>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 border-t border-l border-ink/20">
+                {PREMIUM_FEATURES.map((feature, i) => (
+                  <div
+                    key={feature.title}
+                    className={`p-6 md:p-8 ${i % 2 === 0 ? 'border-r border-b border-ink/20' : 'border-b border-ink/20'}`}
+                  >
+                    <h3 className="font-display text-h2 text-ink mb-2">
+                      {feature.title}
+                    </h3>
+                    <p className="font-body text-sm text-ink/70">
+                      {feature.description}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </Section>
+        </>
+      ) : (
+        // Free tier
+        <Section
+          className="relative py-section overflow-hidden"
+          tone="ink"
+          contained
+        >
+          <div className="absolute top-0 left-0 right-0 h-32 md:h-52 overflow-hidden pointer-events-none z-0 flex items-center">
+            <Marquee
+              text="UNLOCK PREMIUM · THE FIFTY · MACRO CALCULATOR · TIMER · PROJECT BOARD"
+              separator="✦"
+              speed={220}
+              textClassName="text-coral/55"
+            />
+          </div>
+
+          <div className="relative z-10 max-w-3xl mx-auto text-center">
+            <p className="font-body text-caption uppercase text-coral mb-3">
+              Free tier
+            </p>
+            <Title tone="dark">Unlock premium.</Title>
+            <p className="font-body text-lg text-paper/70 mt-4 mb-8">
+              Get the macro calculator, the timer, the project board, and the rest of the premium tools. One payment, yours forever.
+            </p>
+            <div className="flex justify-center">
               <Button href="/upgrade" variant="primary" tone="light">
                 Unlock for £7.99
               </Button>
             </div>
-          )}
-        </div>
-      </div>
-    </Section>
+          </div>
+        </Section>
+      )}
+    </>
   );
 }
