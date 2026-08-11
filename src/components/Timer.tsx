@@ -164,6 +164,7 @@ function EditableDuration({ defaultMinutes, onSetDuration }: EditableDurationPro
   const presets = [
     { label: '30m', mins: 30, secs: 0 },
     { label: '15m', mins: 15, secs: 0 },
+    { label: '10m', mins: 10, secs: 0 },
     { label: '50m', mins: 50, secs: 0 },
     { label: '5m', mins: 5, secs: 0 },
     { label: '1m', mins: 1, secs: 0 },

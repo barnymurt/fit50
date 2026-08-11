@@ -15,6 +15,7 @@ interface Piece {
   dy: number;
   color: string;
   size: number;
+  variant: 'shoot' | 'flutter';
 }
 
 export default function CellConfetti({ show }: { show: boolean }) {
@@ -26,64 +27,38 @@ export default function CellConfetti({ show }: { show: boolean }) {
       return;
     }
     const generated: Piece[] = [];
-    // 12 pieces from top-left corner
-    for (let i = 0; i < 12; i++) {
+    // 24 shoot-up pieces: spawn across the entire bottom edge,
+    // launch upward, arch outward, pop outside the cell
+    for (let i = 0; i < 24; i++) {
       generated.push({
         id: i,
-        startX: Math.random() * 30,
-        startY: Math.random() * 25,
-        delay: Math.random() * 0.1,
-        duration: 0.55 + Math.random() * 0.15,
-        rot: (Math.random() - 0.5) * 720,
-        dx: 10 + Math.random() * 30,
-        dy: 25 + Math.random() * 30,
+        startX: Math.random() * 100,
+        startY: 80 + Math.random() * 20,
+        delay: Math.random() * 0.12,
+        duration: 0.7 + Math.random() * 0.3,
+        rot: (Math.random() - 0.5) * 900,
+        dx: (Math.random() - 0.5) * 200,
+        dy: -160 - Math.random() * 120,
         color: COLORS[Math.floor(Math.random() * COLORS.length)],
-        size: 3 + Math.random() * 3,
+        size: 3 + Math.random() * 4,
+        variant: 'shoot',
       });
     }
-    // 12 pieces from top-right corner
-    for (let i = 0; i < 12; i++) {
-      generated.push({
-        id: i + 12,
-        startX: 70 + Math.random() * 30,
-        startY: Math.random() * 25,
-        delay: Math.random() * 0.1,
-        duration: 0.55 + Math.random() * 0.15,
-        rot: (Math.random() - 0.5) * 720,
-        dx: -(10 + Math.random() * 30),
-        dy: 25 + Math.random() * 30,
-        color: COLORS[Math.floor(Math.random() * COLORS.length)],
-        size: 3 + Math.random() * 3,
-      });
-    }
-    // 12 pieces from bottom-left corner
-    for (let i = 0; i < 12; i++) {
+    // 24 flutter pieces: drop from anywhere across the top edge,
+    // not just the corners, fluttering down with rotation
+    for (let i = 0; i < 24; i++) {
       generated.push({
         id: i + 24,
-        startX: Math.random() * 30,
-        startY: 75 + Math.random() * 25,
-        delay: Math.random() * 0.1,
-        duration: 0.55 + Math.random() * 0.15,
+        startX: Math.random() * 100,
+        startY: Math.random() * 12,
+        delay: Math.random() * 0.18,
+        duration: 0.6 + Math.random() * 0.3,
         rot: (Math.random() - 0.5) * 720,
-        dx: 10 + Math.random() * 30,
-        dy: -(25 + Math.random() * 30),
+        dx: (Math.random() - 0.5) * 60,
+        dy: 40 + Math.random() * 60,
         color: COLORS[Math.floor(Math.random() * COLORS.length)],
         size: 3 + Math.random() * 3,
-      });
-    }
-    // 12 pieces from bottom-right corner
-    for (let i = 0; i < 12; i++) {
-      generated.push({
-        id: i + 36,
-        startX: 70 + Math.random() * 30,
-        startY: 75 + Math.random() * 25,
-        delay: Math.random() * 0.1,
-        duration: 0.55 + Math.random() * 0.15,
-        rot: (Math.random() - 0.5) * 720,
-        dx: -(10 + Math.random() * 30),
-        dy: -(25 + Math.random() * 30),
-        color: COLORS[Math.floor(Math.random() * COLORS.length)],
-        size: 3 + Math.random() * 3,
+        variant: 'flutter',
       });
     }
     setPieces(generated);
@@ -92,7 +67,7 @@ export default function CellConfetti({ show }: { show: boolean }) {
   if (!show || pieces.length === 0) return null;
 
   return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden">
+    <div className="pointer-events-none absolute inset-0 z-30 overflow-visible">
       {pieces.map((p) => (
         <div
           key={p.id}
@@ -106,16 +81,34 @@ export default function CellConfetti({ show }: { show: boolean }) {
             ['--dx' as string]: `${p.dx}px`,
             ['--dy' as string]: `${p.dy}px`,
             ['--rot' as string]: `${p.rot}deg`,
-            animation: `cell-confetti ${p.duration}s ease-out forwards`,
+            animation: `${p.variant === 'shoot' ? 'cell-shoot' : 'cell-flutter'} ${p.duration}s ease-out forwards`,
             animationDelay: `${p.delay}s`,
           }}
         />
       ))}
       <style>{`
-        @keyframes cell-confetti {
+        @keyframes cell-shoot {
           0% {
             transform: translate(0, 0) rotate(0deg);
             opacity: 1;
+          }
+          55% {
+            transform: translate(calc(var(--dx) * 0.4), calc(var(--dy) * 0.7)) rotate(calc(var(--rot) * 0.55));
+            opacity: 1;
+          }
+          100% {
+            transform: translate(var(--dx), var(--dy)) rotate(var(--rot));
+            opacity: 0;
+          }
+        }
+        @keyframes cell-flutter {
+          0% {
+            transform: translate(0, 0) rotate(0deg);
+            opacity: 1;
+          }
+          50% {
+            transform: translate(calc(var(--dx) * 1.3), calc(var(--dy) * 0.5)) rotate(calc(var(--rot) * 0.6));
+            opacity: 0.85;
           }
           100% {
             transform: translate(var(--dx), var(--dy)) rotate(var(--rot));

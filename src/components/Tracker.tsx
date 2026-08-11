@@ -244,7 +244,7 @@ export default function Tracker() {
                   <button
                     key={habit.id}
                     onClick={() => handleToggle(habit.id, today)}
-                    className={`relative overflow-hidden aspect-square p-3 md:p-5 flex flex-col items-center justify-center gap-2 md:gap-3 transition-all duration-300 group ${
+                    className={`relative aspect-square p-3 md:p-5 flex flex-col items-center justify-center gap-2 md:gap-3 transition-all duration-300 group ${
                       isDone
                         ? 'bg-coral text-paper'
                         : 'bg-white hover:bg-paper text-ink'

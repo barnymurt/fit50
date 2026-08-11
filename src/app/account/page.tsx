@@ -321,15 +321,6 @@ export default function AccountPage() {
               </div>
 
               <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-3">
-                The board
-              </p>
-              <Heading>To do · In progress · Done.</Heading>
-              <p className="font-body text-base text-ink/70 mt-3 mb-8">
-                Plan the 50 days. Add tasks, move them when you finish. Drag between columns, double-click a column name to rename, or add a new one.
-              </p>
-              <Board />
-
-              <p className="font-body text-caption uppercase tracking-widest text-ink/50 mt-12 mb-3">
                 The to-do list
               </p>
               <Heading>Capture first. Sort later.</Heading>
@@ -337,6 +328,15 @@ export default function AccountPage() {
                 Things you don't want to lose. Drop them here, drag them to the board when you're ready.
               </p>
               <TodoList />
+
+              <p className="font-body text-caption uppercase tracking-widest text-ink/50 mt-12 mb-3">
+                The board
+              </p>
+              <Heading>To do · In progress · Done.</Heading>
+              <p className="font-body text-base text-ink/70 mt-3 mb-8">
+                Plan the 50 days. Add tasks, move them when you finish. Drag between columns, double-click a column name to rename, or add a new one.
+              </p>
+              <Board />
             </div>
           </Section>
 
