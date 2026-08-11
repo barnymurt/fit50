@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Food, Meal, scaleFood } from './types';
 
 interface Props {
@@ -41,6 +41,18 @@ export default function FoodDetail({ food, onAdd, onClose }: Props) {
 
   const scaled = scaleFood(food, grams);
 
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = '';
+    };
+  }, [onClose]);
+
   const handleAdd = async () => {
     setBusy(true);
     setError(null);
@@ -63,15 +75,23 @@ export default function FoodDetail({ food, onAdd, onClose }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-ink/40 flex items-end md:items-center justify-center p-0 md:p-4"
+      className="fixed inset-0 z-50 bg-ink/40 animate-overlay-in flex items-end md:items-center justify-center md:p-4"
       onClick={onClose}
     >
       <div
-        className="bg-paper w-full md:max-w-lg border border-ink/15 max-h-[90vh] overflow-y-auto"
+        role="dialog"
+        aria-modal="true"
+        aria-label={`${food.name} portion`}
+        className="bg-paper w-full md:max-w-lg border border-ink/15 max-h-[90vh] md:max-h-[90vh] overflow-y-auto animate-sheet-up rounded-t-2xl md:rounded pb-[max(1rem,env(safe-area-inset-bottom))]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="px-6 py-4 border-b border-ink/10 flex items-start justify-between gap-4">
-          <div>
+        {/* Drag handle — mobile only */}
+        <div className="md:hidden pt-3 pb-1 flex justify-center">
+          <div className="w-10 h-1 bg-ink/20 rounded-full" />
+        </div>
+
+        <div className="px-6 pt-4 md:pt-6 pb-2 flex items-start justify-between gap-4">
+          <div className="min-w-0">
             <p className="font-body text-caption uppercase tracking-widest text-ink/50">
               {food.category}
               {food.preparation ? ` · ${food.preparation}` : ''}
@@ -83,13 +103,13 @@ export default function FoodDetail({ food, onAdd, onClose }: Props) {
           <button
             onClick={onClose}
             aria-label="Close"
-            className="font-body text-caption uppercase text-ink/60 hover:text-ink transition-colors px-2 py-1"
+            className="shrink-0 -mr-2 -mt-1 p-2 font-body text-caption uppercase text-ink/60 hover:text-ink transition-colors"
           >
             ✕
           </button>
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className="px-6 py-4 space-y-6">
           <div className="border border-ink/10">
             <div className="px-4 py-2 border-b border-ink/10 flex items-baseline justify-between">
               <span className="font-body text-caption uppercase tracking-widest text-ink/50">
@@ -113,7 +133,7 @@ export default function FoodDetail({ food, onAdd, onClose }: Props) {
                 <button
                   key={p.grams}
                   onClick={() => setGrams(p.grams)}
-                  className={`px-3 py-2 border font-body text-caption uppercase tracking-widest transition-colors ${
+                  className={`px-3 py-3 md:py-2 border font-body text-caption uppercase tracking-widest transition-colors ${
                     grams === p.grams
                       ? 'border-coral bg-coral/10 text-coral'
                       : 'border-ink/20 text-ink/70 hover:border-ink/40'
@@ -128,7 +148,7 @@ export default function FoodDetail({ food, onAdd, onClose }: Props) {
               min={1}
               value={grams}
               onChange={(e) => setGrams(Math.max(1, parseInt(e.target.value) || 0))}
-              className="w-full px-3 py-2 bg-paper border-2 border-ink/20 font-body focus:border-ink outline-none"
+              className="w-full px-3 py-3 md:py-2 bg-paper border-2 border-ink/20 font-body focus:border-ink outline-none"
               aria-label="Grams"
             />
           </div>
@@ -142,7 +162,7 @@ export default function FoodDetail({ food, onAdd, onClose }: Props) {
                 <button
                   key={m.value}
                   onClick={() => setMeal(meal === m.value ? null : m.value)}
-                  className={`px-3 py-2 border font-body text-caption uppercase tracking-widest transition-colors ${
+                  className={`px-3 py-3 md:py-2 border font-body text-caption uppercase tracking-widest transition-colors ${
                     meal === m.value
                       ? 'border-coral bg-coral/10 text-coral'
                       : 'border-ink/20 text-ink/70 hover:border-ink/40'
@@ -183,7 +203,7 @@ export default function FoodDetail({ food, onAdd, onClose }: Props) {
           <button
             onClick={handleAdd}
             disabled={busy || grams <= 0}
-            className="w-full bg-ink text-paper font-body text-sm px-6 py-4 uppercase tracking-wider hover:bg-ink/85 transition-colors disabled:opacity-50"
+            className="w-full bg-ink text-paper font-body text-sm px-6 py-4 md:py-4 uppercase tracking-wider hover:bg-ink/85 transition-colors disabled:opacity-50"
           >
             {busy ? 'Adding…' : `Add ${Math.round(scaled.kcal)} kcal to today`}
           </button>
@@ -203,7 +223,7 @@ function Cell({
   highlight?: boolean;
 }) {
   return (
-    <div className={`px-2 py-3 ${highlight ? '' : ''}`}>
+    <div className="px-2 py-3">
       <p className="font-display text-h3 leading-none tabular-nums text-ink">
         {Math.round(value)}
       </p>
