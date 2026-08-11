@@ -109,13 +109,13 @@ export default function Rules() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {rules.map((rule) => {
             const isFlipped = flippedId === rule.id;
             return (
               <div
                 key={rule.id}
-                className="relative min-h-[520px]"
+                className="relative min-h-[200px] md:min-h-[520px]"
                 style={{ perspective: '1200px' }}
               >
                 <div
@@ -126,11 +126,11 @@ export default function Rules() {
                 >
                   {/* Front */}
                   <div
-                    className="absolute inset-0 flex flex-col items-center p-6 md:p-8 text-center border border-paper/20 hover:bg-paper/5 transition-colors"
+                    className="absolute inset-0 flex flex-col items-center p-4 md:p-8 text-center border border-paper/20 hover:bg-paper/5 transition-colors"
                     style={{ backfaceVisibility: 'hidden' }}
                   >
-                    <div className="flex items-center justify-between w-full mb-4">
-                      <span className="font-display text-xl text-coral tabular-nums">
+                    <div className="flex items-center justify-between w-full mb-2 md:mb-4">
+                      <span className="font-display text-base md:text-xl text-coral tabular-nums">
                         {String(rule.id).padStart(2, '0')}
                       </span>
                       <span className="font-body text-caption uppercase text-paper/60">
@@ -141,11 +141,12 @@ export default function Rules() {
                     <div className="flex-1 flex items-center justify-center w-full min-h-0">
                       <HabitIcon
                         name={rule.icon}
-                        size={280}
+                        size={120}
+                        className="md:!w-[280px] md:!h-auto"
                       />
                     </div>
 
-                    <h3 className="font-display text-h2 text-paper mb-4 text-center">
+                    <h3 className="font-display text-base md:text-h2 text-paper mb-2 md:mb-4 text-center">
                       {rule.title}
                     </h3>
 
@@ -161,25 +162,25 @@ export default function Rules() {
 
                   {/* Back */}
                   <div
-                    className="absolute inset-0 flex flex-col items-center justify-center p-6 md:p-8 text-center border border-paper/20 bg-paper/5"
+                    className="absolute inset-0 flex flex-col items-center justify-center p-4 md:p-8 text-center border border-paper/20 bg-paper/5"
                     style={{
                       backfaceVisibility: 'hidden',
                       transform: 'rotateY(180deg)',
                     }}
                   >
-                    <span className="font-display text-xl text-coral tabular-nums mb-6">
+                    <span className="font-display text-base md:text-xl text-coral tabular-nums mb-3 md:mb-6">
                       {String(rule.id).padStart(2, '0')}
                     </span>
 
-                    <p className="font-body text-h3 text-paper leading-snug mb-4 text-center">
+                    <p className="font-display text-base md:text-h3 text-paper leading-snug mb-2 md:mb-4 text-center">
                       {rule.title}
                     </p>
 
-                    <p className="font-body text-body text-paper/85 mb-6 text-center max-w-xs">
+                    <p className="font-body text-sm md:text-body text-paper/85 mb-3 md:mb-6 text-center max-w-xs">
                       {rule.description}
                     </p>
 
-                    <p className="font-body text-sm text-paper/70 italic border-l-2 border-coral pl-4 mb-6 text-left max-w-xs">
+                    <p className="hidden md:block font-body text-sm text-paper/70 italic border-l-2 border-coral pl-4 mb-6 text-left max-w-xs">
                       {rule.tip}
                     </p>
 

@@ -581,9 +581,12 @@ function MacroCalculatorInline() {
       )}
 
       {saveError && (
-        <p className="font-body text-caption uppercase tracking-widest text-coral text-center md:text-right mb-2">
-          {saveError}
-        </p>
+        <div className="border border-coral/40 bg-coral/5 p-3 mb-4">
+          <p className="font-body text-caption uppercase tracking-widest text-coral mb-1">
+            Could not sync profile
+          </p>
+          <p className="font-body text-sm text-ink/80">{saveError}</p>
+        </div>
       )}
 
       {error && <p className="font-body text-sm text-coral mb-4">{error}</p>}

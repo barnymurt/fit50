@@ -10,8 +10,6 @@ interface Props {
   recentlyLoggedFoods: Food[];
 }
 
-const VISIBLE_LIMIT = 15;
-
 export default function FoodSearch({ favorites, onPickFood, recentlyLoggedFoods }: Props) {
   const { foods, loaded } = useFoodData();
   const [query, setQuery] = useState('');
@@ -30,9 +28,6 @@ export default function FoodSearch({ favorites, onPickFood, recentlyLoggedFoods 
       sort: query ? 'relevance' : sort,
     });
   }, [foods, loaded, query, category, sort, favorites]);
-
-  const visible = open ? results.slice(0, VISIBLE_LIMIT) : [];
-  const hiddenCount = Math.max(0, results.length - VISIBLE_LIMIT);
 
   return (
     <div className="bg-paper border border-ink/15">
@@ -143,18 +138,15 @@ export default function FoodSearch({ favorites, onPickFood, recentlyLoggedFoods 
             </div>
             {loaded && results.length > 0 ? (
               <div
-                className="overflow-y-auto"
-                style={{
-                  maxHeight: `${VISIBLE_LIMIT * 56}px`,
-                  scrollbarWidth: 'none',
-                }}
+                className="max-h-[420px] overflow-y-scroll"
+                style={{ scrollbarWidth: 'none' }}
               >
                 <style>{`
                   .food-search-scroll::-webkit-scrollbar { display: none; }
                   .food-search-scroll { scrollbar-width: none; -ms-overflow-style: none; }
                 `}</style>
                 <ul className="food-search-scroll">
-                  {visible.map((f) => (
+                  {results.map((f) => (
                     <li key={f.id}>
                       <button
                         onClick={() => onPickFood(f)}
@@ -171,13 +163,6 @@ export default function FoodSearch({ favorites, onPickFood, recentlyLoggedFoods 
                     </li>
                   ))}
                 </ul>
-                {hiddenCount > 0 && (
-                  <div className="px-6 py-3 border-b border-ink/10 text-center bg-paper">
-                    <p className="font-body text-caption uppercase tracking-widest text-ink/50">
-                      + {hiddenCount} more · scroll
-                    </p>
-                  </div>
-                )}
               </div>
             ) : !loaded ? (
               <p className="px-6 py-6 font-body text-caption uppercase text-ink/40">

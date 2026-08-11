@@ -93,7 +93,10 @@ export function useMacroProfile() {
       );
       if (error) {
         console.error('Failed to save macro profile:', error);
-        return { ok: false, error: error.message };
+        return {
+          ok: false,
+          error: friendlyProfileError(error),
+        };
       }
       await refetch();
       return { ok: true };
@@ -122,4 +125,15 @@ export function timeSince(iso: string): string {
   const days = Math.floor(hours / 24);
   if (days < 30) return `${days}d ago`;
   return new Date(iso).toLocaleDateString();
+}
+
+function friendlyProfileError(err: { code?: string; message?: string }): string {
+  const msg = err?.message || '';
+  if (/relation.*does not exist/i.test(msg) || err?.code === '42P01') {
+    return "The 'macro_profile' table doesn't exist yet. Run supabase/migrations/0005_macro_profile.sql in the Supabase SQL editor.";
+  }
+  if (/row.level security/i.test(msg) || err?.code === '42501') {
+    return 'Permission denied. Make sure you ran the migration (it sets up RLS policies).';
+  }
+  return msg || 'Could not save the macro profile.';
 }

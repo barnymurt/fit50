@@ -5,8 +5,17 @@ import { useEffect, useState } from 'react';
 import Button from './Button';
 import { useAuth } from '@/contexts/AuthContext';
 
+const NAV_LINKS = [
+  { href: '#rules', label: 'Rules' },
+  { href: '#workouts', label: 'Workouts' },
+  { href: '#tracker', label: 'Tracker' },
+  { href: '/toolkit', label: 'Toolkit' },
+  { href: '#faq', label: 'FAQ' },
+];
+
 export default function Nav() {
   const [scrolled, setScrolled] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const { user, loading, signOut } = useAuth();
 
   useEffect(() => {
@@ -16,15 +25,26 @@ export default function Nav() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
+  // Close mobile menu when navigating
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const onResize = () => {
+      if (window.innerWidth >= 768) setMobileOpen(false);
+    };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, [mobileOpen]);
+
   const handleSignOut = async () => {
     await signOut();
+    setMobileOpen(false);
   };
 
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ease-smooth ${
-        scrolled
-          ? 'bg-paper/90 backdrop-blur-md border-b border-rule'
+        scrolled || mobileOpen
+          ? 'bg-paper/95 backdrop-blur-md border-b border-rule'
           : 'bg-transparent'
       }`}
     >
@@ -32,29 +52,32 @@ export default function Nav() {
         <Link
           href="/"
           className="font-display text-2xl text-ink tracking-tightest"
+          onClick={() => setMobileOpen(false)}
         >
           FIT50
         </Link>
 
+        {/* Desktop nav */}
         <nav className="hidden md:flex items-center gap-8">
-          <a href="#rules" className="font-body text-caption uppercase text-ink/70 hover:text-ink transition-colors duration-200">
-            Rules
-          </a>
-          <a href="#workouts" className="font-body text-caption uppercase text-ink/70 hover:text-ink transition-colors duration-200">
-            Workouts
-          </a>
-          <a href="#tracker" className="font-body text-caption uppercase text-ink/70 hover:text-ink transition-colors duration-200">
-            Tracker
-          </a>
-          <Link
-            href="/toolkit"
-            className="font-body text-caption uppercase text-ink/70 hover:text-ink transition-colors duration-200"
-          >
-            Toolkit
-          </Link>
-          <a href="#faq" className="font-body text-caption uppercase text-ink/70 hover:text-ink transition-colors duration-200">
-            FAQ
-          </a>
+          {NAV_LINKS.map((l) =>
+            l.href.startsWith('#') ? (
+              <a
+                key={l.href}
+                href={l.href}
+                className="font-body text-caption uppercase text-ink/70 hover:text-ink transition-colors duration-200"
+              >
+                {l.label}
+              </a>
+            ) : (
+              <Link
+                key={l.href}
+                href={l.href}
+                className="font-body text-caption uppercase text-ink/70 hover:text-ink transition-colors duration-200"
+              >
+                {l.label}
+              </Link>
+            )
+          )}
         </nav>
 
         <div className="flex items-center gap-3">
@@ -62,7 +85,7 @@ export default function Nav() {
             <>
               <Link
                 href="/account"
-                className="font-body text-caption uppercase text-ink/70 hover:text-ink transition-colors"
+                className="hidden md:inline font-body text-caption uppercase text-ink/70 hover:text-ink transition-colors"
               >
                 Account
               </Link>
@@ -71,7 +94,7 @@ export default function Nav() {
               </span>
               <button
                 onClick={handleSignOut}
-                className="font-body text-caption uppercase text-ink/70 hover:text-ink transition-colors"
+                className="hidden md:inline font-body text-caption uppercase text-ink/70 hover:text-ink transition-colors"
               >
                 Sign out
               </button>
@@ -80,7 +103,7 @@ export default function Nav() {
           {!loading && !user && (
             <Link
               href="/account"
-              className="font-body text-caption uppercase text-ink/70 hover:text-ink transition-colors"
+              className="hidden md:inline font-body text-caption uppercase text-ink/70 hover:text-ink transition-colors"
             >
               Account
             </Link>
@@ -88,8 +111,85 @@ export default function Nav() {
           <Button href="#tracker" variant="primary" tone="light" className="!px-5 !py-2.5 !text-xs">
             Start
           </Button>
+          <button
+            type="button"
+            aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={mobileOpen}
+            aria-controls="mobile-nav"
+            onClick={() => setMobileOpen((v) => !v)}
+            className="md:hidden -mr-2 p-2 text-ink/70 hover:text-ink"
+          >
+            <span aria-hidden="true" className="text-xl leading-none">
+              {mobileOpen ? '✕' : '☰'}
+            </span>
+          </button>
         </div>
       </div>
+
+      {/* Mobile menu panel */}
+      {mobileOpen && (
+        <nav
+          id="mobile-nav"
+          aria-label="Site navigation"
+          className="md:hidden border-t border-rule bg-paper"
+        >
+          <ul className="max-w-7xl mx-auto px-6 py-2">
+            {NAV_LINKS.map((l) => (
+              <li key={l.href}>
+                {l.href.startsWith('#') ? (
+                  <a
+                    href={l.href}
+                    onClick={() => setMobileOpen(false)}
+                    className="block px-2 py-3 font-body text-caption uppercase tracking-widest text-ink/70 hover:text-ink border-b border-rule"
+                  >
+                    {l.label}
+                  </a>
+                ) : (
+                  <Link
+                    href={l.href}
+                    onClick={() => setMobileOpen(false)}
+                    className="block px-2 py-3 font-body text-caption uppercase tracking-widest text-ink/70 hover:text-ink border-b border-rule"
+                  >
+                    {l.label}
+                  </Link>
+                )}
+              </li>
+            ))}
+            {!loading && user && (
+              <li>
+                <Link
+                  href="/account"
+                  onClick={() => setMobileOpen(false)}
+                  className="block px-2 py-3 font-body text-caption uppercase tracking-widest text-ink/70 hover:text-ink border-b border-rule"
+                >
+                  Account
+                </Link>
+              </li>
+            )}
+            {!loading && !user && (
+              <li>
+                <Link
+                  href="/account"
+                  onClick={() => setMobileOpen(false)}
+                  className="block px-2 py-3 font-body text-caption uppercase tracking-widest text-ink/70 hover:text-ink border-b border-rule"
+                >
+                  Account
+                </Link>
+              </li>
+            )}
+            {user && (
+              <li>
+                <button
+                  onClick={handleSignOut}
+                  className="block w-full text-left px-2 py-3 font-body text-caption uppercase tracking-widest text-ink/70 hover:text-ink"
+                >
+                  Sign out
+                </button>
+              </li>
+            )}
+          </ul>
+        </nav>
+      )}
     </header>
   );
 }
