@@ -43,7 +43,7 @@ export default function Timer({
     const ctx = ensureAudio();
     if (!ctx) return;
     const now = ctx.currentTime;
-    const beep = (start: number, freq: number, dur: number) => {
+    const beep = (start: number, freq: number, dur: number, vol = 0.4) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.connect(gain);
@@ -51,13 +51,18 @@ export default function Timer({
       osc.type = 'sine';
       osc.frequency.setValueAtTime(freq, start);
       gain.gain.setValueAtTime(0, start);
-      gain.gain.linearRampToValueAtTime(0.35, start + 0.015);
+      gain.gain.linearRampToValueAtTime(vol, start + 0.01);
       gain.gain.exponentialRampToValueAtTime(0.001, start + dur);
       osc.start(start);
       osc.stop(start + dur + 0.02);
     };
-    beep(now, 880, 0.28);
-    beep(now + 0.36, 880, 0.28);
+    // Alarm: 4 bursts of 3 beeps each. ~5s total, hard to miss.
+    for (let burst = 0; burst < 4; burst++) {
+      const burstStart = now + burst * 1.1;
+      beep(burstStart, 880, 0.22);
+      beep(burstStart + 0.3, 880, 0.22);
+      beep(burstStart + 0.6, 880, 0.22);
+    }
   }, [ensureAudio]);
 
   useEffect(() => {
