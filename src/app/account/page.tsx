@@ -257,7 +257,7 @@ export default function AccountPage() {
   return (
     <>
       {/* ============ The tracker ============ */}
-      <Tracker />
+      <Tracker hideMarquee />
 
       {/* ============ Premium tools ============ */}
       {profile?.is_premium ? (

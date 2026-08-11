@@ -57,7 +57,7 @@ function calculateStreak(
   return { streak: currentStreak, longest };
 }
 
-export default function Tracker() {
+export default function Tracker({ hideMarquee = false }: { hideMarquee?: boolean }) {
   const { user, loading: authLoading } = useAuth();
   const { isPremium } = usePremium();
   const { data, loaded, toggleHabit, advanceDay, reset } = useSyncTracker();
@@ -131,19 +131,21 @@ export default function Tracker() {
   return (
     <Section
       id="tracker"
-      className="relative pt-40 md:pt-56 pb-section overflow-hidden"
+      className={`relative ${hideMarquee ? 'pt-16 md:pt-24' : 'pt-40 md:pt-56'} pb-section overflow-hidden`}
       contained
     >
       <h2 className="sr-only">Tracker</h2>
 
-      <div className="absolute top-0 left-0 right-0 h-32 md:h-52 overflow-hidden pointer-events-none z-0 flex items-center">
-        <Marquee
-          text="CHECK THE BOX · BUILD THE STREAK · DAY BY DAY"
-          separator="✦"
-          speed={240}
-          textClassName="text-coral/55"
-        />
-      </div>
+      {!hideMarquee && (
+        <div className="absolute top-0 left-0 right-0 h-32 md:h-52 overflow-hidden pointer-events-none z-0 flex items-center">
+          <Marquee
+            text="CHECK THE BOX · BUILD THE STREAK · DAY BY DAY"
+            separator="✦"
+            speed={240}
+            textClassName="text-coral/55"
+          />
+        </div>
+      )}
 
       <div className="relative z-10 max-w-7xl mx-auto px-6 md:px-10 pb-section">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mb-12 md:mb-16">
