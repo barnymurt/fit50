@@ -15,7 +15,7 @@ interface Props {
     fat: number;
     fiber: number;
     meal: Meal | null;
-  }) => Promise<void>;
+  }) => Promise<{ ok: boolean; error?: string }>;
   onClose: () => void;
 }
 
@@ -37,12 +37,14 @@ export default function FoodDetail({ food, onAdd, onClose }: Props) {
   const [grams, setGrams] = useState(100);
   const [meal, setMeal] = useState<Meal | null>(null);
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const scaled = scaleFood(food, grams);
 
   const handleAdd = async () => {
     setBusy(true);
-    await onAdd({
+    setError(null);
+    const result = await onAdd({
       food_id: food.id,
       name: food.name,
       grams,
@@ -54,6 +56,9 @@ export default function FoodDetail({ food, onAdd, onClose }: Props) {
       meal,
     });
     setBusy(false);
+    if (!result.ok) {
+      setError(result.error || 'Could not save. Try again.');
+    }
   };
 
   return (
@@ -165,6 +170,15 @@ export default function FoodDetail({ food, onAdd, onClose }: Props) {
               <Cell label="fat" value={scaled.fat} highlight />
             </div>
           </div>
+
+          {error && (
+            <div className="border border-coral/40 bg-coral/5 p-3">
+              <p className="font-body text-caption uppercase tracking-widest text-coral mb-1">
+                Could not save
+              </p>
+              <p className="font-body text-sm text-ink/80">{error}</p>
+            </div>
+          )}
 
           <button
             onClick={handleAdd}

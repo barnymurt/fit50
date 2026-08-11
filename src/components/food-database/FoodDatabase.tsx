@@ -153,8 +153,9 @@ export default function FoodDatabase({ targets }: Props) {
           food={picked}
           onClose={() => setPicked(null)}
           onAdd={async (entry) => {
-            await addEntry(entry);
-            setPicked(null);
+            const result = await addEntry(entry);
+            if (result.ok) setPicked(null);
+            return result;
           }}
         />
       )}

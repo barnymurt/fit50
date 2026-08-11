@@ -479,6 +479,7 @@ function MacroCalculatorInline() {
       });
       setResults(r);
       saveJson('fit50-macro-results-v1', r);
+      window.dispatchEvent(new CustomEvent('fit50-macro-results-changed'));
     } catch (e) {
       setError('Could not calculate. Check your inputs.');
     }

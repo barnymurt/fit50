@@ -53,8 +53,9 @@ export function useFoodLog() {
       fat: number;
       fiber: number;
       meal: Meal | null;
-    }) => {
-      if (!user || !supabase) return null;
+    }): Promise<{ ok: boolean; error?: string; entry?: FoodLogEntry }> => {
+      if (!user) return { ok: false, error: 'Not signed in.' };
+      if (!supabase) return { ok: false, error: 'Database is not configured.' };
       const { data, error } = await supabase
         .from('food_log')
         .insert({
@@ -74,10 +75,13 @@ export function useFoodLog() {
         .single();
       if (error) {
         console.error('Failed to add food log entry:', error);
-        return null;
+        return {
+          ok: false,
+          error: friendlyInsertError(error),
+        };
       }
       await refetch();
-      return data as FoodLogEntry;
+      return { ok: true, entry: data as FoodLogEntry };
     },
     [user, supabase, refetch]
   );
@@ -127,4 +131,15 @@ export function useFoodLog() {
     removeEntry,
     refetch,
   };
+}
+
+function friendlyInsertError(err: { code?: string; message?: string }): string {
+  const msg = err?.message || '';
+  if (/relation.*does not exist/i.test(msg) || err?.code === '42P01') {
+    return "The 'food_log' table doesn't exist yet. Run supabase/migrations/0003_food_log.sql in the Supabase SQL editor.";
+  }
+  if (/row.level security/i.test(msg) || err?.code === '42501') {
+    return 'Permission denied. Make sure you ran the migration (it sets up RLS policies).';
+  }
+  return msg || 'Could not save the food entry.';
 }
