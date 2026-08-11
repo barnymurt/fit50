@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS public.newsletter_subscribers (
 ALTER TABLE public.newsletter_subscribers ENABLE ROW LEVEL SECURITY;
 
 -- Anyone can subscribe, but only the service_role can read the list
+DROP POLICY IF EXISTS "Anyone can subscribe" ON public.newsletter_subscribers;
 CREATE POLICY "Anyone can subscribe"
   ON public.newsletter_subscribers FOR INSERT
   WITH CHECK (true);
