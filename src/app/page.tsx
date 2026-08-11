@@ -3,6 +3,7 @@ import Rules from '@/components/Rules';
 import Calculator from '@/components/Calculator';
 import Workouts from '@/components/Workouts';
 import Tracker from '@/components/Tracker';
+import SixFeatures from '@/components/SixFeatures';
 import FAQ from '@/components/FAQ';
 
 export default function Home() {
@@ -13,6 +14,7 @@ export default function Home() {
       <Calculator />
       <Workouts />
       <Tracker />
+      <SixFeatures />
       <FAQ />
     </>
   );

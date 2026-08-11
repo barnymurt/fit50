@@ -213,25 +213,23 @@ export default function WaterCounter() {
 }
 
 function BottleIcon({ ml, size = 32 }: { ml: number; size?: number }) {
-  // Show different bottle shapes by ml
-  // 250ml = cocktail / piña colada glass (wide top, narrow bottom)
-  // 500ml = pint glass (tulip shape, slight bulge)
-  // 750ml = water bottle (cylindrical)
+  // 250ml = cocktail / martini glass (triangular bowl + stem + base)
+  // 500ml = beer mug (cylindrical body + handle)
+  // 750ml = water bottle (cylindrical with cap)
   if (ml === 250) {
     return (
       <svg width={size} height={size * 1.2} viewBox="0 0 32 38" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-ink">
-        <path d="M11 4h10l-1 4c2 2 3 5 3 8v15c0 3-3 5-7 5s-7-2-7-5V16c0-3 1-6 3-8l-1-4z" />
-        <line x1="10" y1="18" x2="22" y2="18" />
-        <line x1="9" y1="22" x2="23" y2="22" />
+        <path d="M4 4 L28 4 L17 18 L17 27 L21 27 L21 29 L11 29 L11 27 L15 27 L15 18 Z" />
+        <line x1="6" y1="9" x2="26" y2="9" />
       </svg>
     );
   }
   if (ml === 500) {
     return (
-      <svg width={size} height={size * 1.3} viewBox="0 0 32 42" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-ink">
-        <path d="M11 3h10v3c0 1-1 2-2 2v3c2 1 4 4 4 8v18c0 3-3 5-7 5s-7-2-7-5V19c0-4 2-7 4-8V8c-1 0-2-1-2-2V3z" />
-        <line x1="9" y1="20" x2="23" y2="20" />
-        <line x1="9" y1="24" x2="23" y2="24" />
+      <svg width={size} height={size * 1.3} viewBox="0 0 32 38" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-ink">
+        <path d="M7 6 L25 6 L25 33 L7 33 Z" />
+        <path d="M25 12 Q31 12 31 19 Q31 26 25 26" />
+        <line x1="7" y1="13" x2="25" y2="13" />
       </svg>
     );
   }

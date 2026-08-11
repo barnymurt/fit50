@@ -17,6 +17,7 @@ import { calculateMacros } from '@/components/macro-calculator/formulas';
 import type { Goal, Diet, Activity, Sex, HeightUnit, WeightUnit } from '@/components/macro-calculator/types';
 import WaterCounter from '@/components/WaterCounter';
 import Tracker from '@/components/Tracker';
+import AccountNav from '@/components/AccountNav';
 
 const HABIT_LABELS: Record<string, string> = {
   'chill-out': 'Chill Out',
@@ -31,15 +32,6 @@ const HABIT_LABELS: Record<string, string> = {
 };
 
 const HABIT_IDS = Object.keys(HABIT_LABELS);
-
-const PREMIUM_FEATURES = [
-  { title: 'Cloud sync', description: 'Your progress follows you across every device.' },
-  { title: 'Streak protection', description: 'One free pass a week. Miss a day, the streak holds.' },
-  { title: 'Daily reminders', description: 'A nudge at the time you pick.' },
-  { title: 'Photo proof', description: 'Attach a photo to any check-in.' },
-  { title: 'Completion certificate', description: 'A printable PDF on day 50 plus a shareable link.' },
-  { title: 'Data export', description: 'Your 50 days as a CSV.' },
-];
 
 export default function AccountPage() {
   const router = useRouter();
@@ -260,25 +252,47 @@ export default function AccountPage() {
       <Tracker hideMarquee />
 
       {/* ============ Water counter ============ */}
-      <Section className="relative py-section" tone="paper" contained>
+      <Section
+        id="hydration"
+        className="relative pt-12 md:pt-16 pb-section"
+        tone="paper"
+        contained
+      >
         <div className="max-w-5xl mx-auto">
           <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-3">
             Hydration
           </p>
           <Heading>2.5 litres a day.</Heading>
           <p className="font-body text-base text-ink/70 mt-3 mb-8 max-w-2xl">
-            Tap a preset or enter a custom amount. Saved on this device, no account needed.
+            Tap a preset or enter a custom amount. Saved to your account daily.
           </p>
           <WaterCounter />
         </div>
       </Section>
+
+      {/* ============ Jump-to nav ============ */}
+      <AccountNav
+        sections={[
+          { id: 'tracker', label: 'Tracker' },
+          { id: 'hydration', label: 'Hydration' },
+          ...(profile?.is_premium
+            ? [
+                { id: 'macro-calc', label: 'Macro calc' },
+                { id: 'timer', label: 'Timer' },
+                { id: 'todo', label: 'To-do' },
+                { id: 'board', label: 'Board' },
+              ]
+            : []),
+        ]}
+      />
 
       {/* ============ Premium tools ============ */}
       {profile?.is_premium ? (
         <>
           {/* Macro calculator inline */}
           <Section
-            className="relative py-section"
+            id="macro-calc"
+            className="relative pt-12 md:pt-16 pb-section"
             style={{ backgroundColor: '#4A9B9B' }}
             contained
           >
@@ -307,88 +321,62 @@ export default function AccountPage() {
           </Section>
 
           {/* Timer + Board + To-do list */}
-          <Section className="relative py-section" tone="paper" contained>
+          <Section className="relative pt-12 md:pt-16 pb-section" tone="paper" contained>
             <div className="max-w-5xl mx-auto">
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mb-12">
-                <div className="md:col-span-5">
-                  <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-3">
-                    The timer
-                  </p>
-                  <Heading>Feed Your Brain.</Heading>
-                  <p className="font-body text-base text-ink/70 mt-3 mb-8">
-                    30 mins a day on a book or personal project. Start the timer, get to work.
-                  </p>
-                </div>
-                <div className="md:col-span-6 md:col-start-7 flex items-end">
-                  <p className="font-body text-base text-ink/70">
-                    Set any custom time down to seconds. Pre-set at 30 mins for the Feed Your Brain rule.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex justify-center mb-16">
-                <Timer
-                  label="Feed Your Brain"
-                  context="Read 5 books in 50 days · 30 mins/day on personal projects"
-                  defaultMinutes={30}
-                />
-              </div>
-
-              <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-3">
-                The to-do list
-              </p>
-              <Heading>Capture first. Sort later.</Heading>
-              <p className="font-body text-base text-ink/70 mt-3 mb-8">
-                Things you don't want to lose. Drop them here, drag them to the board when you're ready.
-              </p>
-              <TodoList />
-
-              <p className="font-body text-caption uppercase tracking-widest text-ink/50 mt-12 mb-3">
-                The board
-              </p>
-              <Heading>To do · In progress · Done.</Heading>
-              <p className="font-body text-base text-ink/70 mt-3 mb-8">
-                Plan the 50 days. Add tasks, move them when you finish. Drag between columns, double-click a column name to rename, or add a new one.
-              </p>
-              <Board />
-            </div>
-          </Section>
-
-          {/* The six features */}
-          <Section
-            className="relative py-section"
-            style={{ backgroundColor: '#F2D9A2' }}
-            contained
-          >
-            <div className="max-w-5xl mx-auto">
-              <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-3">
-                The six features
-              </p>
-              <h2 className="font-display text-display-2 text-ink leading-[0.95] mb-12">
-                All active.
-              </h2>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 border-t border-l border-ink/20">
-                {PREMIUM_FEATURES.map((feature, i) => (
-                  <div
-                    key={feature.title}
-                    className={`p-6 md:p-8 ${i % 2 === 0 ? 'border-r border-b border-ink/20' : 'border-b border-ink/20'}`}
-                  >
-                    <h3 className="font-display text-h2 text-ink mb-2">
-                      {feature.title}
-                    </h3>
-                    <p className="font-body text-sm text-ink/70">
-                      {feature.description}
+              <div id="timer">
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mb-12">
+                  <div className="md:col-span-5">
+                    <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-3">
+                      The timer
+                    </p>
+                    <Heading>Feed Your Brain.</Heading>
+                    <p className="font-body text-base text-ink/70 mt-3 mb-8">
+                      30 mins a day on a book or personal project. Start the timer, get to work.
                     </p>
                   </div>
-                ))}
+                  <div className="md:col-span-6 md:col-start-7 flex items-end">
+                    <p className="font-body text-base text-ink/70">
+                      Set any custom time down to seconds. Pre-set at 30 mins for the Feed Your Brain rule.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex justify-center mb-16">
+                  <Timer
+                    label="Feed Your Brain"
+                    context="Read 5 books in 50 days · 30 mins/day on personal projects"
+                    defaultMinutes={30}
+                  />
+                </div>
+              </div>
+
+              <div id="todo">
+                <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-3">
+                  The to-do list
+                </p>
+                <Heading>Capture first. Sort later.</Heading>
+                <p className="font-body text-base text-ink/70 mt-3 mb-8">
+                  Things you don't want to lose. Drop them here, drag them to the board when you're ready.
+                </p>
+                <TodoList />
+              </div>
+
+              <div id="board" className="mt-12">
+                <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-3">
+                  The board
+                </p>
+                <Heading>To do · In progress · Done.</Heading>
+                <p className="font-body text-base text-ink/70 mt-3 mb-8">
+                  Plan the 50 days. Add tasks, move them when you finish. Drag between columns, double-click a column name to rename, or add a new one.
+                </p>
+                <Board />
               </div>
             </div>
           </Section>
         </>
       ) : (
         <Section
-          className="relative py-section"
+          className="relative pt-12 md:pt-16 pb-section"
           tone="ink"
           contained
         >
