@@ -42,6 +42,27 @@ export function useFoodLog() {
     refetch().then(() => setLoaded(true));
   }, [user, supabase, refetch]);
 
+  // When the local date rolls over midnight, refetch so today's
+  // totals and the recently-logged list reflect the new day.
+  useEffect(() => {
+    let lastDayKey = dayKeyFor();
+    const onTick = () => {
+      const current = dayKeyFor();
+      if (current !== lastDayKey) {
+        lastDayKey = current;
+        refetch();
+      }
+    };
+    const id = setInterval(onTick, 30 * 1000);
+    window.addEventListener('focus', onTick);
+    document.addEventListener('visibilitychange', onTick);
+    return () => {
+      clearInterval(id);
+      window.removeEventListener('focus', onTick);
+      document.removeEventListener('visibilitychange', onTick);
+    };
+  }, [refetch]);
+
   const addEntry = useCallback(
     async (input: {
       food_id: string;

@@ -126,10 +126,10 @@ export default function FoodDatabase({ targets }: Props) {
                   <button
                     onClick={() => toggle(e.food_id)}
                     aria-label={isFavorite(e.food_id) ? 'Unfavourite' : 'Favourite'}
-                    className={`font-body text-caption uppercase px-2 py-1 transition-colors ${
+                    className={`text-2xl leading-none px-2 py-1 transition-colors ${
                       isFavorite(e.food_id)
                         ? 'text-coral'
-                        : 'text-ink/40 hover:text-coral'
+                        : 'text-ink/30 hover:text-coral'
                     }`}
                   >
                     {isFavorite(e.food_id) ? '★' : '☆'}
