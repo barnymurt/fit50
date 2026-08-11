@@ -47,6 +47,21 @@ export default function FoodDatabase({ targets }: Props) {
     return sorted.map((e) => ({ entry: e, overKcal: e.kcal }));
   }, [todayEntries, targets]);
 
+  const contribution = (
+    e: FoodLogEntry,
+    macro: 'kcal' | 'protein' | 'carbs' | 'fat'
+  ): number => {
+    if (!targets || targets[macro] <= 0) return 0;
+    return (e[macro] / targets[macro]) * 100;
+  };
+
+  const isOverFor = (
+    macro: 'kcal' | 'protein' | 'carbs' | 'fat'
+  ): boolean => {
+    if (!targets) return false;
+    return todayTotals[macro] > targets[macro];
+  };
+
   return (
     <div className="space-y-6">
       <DailyTotalsBar totals={todayTotals} targets={targets} />
@@ -102,48 +117,101 @@ export default function FoodDatabase({ targets }: Props) {
             </p>
           </div>
           <ul>
-            {todayEntries.map((e) => (
-              <li
-                key={e.id}
-                className="px-6 py-3 border-b border-ink/10 last:border-b-0 flex items-baseline justify-between gap-4"
-              >
-                <div className="min-w-0">
-                  <p className="font-body text-sm text-ink truncate">
-                    {e.name}
-                  </p>
-                  <p className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums">
-                    {Math.round(e.grams)} g
-                    {e.meal ? ` · ${e.meal}` : ''}
-                  </p>
-                </div>
-                <div className="flex items-center gap-3 shrink-0">
-                  <span className="font-display text-h3 tabular-nums text-ink leading-none">
-                    {Math.round(e.kcal)}
-                    <span className="text-ink/40 font-body text-sm font-normal ml-1">
-                      kcal
+            {todayEntries.map((e) => {
+              const cKcal = contribution(e, 'kcal');
+              const cProtein = contribution(e, 'protein');
+              const cCarbs = contribution(e, 'carbs');
+              const cFat = contribution(e, 'fat');
+              const showChips = !!targets;
+              return (
+                <li
+                  key={e.id}
+                  className="px-6 py-3 border-b border-ink/10 last:border-b-0 flex items-baseline justify-between gap-4"
+                >
+                  <div className="min-w-0">
+                    <p className="font-body text-sm text-ink truncate">
+                      {e.name}
+                    </p>
+                    <p className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums">
+                      {Math.round(e.grams)} g
+                      {e.meal ? ` · ${e.meal}` : ''}
+                    </p>
+                    {showChips && (
+                      <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1">
+                        {cKcal >= 5 && (
+                          <span
+                            className={`font-body text-caption uppercase tracking-widest tabular-nums ${
+                              isOverFor('kcal') ? 'text-coral' : 'text-ink/50'
+                            }`}
+                          >
+                            +{Math.round(cKcal)}% kcal
+                          </span>
+                        )}
+                        {cProtein >= 5 && (
+                          <span
+                            className={`font-body text-caption uppercase tracking-widest tabular-nums ${
+                              isOverFor('protein') ? 'text-coral' : 'text-ink/50'
+                            }`}
+                          >
+                            +{Math.round(cProtein)}% P
+                          </span>
+                        )}
+                        {cCarbs >= 5 && (
+                          <span
+                            className={`font-body text-caption uppercase tracking-widest tabular-nums ${
+                              isOverFor('carbs') ? 'text-coral' : 'text-ink/50'
+                            }`}
+                          >
+                            +{Math.round(cCarbs)}% C
+                          </span>
+                        )}
+                        {cFat >= 5 && (
+                          <span
+                            className={`font-body text-caption uppercase tracking-widest tabular-nums ${
+                              isOverFor('fat') ? 'text-coral' : 'text-ink/50'
+                            }`}
+                          >
+                            +{Math.round(cFat)}% F
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span
+                      className={`font-display text-h3 tabular-nums leading-none ${
+                        isOverFor('kcal') && targets
+                          ? 'text-coral'
+                          : 'text-ink'
+                      }`}
+                    >
+                      {Math.round(e.kcal)}
+                      <span className="text-ink/40 font-body text-sm font-normal ml-1">
+                        kcal
+                      </span>
                     </span>
-                  </span>
-                  <button
-                    onClick={() => toggle(e.food_id)}
-                    aria-label={isFavorite(e.food_id) ? 'Unfavourite' : 'Favourite'}
-                    className={`text-2xl leading-none px-2 py-1 transition-colors ${
-                      isFavorite(e.food_id)
-                        ? 'text-coral'
-                        : 'text-ink/30 hover:text-coral'
-                    }`}
-                  >
-                    {isFavorite(e.food_id) ? '★' : '☆'}
-                  </button>
-                  <button
-                    onClick={() => removeEntry(e.id)}
-                    aria-label="Remove"
-                    className="font-body text-caption uppercase text-ink/40 hover:text-coral px-2 py-1 transition-colors"
-                  >
-                    ✕
-                  </button>
-                </div>
-              </li>
-            ))}
+                    <button
+                      onClick={() => toggle(e.food_id)}
+                      aria-label={isFavorite(e.food_id) ? 'Unfavourite' : 'Favourite'}
+                      className={`text-2xl leading-none px-2 py-1 transition-colors ${
+                        isFavorite(e.food_id)
+                          ? 'text-coral'
+                          : 'text-ink/30 hover:text-coral'
+                      }`}
+                    >
+                      {isFavorite(e.food_id) ? '★' : '☆'}
+                    </button>
+                    <button
+                      onClick={() => removeEntry(e.id)}
+                      aria-label="Remove"
+                      className="font-body text-caption uppercase text-ink/40 hover:text-coral px-2 py-1 transition-colors"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}
