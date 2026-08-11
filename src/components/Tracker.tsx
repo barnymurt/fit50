@@ -6,6 +6,7 @@ import Heading from './Heading';
 import HabitIcon, { HabitIconName } from './HabitIcon';
 import Marquee from './Marquee';
 import BalloonBurst from './BalloonBurst';
+import CellConfetti from './CellConfetti';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSyncTracker } from '@/hooks/useSyncTracker';
 import { useStreakProtection } from '@/hooks/useStreakProtection';
@@ -243,7 +244,7 @@ export default function Tracker() {
                   <button
                     key={habit.id}
                     onClick={() => handleToggle(habit.id, today)}
-                    className={`aspect-square p-3 md:p-5 flex flex-col items-center justify-center gap-2 md:gap-3 transition-all duration-300 group ${
+                    className={`relative overflow-hidden aspect-square p-3 md:p-5 flex flex-col items-center justify-center gap-2 md:gap-3 transition-all duration-300 group ${
                       isDone
                         ? 'bg-coral text-paper'
                         : 'bg-white hover:bg-paper text-ink'
@@ -260,10 +261,10 @@ export default function Tracker() {
                     <span className="font-body text-caption uppercase text-center leading-tight">
                       {habit.name}
                     </span>
+                    <CellConfetti show={isPulsing} />
                   </button>
                 );
               })}
-              {balloons && <BalloonBurst />}
             </div>
 
             <div className="mt-10 pt-8 border-t border-rule">
@@ -309,6 +310,7 @@ export default function Tracker() {
                 })}
               </div>
             </div>
+            {balloons && <BalloonBurst />}
           </div>
         </div>
 
