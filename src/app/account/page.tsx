@@ -422,8 +422,11 @@ export default function AccountPage() {
               href="/upgrade"
               className="inline-flex items-center justify-center bg-coral text-paper font-body text-sm px-10 py-5 uppercase tracking-wider hover:bg-coral/85 transition-colors"
             >
-              Unlock for £7.99
+              Sign up for €5.99
             </Link>
+            <p className="font-body text-caption uppercase tracking-widest text-ink/40 mt-3">
+              The price of a caneca · one-time · yours forever
+            </p>
           </div>
         </Section>
       )}

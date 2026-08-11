@@ -185,7 +185,7 @@ export default function Tracker({ hideMarquee = false }: { hideMarquee?: boolean
                 </p>
                 <p className="font-body text-sm text-paper/85">
                   Get 1 free pass a week. Miss a day, the streak holds.{' '}
-                  <span className="text-coral">Unlock for £7.99 →</span>
+                  <span className="text-coral">Sign up for €5.99 →</span>
                 </p>
               </a>
             )}

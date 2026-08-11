@@ -89,7 +89,7 @@ Premium is not for *how* you sign in. It's for *what* you can do once signed in.
 - `usePremium()` hook reads the flag
 - All premium features (cloud sync, streak protection, daily reminders, photo proof, completion certificate, data export) are gated behind this single flag
 - Streak protection: 1 free pass per week for premium users, each save visualized as a 🍌 on the certificate
-- One-time payment of €7.99 via Creem — no subscription
+- One-time payment of €5.99 via Creem — no subscription (price of a caneca)
 
 ## Common pitfalls
 

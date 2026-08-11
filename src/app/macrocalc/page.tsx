@@ -80,7 +80,7 @@ export default function MacrocalcPage() {
             variant="primary"
             tone="light"
           >
-            {checkoutLoading ? 'Opening checkout…' : 'Unlock for £7.99'}
+            {checkoutLoading ? 'Opening checkout…' : 'Sign up for €5.99'}
           </Button>
           <p className="font-body text-xs text-ink/50 mt-4">
             Already unlocked? <a href="/account" className="text-coral underline">Sign out and back in</a> to refresh.

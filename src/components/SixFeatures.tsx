@@ -6,12 +6,30 @@ export interface SixFeaturesItem {
 }
 
 export const SIX_FEATURES: SixFeaturesItem[] = [
-  { title: 'Cloud sync', description: 'Your progress follows you across every device.' },
-  { title: 'Streak protection', description: 'One free pass a week. Miss a day, the streak holds.' },
-  { title: 'Daily reminders', description: 'A nudge at the time you pick.' },
-  { title: 'Photo proof', description: 'Attach a photo to any check-in.' },
-  { title: 'Completion certificate', description: 'A printable PDF on day 50 plus a shareable link.' },
-  { title: 'Data export', description: 'Your 50 days as a CSV.' },
+  {
+    title: 'Task completion tracker',
+    description: 'Tap to mark each of the nine daily habits. Your streak builds automatically.',
+  },
+  {
+    title: 'Streak protection',
+    description: 'One free pass a week. Miss a day and the streak holds. Each save shows up as a 🍌 on your certificate.',
+  },
+  {
+    title: 'Water tracker tool',
+    description: 'Tap to log each glass. Saved to your account daily, target built in.',
+  },
+  {
+    title: 'Detailed macro food tracker',
+    description: 'Search 1000+ foods, log portions, tag meals. Totals fill up against your targets.',
+  },
+  {
+    title: 'Multi-purpose timer',
+    description: 'Built-in timer for reading, meditation, focus blocks. Presets included.',
+  },
+  {
+    title: 'To-do planning board',
+    description: 'Plan the 50 days with kanban columns. Drag tasks between To do, In progress, Done.',
+  },
 ];
 
 export default function SixFeatures({
@@ -27,13 +45,13 @@ export default function SixFeatures({
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mb-12">
           <div className="md:col-span-7">
             <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-3">
-              What you get
+              Sign up
             </p>
             <h2 className="font-display text-display-2 text-ink leading-[0.95] mb-6">
-              Everything in the pack.
+              Sign up for helpful tools.
             </h2>
             <p className="font-body text-base text-ink/70 max-w-xl">
-              One payment, yours forever. Six features that turn the 50 days from a streak into a system.
+              Buy us a beer for a handful of helpful tools. €5.99 one-time, yours forever.
             </p>
           </div>
         </div>
@@ -60,8 +78,11 @@ export default function SixFeatures({
               href="/upgrade"
               className="inline-flex items-center justify-center bg-coral text-paper font-body text-sm px-10 py-5 uppercase tracking-wider hover:bg-coral/85 transition-colors"
             >
-              Unlock for £7.99
+              Sign up for €5.99
             </Link>
+            <p className="font-body text-caption uppercase tracking-widest text-ink/40 mt-3">
+              The price of a caneca · one-time · yours forever
+            </p>
           </div>
         )}
       </div>
