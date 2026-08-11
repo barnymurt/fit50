@@ -21,10 +21,44 @@ export default function Timer({
   const [completed, setCompleted] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const onCompleteRef = useRef(onComplete);
+  const audioCtxRef = useRef<AudioContext | null>(null);
 
   useEffect(() => {
     onCompleteRef.current = onComplete;
   }, [onComplete]);
+
+  const ensureAudio = useCallback(() => {
+    if (typeof window === 'undefined') return null;
+    if (!audioCtxRef.current) {
+      const Ctor = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (Ctor) audioCtxRef.current = new Ctor();
+    }
+    if (audioCtxRef.current && audioCtxRef.current.state === 'suspended') {
+      audioCtxRef.current.resume();
+    }
+    return audioCtxRef.current;
+  }, []);
+
+  const playDing = useCallback(() => {
+    const ctx = ensureAudio();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    const beep = (start: number, freq: number, dur: number) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, start);
+      gain.gain.setValueAtTime(0, start);
+      gain.gain.linearRampToValueAtTime(0.35, start + 0.015);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + dur);
+      osc.start(start);
+      osc.stop(start + dur + 0.02);
+    };
+    beep(now, 880, 0.28);
+    beep(now + 0.36, 880, 0.28);
+  }, [ensureAudio]);
 
   useEffect(() => {
     if (isRunning && remainingSeconds > 0) {
@@ -33,6 +67,7 @@ export default function Timer({
           if (prev <= 1) {
             setIsRunning(false);
             setCompleted(true);
+            playDing();
             onCompleteRef.current?.();
             return 0;
           }
@@ -47,7 +82,7 @@ export default function Timer({
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [isRunning, remainingSeconds]);
+  }, [isRunning, remainingSeconds, playDing]);
 
   const hours = Math.floor(remainingSeconds / 3600);
   const minutes = Math.floor((remainingSeconds % 3600) / 60);
@@ -55,9 +90,10 @@ export default function Timer({
   const progress = totalSeconds > 0 ? ((totalSeconds - remainingSeconds) / totalSeconds) * 100 : 0;
 
   const handleStart = useCallback(() => {
+    ensureAudio();
     setCompleted(false);
     setIsRunning(true);
-  }, []);
+  }, [ensureAudio]);
 
   const handlePause = useCallback(() => setIsRunning(false), []);
 
