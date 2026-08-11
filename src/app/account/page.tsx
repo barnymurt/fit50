@@ -254,7 +254,7 @@ export default function AccountPage() {
       {/* ============ Water counter ============ */}
       <Section
         id="hydration"
-        className="relative pt-12 md:pt-16 pb-section"
+        className="relative pt-4 md:pt-6 pb-section"
         tone="paper"
         contained
       >

@@ -131,7 +131,7 @@ export default function Tracker({ hideMarquee = false }: { hideMarquee?: boolean
   return (
     <Section
       id="tracker"
-      className={`relative ${hideMarquee ? 'pt-16 md:pt-24' : 'pt-40 md:pt-56'} pb-section overflow-hidden`}
+      className={`relative ${hideMarquee ? 'pt-16 md:pt-24 pb-4 md:pb-6' : 'pt-40 md:pt-56 pb-section'} overflow-hidden`}
       contained
     >
       <h2 className="sr-only">Tracker</h2>
