@@ -15,7 +15,6 @@ interface Piece {
   dy: number;
   color: string;
   size: number;
-  variant: 'shoot' | 'flutter';
 }
 
 export default function CellConfetti({ show }: { show: boolean }) {
@@ -41,24 +40,6 @@ export default function CellConfetti({ show }: { show: boolean }) {
         dy: -160 - Math.random() * 120,
         color: COLORS[Math.floor(Math.random() * COLORS.length)],
         size: 3 + Math.random() * 4,
-        variant: 'shoot',
-      });
-    }
-    // 24 flutter pieces: drop from anywhere across the top edge,
-    // not just the corners, fluttering down with rotation
-    for (let i = 0; i < 24; i++) {
-      generated.push({
-        id: i + 24,
-        startX: Math.random() * 100,
-        startY: Math.random() * 12,
-        delay: Math.random() * 0.18,
-        duration: 0.6 + Math.random() * 0.3,
-        rot: (Math.random() - 0.5) * 720,
-        dx: (Math.random() - 0.5) * 60,
-        dy: 40 + Math.random() * 60,
-        color: COLORS[Math.floor(Math.random() * COLORS.length)],
-        size: 3 + Math.random() * 3,
-        variant: 'flutter',
       });
     }
     setPieces(generated);
@@ -81,7 +62,7 @@ export default function CellConfetti({ show }: { show: boolean }) {
             ['--dx' as string]: `${p.dx}px`,
             ['--dy' as string]: `${p.dy}px`,
             ['--rot' as string]: `${p.rot}deg`,
-            animation: `${p.variant === 'shoot' ? 'cell-shoot' : 'cell-flutter'} ${p.duration}s ease-out forwards`,
+            animation: `cell-shoot ${p.duration}s ease-out forwards`,
             animationDelay: `${p.delay}s`,
           }}
         />
@@ -95,20 +76,6 @@ export default function CellConfetti({ show }: { show: boolean }) {
           55% {
             transform: translate(calc(var(--dx) * 0.4), calc(var(--dy) * 0.7)) rotate(calc(var(--rot) * 0.55));
             opacity: 1;
-          }
-          100% {
-            transform: translate(var(--dx), var(--dy)) rotate(var(--rot));
-            opacity: 0;
-          }
-        }
-        @keyframes cell-flutter {
-          0% {
-            transform: translate(0, 0) rotate(0deg);
-            opacity: 1;
-          }
-          50% {
-            transform: translate(calc(var(--dx) * 1.3), calc(var(--dy) * 0.5)) rotate(calc(var(--rot) * 0.6));
-            opacity: 0.85;
           }
           100% {
             transform: translate(var(--dx), var(--dy)) rotate(var(--rot));
