@@ -259,6 +259,20 @@ export default function AccountPage() {
       {/* ============ The tracker ============ */}
       <Tracker hideMarquee />
 
+      {/* ============ Water counter ============ */}
+      <Section className="relative py-section" tone="paper" contained>
+        <div className="max-w-5xl mx-auto">
+          <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-3">
+            Hydration
+          </p>
+          <Heading>2.5 litres a day.</Heading>
+          <p className="font-body text-base text-ink/70 mt-3 mb-8 max-w-2xl">
+            Tap a preset or enter a custom amount. Saved on this device, no account needed.
+          </p>
+          <WaterCounter />
+        </div>
+      </Section>
+
       {/* ============ Premium tools ============ */}
       {profile?.is_premium ? (
         <>
