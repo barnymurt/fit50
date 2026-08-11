@@ -18,6 +18,9 @@ import type { Goal, Diet, Activity, Sex, HeightUnit, WeightUnit } from '@/compon
 import WaterCounter from '@/components/WaterCounter';
 import Tracker from '@/components/Tracker';
 import AccountNav from '@/components/AccountNav';
+import FoodDatabase from '@/components/food-database/FoodDatabase';
+import { useMacroTargets } from '@/hooks/useMacroTargets';
+import { saveJson } from '@/lib/storage';
 
 const HABIT_LABELS: Record<string, string> = {
   'chill-out': 'Chill Out',
@@ -48,6 +51,7 @@ export default function AccountPage() {
   const [resetSent, setResetSent] = useState(false);
   const [streakRedeeming, setStreakRedeeming] = useState(false);
   const [streakMessage, setStreakMessage] = useState<string | null>(null);
+  const { targets } = useMacroTargets();
 
   const challengeStarted = profile?.challenge_started_at
     ? new Date(profile.challenge_started_at).toLocaleDateString('en-GB', {
@@ -278,6 +282,7 @@ export default function AccountPage() {
           ...(profile?.is_premium
             ? [
                 { id: 'macro-calc', label: 'Macro calc' },
+                { id: 'food-database', label: 'Foods' },
                 { id: 'timer', label: 'Timer' },
                 { id: 'todo', label: 'To-do' },
                 { id: 'board', label: 'Board' },
@@ -317,6 +322,30 @@ export default function AccountPage() {
               </div>
 
               <MacroCalculatorInline />
+            </div>
+          </Section>
+
+          {/* Food database */}
+          <Section
+            id="food-database"
+            className="relative pt-12 md:pt-16 pb-section"
+            tone="paper"
+            contained
+          >
+            <div className="max-w-5xl mx-auto">
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mb-8">
+                <div className="md:col-span-7">
+                  <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-3">
+                    Foods
+                  </p>
+                  <Heading>Track what you eat.</Heading>
+                  <p className="font-body text-base text-ink/70 mt-3 max-w-xl">
+                    Search a database of common foods, pick a portion, tag a meal. Totals fill up against your macro targets as you log.
+                  </p>
+                </div>
+              </div>
+
+              <FoodDatabase targets={targets} />
             </div>
           </Section>
 
@@ -449,6 +478,7 @@ function MacroCalculatorInline() {
         diet,
       });
       setResults(r);
+      saveJson('fit50-macro-results-v1', r);
     } catch (e) {
       setError('Could not calculate. Check your inputs.');
     }

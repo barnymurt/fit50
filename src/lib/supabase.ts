@@ -82,6 +82,58 @@ export type Database = {
           redeemed_at?: string;
         };
       };
+      food_log: {
+        Row: {
+          id: string;
+          user_id: string;
+          food_id: string;
+          name: string;
+          grams: number;
+          kcal: number;
+          protein: number;
+          carbs: number;
+          fat: number;
+          fiber: number;
+          meal: string | null;
+          logged_at: string;
+          day_key: string;
+        };
+        Insert: {
+          user_id: string;
+          food_id: string;
+          name: string;
+          grams: number;
+          kcal: number;
+          protein: number;
+          carbs: number;
+          fat: number;
+          fiber?: number;
+          meal?: string | null;
+          logged_at?: string;
+          day_key: string;
+        };
+        Update: Partial<{
+          grams: number;
+          kcal: number;
+          protein: number;
+          carbs: number;
+          fat: number;
+          fiber: number;
+          meal: string | null;
+        }>;
+      };
+      food_favorites: {
+        Row: {
+          user_id: string;
+          food_id: string;
+          created_at: string;
+        };
+        Insert: {
+          user_id: string;
+          food_id: string;
+          created_at?: string;
+        };
+      };
     };
   };
 };
