@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Marquee from './Marquee';
 
 export interface SixFeaturesItem {
   title: string;
@@ -40,8 +41,16 @@ export default function SixFeatures({
   cta?: boolean;
 }) {
   return (
-    <section id={id} className="py-section bg-paper">
-      <div className="max-w-5xl mx-auto px-6 md:px-10">
+    <section id={id} className="relative py-section bg-paper overflow-hidden">
+      <div className="absolute top-0 left-0 right-0 h-32 md:h-52 overflow-hidden pointer-events-none z-0 flex items-center">
+        <Marquee
+          text="HELPFUL TOOLS · BUY US A CANECA · €5.99 · ONE-TIME · YOURS FOREVER"
+          separator="✦"
+          speed={200}
+          textClassName="text-ink/10"
+        />
+      </div>
+      <div className="relative z-10 max-w-5xl mx-auto px-6 md:px-10 pt-32 md:pt-48">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mb-12">
           <div className="md:col-span-7">
             <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-3">
