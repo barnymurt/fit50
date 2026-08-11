@@ -78,11 +78,11 @@ export default function BalloonBurst() {
           <div
             className="relative mx-auto"
             style={{
-              width: `${24 * b.scale}px`,
-              height: `${32 * b.scale}px`,
-              background: `radial-gradient(circle at 32% 28%, rgba(255,255,255,0.7), rgba(255,255,255,0) 38%), radial-gradient(ellipse at 50% 55%, ${b.color}, ${shade(b.color)})`,
-              borderRadius: '50% 50% 50% 50% / 55% 55% 45% 45%',
-              boxShadow: `inset -3px -4px 6px rgba(0,0,0,0.18), inset 2px 2px 4px rgba(255,255,255,0.35)`,
+              width: `${22 * b.scale}px`,
+              height: `${28 * b.scale}px`,
+              background: `radial-gradient(circle at 30% 25%, rgba(255,255,255,0.75), rgba(255,255,255,0) 40%), radial-gradient(ellipse at 50% 55%, ${b.color}, ${shade(b.color)})`,
+              borderRadius: '50% 50% 50% 50% / 62% 62% 38% 38%',
+              boxShadow: `inset -3px -4px 6px rgba(0,0,0,0.18), inset 2px 2px 4px rgba(255,255,255,0.4)`,
             }}
           >
             {/* knot */}
@@ -131,15 +131,19 @@ export default function BalloonBurst() {
         @keyframes balloon-rise {
           0% {
             bottom: 0%;
-            transform: translateX(0);
-            opacity: 1;
+            transform: translateX(0) scale(0.85);
+            opacity: 0;
           }
-          60% {
+          30% {
+            opacity: 1;
+            transform: translateX(calc(var(--drift) * 0.3)) scale(1);
+          }
+          70% {
             opacity: 1;
           }
           100% {
             bottom: 88%;
-            transform: translateX(var(--drift));
+            transform: translateX(var(--drift)) scale(0.95);
             opacity: 0;
           }
         }
