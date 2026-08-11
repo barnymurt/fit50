@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Section from '@/components/Section';
@@ -21,6 +21,7 @@ import AccountNav from '@/components/AccountNav';
 import FoodDatabase from '@/components/food-database/FoodDatabase';
 import { useMacroTargets } from '@/hooks/useMacroTargets';
 import { saveJson } from '@/lib/storage';
+import { useMacroProfile, timeSince } from '@/hooks/useMacroProfile';
 
 const HABIT_LABELS: Record<string, string> = {
   'chill-out': 'Chill Out',
@@ -252,29 +253,7 @@ export default function AccountPage() {
 
   return (
     <>
-      {/* ============ The tracker ============ */}
-      <Tracker hideMarquee />
-
-      {/* ============ Water counter ============ */}
-      <Section
-        id="hydration"
-        className="relative pt-4 md:pt-6 pb-section"
-        tone="paper"
-        contained
-      >
-        <div className="max-w-5xl mx-auto">
-          <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-3">
-            Hydration
-          </p>
-          <Heading>2.5 litres a day.</Heading>
-          <p className="font-body text-base text-ink/70 mt-3 mb-8 max-w-2xl">
-            Tap a preset or enter a custom amount. Saved to your account daily.
-          </p>
-          <WaterCounter />
-        </div>
-      </Section>
-
-      {/* ============ Jump-to nav ============ */}
+      {/* ============ Jump-to nav (top of page, sticky under main nav) ============ */}
       <AccountNav
         sections={[
           { id: 'tracker', label: 'Tracker' },
@@ -290,6 +269,28 @@ export default function AccountPage() {
             : []),
         ]}
       />
+
+      {/* ============ The tracker ============ */}
+      <Tracker hideMarquee />
+
+      {/* ============ Water counter ============ */}
+      <Section
+        id="hydration"
+        className="relative pt-0 md:pt-2 pb-section"
+        tone="paper"
+        contained
+      >
+        <div className="max-w-5xl mx-auto">
+          <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-3">
+            Hydration
+          </p>
+          <Heading>2.5 litres a day.</Heading>
+          <p className="font-body text-base text-ink/70 mt-3 mb-8 max-w-2xl">
+            Tap a preset or enter a custom amount. Saved to your account daily.
+          </p>
+          <WaterCounter />
+        </div>
+      </Section>
 
       {/* ============ Premium tools ============ */}
       {profile?.is_premium ? (
@@ -432,6 +433,7 @@ export default function AccountPage() {
 
 // ---------- Inline macro calculator ----------
 function MacroCalculatorInline() {
+  const { profile: savedProfile, loaded: profileLoaded, save: saveProfile } = useMacroProfile();
   const [age, setAge] = useState('');
   const [sex, setSex] = useState<Sex | null>(null);
   const [heightVal, setHeightVal] = useState('');
@@ -444,9 +446,40 @@ function MacroCalculatorInline() {
   const [diet, setDiet] = useState<Diet>('balanced');
   const [results, setResults] = useState<ReturnType<typeof calculateMacros> | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
-  const handleCalculate = () => {
+  // Pre-fill from saved profile on first load so returning users
+  // don't have to re-enter their stats.
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => {
+    if (hydrated || !profileLoaded || !savedProfile) return;
+    setAge(String(savedProfile.age));
+    setSex(savedProfile.sex);
+    setHeightUnit('cm');
+    setHeightVal(String(Math.round(savedProfile.height_cm)));
+    setWeightUnit('kg');
+    setWeightVal(String(Math.round(savedProfile.weight_kg)));
+    setBodyFat(savedProfile.body_fat != null ? String(savedProfile.body_fat) : '');
+    setActivity(savedProfile.activity);
+    setGoal(savedProfile.goal);
+    setDiet(savedProfile.diet);
+    if (!results) {
+      setResults({
+        bmr: 0,
+        tdee: 0,
+        calories: savedProfile.results_kcal,
+        proteinG: savedProfile.results_protein,
+        carbsG: savedProfile.results_carbs,
+        fatG: savedProfile.results_fat,
+        waterL: savedProfile.results_water,
+      });
+    }
+    setHydrated(true);
+  }, [hydrated, profileLoaded, savedProfile, results]);
+
+  const handleCalculate = async () => {
     setError(null);
+    setSaveError(null);
     if (!age || !sex) {
       setError('Enter age and select sex.');
       return;
@@ -466,6 +499,11 @@ function MacroCalculatorInline() {
       : { value: heightNum, unit: 'ftin' as HeightUnit, feet: Math.floor(heightNum), inches: 0 };
     const weight = { value: weightNum, unit: weightUnit };
     const bodyFatNum = bodyFat ? parseFloat(bodyFat) : null;
+    // Normalise to metric for storage
+    const height_cm = heightUnit === 'cm'
+      ? heightNum
+      : (Math.floor(heightNum) * 12 + 0) * 2.54;
+    const weight_kg = weightUnit === 'kg' ? weightNum : weightNum * 0.453592;
     try {
       const r = calculateMacros({
         age: parseInt(age),
@@ -480,6 +518,21 @@ function MacroCalculatorInline() {
       setResults(r);
       saveJson('fit50-macro-results-v1', r);
       window.dispatchEvent(new CustomEvent('fit50-macro-results-changed'));
+      // Persist the inputs + results to the user's profile
+      const saved = await saveProfile({
+        age: parseInt(age),
+        sex,
+        height_cm: Math.round(height_cm * 10) / 10,
+        weight_kg: Math.round(weight_kg * 10) / 10,
+        body_fat: bodyFatNum,
+        activity,
+        goal,
+        diet,
+        results: r,
+      });
+      if (!saved.ok) {
+        setSaveError(saved.error || 'Could not save profile.');
+      }
     } catch (e) {
       setError('Could not calculate. Check your inputs.');
     }
@@ -512,14 +565,26 @@ function MacroCalculatorInline() {
         />
       </div>
 
-      <div className="flex justify-end mb-6">
+      <div className="flex justify-center md:justify-end mb-6">
         <button
           onClick={handleCalculate}
           className="bg-ink text-paper font-body text-sm px-6 py-3 uppercase tracking-wider hover:bg-ink/85 transition-colors"
         >
-          Calculate my macros
+          {results ? 'Recalculate' : 'Calculate my macros'}
         </button>
       </div>
+
+      {profileLoaded && savedProfile && (
+        <p className="font-body text-caption uppercase tracking-widest text-ink/50 text-center md:text-right mb-4">
+          Macro profile · last saved {timeSince(savedProfile.calculated_at)} · synced to your account
+        </p>
+      )}
+
+      {saveError && (
+        <p className="font-body text-caption uppercase tracking-widest text-coral text-center md:text-right mb-2">
+          {saveError}
+        </p>
+      )}
 
       {error && <p className="font-body text-sm text-coral mb-4">{error}</p>}
 

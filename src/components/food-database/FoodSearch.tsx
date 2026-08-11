@@ -10,12 +10,14 @@ interface Props {
   recentlyLoggedFoods: Food[];
 }
 
+const VISIBLE_LIMIT = 15;
+
 export default function FoodSearch({ favorites, onPickFood, recentlyLoggedFoods }: Props) {
   const { foods, loaded } = useFoodData();
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('all');
   const [sort, setSort] = useState<SortKey>('relevance');
-  const [resultsOpen, setResultsOpen] = useState(true);
+  const [open, setOpen] = useState(true);
 
   const categories = useMemo(() => getCategories(foods), [foods]);
 
@@ -26,29 +28,48 @@ export default function FoodSearch({ favorites, onPickFood, recentlyLoggedFoods 
       category,
       favorites,
       sort: query ? 'relevance' : sort,
-    }).slice(0, 50);
+    });
   }, [foods, loaded, query, category, sort, favorites]);
+
+  const visible = open ? results.slice(0, VISIBLE_LIMIT) : [];
+  const hiddenCount = Math.max(0, results.length - VISIBLE_LIMIT);
 
   return (
     <div className="bg-paper border border-ink/15">
+      {/* Accordion header */}
       <button
         type="button"
-        onClick={() => setResultsOpen((v) => !v)}
-        aria-expanded={resultsOpen}
-        className="w-full px-6 py-4 border-b border-ink/10 flex items-baseline justify-between gap-3 hover:bg-cream/30 transition-colors"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        aria-controls="food-search-panel"
+        className="w-full px-6 py-4 flex items-center justify-between gap-3 hover:bg-cream/30 transition-colors text-left"
       >
-        <p className="font-body text-caption uppercase tracking-widest text-ink/50 text-left">
-          Search
-        </p>
+        <div className="flex items-center gap-3 min-w-0">
+          <span
+            aria-hidden="true"
+            className={`font-body text-ink/40 transition-transform duration-200 ${
+              open ? 'rotate-90' : ''
+            }`}
+          >
+            ›
+          </span>
+          <p className="font-body text-caption uppercase tracking-widest text-ink/50 truncate">
+            Search
+          </p>
+        </div>
         <span className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums shrink-0">
-          {resultsOpen ? '− Collapse' : '+ Expand'} ·{' '}
           {query
-            ? `${results.length} results`
+            ? `${results.length} result${results.length === 1 ? '' : 's'}`
             : `${foods.length} foods`}
         </span>
       </button>
 
-      <div className="px-6 py-4 border-b border-ink/10">
+      <div
+        id="food-search-panel"
+        role="region"
+        aria-label="Food search filters"
+        className="px-6 py-4 border-b border-ink/10"
+      >
         <input
           type="text"
           value={query}
@@ -56,7 +77,7 @@ export default function FoodSearch({ favorites, onPickFood, recentlyLoggedFoods 
           placeholder={loaded ? 'chicken, rice, banana…' : 'Loading database…'}
           disabled={!loaded}
           aria-label="Search foods"
-          className="w-full px-3 py-3 bg-paper border-2 border-ink/20 font-body text-base focus:border-ink outline-none disabled:opacity-50"
+          className="w-full px-3 py-3 bg-paper border-2 border-ink/20 font-body focus:border-ink outline-none disabled:opacity-50"
         />
         <div className="flex gap-2 mt-3 flex-wrap">
           <select
@@ -91,7 +112,7 @@ export default function FoodSearch({ favorites, onPickFood, recentlyLoggedFoods 
         </div>
       </div>
 
-      {!resultsOpen ? null : (
+      {!open ? null : (
         <>
           {recentlyLoggedFoods.length > 0 && query === '' && (
             <div className="px-6 py-4 border-b border-ink/10">
@@ -116,36 +137,57 @@ export default function FoodSearch({ favorites, onPickFood, recentlyLoggedFoods 
             <div className="px-6 py-2 border-b border-ink/10 flex items-baseline justify-between">
               <p className="font-body text-caption uppercase tracking-widest text-ink/40">
                 {query
-                  ? `${results.length} results for "${query}"`
+                  ? `${results.length} result${results.length === 1 ? '' : 's'} for "${query}"`
                   : `${foods.length} foods`}
               </p>
             </div>
-            <ul>
-              {!loaded ? (
-                <li className="px-6 py-6 font-body text-caption uppercase text-ink/40">
-                  Loading database…
-                </li>
-              ) : results.length === 0 ? (
-                <li className="px-6 py-6 font-body text-caption uppercase text-ink/40">
-                  No foods found. Try a different search term or remove a filter.
-                </li>
-              ) : (
-                results.map((f) => (
-                  <li key={f.id}>
-                    <button
-                      onClick={() => onPickFood(f)}
-                      className="w-full px-6 py-3 border-b border-ink/10 hover:bg-coral/5 text-left flex items-baseline justify-between gap-4"
-                    >
-                      <span className="font-body text-sm text-ink">{f.name}</span>
-                      <span className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums shrink-0">
-                        {Math.round(f.kcal)} kcal · {Math.round(f.protein)}g P
-                        {favorites.has(f.id) ? ' · ★' : ''}
-                      </span>
-                    </button>
-                  </li>
-                ))
-              )}
-            </ul>
+            {loaded && results.length > 0 ? (
+              <div
+                className="overflow-y-auto"
+                style={{
+                  maxHeight: `${VISIBLE_LIMIT * 56}px`,
+                  scrollbarWidth: 'none',
+                }}
+              >
+                <style>{`
+                  .food-search-scroll::-webkit-scrollbar { display: none; }
+                  .food-search-scroll { scrollbar-width: none; -ms-overflow-style: none; }
+                `}</style>
+                <ul className="food-search-scroll">
+                  {visible.map((f) => (
+                    <li key={f.id}>
+                      <button
+                        onClick={() => onPickFood(f)}
+                        className="w-full px-6 py-3 border-b border-ink/10 hover:bg-coral/5 text-left flex items-baseline justify-between gap-4"
+                      >
+                        <span className="font-body text-sm text-ink truncate">
+                          {f.name}
+                        </span>
+                        <span className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums shrink-0">
+                          {Math.round(f.kcal)} kcal · {Math.round(f.protein)}g P
+                          {favorites.has(f.id) ? ' · ★' : ''}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                {hiddenCount > 0 && (
+                  <div className="px-6 py-3 border-b border-ink/10 text-center bg-paper">
+                    <p className="font-body text-caption uppercase tracking-widest text-ink/50">
+                      + {hiddenCount} more · scroll
+                    </p>
+                  </div>
+                )}
+              </div>
+            ) : !loaded ? (
+              <p className="px-6 py-6 font-body text-caption uppercase text-ink/40">
+                Loading database…
+              </p>
+            ) : (
+              <p className="px-6 py-6 font-body text-caption uppercase text-ink/40">
+                No foods found. Try a different search term or remove a filter.
+              </p>
+            )}
           </div>
         </>
       )}

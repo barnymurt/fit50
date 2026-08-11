@@ -60,6 +60,12 @@ export default function Nav() {
         <div className="flex items-center gap-3">
           {!loading && user && (
             <>
+              <Link
+                href="/account"
+                className="font-body text-caption uppercase text-ink/70 hover:text-ink transition-colors"
+              >
+                Account
+              </Link>
               <span className="font-body text-caption uppercase text-ink/50 hidden md:inline">
                 {user.email}
               </span>

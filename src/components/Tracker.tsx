@@ -131,7 +131,7 @@ export default function Tracker({ hideMarquee = false }: { hideMarquee?: boolean
   return (
     <Section
       id="tracker"
-      className={`relative ${hideMarquee ? 'pt-16 md:pt-24 pb-4 md:pb-6' : 'pt-40 md:pt-56 pb-section'} overflow-hidden`}
+      className={`relative ${hideMarquee ? 'pt-16 md:pt-24 pb-2 md:pb-4' : 'pt-40 md:pt-56 pb-section'} overflow-hidden`}
       contained
     >
       <h2 className="sr-only">Tracker</h2>
@@ -235,7 +235,7 @@ export default function Tracker({ hideMarquee = false }: { hideMarquee?: boolean
             </div>
 
             <div
-              className={`grid grid-cols-3 gap-px bg-ink border border-ink transition-shadow duration-500 relative ${
+              className={`grid grid-cols-3 gap-1 border border-ink/15 transition-shadow duration-500 relative ${
                 isCubeSolved ? 'shadow-[0_0_0_4px_rgba(232,139,90,0.35)]' : ''
               }`}
             >
