@@ -631,7 +631,7 @@ function Column({
             <button
               key={c}
               onClick={() => { onChangeColor(c); setShowColorPicker(false); }}
-              className={`w-6 h-6 border ${colorStyles.bg} ${colorStyles.border} ${column.color === c ? 'ring-2 ring-ink' : ''}`}
+              className={`w-6 h-6 border ${COLOR_STYLES[c]?.bg ?? 'bg-paper'} ${COLOR_STYLES[c]?.border ?? 'border-ink/15'} ${column.color === c ? 'ring-2 ring-ink' : ''}`}
             />
           ))}
         </div>
