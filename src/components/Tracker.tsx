@@ -131,7 +131,7 @@ export default function Tracker() {
   return (
     <Section
       id="tracker"
-      className="relative py-section overflow-hidden"
+      className="relative pt-40 md:pt-56 pb-section overflow-hidden"
       contained
     >
       <h2 className="sr-only">Tracker</h2>
@@ -148,7 +148,7 @@ export default function Tracker() {
       <div className="relative z-10 max-w-7xl mx-auto px-6 md:px-10 pb-section">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mb-12 md:mb-16">
           <div className="md:col-span-7">
-            <Heading as="h2" size="display-2">
+            <Heading as="h2" size="h1">
               Check the box.<br />
               Build the streak.
             </Heading>
