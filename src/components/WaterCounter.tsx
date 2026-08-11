@@ -297,10 +297,10 @@ function BottleShape({ fillPct, flash }: { fillPct: number; flash: boolean }) {
         </g>
         <text
           x="42"
-          y="73"
-          fontSize="6"
+          y="74"
+          fontSize="9"
           fontFamily="ui-monospace, monospace"
-          className="fill-ink/40"
+          className="fill-ink/60"
         >
           2.5L
         </text>
