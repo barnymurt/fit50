@@ -5,6 +5,8 @@ import Section from './Section';
 import Heading from './Heading';
 import HabitIcon, { HabitIconName } from './HabitIcon';
 import Marquee from './Marquee';
+import BalloonBurst from './BalloonBurst';
+import CellConfetti from './CellConfetti';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSyncTracker } from '@/hooks/useSyncTracker';
 import { useStreakProtection } from '@/hooks/useStreakProtection';
@@ -55,7 +57,7 @@ function calculateStreak(
   return { streak: currentStreak, longest };
 }
 
-export default function Tracker() {
+export default function Tracker({ hideMarquee = false }: { hideMarquee?: boolean }) {
   const { user, loading: authLoading } = useAuth();
   const { isPremium } = usePremium();
   const { data, loaded, toggleHabit, advanceDay, reset } = useSyncTracker();
@@ -69,15 +71,30 @@ export default function Tracker() {
   const progressPct = Math.round((todayCompleted / 9) * 100);
   const isCubeSolved = todayCompleted === 9;
 
-  const handleToggle = async (habitId: string, day: number) => {
-    // Sign-up flow disabled until Phase 2 (account + tracking) is complete.
-    // When re-enabled, restore the email modal trigger:
-    //   if (!user && !hasInteracted) {
-    //     setHasInteracted(true);
-    //     setShowEmailModal(true);
-    //     return;
-    //   }
+  const [pulsingHabit, setPulsingHabit] = useState<string | null>(null);
+  const [balloons, setBalloons] = useState(false);
+
+  const handleToggle = (habitId: string, day: number) => {
+    const wasDone = !!data.habitCompletions[habitId]?.[day];
+    if (!wasDone) {
+      setPulsingHabit(habitId);
+      setTimeout(() => setPulsingHabit(null), 600);
+    }
     toggleHabit(habitId, day);
+
+    if (!wasDone) {
+      // After toggling, will the day be complete?
+      const newCompleted = HABIT_IDS.filter((id) => {
+        if (id === habitId) return true;
+        return !!data.habitCompletions[id]?.[day];
+      }).length;
+      if (newCompleted === 9) {
+        setTimeout(() => {
+          setBalloons(true);
+          setTimeout(() => setBalloons(false), 2400);
+        }, 300);
+      }
+    }
   };
 
   const handleAdvance = async () => {
@@ -89,6 +106,12 @@ export default function Tracker() {
         await redeemProtection(today);
       }
     }
+  };
+
+  const handleUseBanana = async () => {
+    if (!isPremium) return;
+    if (hasProtectionForWeek(new Date())) return;
+    await redeemProtection(today);
   };
 
   if (authLoading || !loaded) {
@@ -108,24 +131,26 @@ export default function Tracker() {
   return (
     <Section
       id="tracker"
-      className="relative py-section overflow-hidden"
+      className={`relative ${hideMarquee ? 'pt-16 md:pt-24 pb-4 md:pb-6' : 'pt-40 md:pt-56 pb-section'} overflow-hidden`}
       contained
     >
       <h2 className="sr-only">Tracker</h2>
 
-      <div className="absolute top-0 left-0 right-0 h-32 md:h-52 overflow-hidden pointer-events-none z-0 flex items-center">
-        <Marquee
-          text="CHECK THE BOX · BUILD THE STREAK · DAY BY DAY"
-          separator="✦"
-          speed={240}
-          textClassName="text-coral/55"
-        />
-      </div>
+      {!hideMarquee && (
+        <div className="absolute top-0 left-0 right-0 h-32 md:h-52 overflow-hidden pointer-events-none z-0 flex items-center">
+          <Marquee
+            text="CHECK THE BOX · BUILD THE STREAK · DAY BY DAY"
+            separator="✦"
+            speed={240}
+            textClassName="text-coral/55"
+          />
+        </div>
+      )}
 
       <div className="relative z-10 max-w-7xl mx-auto px-6 md:px-10 pb-section">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mb-12 md:mb-16">
           <div className="md:col-span-7">
-            <Heading as="h2" size="display-2">
+            <Heading as="h2" size="h1">
               Check the box.<br />
               Build the streak.
             </Heading>
@@ -160,7 +185,7 @@ export default function Tracker() {
                 </p>
                 <p className="font-body text-sm text-paper/85">
                   Get 1 free pass a week. Miss a day, the streak holds.{' '}
-                  <span className="text-coral">Unlock for €7.99 →</span>
+                  <span className="text-coral">Unlock for £7.99 →</span>
                 </p>
               </a>
             )}
@@ -194,7 +219,7 @@ export default function Tracker() {
             </div>
           </div>
 
-          <div className="lg:col-span-8 bg-white border border-rule p-6 md:p-10">
+          <div className="lg:col-span-8 bg-white border border-rule p-6 md:p-10 relative">
             <div className="flex items-end justify-between mb-8 pb-6 border-b border-rule">
               <div>
                 <p className="font-body text-caption uppercase text-ink/50 mb-1">
@@ -210,21 +235,22 @@ export default function Tracker() {
             </div>
 
             <div
-              className={`grid grid-cols-3 gap-px bg-ink border border-ink transition-shadow duration-500 ${
+              className={`grid grid-cols-3 gap-px bg-ink border border-ink transition-shadow duration-500 relative ${
                 isCubeSolved ? 'shadow-[0_0_0_4px_rgba(232,139,90,0.35)]' : ''
               }`}
             >
               {habits.map((habit) => {
                 const isDone = data.habitCompletions[habit.id]?.[today];
+                const isPulsing = pulsingHabit === habit.id;
                 return (
                   <button
                     key={habit.id}
                     onClick={() => handleToggle(habit.id, today)}
-                    className={`aspect-square p-3 md:p-5 flex flex-col items-center justify-center gap-2 md:gap-3 transition-colors duration-300 group ${
+                    className={`relative aspect-square p-3 md:p-5 flex flex-col items-center justify-center gap-2 md:gap-3 transition-all duration-300 group ${
                       isDone
                         ? 'bg-coral text-paper'
                         : 'bg-white hover:bg-paper text-ink'
-                    }`}
+                    } ${isPulsing ? 'scale-110 ring-2 ring-coral' : 'scale-100'}`}
                     aria-pressed={isDone}
                     aria-label={`${habit.name}${isDone ? ' - complete' : ''}`}
                   >
@@ -237,6 +263,7 @@ export default function Tracker() {
                     <span className="font-body text-caption uppercase text-center leading-tight">
                       {habit.name}
                     </span>
+                    <CellConfetti show={isPulsing} />
                   </button>
                 );
               })}
@@ -255,7 +282,6 @@ export default function Tracker() {
                 {Array.from({ length: 50 }, (_, i) => i + 1).map((day) => {
                   const completed = HABIT_IDS.filter((id) => data.habitCompletions[id]?.[day]).length;
                   const isCurrent = day === today;
-                  const isPast = day < today;
                   const isProtected = protectedDays.includes(day);
 
                   let bg = 'bg-paper';
@@ -274,7 +300,7 @@ export default function Tracker() {
                       key={day}
                       className={`aspect-square flex items-center justify-center text-[10px] font-body relative ${
                         isCurrent ? 'ring-2 ring-ink ring-offset-2 ring-offset-white' : ''
-                      } ${bg} ${isPast ? 'text-ink' : 'text-ink/30'}`}
+                      } ${bg} ${isCurrent ? 'text-ink' : 'text-ink/30'}`}
                       title={isProtected ? `Day ${day}: 🛡️ protected` : `Day ${day}: ${completed}/9`}
                     >
                       {day}
@@ -286,7 +312,27 @@ export default function Tracker() {
                 })}
               </div>
             </div>
+            {balloons && <BalloonBurst />}
           </div>
+        </div>
+
+        {/* Reset + Banana row */}
+        <div className="mt-10 flex flex-col items-center gap-3">
+          {isPremium && (
+            <button
+              onClick={handleUseBanana}
+              disabled={hasProtectionForWeek(new Date())}
+              className="font-body text-caption uppercase text-ink hover:text-coral transition-colors disabled:opacity-40"
+            >
+              {hasProtectionForWeek(new Date()) ? '🍌 used this week' : '🍌 use a streak pass'}
+            </button>
+          )}
+          <button
+            onClick={reset}
+            className="font-body text-caption uppercase text-ink/50 hover:text-ink transition-colors"
+          >
+            Reset all progress
+          </button>
         </div>
       </div>
     </Section>

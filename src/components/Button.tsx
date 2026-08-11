@@ -4,17 +4,20 @@ import React from 'react';
 
 type Variant = 'primary' | 'secondary' | 'ghost';
 type Tone = 'light' | 'dark';
+type Shape = 'pill' | 'squared';
 
 interface ButtonProps {
   children: React.ReactNode;
   variant?: Variant;
   tone?: Tone;
+  shape?: Shape;
   onClick?: () => void;
   href?: string;
   type?: 'button' | 'submit' | 'reset';
   disabled?: boolean;
   className?: string;
   ariaLabel?: string;
+  fullWidth?: boolean;
 }
 
 const variantStyles: Record<Tone, Record<Variant, string>> = {
@@ -31,20 +34,28 @@ const variantStyles: Record<Tone, Record<Variant, string>> = {
 };
 
 const baseStyles =
-  'inline-flex items-center justify-center gap-2 px-7 py-3.5 text-sm font-body font-medium tracking-wider uppercase rounded-full transition-all duration-200 ease-smooth disabled:opacity-40 disabled:cursor-not-allowed';
+  'inline-flex items-center justify-center gap-2 text-sm font-body font-medium tracking-wider uppercase transition-all duration-200 ease-smooth disabled:opacity-40 disabled:cursor-not-allowed';
+
+const shapeStyles: Record<Shape, { wrapper: string }> = {
+  pill: { wrapper: 'rounded-full px-7 py-3.5' },
+  squared: { wrapper: 'rounded-none px-7 py-3.5' },
+};
 
 export default function Button({
   children,
   variant = 'primary',
   tone = 'light',
+  shape = 'pill',
   onClick,
   href,
   type = 'button',
   disabled = false,
   className = '',
   ariaLabel,
+  fullWidth = false,
 }: ButtonProps) {
-  const classes = `${baseStyles} ${variantStyles[tone][variant]} ${className}`;
+  const widthClass = fullWidth ? 'w-full' : '';
+  const classes = `${baseStyles} ${shapeStyles[shape].wrapper} ${variantStyles[tone][variant]} ${widthClass} ${className}`;
 
   if (href) {
     return (

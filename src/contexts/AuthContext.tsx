@@ -138,19 +138,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = async (emailAddress: string, password: string) => {
     if (!supabase) {
-      return { error: { message: 'Supabase not configured. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.' } };
+      console.error('[auth] signIn called but Supabase client is null. Check NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.');
+      return { error: { message: 'Auth not configured. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in Vercel env vars.' } };
     }
 
-    const { error } = await supabase.auth.signInWithPassword({
+    if (typeof window !== 'undefined') {
+      console.log('[auth] signIn attempt', { email: emailAddress, configured: true });
+    }
+
+    const { data, error } = await supabase.auth.signInWithPassword({
       email: emailAddress,
       password,
     });
 
     if (error) {
-      if (error.message.toLowerCase().includes('invalid login')) {
+      if (typeof window !== 'undefined') {
+        console.error('[auth] signIn error', error.message, error.status);
+      }
+      const msg = error.message.toLowerCase();
+      if (msg.includes('invalid login') || msg.includes('invalid credentials')) {
         return { error: { message: 'Email or password is incorrect.', hint: 'Check your details, or create an account if you don\'t have one yet.' } };
       }
+      if (msg.includes('email not confirmed')) {
+        return {
+          error: {
+            message: 'Email not confirmed.',
+            hint: 'Check your inbox for a confirmation link. In Supabase dashboard → Authentication → Providers → Email → turn off "Confirm email" to skip this step.',
+          },
+        };
+      }
       return { error: { message: error.message } };
+    }
+
+    if (typeof window !== 'undefined') {
+      console.log('[auth] signIn success', { userId: data?.user?.id });
     }
 
     return { error: null };

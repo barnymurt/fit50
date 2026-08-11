@@ -7,7 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 export default function Nav() {
   const [scrolled, setScrolled] = useState(false);
-  const { user, loading } = useAuth();
+  const { user, loading, signOut } = useAuth();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -15,6 +15,10 @@ export default function Nav() {
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
+
+  const handleSignOut = async () => {
+    await signOut();
+  };
 
   return (
     <header
@@ -42,18 +46,39 @@ export default function Nav() {
           <a href="#tracker" className="font-body text-caption uppercase text-ink/70 hover:text-ink transition-colors duration-200">
             Tracker
           </a>
+          <Link
+            href="/toolkit"
+            className="font-body text-caption uppercase text-ink/70 hover:text-ink transition-colors duration-200"
+          >
+            Toolkit
+          </Link>
           <a href="#faq" className="font-body text-caption uppercase text-ink/70 hover:text-ink transition-colors duration-200">
             FAQ
           </a>
         </nav>
 
         <div className="flex items-center gap-3">
-          <Link
-            href="/account"
-            className="font-body text-caption uppercase text-ink/70 hover:text-ink transition-colors"
-          >
-            Account
-          </Link>
+          {!loading && user && (
+            <>
+              <span className="font-body text-caption uppercase text-ink/50 hidden md:inline">
+                {user.email}
+              </span>
+              <button
+                onClick={handleSignOut}
+                className="font-body text-caption uppercase text-ink/70 hover:text-ink transition-colors"
+              >
+                Sign out
+              </button>
+            </>
+          )}
+          {!loading && !user && (
+            <Link
+              href="/account"
+              className="font-body text-caption uppercase text-ink/70 hover:text-ink transition-colors"
+            >
+              Account
+            </Link>
+          )}
           <Button href="#tracker" variant="primary" tone="light" className="!px-5 !py-2.5 !text-xs">
             Start
           </Button>
