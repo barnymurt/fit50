@@ -15,6 +15,8 @@ import { useStreakProtection } from '@/hooks/useStreakProtection';
 import { usePremium } from '@/hooks/usePremium';
 import { calculateMacros } from '@/components/macro-calculator/formulas';
 import type { Goal, Diet, Activity, Sex, HeightUnit, WeightUnit } from '@/components/macro-calculator/types';
+import WaterCounter from '@/components/WaterCounter';
+import Tracker from '@/components/Tracker';
 
 const HABIT_LABELS: Record<string, string> = {
   'chill-out': 'Chill Out',
@@ -255,95 +257,7 @@ export default function AccountPage() {
   return (
     <>
       {/* ============ The tracker ============ */}
-      <Section className="relative py-section" tone="paper" contained>
-        <div className="max-w-5xl mx-auto">
-          <p className="font-body text-caption uppercase text-ink/50 mb-3">
-            The tracker
-          </p>
-          <Title>Day {trackerData.currentDay} of 50.</Title>
-
-          <div className="mt-4 mb-8 grid grid-cols-2 md:grid-cols-4 gap-0 border border-ink/15">
-            <div className="p-4 border-b md:border-b-0 md:border-r border-ink/15">
-              <p className="font-display text-2xl text-ink leading-none tabular-nums">{progressPct}<span className="text-base text-ink/50 font-body font-normal ml-1">%</span></p>
-              <p className="font-body text-caption uppercase tracking-widest text-ink/50 mt-2">Challenge</p>
-            </div>
-            <div className="p-4 border-b md:border-b-0 md:border-r border-ink/15">
-              <p className="font-display text-2xl text-ink leading-none tabular-nums">{trackerData.streakCount}</p>
-              <p className="font-body text-caption uppercase tracking-widest text-ink/50 mt-2">Streak</p>
-            </div>
-            <div className="p-4 border-b md:border-b-0 md:border-r border-ink/15">
-              <p className="font-display text-2xl text-ink leading-none tabular-nums">{completedDays}</p>
-              <p className="font-body text-caption uppercase tracking-widest text-ink/50 mt-2">Boxes ticked</p>
-            </div>
-            <div className="p-4">
-              <p className="font-display text-2xl text-ink leading-none tabular-nums">{todayDone}<span className="text-base text-ink/50 font-body font-normal"> / {todayTotal}</span></p>
-              <p className="font-body text-caption uppercase tracking-widest text-ink/50 mt-2">Today</p>
-            </div>
-          </div>
-
-          {/* Progress bar */}
-          <div className="h-1.5 bg-ink/10 mb-8 overflow-hidden">
-            <div className="h-full bg-coral" style={{ width: `${progressPct}%` }} />
-          </div>
-
-          {streakMessage && (
-            <p className="font-body text-sm text-teal mb-6">{streakMessage}</p>
-          )}
-
-          {/* Streak protection (premium only) */}
-          {isPremium && (
-            <div className="border border-ink/15 p-4 mb-8">
-              <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-2">
-                Streak protection
-              </p>
-              <p className="font-body text-base text-ink mb-3">
-                One free pass a week. Use it to bank today&apos;s day if you miss it.
-              </p>
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={handleRedeemStreak}
-                  disabled={streakRedeeming || hasProtectionForWeek(new Date())}
-                  className="bg-ink text-paper font-body text-sm px-6 py-3 uppercase tracking-wider hover:bg-ink/85 transition-colors disabled:opacity-50"
-                >
-                  {streakRedeeming ? 'Banking…' : hasProtectionForWeek(new Date()) ? 'Already banked this week' : 'Bank today'}
-                </button>
-                <span className="font-body text-caption uppercase text-ink/50 tabular-nums">
-                  {totalUsed} used this cycle
-                </span>
-              </div>
-            </div>
-          )}
-
-          {/* 50-day grid */}
-          <div className="border border-ink/15">
-            <div className="p-4 border-b border-ink/15">
-              <p className="font-body text-caption uppercase tracking-widest text-ink/50">
-                The 50 days
-              </p>
-            </div>
-            <div className="grid grid-cols-5 sm:grid-cols-10">
-              {Array.from({ length: 50 }, (_, i) => i + 1).map((day) => {
-                const completed = HABIT_IDS.filter((h) => trackerData.habitCompletions[h]?.[day]).length;
-                const isCurrent = day === trackerData.currentDay;
-                let bg = 'bg-paper';
-                if (completed >= 7) bg = 'bg-teal';
-                else if (completed >= 5) bg = 'bg-coral';
-                else if (completed > 0) bg = 'bg-cream';
-                return (
-                  <div
-                    key={day}
-                    className={`aspect-square flex items-center justify-center text-xs font-body tabular-nums border-b border-r border-ink/10 ${
-                      isCurrent ? 'ring-2 ring-ink ring-inset' : ''
-                    } ${bg}`}
-                  >
-                    {day}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      </Section>
+      <Tracker />
 
       {/* ============ Premium tools ============ */}
       {profile?.is_premium ? (

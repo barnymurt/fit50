@@ -138,7 +138,7 @@ export default function BalloonBurst() {
             opacity: 1;
           }
           100% {
-            bottom: 65%;
+            bottom: 88%;
             transform: translateX(var(--drift));
             opacity: 0;
           }

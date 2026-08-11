@@ -7,6 +7,7 @@ const COLORS = ['#E88B5A', '#4A9B9B', '#F2D9A2', '#D8B8D0'];
 interface Piece {
   id: number;
   startX: number;
+  startY: number;
   delay: number;
   duration: number;
   rot: number;
@@ -25,30 +26,62 @@ export default function CellConfetti({ show }: { show: boolean }) {
       return;
     }
     const generated: Piece[] = [];
-    // 6 pieces from top-left corner
-    for (let i = 0; i < 6; i++) {
+    // 12 pieces from top-left corner
+    for (let i = 0; i < 12; i++) {
       generated.push({
         id: i,
-        startX: Math.random() * 25,
-        delay: Math.random() * 0.08,
-        duration: 0.5 + Math.random() * 0.15,
-        rot: (Math.random() - 0.5) * 540,
-        dx: (Math.random() - 0.5) * 30,
-        dy: 50 + Math.random() * 25,
+        startX: Math.random() * 30,
+        startY: Math.random() * 25,
+        delay: Math.random() * 0.1,
+        duration: 0.55 + Math.random() * 0.15,
+        rot: (Math.random() - 0.5) * 720,
+        dx: 10 + Math.random() * 30,
+        dy: 25 + Math.random() * 30,
         color: COLORS[Math.floor(Math.random() * COLORS.length)],
         size: 3 + Math.random() * 3,
       });
     }
-    // 6 pieces from top-right corner
-    for (let i = 0; i < 6; i++) {
+    // 12 pieces from top-right corner
+    for (let i = 0; i < 12; i++) {
       generated.push({
-        id: i + 6,
-        startX: 75 + Math.random() * 25,
-        delay: Math.random() * 0.08,
-        duration: 0.5 + Math.random() * 0.15,
-        rot: (Math.random() - 0.5) * 540,
-        dx: (Math.random() - 0.5) * 30,
-        dy: 50 + Math.random() * 25,
+        id: i + 12,
+        startX: 70 + Math.random() * 30,
+        startY: Math.random() * 25,
+        delay: Math.random() * 0.1,
+        duration: 0.55 + Math.random() * 0.15,
+        rot: (Math.random() - 0.5) * 720,
+        dx: -(10 + Math.random() * 30),
+        dy: 25 + Math.random() * 30,
+        color: COLORS[Math.floor(Math.random() * COLORS.length)],
+        size: 3 + Math.random() * 3,
+      });
+    }
+    // 12 pieces from bottom-left corner
+    for (let i = 0; i < 12; i++) {
+      generated.push({
+        id: i + 24,
+        startX: Math.random() * 30,
+        startY: 75 + Math.random() * 25,
+        delay: Math.random() * 0.1,
+        duration: 0.55 + Math.random() * 0.15,
+        rot: (Math.random() - 0.5) * 720,
+        dx: 10 + Math.random() * 30,
+        dy: -(25 + Math.random() * 30),
+        color: COLORS[Math.floor(Math.random() * COLORS.length)],
+        size: 3 + Math.random() * 3,
+      });
+    }
+    // 12 pieces from bottom-right corner
+    for (let i = 0; i < 12; i++) {
+      generated.push({
+        id: i + 36,
+        startX: 70 + Math.random() * 30,
+        startY: 75 + Math.random() * 25,
+        delay: Math.random() * 0.1,
+        duration: 0.55 + Math.random() * 0.15,
+        rot: (Math.random() - 0.5) * 720,
+        dx: -(10 + Math.random() * 30),
+        dy: -(25 + Math.random() * 30),
         color: COLORS[Math.floor(Math.random() * COLORS.length)],
         size: 3 + Math.random() * 3,
       });
@@ -66,7 +99,7 @@ export default function CellConfetti({ show }: { show: boolean }) {
           className="absolute"
           style={{
             left: `${p.startX}%`,
-            top: '0',
+            top: `${p.startY}%`,
             width: `${p.size}px`,
             height: `${p.size * 1.5}px`,
             backgroundColor: p.color,
