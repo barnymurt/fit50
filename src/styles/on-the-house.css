@@ -247,7 +247,7 @@ ul, ol { list-style: none; padding: 0; }
 .clear-btn:hover { color: var(--coral-deep); }
 
 /* ---------- Region / Category sections ---------- */
-.library { padding-top: 36px; padding-bottom: 60px; }
+.library { padding: 36px 0 60px; background: var(--on-the-house-bg); }
 .region-section,
 .cat-section { margin-bottom: 56px; }
 .region-section:last-child,
