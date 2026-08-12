@@ -1,7 +1,23 @@
-Library section background extends through the whole section
+Meditation (Ten Minutes) page now uses teal
 
-The lavender (quit list) / coral (drinks) / cream (meditation) page background used to be only on the body and the marquee strip. The .library section itself was unstyled so the region sections, the tile grid, and the empty state had a different visual feel from the filter bar above them. The user asked for the page colour to fill the whole section, matching the marquee.
+The user wanted the Ten Minutes page in the teal tone from the design system instead of cream. Renamed .theme-cozy to .theme-teal and rewrote every rule so the page colour is teal (#4A9B9B) with paper text (#FBF7EE) for contrast.
 
-src/styles/on-the-house.css: .library now picks up var(--on-the-house-bg) so the page colour runs from the top of the filter bar, through the region sections, all the way to the bottom of the empty state. Tiles (.tile) are at 0.92 alpha on top of the field, so they read as near-white cards floating on the colour.
+src/styles/on-the-house.css:
+  - --on-the-house-bg: var(--teal) and --on-the-house-fg: var(--paper)
+  - every text rule (eyebrow, region-title, region-blurb, count, count-meta, langs, org, blurb, etc.) inverted to paper because teal is dark
+  - tiles stay paper with coral-on-teal hover behaviour
+  - pills: glassy (rgba(255,255,255,0.18) background, paper border) and invert to paper/ink-deep when pressed
+  - .modal-title / .modal-eyebrow / .modal-section-title / .modal-meta > div > strong all paper
+  - .modal-note is glassy at 0.18 alpha, paper text
+  - .modal-action-primary is paper bg with teal text, hover goes to alpha 0.85
+  - .modal-close is paper bg with teal text, hover inverts to ink-deep
+  - .nav a, .footer-link, .coda a all paper; hover dials to 0.7 alpha so they don't fight the field
+
+src/app/account/meditation/page.tsx: page root switched from theme-cozy to theme-teal.
+
+So the three sub-pages now read as:
+  - Quit list: lavender (peaceful)
+  - Drinks: coral (vibrant, brand orange)
+  - Meditation: teal (cool, calming, the design system's 'tranquil' tone)
 
 Build clean.

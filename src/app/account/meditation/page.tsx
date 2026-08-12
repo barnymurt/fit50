@@ -255,7 +255,7 @@ export default function MeditationPage() {
   }, []);
 
   return (
-    <div className="theme-cozy">
+    <div className="theme-teal">
       <header className="site-header">
         <div className="wrap">
           <a href="/" className="brand">FIT50</a>
