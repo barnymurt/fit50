@@ -45,7 +45,7 @@ export default function Resources({ id }: { id?: string }) {
     >
       <div className="absolute top-0 left-0 right-0 h-32 md:h-52 overflow-hidden pointer-events-none z-0 flex items-center">
         <Marquee
-          text="FREE · CURATED · NO SCROLLING · OPEN THE LINK"
+          text="On the house - curated links - free drinks"
           separator="✦"
           speed={200}
           textClassName="text-ink/10"
@@ -54,9 +54,6 @@ export default function Resources({ id }: { id?: string }) {
 
       <div className="relative z-10 max-w-7xl mx-auto px-6 md:px-10 pb-section">
         <div className="text-center mb-12 md:mb-16">
-          <p className="font-body text-caption uppercase text-coral mb-3">
-            On the house
-          </p>
           <h2 className="font-display text-display-1 text-ink mb-6 leading-[0.95]">
             Freebies
           </h2>
