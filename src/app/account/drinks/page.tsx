@@ -260,7 +260,7 @@ export default function DrinksPage() {
   }, []);
 
   return (
-    <>
+    <div className="theme-coral">
       <header className="site-header">
         <div className="wrap">
           <a href="/" className="brand">FIT50</a>
@@ -404,6 +404,6 @@ export default function DrinksPage() {
       <dialog className="modal" id="modal" aria-label="Drink recipe">
         <div className="modal-body" id="modal-content" />
       </dialog>
-    </>
+    </div>
   );
 }

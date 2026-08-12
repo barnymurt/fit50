@@ -255,7 +255,7 @@ export default function MeditationPage() {
   }, []);
 
   return (
-    <>
+    <div className="theme-cozy">
       <header className="site-header">
         <div className="wrap">
           <a href="/" className="brand">FIT50</a>
@@ -402,6 +402,6 @@ export default function MeditationPage() {
       <dialog className="modal" id="modal" aria-label="Meditation app details">
         <div className="modal-body" id="modal-content" />
       </dialog>
-    </>
+    </div>
   );
 }
