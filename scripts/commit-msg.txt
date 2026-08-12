@@ -1,14 +1,5 @@
-Nav: prevent desktop nav / right-cluster overlap
+Revert Nav to the pre-layout-fix version (the 'new' one)
 
-The desktop header was a single flex row with the logo, a 5-item nav with gap-8, and a right cluster with Account + Buy us a beer + hamburger. At viewports between roughly 1000px and 1280px the nav and right cluster would sit on top of each other because nothing had shrink-0 and the nav had no whitespace-nowrap, so the long 'On the house' label could push the items out of position.
+The user wants the original Nav bar only, so the layout-fix commit (50f09f4, which added gap-4, shrink-0, and whitespace-nowrap to prevent desktop nav overlap) is reverted. The other Nav renames from earlier commits (Resources -> On the house, CTA -> Buy us a beer, order changed so FAQ comes before On the house) are kept.
 
-Fixes in src/components/Nav.tsx:
-
-  - The flex parent now has gap-4 so the logo / nav / right cluster always have 16px between them as a hard floor.
-  - The logo has shrink-0 so it always renders at its natural width.
-  - The nav has shrink-0 + gap-6 (tightens to gap-8 at lg / 1024px+) + every link has whitespace-nowrap. So the nav reserves its full width and doesn't get squashed into the right cluster.
-  - The right cluster has shrink-0 so the Account + Buy us a beer + hamburger never get compressed or pushed into the nav.
-
-Result: the nav sits as a fixed-width block in the middle, the logo on the left, the right cluster on the right, and the gap-4 between them is the safety margin. No visual overlap at any desktop viewport. On screens where the total is still wider than the container the nav falls back to the mobile hamburger (because the <nav> itself has hidden md:flex).
-
-Build clean.
+Reverted to commit 0812c52. Build clean.

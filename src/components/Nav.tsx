@@ -48,23 +48,23 @@ export default function Nav() {
           : 'bg-transparent'
       }`}
     >
-      <div className="max-w-7xl mx-auto px-6 md:px-10 h-16 flex items-center justify-between gap-4">
+      <div className="max-w-7xl mx-auto px-6 md:px-10 h-16 flex items-center justify-between">
         <Link
           href="/"
-          className="font-display text-2xl text-ink tracking-tightest shrink-0"
+          className="font-display text-2xl text-ink tracking-tightest"
           onClick={() => setMobileOpen(false)}
         >
           FIT50
         </Link>
 
         {/* Desktop nav */}
-        <nav className="hidden md:flex items-center gap-6 lg:gap-8 shrink-0">
+        <nav className="hidden md:flex items-center gap-8">
           {NAV_LINKS.map((l) =>
             l.href.startsWith('#') ? (
               <a
                 key={l.href}
                 href={l.href}
-                className="font-body text-caption uppercase text-ink/70 hover:text-ink transition-colors duration-200 whitespace-nowrap"
+                className="font-body text-caption uppercase text-ink/70 hover:text-ink transition-colors duration-200"
               >
                 {l.label}
               </a>
@@ -72,7 +72,7 @@ export default function Nav() {
               <Link
                 key={l.href}
                 href={l.href}
-                className="font-body text-caption uppercase text-ink/70 hover:text-ink transition-colors duration-200 whitespace-nowrap"
+                className="font-body text-caption uppercase text-ink/70 hover:text-ink transition-colors duration-200"
               >
                 {l.label}
               </Link>
@@ -80,7 +80,7 @@ export default function Nav() {
           )}
         </nav>
 
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center gap-3">
           {!loading && user && (
             <>
               <Link
