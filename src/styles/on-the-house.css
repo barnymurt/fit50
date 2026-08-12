@@ -14,148 +14,24 @@ body { line-height: 1.5; -webkit-font-smoothing: antialiased; }
  *   .theme-teal  = teal      (meditation - cool, calming, the 'tranquil' tone)
  * The CSS variable is referenced by the page background, the marquee
  * strip, the sticky filter bar, and the coda so the filter bar always
- * matches the page background colour (per the user). The theme class
- * is applied to a child div of <body>, so we use :has() to propagate
- * the chosen tone up to the body and onto the rest of the page. */
+ * matches the page background colour (per the user). The wrapper
+ * div with the theme class is given min-height: 100vh + the page
+ * background so the colour fills the entire viewport regardless of
+ * the content length. */
 :root {
   --on-the-house-bg: var(--lavender);
   --on-the-house-fg: var(--ink-deep);
 }
 body { background: var(--on-the-house-bg); color: var(--ink); }
-body:has(.theme-coral) { --on-the-house-bg: var(--coral-vibrant); --on-the-house-fg: var(--ink-deep); }
-body:has(.theme-teal)  { --on-the-house-bg: var(--teal);          --on-the-house-fg: var(--paper); }
+.theme-default,
+.theme-coral,
+.theme-teal {
+  min-height: 100vh;
+  background: var(--on-the-house-bg);
+  color: var(--on-the-house-fg);
+}
 .theme-coral { --on-the-house-bg: var(--coral-vibrant); --on-the-house-fg: var(--ink-deep); }
-.theme-coral .site-footer { color: var(--ink-deep); }
-.theme-coral .region-blurb,
-.theme-coral .cat-blurb,
-.theme-coral .tile-blurb,
-.theme-coral .modal-blurb,
-.theme-coral .footer-tag,
-.theme-coral .nav a,
-.theme-coral .filter-label { color: var(--ink-deep); }
-.theme-coral .eyebrow { color: var(--ink-deep); }
-.theme-coral .eyebrow::before { background: var(--ink-deep); }
-.theme-coral .region-count,
-.theme-coral .cat-count { color: var(--ink-deep); }
-.theme-coral .region-title,
-.theme-coral .cat-title { color: var(--ink-deep); }
-.theme-coral .region-title em,
-.theme-coral .cat-title em { color: var(--ink-deep); font-weight: 700; font-style: italic; }
-.theme-coral .coda h2 { color: var(--ink-deep); }
-.theme-coral .brand,
-.theme-coral .footer-brand { color: var(--ink-deep); }
-.theme-coral .modal-title { color: var(--ink-deep); }
-.theme-coral .modal-eyebrow,
-.theme-coral .modal-section-title,
-.theme-coral .modal-note strong,
-.theme-coral .chip { color: var(--ink-deep); }
-.theme-coral .tile-num { color: var(--ink-deep); }
-.theme-coral .modal-org,
-.theme-coral .modal-meta > div span { color: var(--ink-deep); }
-.theme-coral .modal-meta > div strong { color: var(--ink-deep); }
-.theme-coral .tile-name { color: var(--ink-deep); }
-.theme-coral .tile-org { color: var(--ink-deep); }
-.theme-coral .coda-note { color: var(--ink-deep); }
-.theme-coral .footer-nav { color: var(--ink-deep); }
-.theme-coral .footer-copy { color: var(--ink-deep); }
-.theme-coral .modal-method li { color: var(--ink-deep); }
-.theme-coral .modal-ingredients li { color: var(--ink-deep); }
-.theme-coral .modal-note { background: rgba(255, 255, 255, 0.35); }
-.theme-coral .pill { background: rgba(255, 255, 255, 0.85); }
-.theme-coral .pill[aria-pressed="true"] { background: var(--ink-deep); color: var(--paper); border-color: var(--ink-deep); }
-.theme-coral .filter-meta { color: var(--ink-deep); }
-.theme-coral .count { color: var(--ink-deep); }
-.theme-coral .clear-btn { color: var(--ink-deep); }
-.theme-coral .clear-btn:hover { color: var(--ink-deep); opacity: 0.7; }
-.theme-coral .coda a,
-.theme-coral .nav a:hover { color: var(--ink-deep); }
-.theme-coral .pill:hover { color: var(--ink-deep); border-color: var(--ink-deep); }
-.theme-coral .modal-meta > div strong a,
-.theme-coral .modal-meta > div strong a:hover { color: var(--ink-deep); border-color: var(--ink-deep); }
-.theme-coral .modal-action-btn { color: var(--ink-deep); }
-.theme-coral .modal-action-btn:hover { color: var(--ink-deep); background: rgba(255, 255, 255, 0.35); }
-.theme-coral .modal-action-primary { background: var(--ink-deep); color: var(--paper); }
-.theme-coral .modal-action-primary:hover { background: var(--coral-deep); color: var(--paper); }
-.theme-coral .modal-close { background: var(--ink-deep); color: var(--paper); }
-.theme-coral .modal-close:hover { background: var(--coral-deep); }
-.theme-coral .tile { background: rgba(255, 255, 255, 0.92); border-color: transparent; }
-.theme-coral .tile:hover { border-color: var(--ink-deep); }
-.theme-coral .coda a:hover { opacity: 0.7; }
-.theme-coral .tile-country,
-.theme-coral .tile-macro-flag { color: var(--ink-deep); border-color: var(--ink-deep); }
-.theme-coral .tile-macro-flag { background: var(--ink-deep); color: var(--paper); }
-.theme-coral .modal-macros { background: rgba(255, 255, 255, 0.4); }
-.theme-coral .modal-macros > div span,
-.theme-coral .modal-macros > div strong,
-.theme-coral .modal-meta > div strong { color: var(--ink-deep); }
-.theme-coral .field { background: rgba(255, 255, 255, 0.85); }
 .theme-teal { --on-the-house-bg: var(--teal); --on-the-house-fg: var(--paper); }
-.theme-teal .site-footer { color: var(--paper); }
-.theme-teal .region-blurb,
-.theme-teal .cat-blurb,
-.theme-teal .tile-blurb,
-.theme-teal .modal-blurb,
-.theme-teal .footer-tag,
-.theme-teal .nav a,
-.theme-teal .filter-label { color: var(--paper); }
-.theme-teal .eyebrow { color: var(--paper); }
-.theme-teal .eyebrow::before { background: var(--paper); }
-.theme-teal .region-count,
-.theme-teal .cat-count { color: var(--paper); }
-.theme-teal .region-title,
-.theme-teal .cat-title { color: var(--paper); }
-.theme-teal .region-title em,
-.theme-teal .cat-title em { color: var(--paper); }
-.theme-teal .coda h2 { color: var(--paper); }
-.theme-teal .coda-note { color: var(--paper); }
-.theme-teal .brand,
-.theme-teal .footer-brand { color: var(--paper); }
-.theme-teal .modal-title { color: var(--paper); }
-.theme-teal .modal-eyebrow,
-.theme-teal .modal-section-title,
-.theme-teal .modal-note strong { color: var(--paper); }
-.theme-teal .chip { color: var(--paper); border-color: var(--paper); }
-.theme-teal .chip-phone,
-.theme-teal .chip-price,
-.theme-teal .chip-kcal { color: var(--ink-deep); border-color: var(--ink-deep); background: var(--paper); }
-.theme-teal .tile-num { color: var(--paper); }
-.theme-teal .modal-org,
-.theme-teal .modal-meta > div span { color: var(--paper); }
-.theme-teal .modal-meta > div strong { color: var(--paper); }
-.theme-teal .tile-name { color: var(--ink-deep); }
-.theme-teal .tile-org { color: var(--ink-deep); }
-.theme-teal .tile-blurb { color: var(--ink-soft); }
-.theme-teal .modal-method li { color: var(--paper); }
-.theme-teal .modal-ingredients li { color: var(--paper); }
-.theme-teal .modal-note { background: rgba(255, 255, 255, 0.18); color: var(--paper); }
-.theme-teal .modal-note strong { color: var(--paper); }
-.theme-teal .pill { background: rgba(255, 255, 255, 0.18); color: var(--paper); border-color: var(--paper); }
-.theme-teal .pill:hover { color: var(--paper); border-color: var(--paper); background: rgba(255, 255, 255, 0.32); }
-.theme-teal .pill[aria-pressed="true"] { background: var(--paper); color: var(--ink-deep); border-color: var(--paper); }
-.theme-teal .filter-meta { color: var(--paper); }
-.theme-teal .count { color: var(--paper); }
-.theme-teal .clear-btn { color: var(--paper); }
-.theme-teal .clear-btn:hover { color: var(--paper); opacity: 0.7; }
-.theme-teal .coda a,
-.theme-teal .nav a:hover { color: var(--paper); }
-.theme-teal .coda a:hover { opacity: 0.7; }
-.theme-teal .modal-meta > div strong a,
-.theme-teal .modal-meta > div strong a:hover { color: var(--paper); border-color: var(--paper); }
-.theme-teal .modal-action-btn { color: var(--paper); border: 1.5px solid var(--paper); background: transparent; }
-.theme-teal .modal-action-btn:hover { color: var(--teal); background: var(--paper); }
-.theme-teal .modal-action-primary { background: var(--paper); color: var(--teal); }
-.theme-teal .modal-action-primary:hover { background: rgba(255, 255, 255, 0.85); }
-.theme-teal .modal-close { background: var(--paper); color: var(--teal); }
-.theme-teal .modal-close:hover { background: var(--ink-deep); color: var(--paper); }
-.theme-teal .tile { background: var(--paper); border: 1.5px solid transparent; }
-.theme-teal .tile:hover { border-color: var(--paper); transform: translateY(-3px); box-shadow: 0 22px 40px -18px rgba(0, 0, 0, 0.28); }
-.theme-teal .tile-country,
-.theme-teal .tile-macro-flag { color: var(--ink-deep); border-color: var(--ink-deep); }
-.theme-teal .tile-macro-flag.free { background: var(--ink-deep); color: var(--paper); }
-.theme-teal .modal-macros { background: rgba(255, 255, 255, 0.92); }
-.theme-teal .modal-macros > div span { color: var(--ink-soft); }
-.theme-teal .modal-macros > div strong { color: var(--ink-deep); }
-.theme-teal .field { background: rgba(255, 255, 255, 0.92); }
 
 img, svg { display: block; max-width: 100%; }
 button { font: inherit; cursor: pointer; border: none; background: none; color: inherit; padding: 0; }

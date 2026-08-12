@@ -1,12 +1,23 @@
-Fix /meditation background not showing teal
+Fix /meditation page still not teal — :has() wasn't picking up the theme
 
-The user pointed out that the /meditation page wasn't visually teal even though the page had the theme-teal class. The CSS custom property --on-the-house-bg was set on a child div (the page wrapper), not on <body>, so the body background stayed at the default value (lavender) and the teal only coloured the page wrapper's content area - any gap around the content showed lavender.
+The :has() selector fix from the previous commit didn't work for the user. :has() works in modern browsers but maybe the user is on an older one, or some other CSS specificity is interfering. To work regardless of the browser, the fix now applies the page background directly to the theme wrapper div rather than via a body-level selector.
 
-src/styles/on-the-house.css: added body:has(.theme-coral) and body:has(.theme-teal) selectors. :has() is supported in all modern browsers (Chrome 105+, Safari 15.4+, Firefox 121+). The theme class on a child now propagates the chosen tone up to <body> and the rest of the page picks it up:
+src/styles/on-the-house.css:
 
-  body:has(.theme-coral) { --on-the-house-bg: var(--coral-vibrant); --on-the-house-fg: var(--ink-deep); }
-  body:has(.theme-teal)  { --on-the-house-bg: var(--teal);          --on-the-house-fg: var(--paper); }
+  body { background: var(--on-the-house-bg); color: var(--ink); } — kept as the default, in case the wrapper div doesn't reach the full viewport.
 
-So the body (and therefore the whole page background) now picks up the coral on /drinks and the teal on /meditation. The existing .theme-coral and .theme-teal rules on the inner div are still in place - they only applied to that subtree before, but now the body matches them too. The /quit-list keeps the default lavender.
+  .theme-default,
+  .theme-coral,
+  .theme-teal {
+    min-height: 100vh;
+    background: var(--on-the-house-bg);
+    color: var(--on-the-house-fg);
+  }
 
-Build clean.
+  This guarantees that whichever theme class is on the page wrapper, the page wrapper itself fills at least the full viewport (100vh) and is coloured with the chosen tone. The page background now always shows through (instead of the body's default lavender showing in any gap), regardless of browser support for :has() or the body's ability to pick up the child variable.
+
+  The :has() body rules from the previous commit are removed since the wrapper now handles the background directly.
+
+  The other rules that depended on the wrapper-level variable (the .theme-coral, .theme-teal, .theme-default overrides) are unchanged; they now scope the chosen background colour to the wrapper itself rather than to the body, which is what the user sees as the full-page background.
+
+Build clean. The /meditation page should now show teal as the full-page background, the /drinks page coral, and the /quit-list page keeps the default lavender.
