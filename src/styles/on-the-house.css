@@ -258,8 +258,8 @@ ul, ol { list-style: none; padding: 0; }
 .modal::backdrop { background: rgba(26, 23, 48, 0.55); backdrop-filter: blur(3px); }
 .modal[open] { animation: modalIn var(--tx-mid) ease-out; }
 @keyframes modalIn { from { opacity: 0; transform: translateY(12px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
-.modal-body { padding: 32px 34px 28px; overflow-y: auto; max-height: 90vh; }
-.modal-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+.modal-body { padding: 32px 34px 28px; overflow-y: auto; max-height: 90vh; text-align: center; }
+.modal-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 18px; text-align: left; }
 .modal-eyebrow { font-family: var(--font-display); font-weight: 400; font-style: italic; font-size: 20px; color: var(--coral-vibrant); margin-bottom: 4px; }
 .modal-title {
   font-family: var(--font-display); font-weight: 600;
@@ -275,7 +275,10 @@ ul, ol { list-style: none; padding: 0; }
   cursor: pointer;
 }
 .modal-close:hover { background: var(--coral-vibrant); }
-.modal-blurb { font-size: 15px; color: var(--ink-soft); line-height: 1.55; margin-bottom: 22px; }
+.modal-blurb { font-size: 15px; color: var(--ink-soft); line-height: 1.55; margin-bottom: 22px; max-width: 520px; margin-left: auto; margin-right: auto; }
+.modal-section-title { font-family: var(--font-display); font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.16em; color: var(--coral-vibrant); margin-bottom: 10px; }
+.modal-support,
+.modal-feats { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 22px; justify-content: center; }
 .modal-meta {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -284,6 +287,10 @@ ul, ol { list-style: none; padding: 0; }
   border-top: 1px solid var(--border-soft);
   border-bottom: 1px solid var(--border-soft);
   margin-bottom: 22px;
+  text-align: left;
+  max-width: 520px;
+  margin-left: auto;
+  margin-right: auto;
 }
 .modal-meta > div span {
   display: block;
@@ -294,6 +301,7 @@ ul, ol { list-style: none; padding: 0; }
 .modal-meta > div strong { font-weight: 600; color: var(--ink-deep); font-size: 14px; word-break: break-word; }
 .modal-meta > div strong a { color: var(--coral-vibrant); border-bottom: 1px solid transparent; transition: border-color var(--tx-fast); }
 .modal-meta > div strong a:hover { border-color: var(--coral-vibrant); }
+.modal-note { text-align: left; max-width: 520px; margin-left: auto; margin-right: auto; }
 .modal-macros {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -304,6 +312,7 @@ ul, ol { list-style: none; padding: 0; }
   margin-bottom: 22px;
 }
 .modal-macros > div { text-align: center; }
+.modal-macros { max-width: 520px; margin-left: auto; margin-right: auto; }
 .modal-macros > div span {
   display: block;
   font-family: var(--font-display); font-weight: 700;
@@ -317,17 +326,17 @@ ul, ol { list-style: none; padding: 0; }
 }
 .modal-section-title { font-family: var(--font-display); font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.16em; color: var(--coral-vibrant); margin-bottom: 10px; }
 .modal-support,
-.modal-feats { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 22px; }
+.modal-feats { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 22px; justify-content: center; }
 .modal-support .chip,
 .modal-feats .chip { font-size: 12px; padding: 5px 11px; }
-.modal-ingredients { margin-bottom: 24px; }
+.modal-ingredients { margin-bottom: 24px; text-align: left; max-width: 520px; margin-left: auto; margin-right: auto; }
 .modal-ingredients li {
   padding: 9px 0;
   border-bottom: 1px dashed var(--border-soft);
   font-size: 14px; color: var(--ink-deep);
 }
 .modal-ingredients li:last-child { border-bottom: none; }
-.modal-method { counter-reset: step; margin-bottom: 22px; }
+.modal-method { counter-reset: step; margin-bottom: 22px; text-align: left; max-width: 520px; margin-left: auto; margin-right: auto; }
 .modal-method li {
   position: relative;
   padding-left: 42px;
@@ -369,7 +378,7 @@ ul, ol { list-style: none; padding: 0; }
   text-transform: uppercase; letter-spacing: 0.14em;
   color: var(--ink-muted); display: block; margin-bottom: 4px;
 }
-.modal-actions { display: flex; gap: 6px; padding-top: 16px; border-top: 1px solid var(--border-soft); flex-wrap: wrap; }
+.modal-actions { display: flex; gap: 6px; padding-top: 16px; border-top: 1px solid var(--border-soft); flex-wrap: wrap; justify-content: center; }
 .modal-action-btn {
   font-size: 13px; font-weight: 500;
   color: var(--ink-soft);

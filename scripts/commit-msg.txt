@@ -1,14 +1,15 @@
-Wrap constrained to align with the rest of the site
+Modal content now centered
 
-The sub-page .wrap was 1240px (matching the original HTMLs) but the rest of the FIT50 site uses max-w-5xl (1024px) for its main content. The sub-pages were visually wider than every other section on the site, breaking the column.
+The modal dialog itself was already centered on screen (it's a <dialog> element). The CONTENT inside was left-aligned. Updated the CSS in src/styles/on-the-house.css:
 
-Update in src/styles/on-the-house.css:
+- .modal-body: text-align: center, sets the default for every child.
+- .modal-blurb: text-align: center (inherits), max-width 520px and margin auto so the lede reads as a centred paragraph block.
+- .modal-section-title: stays centred (inherits body text-align).
+- .modal-support, .modal-feats: justify-content: center on the flex row so the chip groups sit centred.
+- .modal-macros: max-width 520px with margin auto so the 4-cell macros card (drinks modal) is centred.
+- .modal-meta, .modal-ingredients, .modal-method, .modal-note: explicitly set to text-align: left (override the centred body) so the detail blocks read naturally, each constrained to 520px and centred as a block.
+- .modal-actions: justify-content: center so the row of buttons (Visit site, Copy details, Print) sits centred.
 
-  .wrap { max-width: 1024px; margin: 0 auto; padding: 0 24px; }
-  @media (min-width: 768px) { .wrap { padding: 0 40px; } }
-
-Now the lavender field, the tile grid, the region blurb, the modal etc all sit in the same column as the homepage content. The 1024px max is wide enough to keep the 4-column tile grid feeling roomy, but narrow enough that the design has the same silhouette as the rest of the site (max-w-5xl mx-auto used everywhere in the homepage and account sections).
-
-Visual details preserved: the Fraunces italic 'em' on the hero h1, the coral-vibrant eyebrow, the pill buttons, the 64px italic Fraunces coral tile numbers, the soft paper cards with the hover lift and coral border. The lavender (#E4DEF3) field, the paper (#FBF7EE) tiles, and the ink-deep (#1A1730) type all unchanged. Just the .wrap width was the mismatch.
+Visual character preserved: the italic Fraunces coral eyebrow ('No. 03 - Europe'), the Fraunces 600 modal-title, the coral-vibrant support chips, the lavender-soft note card, the modal-close button, the shadow. Now everything reads as a centered card with detail blocks nested inside.
 
 Build clean.
