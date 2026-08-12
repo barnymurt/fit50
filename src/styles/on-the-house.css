@@ -191,12 +191,13 @@ ul, ol { list-style: none; padding: 0; }
   font-weight: 600; font-size: 15px;
   transition: background var(--tx-fast), border-color var(--tx-fast), color var(--tx-fast), transform var(--tx-fast);
   cursor: pointer;
+  color: var(--ink-deep);
 }
 .btn:active { transform: translateY(1px); }
-.btn-primary { background: var(--ink-deep); color: var(--paper); }
-.btn-primary:hover { background: var(--coral-vibrant); }
-.btn-ghost { border: 1.5px solid var(--ink-deep); color: var(--ink-deep); background: transparent; }
-.btn-ghost:hover { border-color: var(--coral-vibrant); color: var(--coral-vibrant); }
+.btn-primary { background: var(--ink-deep) !important; color: var(--paper) !important; border: 1.5px solid var(--ink-deep); }
+.btn-primary:hover { background: var(--ink-deep) !important; color: var(--coral-vibrant) !important; border-color: var(--coral-vibrant); }
+.btn-ghost { border: 1.5px solid var(--ink-deep); color: var(--ink-deep) !important; background: transparent; }
+.btn-ghost:hover { border-color: var(--coral-vibrant) !important; color: var(--coral-vibrant) !important; }
 
 /* ---------- Marquee ---------- */
 .marquee {

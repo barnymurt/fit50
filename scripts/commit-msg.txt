@@ -1,23 +1,18 @@
-Three sub-pages, three different section tones from the design system
+Remove duplicated <header> from each sub-page; harden button contrast
 
-The user asked for:
-1. The drinks filter bar to use the same background as its page background (was lavender, now matches whatever tone the page picks).
-2. The three sub-pages to each have a different design-system background.
-3. The drinks page to be the most colourful using the design system's orange tone.
+The three sub-pages were rendering their own <header class="site-header"> block inside the page. That duplicated the main site Nav (which the root layout renders on every page). The user asked for only the original Nav bar, so the page-level header has been removed from each of the three sub-pages; the main site Nav is now the single source of nav on these pages too.
 
-src/styles/on-the-house.css: introduced a single CSS custom property --on-the-house-bg that drives the page background, the marquee strip, and the sticky filter bar (so the filter bar always matches the page). Three theme classes swap that variable:
+src/app/account/quit-list/page.tsx: removed the <header class="site-header">...</header> block. The page root is now <div className="theme-default"> wrapping just the page-specific content (hero, filter bar, library, coda, footer, modal). The wrap div closes at the end of the JSX so the file still compiles.
 
-  default              = var(--lavender)   - quit list (peaceful, unchanged)
-  .theme-coral = var(--coral-vibrant)   - drinks (the brand orange, the most vibrant)
-  .theme-cozy  = var(--cream)          - meditation (warm, relaxed, the design system's cosy tone)
+src/app/account/drinks/page.tsx + src/app/account/meditation/page.tsx: already had the wrap div closure fixed in the previous commit, but they were still rendering the local <header>. Removed their <header class="site-header"> blocks too. All three pages now match the homepage structure (Nav from the root layout + page content).
 
-Each theme also overrides all the text/icon/button colours that need flipping for contrast against the saturated background. The page background, marquee, and filter bar now swap together via the CSS variable, so the filter bar automatically matches the page (per the user's previous request). The hero, type, and chips all keep their design language - only the background and contrast colours shift.
+src/styles/on-the-house.css: the user also pointed out that on the drinks and meditation pages the 'Browse the library / the eight' button text appeared the same colour as the button itself. The default .btn had color: inherit (which would be dark text on a dark background if the theme's text colour was already dark). Fixed:
 
-src/app/account/drinks/page.tsx + src/app/account/meditation/page.tsx: the JSX root is now <div className="theme-coral"> for drinks and <div className="theme-cozy"> for meditation. The wrap div closure on each page is fixed so the JSX is balanced.
+  - .btn-primary now has color: var(--paper) !important on a var(--ink-deep) !important background, with a 1.5px var(--ink-deep) border, so the 'Browse the list' text is always paper-on-ink-deep regardless of which theme is active.
+  - On hover, the text flips to var(--coral-vibrant) so the user gets clear feedback the button is being pressed (no longer just an 'invisible' button).
+  - .btn-ghost has the same 1.5px border with explicit !important colour so it never blends into the page background.
+  - The default .btn picks up color: var(--ink-deep) (the dark text) so standalone <a class="btn"> uses the dark text by default.
 
-Visual result on the three pages:
-  - Quit list: lavender (unchanged). Tile cards stay paper. Modal stays paper. Calm.
-  - Drinks: coral-vibrant. Tile cards sit at 0.92 alpha on coral so they read as bright but legible. Tiles have a black border and chip text inverted to ink. Eyebrow and small text inverted to ink. The brand's signature orange. The "drinkiest" of the three.
-  - Meditation: cream (warm, soft, relaxed). Same alpha-tile trick. Tiles are almost-white on the warm field. The most relaxed of the three.
+The button styling now reads correctly across all three themes (lavender / coral / cream) and the 'text appears the same as the button' issue is gone.
 
 Build clean.

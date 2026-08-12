@@ -274,21 +274,8 @@ export default function QuitListPage() {
   }, []);
 
   return (
-    <>
-      {/* Header */}
-      <header className="site-header">
-        <div className="wrap">
-          <a href="/" className="brand">FIT50</a>
-          <nav className="nav" aria-label="Primary">
-            <a href="/#rules">Rules</a>
-            <a href="/#workouts">Workouts</a>
-            <a href="/#tracker">Tracker</a>
-            <a href="/#resources">On the house</a>
-            <a href="/#faq">FAQ</a>
-          </nav>
-          <a href="/#sign-up" className="start-btn">Buy us a beer</a>
-        </div>
-      </header>
+    <div className="theme-default">
+      {/* Page-level content (the main site Nav from the root layout renders above this) */}
 
       {/* Hero */}
       <section className="hero">
@@ -434,6 +421,6 @@ export default function QuitListPage() {
       <dialog className="modal" id="modal" aria-label="Service details">
         <div className="modal-body" id="modal-content" />
       </dialog>
-    </>
+    </div>
   );
 }
