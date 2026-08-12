@@ -1,15 +1,22 @@
-Quit List: remove Antarctica coda-note, change coda line, white tiles with no text clipping
+Fix button-reset CSS specificity on all three sub-pages
 
-src/app/account/quit-list/page.tsx:
+The .ql-root button, .dk-root button, and .tm-root button rules had higher specificity than the .ql-tile, .dk-tile, and .tm-tile rules. Since the tiles are <button> elements, the button reset was winning, stripping the paper background and flattening the padding, which was why the text was sitting right at the rounded corners.
 
-  - Coda text now reads 'Fifty days smoke-free starts tomorrow.' (was '...starts with one call.').
-  - Removed the Antarctica coda-note block entirely (the user asked to delete that whole blockquote/note).
-  - The coda section is now just the headline + coda-note gone; the section still has the coda padding and spacing so the layout doesn't collapse.
+src/app/account/quit-list/page.tsx (line 574-587): wrapped the three reset rules in :where() to give them zero specificity. The tile styles now win and the paper background + 24px padding apply correctly.
 
-  - .ql-tile background changed from var(--ql-paper) to #ffffff (pure white, as the user asked).
-  - The rounded corners stay (border-radius: var(--ql-radius) which is 20px - the same as before).
-  - To make sure no text gets clipped at the rounded corners, added overflow-wrap: anywhere on the .ql-tile and on the three text-heavy children (.ql-tile-name, .ql-tile-org, .ql-tile-blurb) so any long service/org/blurb text breaks inside the tile rather than overflowing the corner.
-  - .ql-tile-name font-size dropped from 20px to 18px and line-height from 1.1 to 1.2 to give the long names more vertical room.
-  - .ql-tile-blurb font-size dropped from 13.5px to 12.5px so the blurb still has room to grow inside the tile without being clipped by the rounded bottom corners.
+src/app/account/meditation/page.tsx (line 376-378): same fix with .tm-root prefix.
 
-Build clean.
+src/app/account/drinks/page.tsx (line 421-424): same fix with .dk-root prefix, plus the fourth .dk-root ul, .dk-root ol rule wrapped in :where(.dk-root ul, .dk-root ol) as the user described.
+
+Before:
+  .ql-root * { box-sizing: border-box; }       /* specificity 0,1,1 */
+  .ql-root button { ... }                        /* specificity 0,1,1 - resets bg + padding */
+  .ql-tile { background: var(--ql-paper); padding: 24px 22px 22px; }  /* specificity 0,1,1 - ties on tile rules */
+  Since .ql-tile and .ql-root button are both (0,1,1), the button rule (later in source) won the cascade tie, and tiles rendered as if they were the default button.
+
+After:
+  :where(.ql-root *) { box-sizing: border-box; }    /* specificity 0,0,0 - never wins */
+  :where(.ql-root button) { ... }                   /* specificity 0,0,0 - never wins */
+  .ql-tile { background: var(--ql-paper); padding: 24px 22px 22px; }  /* specificity 0,1,1 - always wins */
+
+Build clean. Tiles will now render with the paper background and proper 24px padding, text pulls away from the rounded corners on all three pages.

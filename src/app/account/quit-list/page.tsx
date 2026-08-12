@@ -571,10 +571,10 @@ export default function QuitListPage() {
           -webkit-font-smoothing: antialiased;
         }
 
-        .ql-root * {
+        :where(.ql-root *) {
           box-sizing: border-box;
         }
-        .ql-root button {
+        :where(.ql-root button) {
           font: inherit;
           cursor: pointer;
           border: none;
@@ -582,7 +582,7 @@ export default function QuitListPage() {
           color: inherit;
           padding: 0;
         }
-        .ql-root a {
+        :where(.ql-root a) {
           color: inherit;
           text-decoration: none;
         }
