@@ -191,6 +191,21 @@ export type Database = {
           updated_at: string;
         }>;
       };
+      newsletter_subscribers: {
+        Row: {
+          id: string;
+          email: string;
+          subscribed_at: string;
+        };
+        Insert: {
+          email: string;
+          subscribed_at?: string;
+        };
+        Update: Partial<{
+          email: string;
+          subscribed_at: string;
+        }>;
+      };
     };
   };
 };

@@ -30,9 +30,9 @@ const RESOURCES: ResourcesItem[] = [
   },
   {
     category: 'Nutrition',
-    title: 'Macro calculator',
-    description: 'Plug in your stats, get a daily protein/carb/fat target. No app install, no sign-up, just numbers. Premium members get the full macrocalc with body fat support.',
-    href: '/macrocalc',
+    title: 'Fridge checklist',
+    description: 'A one-page printable of what to keep on hand for the 50 days. Drop your email, download the PDF.',
+    href: '/account/fridge-checklist',
   },
 ];
 
