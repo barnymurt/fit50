@@ -16,7 +16,28 @@ const NAV_LINKS = [
 export default function Nav() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const { user, loading, signOut } = useAuth();
+
+  const handleCheckout = async () => {
+    setCheckoutLoading(true);
+    setCheckoutError(null);
+    setMobileOpen(false);
+    try {
+      const res = await fetch('/api/stripe/checkout', { method: 'POST' });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.error ?? `checkout failed (${res.status})`);
+      }
+      const { url } = (await res.json()) as { url?: string };
+      if (!url) throw new Error('checkout returned no url');
+      window.location.href = url;
+    } catch (err) {
+      setCheckoutError(err instanceof Error ? err.message : 'checkout failed');
+      setCheckoutLoading(false);
+    }
+  };
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -108,8 +129,15 @@ export default function Nav() {
               Account
             </Link>
           )}
-          <Button href="#sign-up" variant="primary" tone="light" className="!px-5 !py-2.5 !text-xs">
-            Buy us a beer
+          <Button
+            onClick={handleCheckout}
+            variant="primary"
+            tone="light"
+            disabled={checkoutLoading}
+            className="!px-5 !py-2.5 !text-xs"
+            ariaLabel={checkoutError ?? 'Buy us a beer — open checkout'}
+          >
+            {checkoutLoading ? 'Opening…' : 'Buy us a beer'}
           </Button>
           <button
             type="button"
@@ -156,13 +184,14 @@ export default function Nav() {
               </li>
             ))}
             <li>
-              <Link
-                href="/upgrade"
-                onClick={() => setMobileOpen(false)}
-                className="block px-2 py-3 font-body text-caption uppercase tracking-widest text-coral hover:text-ink border-b border-rule"
+              <button
+                type="button"
+                onClick={handleCheckout}
+                disabled={checkoutLoading}
+                className="block w-full text-left px-2 py-3 font-body text-caption uppercase tracking-widest text-coral hover:text-ink border-b border-rule disabled:opacity-60"
               >
-                Buy us a beer
-              </Link>
+                {checkoutLoading ? 'Opening…' : 'Buy us a beer'}
+              </button>
             </li>
             {!loading && user && (
               <li>
