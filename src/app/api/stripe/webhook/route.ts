@@ -113,26 +113,62 @@ export async function POST(req: NextRequest) {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
-        const userId =
+        const metadataUserId =
           (session.metadata?.user_id as string | undefined) ?? '';
-        const userEmail =
+        const customerEmail =
           (session.metadata?.user_email as string | undefined) ??
           session.customer_details?.email ??
           session.customer_email ??
           '';
+
+        let userId = metadataUserId;
+
+        // Guest checkout: no Supabase user at checkout time. Try to
+        // match an existing user by email. If none exists yet, the
+        // buyer will sign up later and we lose the linkage — log it
+        // so it can be reconciled manually.
         if (!userId) {
-          console.error('checkout.session.completed without user_id metadata');
-          break;
+          if (!customerEmail) {
+            console.error(
+              'checkout.session.completed without user_id or email; cannot grant'
+            );
+            break;
+          }
+          const { data: userList, error: listError } =
+            await supabase.auth.admin.listUsers();
+          if (listError) {
+            console.error('Failed to list users for email match:', listError);
+            return NextResponse.json(
+              { error: 'list failed' },
+              { status: 500 }
+            );
+          }
+          const match = userList.users.find(
+            (u) => u.email?.toLowerCase() === customerEmail.toLowerCase()
+          );
+          if (!match) {
+            console.error(
+              `No Supabase user for guest checkout email ${customerEmail}; manual reconciliation needed`
+            );
+            break;
+          }
+          userId = match.id;
         }
-        await ensureProfileExists(supabase, userId, userEmail);
+
+        await ensureProfileExists(supabase, userId, customerEmail);
         const ok = await setPremium(
           supabase,
           userId,
           true,
-          userEmail,
+          customerEmail,
           event.type
         );
-        if (!ok) return NextResponse.json({ error: 'update failed' }, { status: 500 });
+        if (!ok) {
+          return NextResponse.json(
+            { error: 'update failed' },
+            { status: 500 }
+          );
+        }
         break;
       }
 

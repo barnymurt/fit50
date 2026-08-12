@@ -50,10 +50,6 @@ export default function SixFeatures({
   const [error, setError] = useState<string | null>(null);
 
   const handleCheckout = async () => {
-    if (!user) {
-      setError('Sign in first to unlock checkout.');
-      return;
-    }
     setCheckoutLoading(true);
     setError(null);
     try {
@@ -186,7 +182,7 @@ export default function SixFeatures({
               disabled={checkoutLoading}
               className="inline-flex items-center justify-center bg-coral text-paper font-body text-sm px-12 py-5 uppercase tracking-wider hover:bg-coral/85 transition-colors disabled:opacity-50"
             >
-              {checkoutLoading ? 'Opening checkout…' : 'Sign up for €5.99'}
+              {checkoutLoading ? 'Opening checkout…' : 'Unlock for €5.99'}
             </button>
             <p className="font-body text-caption uppercase tracking-widest text-paper/65 mt-4">
               The price of a caneca · secure checkout via Stripe

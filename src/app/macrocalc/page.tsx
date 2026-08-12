@@ -14,10 +14,6 @@ export default function MacrocalcPage() {
   const [error, setError] = useState<string | null>(null);
 
   const handleCheckout = async () => {
-    if (!user) {
-      setError('Sign in first to unlock checkout.');
-      return;
-    }
     setCheckoutLoading(true);
     setError(null);
     try {

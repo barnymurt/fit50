@@ -21,6 +21,10 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // Auth is optional. If the visitor is already signed in we attach
+  // their Supabase user id as metadata so the webhook can grant
+  // premium directly. Otherwise we let Stripe collect the email and
+  // the webhook falls back to matching by email.
   const cookieStore = cookies();
   const supabase = createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -36,9 +40,7 @@ export async function POST(req: NextRequest) {
               cookieStore.set(name, value, options);
             });
           } catch {
-            // Server Components cannot set cookies. Will be ignored if
-            // called from a Server Component. We only call this from a
-            // Route Handler, so this should never throw.
+            // ignored — Route Handlers can set cookies
           }
         },
       },
@@ -49,19 +51,19 @@ export async function POST(req: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user || !user.email) {
-    return NextResponse.json({ error: 'not authenticated' }, { status: 401 });
-  }
-
   const origin = req.nextUrl.origin;
 
   const stripe = new Stripe(secret);
+
+  const metadata: Record<string, string> = {};
+  if (user?.id) metadata.user_id = user.id;
+  if (user?.email) metadata.user_email = user.email;
 
   try {
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
       payment_method_types: ['card'],
-      customer_email: user.email,
+      ...(user?.email ? { customer_email: user.email } : {}),
       line_items: [
         {
           quantity: 1,
@@ -75,10 +77,7 @@ export async function POST(req: NextRequest) {
           },
         },
       ],
-      metadata: {
-        user_id: user.id,
-        user_email: user.email,
-      },
+      metadata,
       success_url: `${origin}/account?checkout=success`,
       cancel_url: `${origin}/?checkout=canceled`,
     });
