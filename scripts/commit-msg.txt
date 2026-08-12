@@ -1,30 +1,38 @@
-Move the entire /upgrade page into the homepage sign-up section
+Collapse the Sign up section back into one section with the new copy
 
-SixFeatures is now the comprehensive sign-up section, structured as four consecutive parts (was: one part):
+Per request: "Buy us a beer and we'll give you the tools to not need one for 50 days. One payment, yours forever, no subscription. A caneca is ~EUR 6. Skip one a day for 50 days and you keep EUR 300 - EUR 5.99 buys the tools, the challenge pays for them. What you get. Task tracker - tap to mark the nine daily habits; streak builds automatically. Streak protection - one free pass a week. Miss a day, the streak holds. Each save shows up as a banana on your certificate. Water tracker - tap to log each glass, target built in. Macro food tracker - search 1,000+ foods, log portions, tag meals, totals against your targets. Multi-purpose timer - reading, meditation, focus blocks, presets included. Kanban board - plan the 50 days across To do / In progress / Done. it needs to be 1 section on the home page."
 
-1. HERO (teal ground, like the old /upgrade hero)
-   - Marquee at the top: BUY US A CANECA, EUR 5.99, ONE-TIME, YOURS FOREVER
-   - 'Buy us a beer.' headline + 'Well give you the tools to not need one for 50 days.'
-   - Price block with the one-time label + 'price of a caneca' subtitle
-   - If signed in + premium: 'Youre in' status + 'Open your account' button
-   - If signed out: 'Sign up for EUR 5.99' button that calls Creem checkout (logic moved out of /upgrade/page.tsx into this component, with the same prefilled_email behavior)
-   - Guest hint: 'Pay with the same email...'
+SixFeatures is now ONE <section> element on a paper ground, with internal vertical flow:
 
-2. THE MATH (paper ground)
-   - 'One of the rules is no alcohol.'
-   - 3-up stats: EUR 6 average caneca, 50 days, EUR 300 you keep
-   - 'EUR 5.99 buys the tools. The 50 days pays for them many times over.'
+1. Marquee at the very top (paper-friendly text-ink/10 so it reads as a watermark, not a header)
 
-3. WHAT UNLOCKS (paper ground, with the Sign up marquee at the top)
-   - 'Sign up for helpful tools.' headline
-   - 'Buy us a beer for a handful of helpful tools. EUR 5.99 one-time, yours forever.'
-   - The same 6-feature grid mapping to the actual tools in /account (task completion tracker, streak protection, water tracker, detailed macro food tracker, multi-purpose timer, to-do planning board)
+2. Hero block (centered):
+   - eyebrow: 'Helpful tools'
+   - headline: 'Buy us a beer.'
+   - subhead: "and we'll give you the tools to not need one for 50 days."
+   - one-liner: 'One payment, yours forever, no subscription.'
 
-4. FREE EXTRAS (paper ground)
-   - 'Free for everyone' for the curated /toolkit, no sign-up needed
+3. The math block (border-top + border-bottom, vertically framed):
+   - eyebrow: 'The math'
+   - one-line headline: 'A caneca is ~EUR 6. Skip one a day for 50 days and you keep EUR 300 - EUR 5.99 buys the tools, the challenge pays for them.'
+   - 3-up stat tiles below: EUR 6 caneca / 50 days / EUR 300 you keep
 
-/upgrade/page.tsx is now a 3-line server component that redirects to /#sign-up, so any existing links to /upgrade still land on the right place.
+4. 'What you get' block (heading + 2x3 feature grid):
+   - heading: 'Sign up for helpful tools.'
+   - feature grid (matched to the actual tools in /account, simplified titles from the longer copy):
+     1. Task tracker - tap to mark the nine daily habits; streak builds automatically.
+     2. Streak protection - one free pass a week. Miss a day and the streak holds. Each save shows up as a banana on your certificate.
+     3. Water tracker - tap to log each glass, target built in.
+     4. Macro food tracker - search 1,000+ foods, log portions, tag meals, totals against your targets.
+     5. Multi-purpose timer - reading, meditation, focus blocks, presets included.
+     6. Kanban board - plan the 50 days across To do / In progress / Done.
 
-Homepage page.tsx now passes id=sign-up to SixFeatures, so the redirect target lands at the top of the hero. Internal anchors like the CTAs in the account sidebar and the macro calculator already link to /upgrade; they continue to work because /upgrade redirects to /#sign-up.
+5. CTA (signed-out: 'Sign up for EUR 5.99' button + checkout; signed-in-premium: 'You're in' panel)
 
-Build clean. /upgrade is now 146 B (redirect).
+6. 'Free for everyone' callout pointing to /toolkit
+
+Removed:
+- The 4 separate <section> tags (hero/teal, math/ink, features/paper, free-extras/paper) from the previous commit - now just one continuous section.
+- The teal hero background and the ink-toned math section - everything is paper now, matching the rest of the homepage sections.
+
+Build clean.
