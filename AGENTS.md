@@ -37,7 +37,9 @@ branches/initial-build/
 │   │   ├── account/        # Sign in / sign up / account page
 │   │   ├── upgrade/        # Premium upgrade page
 │   │   └── api/
-│   │       └── creem/webhook/  # Creem payment webhook
+│   │       ├── stripe/checkout/  # POST /api/stripe/checkout (creates Stripe Checkout Session)
+│   │       └── stripe/webhook/   # POST /api/stripe/webhook (handles checkout.session.completed + charge.refunded)
+│   │       └── creem/webhook/    # Legacy Creem webhook (kept for fallback; safe to delete)
 │   ├── components/         # Reusable React components (Section, Heading, Button, etc.)
 │   ├── contexts/           # React contexts (AuthContext)
 │   ├── hooks/              # Custom hooks (useSyncTracker, usePremium, useStreakProtection)
@@ -46,7 +48,7 @@ branches/initial-build/
 │   ├── migrations/         # SQL migrations to run in Supabase dashboard
 │   ├── README.md           # Supabase setup walkthrough
 │   ├── AUTH_SETUP.md       # Auth configuration (now email/password + passkey)
-│   ├── CREEM_SETUP.md      # Payment setup
+│   ├── STRIPE_SETUP.md     # Payment setup (Stripe Checkout)
 │   ├── EMAIL_SETUP.md      # Resend SMTP for branded emails
 │   └── VERCEL_SETUP.md     # Domain + DNS + production env vars
 ├── docs/
@@ -66,7 +68,7 @@ branches/initial-build/
 - **Next.js 14** App Router + TypeScript
 - **Tailwind CSS** with custom theme tokens (see `tailwind.config.js`)
 - **Supabase** for auth, database, and the magic webhook
-- **Creem** for payments (replaces Lemon Squeezy)
+- **Stripe** for payments (replaces Creem, hosted Checkout)
 - **next/font/google** for Fraunces, Inter, Lilita One
 - **Sharp** for image processing (icon conversion, favicon generation)
 - **Resend** for branded emails (optional, only for password reset)
@@ -89,7 +91,7 @@ Premium is not for *how* you sign in. It's for *what* you can do once signed in.
 - `usePremium()` hook reads the flag
 - All premium features (cloud sync, streak protection, daily reminders, photo proof, completion certificate, data export) are gated behind this single flag
 - Streak protection: 1 free pass per week for premium users, each save visualized as a 🍌 on the certificate
-- One-time payment of €5.99 via Creem — no subscription (price of a caneca)
+- One-time payment of €5.99 via Stripe Checkout — no subscription (price of a caneca)
 
 ## Common pitfalls
 
@@ -116,7 +118,7 @@ node scripts/generate-favicon.js  # regenerate the favicon
 
 - **Production URL**: https://fit50challenge.io
 - **Supabase project**: https://supabase.com/dashboard/project/djblhxwdsazksgubhlrn
-- **Creem dashboard**: https://creem.io
+- **Stripe dashboard**: https://dashboard.stripe.com
 - **Vercel project**: https://vercel.com/dashboard
 
 ## Remember

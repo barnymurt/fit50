@@ -14,17 +14,25 @@ export default function MacrocalcPage() {
   const [error, setError] = useState<string | null>(null);
 
   const handleCheckout = async () => {
-    setCheckoutLoading(true);
-    setError(null);
-    const checkoutUrl = process.env.NEXT_PUBLIC_STRIPE_CHECKOUT_URL;
-    if (!checkoutUrl) {
-      setError('Stripe checkout is not configured yet. We are switching over from Creem — check back soon.');
-      setCheckoutLoading(false);
+    if (!user) {
+      setError('Sign in first to unlock checkout.');
       return;
     }
-    const url = new URL(checkoutUrl);
-    if (user?.email) url.searchParams.set('prefilled_email', user.email);
-    window.location.href = url.toString();
+    setCheckoutLoading(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/stripe/checkout', { method: 'POST' });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.error ?? `checkout failed (${res.status})`);
+      }
+      const { url } = (await res.json()) as { url?: string };
+      if (!url) throw new Error('checkout returned no url');
+      window.location.href = url;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'checkout failed');
+      setCheckoutLoading(false);
+    }
   };
 
   // Auth gate
