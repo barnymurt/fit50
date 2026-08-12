@@ -1,11 +1,20 @@
-Nav: rename Resources -> On the house, CTA -> Buy us a beer
+Sub-pages now match the original HTML files exactly
 
-Three text changes, all in src/components/Nav.tsx:
+The /account/quit-list, /account/drinks, and /account/meditation pages were re-skinned to mirror the standalone HTML files the user shared. Each page now ships with the same class names, layout, and behaviour as the original:
 
-1. Desktop nav and mobile menu both render NAV_LINKS; the resources entry was 'Resources', now 'On the house'. The href stays #resources so the existing anchor on the homepage (the On the house eyebrow) still works.
+- Header: site-header with FIT50 brand + nav (Rules/Workouts/Tracker/On the house/FAQ) + 'Buy us a beer' CTA.
+- Hero: eyebrow + h1 with the coral 'em' accent (clamp 60px, 11vw, 140px) + lede + primary CTA + ghost preset button ('Phone lines only' / 'Show batch drinks' / 'Free only').
+- Marquee 1 + Marquee 2 (dual marquees) with the original rotation text.
+- Library: sticky filter bar (region / support for quit-list; flavour / occasion for drinks; category / best for for meditation) with 'count' and 'Clear filters' in the dashed-border filter-meta strip. Each filter pill is a paper button that flips to coral on press.
+- Tiles: 4-column grid (3 at 1024, 2 at 720, 1 at 440), 20px radius, paper bg, soft shadow that deepens to a coral-bordered tile on hover with -3px translate. Tile num is the giant Fraunces 300 italic 64px coral in the corner. Country flag or Macros pill in the top right.
+- Modal: opens via the <dialog> element, fade-in with cubic-bezier(0.22,1,0.36,1) for the sheet, dismiss with ESC or backdrop click. The modal has its own macros grid (drinks), a Support types chip row, language chips, modal-actions with primary/secondary buttons, and a copy-to-clipboard button (writes the full detail block to the clipboard with a 'Copied ✓' confirmation).
+- Coda section: italic 76px h2 + coda-note dashed border for meditation + drinks, larger lede for quit-list.
+- Footer: same three-column footer as the originals.
+- Print stylesheet: hides everything except the open modal so the user can save the recipe card directly as a PDF via the browser print dialog.
 
-2. Desktop right-side primary button: 'Buy tools - EUR 5.99' -> 'Buy us a beer'. Link still points to #sign-up.
+Data:
+- All 40 services from quit-list.html extracted into src/data/quit-list.ts (typed QuitService with region, support array, languages, phone, website, etc.).
+- All 50 drinks from drinks.html extracted into src/data/drinks.ts (typed Drink with macros, batch_note, flavour array, occasions array).
+- All 8 apps from ten-minutes.html extracted into src/data/meditation.ts (typed MeditationApp).
 
-3. Mobile menu coral 'Buy tools' item: 'Buy tools - EUR 5.99' -> 'Buy us a beer'. Still links to /upgrade which redirects to /#sign-up.
-
-Build clean.
+Build clean. /account/quit-list 10.4 kB, /account/drinks 10.8 kB, /account/meditation 6.12 kB. Statically prerendered.

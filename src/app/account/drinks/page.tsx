@@ -1,11 +1,20 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import Section from '@/components/Section';
-import Modal from '@/components/Modal';
-import { DRINKS, DRINK_FLAVOURS, DRINK_OCCASIONS, type Drink } from '@/data/on-the-house';
+import { useEffect, useState } from 'react';
+import {
+  DRINKS,
+  DRINK_FLAVOURS,
+  DRINK_OCCASIONS,
+  type Drink,
+} from '@/data/drinks';
+
+function esc(s: string) {
+  return String(s ?? '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c] || c));
+}
+const pad = (n: number) => String(n).padStart(2, '0');
 
 function printDrink(d: Drink) {
+  if (typeof window === 'undefined') return;
   const w = window.open('', '_blank', 'width=800,height=900');
   if (!w) return;
   const html = `<!doctype html>
@@ -18,7 +27,7 @@ h1 { font-family: 'Fraunces', 'Iowan Old Style', Georgia, serif; font-size: 32px
 h2 { font-size: 18px; text-transform: uppercase; letter-spacing: 0.1em; color: #F05A3E; margin: 24px 0 8px; }
 ol, ul { padding-left: 22px; }
 li { margin-bottom: 6px; }
-.macros { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 12px; background: #E4DEF3; margin: 16px 0; border-radius: 10px; }
+.macros { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 12px; background: #F3ECDC; margin: 16px 0; border-radius: 10px; }
 .macros > div { text-align: center; }
 .macros span { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: #7A7396; }
 .macros strong { display: block; font-size: 20px; margin-top: 2px; }
@@ -46,333 +55,365 @@ ${d.batch_note ? `<p><em>${d.batch_note}</em></p>` : ''}
 }
 
 export default function DrinksPage() {
-  const [picked, setPicked] = useState<Drink | null>(null);
-  const drinks = useMemo(() => DRINKS, []);
+  const [flavours, setFlavours] = useState<Set<string>>(new Set());
+  const [occasions, setOccasions] = useState<Set<string>>(new Set());
+  const [openId, setOpenId] = useState<number | null>(null);
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const f = params.get('f');
+    const o = params.get('o');
+    if (f) f.split(',').forEach((v) => v && DRINK_FLAVOURS[v as keyof typeof DRINK_FLAVOURS] && flavours.add(v));
+    if (o) o.split(',').forEach((v) => v && DRINK_OCCASIONS[v as keyof typeof DRINK_OCCASIONS] && occasions.add(v));
+    setHydrated(true);
+  }, []);
+
+  const syncUrl = () => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams();
+    if (flavours.size) params.set('f', [...flavours].join(','));
+    if (occasions.size) params.set('o', [...occasions].join(','));
+    const q = params.toString();
+    window.history.replaceState(null, '', window.location.pathname + (q ? `?${q}` : '') + window.location.hash);
+  };
+
+  const render = () => {
+    const list = DRINKS.filter((d) => {
+      if (flavours.size && !d.flavour.some((f) => flavours.has(f))) return false;
+      if (occasions.size && !d.occasions.some((o) => occasions.has(o))) return false;
+      return true;
+    });
+    const grid = document.getElementById('grid');
+    const empty = document.getElementById('empty');
+    const countEl = document.getElementById('count');
+    if (!grid || !empty || !countEl) return;
+    countEl.textContent = `${list.length} drink${list.length === 1 ? '' : 's'}`;
+    grid.innerHTML = '';
+    if (!list.length) {
+      empty.hidden = false;
+      return;
+    }
+    empty.hidden = true;
+    list.forEach((d) => grid.appendChild(makeTile(d)));
+  };
+
+  const syncFilterUi = () => {
+    document.querySelectorAll<HTMLElement>('.pill').forEach((pill) => {
+      const kind = pill.dataset.kind;
+      const key = pill.dataset.key;
+      if (!kind || !key) return;
+      const set = kind === 'flavour' ? flavours : occasions;
+      pill.setAttribute('aria-pressed', set.has(key) ? 'true' : 'false');
+    });
+  };
+
+  const handlePill = (key: string, kind: 'flavour' | 'occasion') => {
+    const set = new Set(kind === 'flavour' ? flavours : occasions);
+    if (set.has(key)) set.delete(key);
+    else set.add(key);
+    if (kind === 'flavour') setFlavours(set);
+    else setOccasions(set);
+    syncFilterUi();
+    render();
+    syncUrl();
+  };
+
+  const clearFilters = () => {
+    setFlavours(new Set());
+    setOccasions(new Set());
+    syncFilterUi();
+    render();
+    syncUrl();
+  };
+
+  const batchPreset = () => {
+    setFlavours(new Set());
+    setOccasions(new Set(['batch']));
+    syncFilterUi();
+    render();
+    syncUrl();
+    document.getElementById('library')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const openDrink = (n: number) => {
+    const d = DRINKS.find((x) => x.n === n);
+    if (!d) return;
+    const modal = document.getElementById('modal') as HTMLDialogElement | null;
+    if (!modal) return;
+    const flavourList = d.flavour.map((f) => DRINK_FLAVOURS[f]).join(' · ');
+    const occasionList = d.occasions.map((o) => DRINK_OCCASIONS[o]).join(' · ');
+    const ingredients = d.ingredients.map((i) => `<li>${esc(i)}</li>`).join('');
+    const method = d.method.map((m) => `<li>${esc(m)}</li>`).join('');
+    const macros = d.macros
+      ? `<div class="modal-macros" role="group" aria-label="Macros per serving">
+        <div><span>Kcal</span><strong>${esc(d.kcal)}</strong></div>
+        <div><span>Carbs</span><strong>${d.macros.c}g</strong></div>
+        <div><span>Protein</span><strong>${d.macros.p}g</strong></div>
+        <div><span>Fat</span><strong>${d.macros.f}g</strong></div>
+      </div>`
+      : '';
+    const batchNote = d.batch_note
+      ? `<div class="modal-note"><strong>Batch trick</strong>${esc(d.batch_note)}</div>`
+      : '';
+    document.getElementById('modal-content')!.innerHTML = `
+      <div class="modal-header">
+        <div>
+          <div class="modal-eyebrow">No. ${pad(d.n)}</div>
+          <div class="modal-title">${esc(d.name)}</div>
+        </div>
+        <button class="modal-close" data-close aria-label="Close">×</button>
+      </div>
+      <div class="modal-blurb">${esc(d.blurb)}</div>
+      ${macros}
+      <div class="modal-meta">
+        <div><span>Servings</span><strong>${d.servings} × ${esc(d.size)}</strong></div>
+        <div><span>Kcal / serve</span><strong>${esc(d.kcal)}</strong></div>
+        <div><span>Keeps</span><strong>${esc(d.keeps)}</strong></div>
+        <div><span>Effort</span><strong>${esc(d.effort)}</strong></div>
+      </div>
+      <div class="modal-section-title">Ingredients</div>
+      <ul class="modal-ingredients">${ingredients}</ul>
+      <div class="modal-section-title">Method</div>
+      <ol class="modal-method">${method}</ol>
+      ${batchNote}
+      <div class="modal-note"><strong>Flavour</strong>${esc(flavourList)}</div>
+      <div class="modal-note"><strong>Best for</strong>${esc(occasionList)}</div>
+      <div class="modal-actions">
+        <button type="button" class="modal-action-btn" data-copy="${d.n}">Copy recipe</button>
+        <button type="button" class="modal-action-btn" data-print>Print</button>
+        <button type="button" class="modal-action-btn" data-pdf="${d.n}">↓ Download as PDF card</button>
+      </div>
+    `;
+    modal.showModal();
+    setOpenId(d.n);
+    if (typeof window !== 'undefined') {
+      window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}#drink-${pad(d.n)}`);
+    }
+    modal.querySelector('[data-close]')?.addEventListener('click', () => closeDrink());
+    modal.querySelector('[data-print]')?.addEventListener('click', () => window.print());
+    modal.querySelector(`[data-pdf="${d.n}"]`)?.addEventListener('click', () => printDrink(d));
+  };
+
+  const closeDrink = () => {
+    const modal = document.getElementById('modal') as HTMLDialogElement | null;
+    if (modal?.open) modal.close();
+    setOpenId(null);
+    if (typeof window !== 'undefined') {
+      window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
+    }
+  };
+
+  const makeTile = (d: Drink) => {
+    const t = document.createElement('button');
+    t.className = 'tile';
+    t.type = 'button';
+    t.dataset.id = String(d.n);
+    t.setAttribute('role', 'listitem');
+    const tags = d.flavour
+      .slice(0, 2)
+      .map((f) => `<span class="tile-tag">${esc(DRINK_FLAVOURS[f])}</span>`)
+      .join('');
+    t.innerHTML = `
+      <div class="tile-top">
+        <div class="tile-num">${pad(d.n)}</div>
+        ${d.macros ? '<div class="tile-macro-flag">Macros</div>' : ''}
+      </div>
+      <div class="tile-name">${esc(d.name)}</div>
+      <div class="tile-blurb">${esc(d.blurb)}</div>
+      <div class="tile-meta">
+        <span class="chip chip-kcal">${esc(d.kcal)} kcal</span>
+        <span class="chip chip-effort">${esc(d.effort)}</span>
+      </div>
+      <div class="tile-tags">${tags}</div>
+    `;
+    t.addEventListener('click', () => openDrink(d.n));
+    return t;
+  };
+
+  useEffect(() => {
+    if (!hydrated) return;
+    syncFilterUi();
+    render();
+  }, [hydrated, flavours, occasions]);
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const clearBtn = document.getElementById('clear');
+    const batchBtn = document.getElementById('batch-preset');
+    const modal = document.getElementById('modal');
+    const onClear = () => clearFilters();
+    const onBatch = () => batchPreset();
+    clearBtn?.addEventListener('click', onClear);
+    batchBtn?.addEventListener('click', onBatch);
+    const onBackdrop = (e: MouseEvent) => {
+      if ((e.target as HTMLElement).id === 'modal') closeDrink();
+    };
+    modal?.addEventListener('click', onBackdrop);
+    return () => {
+      clearBtn?.removeEventListener('click', onClear);
+      batchBtn?.removeEventListener('click', onBatch);
+      modal?.removeEventListener('click', onBackdrop);
+    };
+  }, []);
 
   return (
-    <div
-      className="min-h-screen"
-      style={{ backgroundColor: 'var(--lavender)', color: 'var(--ink-deep)' }}
-    >
-      {/* Hero */}
-      <section className="px-6 pt-32 md:pt-40 pb-12">
-        <div className="max-w-5xl mx-auto text-center">
-          <p
-            className="text-sm font-bold tracking-widest uppercase mb-7"
-            style={{ color: 'var(--coral)' }}
-          >
-            Rule 03 companion · Crispy Clarity
-          </p>
-          <h1
-            className="font-display leading-[0.9] mb-7"
-            style={{
-              fontSize: 'clamp(60px, 11vw, 140px)',
-              fontWeight: 900,
-              letterSpacing: '-0.04em',
-              color: 'var(--ink-deep)',
-            }}
-          >
-            The <em style={{ color: 'var(--coral)', fontStyle: 'italic', fontWeight: 400 }}>Drinks</em>.
+    <>
+      <style>{`
+        *, *::before, *::after { box-sizing: border-box; }
+        * { margin: 0; }
+        html { scroll-behavior: smooth; }
+        body { line-height: 1.5; -webkit-font-smoothing: antialiased; }
+        img, svg { display: block; max-width: 100%; }
+        button { font: inherit; cursor: pointer; border: none; background: none; color: inherit; padding: 0; }
+        a { color: inherit; text-decoration: none; }
+        ul, ol { list-style: none; padding: 0; }
+      `}</style>
+
+      <header className="site-header">
+        <div className="wrap">
+          <a href="/" className="brand">FIT50</a>
+          <nav className="nav" aria-label="Primary">
+            <a href="/#rules">Rules</a>
+            <a href="/#workouts">Workouts</a>
+            <a href="/#tracker">Tracker</a>
+            <a href="/#resources">On the house</a>
+            <a href="/#faq">FAQ</a>
+          </nav>
+          <a href="/#sign-up" className="start-btn">Buy us a beer</a>
+        </div>
+      </header>
+
+      <section className="hero">
+        <div className="wrap">
+          <span className="eyebrow">Rule 03 companion · Crispy Clarity</span>
+          <h1>
+            The <em>Drinks</em>.
           </h1>
-          <p
-            className="text-xl max-w-2xl mx-auto mb-9 leading-relaxed"
-            style={{ color: 'var(--ink-soft)' }}
-          >
+          <p className="lede">
             Fifty zero-proof pours. No alcohol. No sugar bombs. All
-            macro-friendly. Because &ldquo;no drinking&rdquo; shouldn&rsquo;t mean
-            &ldquo;no drinks.&rdquo;
+            macro-friendly. Because “no drinking” shouldn’t mean “no drinks.”
           </p>
-          <div className="flex gap-3 flex-wrap justify-center">
-            <a
-              href="#library"
-              className="inline-flex items-center gap-2 px-7 py-4 rounded-pill font-semibold text-[15px] transition-colors"
-              style={{ backgroundColor: 'var(--ink-deep)', color: 'var(--paper)' }}
-            >
-              Browse the library
-            </a>
+          <div className="cta-row">
+            <a href="#library" className="btn btn-primary">Browse the library</a>
+            <button type="button" className="btn btn-ghost" id="batch-preset">Show batch drinks</button>
           </div>
         </div>
       </section>
 
-      {/* Marquee */}
-      <div
-        className="border-y overflow-hidden whitespace-nowrap py-4"
-        style={{
-          borderColor: 'var(--ink-deep)',
-          backgroundColor: 'var(--lavender)',
-          fontFamily: 'var(--font-display)',
-          color: 'var(--ink-deep)',
-        }}
-      >
-        <div
-          className="inline-flex"
-          style={{
-            animation: 'marquee 46s linear infinite',
-            willChange: 'transform',
-          }}
-        >
+      <div className="marquee" aria-hidden="true">
+        <div className="marquee-track">
           {Array.from({ length: 2 }).map((_, groupIdx) => (
-            <div key={groupIdx} className="inline-flex">
-              {['Fifty drinks', 'Zero alcohol', 'Zero sugar bombs', 'Macros optional', 'Fifty drinks', 'Zero alcohol', 'Zero sugar bombs', 'Macros optional'].map((text, i) => (
-                <span
-                  key={`${groupIdx}-${i}`}
-                  className="text-[15px] font-semibold tracking-widest uppercase"
-                  style={{ padding: '0 24px' }}
-                >
-                  {text}
-                  <span style={{ color: 'var(--coral)', marginLeft: 24 }}>✦</span>
+            <span key={groupIdx}>
+              {['Fifty drinks', 'Zero alcohol', 'Zero sugar bombs', 'Macros optional', 'Fifty drinks', 'Zero alcohol', 'Zero sugar bombs', 'Macros optional'].map((t, i) => (
+                <span key={i} style={{ padding: '0 24px' }}>
+                  {t} <span style={{ color: 'var(--coral)', fontSize: 18, marginLeft: 24 }}>✦</span>
                 </span>
               ))}
-            </div>
+            </span>
           ))}
         </div>
       </div>
 
-      {/* Library */}
-      <section id="library" className="px-6 pt-9 pb-16">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid gap-5" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' }}>
-            {drinks.map((d) => (
-              <button
-                key={d.n}
-                onClick={() => setPicked(d)}
-                className="text-left rounded-2xl p-6 flex flex-col gap-3 transition-transform"
-                style={{
-                  backgroundColor: 'var(--paper)',
-                  boxShadow: '0 1px 0 rgba(26,23,48,0.04), 0 12px 28px -14px rgba(26,23,48,0.20)',
-                  minHeight: 240,
-                  border: '1.5px solid transparent',
-                  cursor: 'pointer',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-3px)';
-                  e.currentTarget.style.boxShadow = '0 1px 0 rgba(26,23,48,0.06), 0 22px 40px -18px rgba(26,23,48,0.28)';
-                  e.currentTarget.style.borderColor = 'var(--coral)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = '';
-                  e.currentTarget.style.boxShadow = '0 1px 0 rgba(26,23,48,0.04), 0 12px 28px -14px rgba(26,23,48,0.20)';
-                  e.currentTarget.style.borderColor = 'transparent';
-                }}
-              >
-                <div className="flex justify-between items-start gap-2">
-                  <div
-                    className="font-display leading-none"
-                    style={{
-                      fontSize: 64,
-                      fontWeight: 300,
-                      fontStyle: 'italic',
-                      color: 'var(--coral)',
-                      letterSpacing: '-0.04em',
-                    }}
-                  >
-                    {String(d.n).padStart(2, '0')}
-                  </div>
-                  {d.macros && (
-                    <div
-                      className="text-[9px] font-bold tracking-widest uppercase px-2 py-1 rounded-pill"
-                      style={{
-                        color: 'var(--ink-deep)',
-                        border: '1px solid var(--ink-deep)',
-                      }}
+      <section id="library" className="library">
+        <div className="wrap">
+          <div className="filter-wrap">
+            <div className="filter-groups">
+              <div className="filter-group">
+                <span className="filter-label">Flavour</span>
+                <div className="pills" id="flavour-pills">
+                  {(Object.keys(DRINK_FLAVOURS) as Array<keyof typeof DRINK_FLAVOURS>).map((k) => (
+                    <button
+                      key={k}
+                      type="button"
+                      data-key={k}
+                      data-kind="flavour"
+                      onClick={() => handlePill(k, 'flavour')}
+                      className="pill"
+                      aria-pressed="false"
                     >
-                      Macros
-                    </div>
-                  )}
-                </div>
-                <div
-                  className="font-display leading-tight"
-                  style={{
-                    fontWeight: 600,
-                    fontSize: 20,
-                    letterSpacing: '-0.02em',
-                    color: 'var(--ink-deep)',
-                  }}
-                >
-                  {d.name}
-                </div>
-                <div className="text-[13.5px] flex-1" style={{ color: 'var(--ink-soft)' }}>
-                  {d.blurb}
-                </div>
-                <div className="flex gap-1.5 flex-wrap">
-                  <span
-                    className="text-[10.5px] font-semibold px-2 py-1 rounded-pill"
-                    style={{
-                      color: 'var(--coral)',
-                      border: '1px solid var(--coral)',
-                    }}
-                  >
-                    {d.kcal} kcal
-                  </span>
-                  <span
-                    className="text-[10.5px] font-semibold px-2 py-1 rounded-pill"
-                    style={{
-                      color: 'var(--ink-soft)',
-                      border: '1px solid var(--ink-deep)',
-                    }}
-                  >
-                    {d.effort}
-                  </span>
-                </div>
-                <div
-                  className="flex gap-1.5 flex-wrap pt-2 text-[10.5px] font-semibold uppercase tracking-widest"
-                  style={{
-                    color: 'var(--ink-muted)',
-                    borderTop: '1px dashed var(--border-soft)',
-                  }}
-                >
-                  {d.flavour.slice(0, 2).map((f) => (
-                    <span key={f}>{DRINK_FLAVOURS[f]}</span>
+                      {DRINK_FLAVOURS[k]}
+                    </button>
                   ))}
                 </div>
-              </button>
-            ))}
+              </div>
+              <div className="filter-group">
+                <span className="filter-label">Occasion</span>
+                <div className="pills" id="occasion-pills">
+                  {(Object.keys(DRINK_OCCASIONS) as Array<keyof typeof DRINK_OCCASIONS>).map((k) => (
+                    <button
+                      key={k}
+                      type="button"
+                      data-key={k}
+                      data-kind="occasion"
+                      onClick={() => handlePill(k, 'occasion')}
+                      className="pill"
+                      aria-pressed="false"
+                    >
+                      {DRINK_OCCASIONS[k]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="filter-meta">
+              <span className="count" id="count">50 drinks</span>
+              <button type="button" className="clear-btn" id="clear">Clear filters</button>
+            </div>
+          </div>
+
+          <div className="grid" id="grid" role="list" />
+
+          <div className="empty" id="empty" hidden>
+            <h3>Nothing matches that combo.</h3>
+            <p>Try clearing a filter.</p>
+            <button type="button" className="btn btn-ghost" onClick={clearFilters}>Clear filters</button>
           </div>
         </div>
       </section>
 
-      {picked && (
-        <Modal
-          open
-          onClose={() => setPicked(null)}
-          title={picked.name}
-          ariaLabel={`No. ${picked.n} · ${picked.servings} servings`}
-        >
-          <p className="text-base" style={{ color: 'var(--ink-soft)' }}>
-            {picked.blurb}
-          </p>
-
-          {picked.macros && (
-            <div
-              className="grid grid-cols-4 gap-2 p-3 text-center"
-              style={{
-                backgroundColor: 'var(--paper-warm)',
-                borderRadius: 10,
-              }}
-            >
-              <Cell label="kcal" value={picked.kcal} />
-              <Cell label="carbs" value={`${picked.macros.c}g`} />
-              <Cell label="protein" value={`${picked.macros.p}g`} />
-              <Cell label="fat" value={`${picked.macros.f}g`} />
-            </div>
-          )}
-
-          <div className="grid grid-cols-2 gap-3 text-sm">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: 'var(--ink-muted)' }}>
-                Servings
-              </p>
-              <p style={{ color: 'var(--ink-deep)' }}>
-                {picked.servings} × {picked.size}
-              </p>
-            </div>
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: 'var(--ink-muted)' }}>
-                Effort
-              </p>
-              <p style={{ color: 'var(--ink-deep)' }}>{picked.effort}</p>
-            </div>
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: 'var(--ink-muted)' }}>
-                Keeps
-              </p>
-              <p style={{ color: 'var(--ink-deep)' }}>{picked.keeps}</p>
-            </div>
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: 'var(--ink-muted)' }}>
-                Best for
-              </p>
-              <p style={{ color: 'var(--ink-deep)' }}>
-                {picked.occasions.map((o) => DRINK_OCCASIONS[o]).join(' · ')}
-              </p>
-            </div>
-          </div>
-
-          <div>
-            <p className="text-[11px] font-bold uppercase tracking-widest mb-2" style={{ color: 'var(--coral)' }}>
-              Ingredients
-            </p>
-            <ul className="list-disc list-inside text-sm space-y-1" style={{ color: 'var(--ink-deep)' }}>
-              {picked.ingredients.map((i, idx) => (
-                <li key={idx} className="pb-1.5 border-b border-dashed" style={{ borderColor: 'var(--border-soft)' }}>
-                  {i}
-                </li>
+      <div className="marquee" aria-hidden="true">
+        <div className="marquee-track">
+          {Array.from({ length: 2 }).map((_, groupIdx) => (
+            <span key={groupIdx}>
+              {['Thirsty yet', 'Pick one', 'Pour', 'Repeat tomorrow', 'Thirsty yet', 'Pick one', 'Pour', 'Repeat tomorrow'].map((t, i) => (
+                <span key={i} style={{ padding: '0 24px' }}>
+                  {t} <span style={{ color: 'var(--coral)', fontSize: 18, marginLeft: 24 }}>✦</span>
+                </span>
               ))}
-            </ul>
-          </div>
+            </span>
+          ))}
+        </div>
+      </div>
 
+      <section className="coda">
+        <div className="wrap">
+          <h2>Fifty days, no alcohol. Fifty drinks, no problem.</h2>
+          <a href="/#tracker" className="btn btn-primary">Back to the tracker</a>
+        </div>
+      </section>
+
+      <footer className="site-footer">
+        <div className="wrap">
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-widest mb-2" style={{ color: 'var(--coral)' }}>
-              Method
-            </p>
-            <ol className="list-decimal list-inside text-sm space-y-2" style={{ color: 'var(--ink-soft)' }}>
-              {picked.method.map((m, idx) => (
-                <li key={idx} className="leading-relaxed pl-9 relative" style={{ counterIncrement: 'step' }}>
-                  <span
-                    className="absolute font-display italic font-semibold text-xl"
-                    style={{ color: 'var(--coral)', left: 0, top: -2, lineHeight: 1.2 }}
-                  >
-                    {String(idx + 1).padStart(2, '0')}
-                  </span>
-                  {m}
-                </li>
-              ))}
-            </ol>
+            <div className="footer-brand">FIT50</div>
+            <div className="footer-tag">50 days. 9 habits. 1 fresh start.</div>
           </div>
+          <nav className="footer-nav" aria-label="Footer">
+            <a href="/#rules">Rules</a>
+            <a href="/#workouts">Workouts</a>
+            <a href="/#tracker">Tracker</a>
+            <a href="/#resources">On the house</a>
+            <a href="/#faq">FAQ</a>
+          </nav>
+          <div className="footer-copy">© 2026 FIT50. All rights reserved.</div>
+        </div>
+      </footer>
 
-          {picked.batch_note && (
-            <div
-              className="p-3 rounded"
-              style={{
-                backgroundColor: 'var(--lavender-soft)',
-              }}
-            >
-              <p className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: 'var(--coral)' }}>
-                Batch trick
-              </p>
-              <p className="text-sm italic" style={{ color: 'var(--ink-soft)' }}>
-                {picked.batch_note}
-              </p>
-            </div>
-          )}
-
-          <div className="flex gap-1.5 pt-4 border-t" style={{ borderColor: 'var(--border-soft)' }}>
-            <button
-              onClick={() => printDrink(picked)}
-              className="font-medium text-[13px] px-3.5 py-2 rounded-pill transition-colors"
-              style={{ color: 'var(--paper)', backgroundColor: 'var(--ink-deep)' }}
-            >
-              ↓ Download as PDF card
-            </button>
-            <button
-              onClick={() => setPicked(null)}
-              className="font-medium text-[13px] px-3.5 py-2 rounded-pill"
-              style={{ color: 'var(--ink-soft)' }}
-            >
-              Close
-            </button>
-          </div>
-        </Modal>
-      )}
-    </div>
-  );
-}
-
-function Cell({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <p
-        className="font-display leading-none tabular-nums"
-        style={{ fontSize: 22, color: 'var(--ink-deep)' }}
-      >
-        {value}
-      </p>
-      <p
-        className="text-[10px] font-bold uppercase tracking-widest mt-1"
-        style={{ color: 'var(--ink-muted)' }}
-      >
-        {label}
-      </p>
-    </div>
+      <dialog className="modal" id="modal" aria-label="Drink recipe">
+        <div className="modal-body" id="modal-content" />
+      </dialog>
+    </>
   );
 }

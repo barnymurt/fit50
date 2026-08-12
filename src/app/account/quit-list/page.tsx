@@ -1,347 +1,449 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import Modal from '@/components/Modal';
-import { QUIT_SERVICES, QUIT_REGIONS, QUIT_SUPPORT, type QuitService } from '@/data/on-the-house';
+import { useEffect, useState } from 'react';
+import {
+  QUIT_SERVICES,
+  QUIT_REGIONS,
+  QUIT_SUPPORT,
+  type QuitService,
+  type QuitService as QuitServiceType,
+} from '@/data/quit-list';
+
+const QUIT_SERVICES_TYPE: QuitServiceType[] = QUIT_SERVICES;
+
+function esc(s: string) {
+  return String(s ?? '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c] || c));
+}
+const pad = (n: number) => String(n).padStart(2, '0');
 
 export default function QuitListPage() {
-  const [picked, setPicked] = useState<QuitService | null>(null);
+  const [regions, setRegions] = useState<Set<string>>(new Set());
+  const [supports, setSupports] = useState<Set<string>>(new Set());
+  const [openId, setOpenId] = useState<number | null>(null);
+  const [hydrated, setHydrated] = useState(false);
 
-  const grouped = useMemo(() => {
-    const out: Record<string, QuitService[]> = {};
-    for (const s of QUIT_SERVICES) {
-      if (!out[s.region]) out[s.region] = [];
-      out[s.region].push(s);
+  // parse filter state from URL on first mount
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const r = params.get('r');
+    const s = params.get('s');
+    if (r) r.split(',').forEach((v) => v && QUIT_REGIONS[v as keyof typeof QUIT_REGIONS] && regions.add(v));
+    if (s) s.split(',').forEach((v) => v && QUIT_SUPPORT[v as keyof typeof QUIT_SUPPORT] && supports.add(v));
+    setHydrated(true);
+  }, []);
+
+  const syncUrl = () => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams();
+    if (regions.size) params.set('r', [...regions].join(','));
+    if (supports.size) params.set('s', [...supports].join(','));
+    const q = params.toString();
+    window.history.replaceState(null, '', window.location.pathname + (q ? `?${q}` : '') + window.location.hash);
+  };
+
+  const filtered = () => {
+    return QUIT_SERVICES.filter((s) => {
+      if (regions.size && !regions.has(s.region)) return false;
+      if (supports.size && !s.support.some((x) => supports.has(x))) return false;
+      return true;
+    });
+  };
+
+  const render = () => {
+    const list = filtered();
+    const wrap = document.getElementById('regions');
+    const empty = document.getElementById('empty');
+    const countEl = document.getElementById('count');
+    if (!wrap || !empty || !countEl) return;
+    countEl.textContent = `${list.length} service${list.length === 1 ? '' : 's'}`;
+    wrap.innerHTML = '';
+    if (!list.length) {
+      empty.hidden = false;
+      return;
     }
-    return out;
+    empty.hidden = true;
+    (Object.entries(QUIT_REGIONS) as [keyof typeof QUIT_REGIONS, typeof QUIT_REGIONS[keyof typeof QUIT_REGIONS]][]).forEach(([key, meta]) => {
+      const items = list.filter((s) => s.region === key);
+      if (!items.length) return;
+      const section = document.createElement('section');
+      section.className = 'region-section';
+      section.id = `region-${key}`;
+      section.innerHTML = `
+        <div class="region-header">
+          <h2 class="region-title">${esc(meta.label)}</h2>
+          <div class="region-count">${items.length} service${items.length === 1 ? '' : 's'}</div>
+        </div>
+        <p class="region-blurb">${esc(meta.blurb)}</p>
+        <div class="grid" role="list"></div>
+      `;
+      const grid = section.querySelector('.grid') as HTMLElement;
+      items.forEach((s) => grid.appendChild(makeTile(s)));
+      wrap.appendChild(section);
+    });
+  };
+
+  const syncFilterUi = () => {
+    document.querySelectorAll<HTMLElement>('.pill').forEach((pill) => {
+      const kind = pill.dataset.kind;
+      const key = pill.dataset.key;
+      if (!kind || !key) return;
+      const set = kind === 'region' ? regions : supports;
+      pill.setAttribute('aria-pressed', set.has(key) ? 'true' : 'false');
+    });
+  };
+
+  const handlePill = (key: string, kind: 'region' | 'support') => {
+    const set = (kind === 'region' ? regions : supports);
+    const next = new Set(set);
+    if (next.has(key)) next.delete(key);
+    else next.add(key);
+    if (kind === 'region') setRegions(next);
+    else setSupports(next);
+    syncFilterUi();
+    render();
+    syncUrl();
+  };
+
+  const clearFilters = () => {
+    setRegions(new Set());
+    setSupports(new Set());
+    syncFilterUi();
+    render();
+    syncUrl();
+  };
+
+  const phonePreset = () => {
+    setRegions(new Set());
+    setSupports(new Set(['phone']));
+    syncFilterUi();
+    render();
+    syncUrl();
+    document.getElementById('library')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const openService = (n: number) => {
+    const s = QUIT_SERVICES.find((x) => x.n === n);
+    if (!s) return;
+    const modal = document.getElementById('modal') as HTMLDialogElement | null;
+    if (!modal) return;
+    const supportChips = s.support
+      .map((k) => {
+        const cls = k === 'phone' ? 'chip chip-phone' : `chip chip-${k}`;
+        return `<span class="${cls}">${esc(QUIT_SUPPORT[k])}</span>`;
+      })
+      .join('');
+    const langs = s.languages.map((l) => `<span class="tile-lang">${esc(l)}</span>`).join('');
+    const phoneRow = s.phone
+      ? `<div><span>Phone</span><strong>${esc(s.phone)}</strong></div>`
+      : `<div><span>Phone</span><strong style="color:var(--ink-3)">Not applicable</strong></div>`;
+    const webRow = s.website
+      ? `<div><span>Website</span><strong><a href="${esc(s.website)}" target="_blank" rel="noopener noreferrer">${esc((s.website ?? '').replace(/^https?:\/\//, '').replace(/\/$/, ''))}</a></strong></div>`
+      : '';
+    document.getElementById('modal-content')!.innerHTML = `
+      <div class="modal-header">
+        <div>
+          <div class="modal-eyebrow">No. ${pad(s.n)} · ${esc(QUIT_REGIONS[s.region].label)}</div>
+          <div class="modal-title">${esc(s.name)}</div>
+          <div class="modal-org">${esc(s.org)} · ${esc(s.country)}</div>
+        </div>
+        <button class="modal-close" data-close aria-label="Close">×</button>
+      </div>
+      <div class="modal-blurb">${esc(s.blurb)}</div>
+      <div class="modal-meta">
+        ${phoneRow}
+        ${webRow}
+        <div><span>Languages</span><strong>${langs}</strong></div>
+        <div><span>Cost</span><strong>${esc(s.cost)}</strong></div>
+      </div>
+      <div class="modal-section-title">Support types</div>
+      <div class="modal-support">${supportChips}</div>
+      ${s.notes ? `<div class="modal-note"><strong>Good to know</strong>${esc(s.notes)}</div>` : ''}
+      <div class="modal-actions">
+        ${s.website ? `<a href="${esc(s.website)}" target="_blank" rel="noopener noreferrer" class="modal-action-btn modal-action-primary">Visit site ↗</a>` : ''}
+        <button type="button" class="modal-action-btn" data-copy="${s.n}">Copy details</button>
+        <button type="button" class="modal-action-btn" data-print>Print</button>
+      </div>
+    `;
+    modal.showModal();
+    setOpenId(s.n);
+    if (typeof window !== 'undefined') {
+      window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}#service-${pad(s.n)}`);
+    }
+    modal.querySelector('[data-close]')?.addEventListener('click', () => closeService());
+    modal.querySelector('[data-copy]')?.addEventListener('click', (e) => copyDetails(s.n, e.currentTarget as HTMLButtonElement));
+    modal.querySelector('[data-print]')?.addEventListener('click', () => window.print());
+  };
+
+  const closeService = () => {
+    const modal = document.getElementById('modal') as HTMLDialogElement | null;
+    if (modal?.open) modal.close();
+    setOpenId(null);
+    if (typeof window !== 'undefined') {
+      window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
+    }
+  };
+
+  const copyDetails = (n: number, btn: HTMLButtonElement) => {
+    const s = QUIT_SERVICES.find((x) => x.n === n);
+    if (!s) return;
+    const text = [
+      s.name,
+      `${s.org} · ${s.country}`,
+      '',
+      s.phone ? `Phone: ${s.phone}` : null,
+      s.website ? `Web: ${s.website}` : null,
+      `Languages: ${s.languages.join(', ')}`,
+      `Support: ${s.support.map((k) => QUIT_SUPPORT[k]).join(', ')}`,
+      `Cost: ${s.cost}`,
+      '',
+      s.blurb,
+      s.notes ? `\nNote: ${s.notes}` : null,
+      '',
+      'From The Quit List · FIT50',
+    ]
+      .filter(Boolean)
+      .join('\n');
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(text).then(() => {
+        const original = btn.textContent;
+        btn.textContent = 'Copied ✓';
+        setTimeout(() => {
+          btn.textContent = original;
+        }, 1500);
+      });
+    }
+  };
+
+  const makeTile = (s: QuitService) => {
+    const t = document.createElement('button');
+    t.className = 'tile';
+    t.type = 'button';
+    t.dataset.id = String(s.n);
+    t.setAttribute('role', 'listitem');
+    const supportChips = s.support
+      .slice(0, 3)
+      .map((k) => {
+        const cls = k === 'phone' ? 'chip chip-phone' : `chip chip-${k}`;
+        return `<span class="${cls}">${esc(QUIT_SUPPORT[k])}</span>`;
+      })
+      .join('');
+    const langs = s.languages.map((l) => `<span class="tile-lang">${esc(l)}</span>`).join('');
+    t.innerHTML = `
+      <div class="tile-top">
+        <div class="tile-num">${pad(s.n)}</div>
+        <div class="tile-country">${esc(s.country)}</div>
+      </div>
+      <div class="tile-name">${esc(s.name)}</div>
+      <div class="tile-org">${esc(s.org)}</div>
+      <div class="tile-blurb">${esc(s.blurb)}</div>
+      <div class="tile-meta">${supportChips}</div>
+      <div class="tile-langs">${langs}</div>
+    `;
+    t.addEventListener('click', () => openService(s.n));
+    return t;
+  };
+
+  // initial render of the library
+  useEffect(() => {
+    if (!hydrated) return;
+    syncFilterUi();
+    render();
+  }, [hydrated, regions, supports]);
+
+  // global event listeners
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const clearBtn = document.getElementById('clear');
+    const phoneBtn = document.getElementById('phone-preset');
+    const modal = document.getElementById('modal');
+    const onClear = () => clearFilters();
+    const onPhone = () => phonePreset();
+    clearBtn?.addEventListener('click', onClear);
+    phoneBtn?.addEventListener('click', onPhone);
+    const onBackdrop = (e: MouseEvent) => {
+      if ((e.target as HTMLElement).id === 'modal') closeService();
+    };
+    modal?.addEventListener('click', onBackdrop);
+    return () => {
+      clearBtn?.removeEventListener('click', onClear);
+      phoneBtn?.removeEventListener('click', onPhone);
+      modal?.removeEventListener('click', onBackdrop);
+    };
   }, []);
 
   return (
-    <div
-      className="min-h-screen"
-      style={{ backgroundColor: 'var(--lavender)', color: 'var(--ink-deep)' }}
-    >
+    <>
+      <style>{`
+        *, *::before, *::after { box-sizing: border-box; }
+        * { margin: 0; }
+        html { scroll-behavior: smooth; }
+        body { line-height: 1.5; -webkit-font-smoothing: antialiased; }
+        img, svg { display: block; max-width: 100%; }
+        button { font: inherit; cursor: pointer; border: none; background: none; color: inherit; padding: 0; }
+        a { color: inherit; text-decoration: none; }
+        ul, ol { list-style: none; padding: 0; }
+      `}</style>
+
+      {/* Header */}
+      <header className="site-header">
+        <div className="wrap">
+          <a href="/" className="brand">FIT50</a>
+          <nav className="nav" aria-label="Primary">
+            <a href="/#rules">Rules</a>
+            <a href="/#workouts">Workouts</a>
+            <a href="/#tracker">Tracker</a>
+            <a href="/#resources">On the house</a>
+            <a href="/#faq">FAQ</a>
+          </nav>
+          <a href="/#sign-up" className="start-btn">Buy us a beer</a>
+        </div>
+      </header>
+
       {/* Hero */}
-      <section className="px-6 pt-32 md:pt-40 pb-12">
-        <div className="max-w-5xl mx-auto text-center">
-          <p
-            className="text-sm font-bold tracking-widest uppercase mb-7"
-            style={{ color: 'var(--coral)' }}
-          >
-            Rule 04 companion · Clear Lungs
-          </p>
-          <h1
-            className="font-display leading-[0.9] mb-7"
-            style={{
-              fontSize: 'clamp(60px, 11vw, 140px)',
-              fontWeight: 900,
-              letterSpacing: '-0.04em',
-              color: 'var(--ink-deep)',
-            }}
-          >
-            The <em style={{ color: 'var(--coral)', fontStyle: 'italic', fontWeight: 400 }}>Quit List</em>.
+      <section className="hero">
+        <div className="wrap">
+          <span className="eyebrow">Rule 04 companion · Clear Lungs</span>
+          <h1>
+            The <em>Quit List</em>.
           </h1>
-          <p
-            className="text-xl max-w-2xl mx-auto mb-9 leading-relaxed"
-            style={{ color: 'var(--ink-soft)' }}
-          >
-            Eighteen tobacco-cessation services across six continents. Phone
-            lines, online programmes, apps, and clinic networks — pick the
-            one closest to home. Most are free.
+          <p className="lede">
+            Forty tobacco-cessation services across six continents. Phone lines,
+            online programmes, apps, and clinic networks — pick the one closest
+            to home. Most are free.
           </p>
-          <div className="flex gap-3 flex-wrap justify-center">
-            <a
-              href="#library"
-              className="inline-flex items-center gap-2 px-7 py-4 rounded-pill font-semibold text-[15px] transition-colors"
-              style={{ backgroundColor: 'var(--ink-deep)', color: 'var(--paper)' }}
-            >
-              Browse the list
-            </a>
+          <div className="cta-row">
+            <a href="#library" className="btn btn-primary">Browse the list</a>
+            <button type="button" className="btn btn-ghost" id="phone-preset">Phone lines only</button>
           </div>
         </div>
       </section>
 
-      {/* Marquee */}
-      <div
-        className="border-y overflow-hidden whitespace-nowrap py-4"
-        style={{
-          borderColor: 'var(--ink-deep)',
-          backgroundColor: 'var(--lavender)',
-          fontFamily: 'var(--font-display)',
-          color: 'var(--ink-deep)',
-        }}
-      >
-        <div
-          className="inline-flex"
-          style={{
-            animation: 'marquee 46s linear infinite',
-            willChange: 'transform',
-          }}
-        >
+      {/* Marquee 1 */}
+      <div className="marquee" aria-hidden="true">
+        <div className="marquee-track">
           {Array.from({ length: 2 }).map((_, groupIdx) => (
-            <div key={groupIdx} className="inline-flex">
-              {['Eighteen services', 'Six continents', 'Free to call', 'No paywall', 'Eighteen services', 'Six continents', 'Free to call', 'No paywall'].map((text, i) => (
-                <span
-                  key={`${groupIdx}-${i}`}
-                  className="text-[15px] font-semibold tracking-widest uppercase"
-                  style={{ padding: '0 24px' }}
-                >
-                  {text}
-                  <span style={{ color: 'var(--coral)', marginLeft: 24 }}>✦</span>
+            <span key={groupIdx}>
+              {['Forty services', 'Six continents', 'Free to call', 'No paywall', 'Forty services', 'Six continents', 'Free to call', 'No paywall'].map((t, i) => (
+                <span key={i} style={{ padding: '0 24px' }}>
+                  {t} <span style={{ color: 'var(--coral)', fontSize: 18, marginLeft: 24 }}>✦</span>
                 </span>
               ))}
-            </div>
+            </span>
           ))}
         </div>
       </div>
 
-      {/* Library */}
-      <section id="library" className="px-6 pt-9 pb-16">
-        <div className="max-w-7xl mx-auto">
-          {Object.entries(QUIT_REGIONS).map(([regionKey, meta]) => {
-            const services = grouped[regionKey] || [];
-            if (!services.length) return null;
-            return (
-              <section key={regionKey} className="mb-14">
-                <div className="flex items-baseline justify-between gap-5 flex-wrap pb-5 mb-5 border-b-2" style={{ borderColor: 'var(--ink-deep)' }}>
-                  <h2
-                    className="font-display leading-[1.02]"
-                    style={{
-                      fontWeight: 600,
-                      fontSize: 'clamp(32px, 5vw, 52px)',
-                      letterSpacing: '-0.03em',
-                      color: 'var(--ink-deep)',
-                    }}
-                  >
-                    {meta.label}
-                  </h2>
-                  <div
-                    className="text-xs font-bold uppercase tracking-widest"
-                    style={{ color: 'var(--ink-muted)' }}
-                  >
-                    {services.length} service{services.length === 1 ? '' : 's'}
-                  </div>
-                </div>
-                <p
-                  className="text-base max-w-2xl mb-6"
-                  style={{ color: 'var(--ink-soft)' }}
-                >
-                  {meta.blurb}
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  {services.map((s) => (
+      {/* Library + Filters */}
+      <section id="library" className="library">
+        <div className="wrap">
+          <div className="filter-wrap">
+            <div className="filter-groups">
+              <div className="filter-group">
+                <span className="filter-label">Region</span>
+                <div className="pills" id="region-pills">
+                  {(Object.keys(QUIT_REGIONS) as Array<keyof typeof QUIT_REGIONS>).map((k) => (
                     <button
-                      key={s.n}
-                      onClick={() => setPicked(s)}
-                      className="text-left rounded-2xl p-6 flex flex-col gap-3 min-h-[160px] transition-transform"
-                      style={{
-                        backgroundColor: 'var(--paper)',
-                        boxShadow: '0 1px 0 rgba(26,23,48,0.04), 0 12px 28px -14px rgba(26,23,48,0.20)',
-                        border: '1.5px solid transparent',
-                        cursor: 'pointer',
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = 'translateY(-3px)';
-                        e.currentTarget.style.borderColor = 'var(--coral)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = '';
-                        e.currentTarget.style.borderColor = 'transparent';
-                      }}
+                      key={k}
+                      type="button"
+                      data-key={k}
+                      data-kind="region"
+                      onClick={() => handlePill(k, 'region')}
+                      className="pill"
+                      aria-pressed="false"
                     >
-                      <div className="flex justify-between items-start gap-2">
-                        <div
-                          className="font-display leading-none"
-                          style={{
-                            fontSize: 64,
-                            fontWeight: 300,
-                            fontStyle: 'italic',
-                            color: 'var(--coral)',
-                            letterSpacing: '-0.04em',
-                          }}
-                        >
-                          {String(s.n).padStart(2, '0')}
-                        </div>
-                        <div
-                          className="text-[9px] font-bold tracking-widest uppercase px-2 py-1 rounded-pill"
-                          style={{
-                            color: 'var(--ink-deep)',
-                            border: '1px solid var(--ink-deep)',
-                          }}
-                        >
-                          {s.country}
-                        </div>
-                      </div>
-                      <div
-                        className="font-display leading-tight"
-                        style={{
-                          fontWeight: 600,
-                          fontSize: 20,
-                          letterSpacing: '-0.02em',
-                          color: 'var(--ink-deep)',
-                        }}
-                      >
-                        {s.name}
-                      </div>
-                      <div
-                        className="text-sm flex-1"
-                        style={{ color: 'var(--ink-soft)' }}
-                      >
-                        {s.blurb}
-                      </div>
-                      <div className="flex gap-1.5 flex-wrap">
-                        {s.support.slice(0, 2).map((k) => (
-                          <span
-                            key={k}
-                            className="text-[10.5px] font-semibold px-2 py-1 rounded-pill"
-                            style={{
-                              color: 'var(--ink-soft)',
-                              border: '1px solid var(--border-strong-soft)',
-                            }}
-                          >
-                            {QUIT_SUPPORT[k]}
-                          </span>
-                        ))}
-                        {s.phone && (
-                          <span
-                            className="text-[10.5px] font-semibold px-2 py-1 rounded-pill"
-                            style={{
-                              color: 'var(--coral)',
-                              border: '1px solid var(--coral)',
-                            }}
-                          >
-                            Phone
-                          </span>
-                        )}
-                      </div>
+                      {QUIT_REGIONS[k].label}
                     </button>
                   ))}
                 </div>
-              </section>
-            );
-          })}
+              </div>
+              <div className="filter-group">
+                <span className="filter-label">Support</span>
+                <div className="pills" id="support-pills">
+                  {(Object.keys(QUIT_SUPPORT) as Array<keyof typeof QUIT_SUPPORT>).map((k) => (
+                    <button
+                      key={k}
+                      type="button"
+                      data-key={k}
+                      data-kind="support"
+                      onClick={() => handlePill(k, 'support')}
+                      className="pill"
+                      aria-pressed="false"
+                    >
+                      {QUIT_SUPPORT[k]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="filter-meta">
+              <span className="count" id="count">40 services</span>
+              <button type="button" className="clear-btn" id="clear">Clear filters</button>
+            </div>
+          </div>
+
+          <div id="regions" />
+
+          <div className="empty" id="empty" hidden>
+            <h3>Nothing matches that combo.</h3>
+            <p>Try clearing a filter.</p>
+            <button type="button" className="btn btn-ghost" onClick={clearFilters}>Clear filters</button>
+          </div>
         </div>
       </section>
 
-      {picked && (
-        <Modal
-          open
-          onClose={() => setPicked(null)}
-          title={picked.name}
-          ariaLabel={`No. ${picked.n} · ${QUIT_REGIONS[picked.region].label}`}
-        >
-          <p
-            className="text-xs font-bold uppercase tracking-widest"
-            style={{ color: 'var(--coral)' }}
-          >
-            {QUIT_REGIONS[picked.region].label} · {picked.country}
-          </p>
-          <p className="text-sm mb-2" style={{ color: 'var(--ink-muted)' }}>
-            {picked.org}
-          </p>
-          <p className="text-base mb-4" style={{ color: 'var(--ink-soft)' }}>
-            {picked.blurb}
-          </p>
+      {/* Marquee 2 */}
+      <div className="marquee" aria-hidden="true">
+        <div className="marquee-track">
+          {Array.from({ length: 2 }).map((_, groupIdx) => (
+            <span key={groupIdx}>
+              {['Pick up the phone', 'Make the call', 'Set a quit date', 'Day one starts today', 'Pick up the phone', 'Make the call', 'Set a quit date', 'Day one starts today'].map((t, i) => (
+                <span key={i} style={{ padding: '0 24px' }}>
+                  {t} <span style={{ color: 'var(--coral)', fontSize: 18, marginLeft: 24 }}>✦</span>
+                </span>
+              ))}
+            </span>
+          ))}
+        </div>
+      </div>
 
-          <div className="grid grid-cols-2 gap-3 text-sm">
-            {picked.phone && (
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: 'var(--ink-muted)' }}>
-                  Phone
-                </p>
-                <p className="font-mono" style={{ color: 'var(--ink-deep)' }}>
-                  {picked.phone}
-                </p>
-              </div>
-            )}
-            {picked.website && (
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: 'var(--ink-muted)' }}>
-                  Website
-                </p>
-                <a
-                  href={picked.website}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline break-all"
-                  style={{ color: 'var(--coral)' }}
-                >
-                  {picked.website.replace(/^https?:\/\//, '').replace(/\/$/, '')}
-                </a>
-              </div>
-            )}
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: 'var(--ink-muted)' }}>
-                Languages
-              </p>
-              <p style={{ color: 'var(--ink-deep)' }}>{picked.languages.join(', ')}</p>
-            </div>
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: 'var(--ink-muted)' }}>
-                Cost
-              </p>
-              <p style={{ color: 'var(--ink-deep)' }}>{picked.cost}</p>
-            </div>
-            <div className="col-span-2">
-              <p className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: 'var(--ink-muted)' }}>
-                Support types
-              </p>
-              <div className="flex flex-wrap gap-1.5">
-                {picked.support.map((k) => (
-                  <span
-                    key={k}
-                    className="text-[12px] font-semibold px-2.5 py-1 rounded-pill"
-                    style={{
-                      color: 'var(--ink-soft)',
-                      border: '1px solid var(--border-strong-soft)',
-                    }}
-                  >
-                    {QUIT_SUPPORT[k]}
-                  </span>
-                ))}
-              </div>
-            </div>
+      {/* Coda */}
+      <section className="coda">
+        <div className="wrap">
+          <h2>Fifty days smoke-free starts with one call.</h2>
+          <div className="coda-note">
+            Antarctica has no permanent population, so no cessation services exist there.
+            Researchers stationed on the ice rely on their home country’s programme.
           </div>
+          <a href="/#tracker" className="btn btn-primary">Back to the tracker</a>
+        </div>
+      </section>
 
-          {picked.notes && (
-            <div
-              className="p-3 rounded"
-              style={{ backgroundColor: 'var(--lavender-soft)' }}
-            >
-              <p
-                className="text-[10px] font-bold uppercase tracking-widest mb-1"
-                style={{ color: 'var(--coral)' }}
-              >
-                Good to know
-              </p>
-              <p className="text-sm" style={{ color: 'var(--ink-soft)' }}>
-                {picked.notes}
-              </p>
-            </div>
-          )}
-
-          <div className="flex gap-1.5 pt-4 border-t" style={{ borderColor: 'var(--border-soft)' }}>
-            {picked.website && (
-              <a
-                href={picked.website}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-medium text-[13px] px-3.5 py-2 rounded-pill"
-                style={{ color: 'var(--paper)', backgroundColor: 'var(--ink-deep)' }}
-              >
-                Visit site →
-              </a>
-            )}
-            <button
-              onClick={() => setPicked(null)}
-              className="font-medium text-[13px] px-3.5 py-2 rounded-pill"
-              style={{ color: 'var(--ink-soft)' }}
-            >
-              Close
-            </button>
+      {/* Footer */}
+      <footer className="site-footer">
+        <div className="wrap">
+          <div>
+            <div className="footer-brand">FIT50</div>
+            <div className="footer-tag">50 days. 9 habits. 1 fresh start.</div>
           </div>
-        </Modal>
-      )}
-    </div>
+          <nav className="footer-nav" aria-label="Footer">
+            <a href="/#rules">Rules</a>
+            <a href="/#workouts">Workouts</a>
+            <a href="/#tracker">Tracker</a>
+            <a href="/#resources">On the house</a>
+            <a href="/#faq">FAQ</a>
+          </nav>
+          <div className="footer-copy">
+            © 2026 FIT50. All rights reserved. Numbers and web addresses are compiled from
+            publicly available government and NGO sources; verify locally before relying on them in a crisis.
+          </div>
+        </div>
+      </footer>
+
+      {/* Modal */}
+      <dialog className="modal" id="modal" aria-label="Service details">
+        <div className="modal-body" id="modal-content" />
+      </dialog>
+    </>
   );
 }
