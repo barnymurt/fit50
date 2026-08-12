@@ -85,16 +85,36 @@ export default function SixFeatures({
       <div className="relative z-10 max-w-5xl mx-auto px-6 md:px-10">
         {/* Hero */}
         <div className="text-center max-w-3xl mx-auto mb-12 md:mb-16">
-          <p className="font-body text-caption uppercase text-coral mb-6">
+          <p className="font-body text-caption uppercase text-coral mb-10">
             Helpful tools
           </p>
-          <h1 className="font-display text-display-1 text-paper mb-6 leading-[0.95]">
-            Buy us a beer.
-          </h1>
-          <p className="font-display text-h2 text-paper/85 mb-10 leading-tight max-w-2xl mx-auto">
-            Walk away with six tools you could save yourself €300.
-          </p>
-          <p className="font-body text-caption uppercase tracking-widest text-paper/65 mb-2">
+          <div className="grid grid-cols-3 gap-4 md:gap-8 max-w-2xl mx-auto">
+            <div>
+              <p className="font-display text-display-1 text-coral leading-none tabular-nums">
+                €6
+              </p>
+              <p className="font-body text-caption uppercase tracking-widest text-paper/70 mt-3">
+                a caneca
+              </p>
+            </div>
+            <div>
+              <p className="font-display text-display-1 text-coral leading-none tabular-nums">
+                50
+              </p>
+              <p className="font-body text-caption uppercase tracking-widest text-paper/70 mt-3">
+                days
+              </p>
+            </div>
+            <div>
+              <p className="font-display text-display-1 text-coral leading-none tabular-nums">
+                €300
+              </p>
+              <p className="font-body text-caption uppercase tracking-widest text-paper/70 mt-3">
+                saved
+              </p>
+            </div>
+          </div>
+          <p className="font-body text-caption uppercase tracking-widest text-paper/65 mt-10">
             One payment, yours forever, no subscription.
           </p>
         </div>

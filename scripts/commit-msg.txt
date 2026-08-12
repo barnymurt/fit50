@@ -1,38 +1,11 @@
-Re-skin the "On the house" sub-pages with the design tokens from the HTML files
+Nav: rename Resources -> On the house, CTA -> Buy us a beer
 
-Extracted the design tokens from the standalone HTML pages and added them to the FIT50 design system so the sub-pages (quit-list / drinks / meditation) pick up the same look-and-feel as the originals.
+Three text changes, all in src/components/Nav.tsx:
 
-tailwind.config.js:
-- New colour names added to the palette (only the "On the house" set, not the homepage):
-  ink-deep       = #1A1730  (the deep purple-black text colour)
-  ink-soft       = #4C4568  (mid)
-  ink-muted      = #7A7396  (light)
-  coral-vibrant  = #F05A3E  (the red-orange action colour)
-  coral-deep     = #D8422C  (darker hover)
-  lavender       = #E4DEF3  (page background)
-  lavender-deep  = #D2C8EA
-  lavender-soft  = #EFEAF9  (modal soft tint)
-  paper-warm     = #F3ECDC  (macros card)
-  border-soft         = rgba(26, 23, 48, 0.10)
-  border-strong-soft  = rgba(26, 23, 48, 0.20)
-- Same values mirrored as CSS custom properties in :root in globals.css so the sub-pages can use var(--lavender) / var(--coral-vibrant) etc. inline.
-- Tailwind radius.pill = 999px and boxShadow.card / card-hover matching the original shadow stack.
+1. Desktop nav and mobile menu both render NAV_LINKS; the resources entry was 'Resources', now 'On the house'. The href stays #resources so the existing anchor on the homepage (the On the house eyebrow) still works.
 
-Sub-pages re-skinned to match the standalone HTML files:
-- Background: lavender (#E4DEF3) across the whole page, including the hero.
-- Hero typography: clamp(60px, 11vw, 140px) Fraunces 900 with -0.04em letter-spacing and the coral 'em' accent, matching the original h1.
-- Eyebrow: 11-15px Fraunces 700 uppercase, coral-coloured, 0.16em tracking.
-- Tiles: 20px radius, paper background, soft shadow (matches the original), coral border on hover with -3px translate.
-- Tile big number: Fraunces 300 italic 64px coral, matching the original 'tile-num'.
-- Card chips: pill-shaped, 10.5-12px Fraunces 600 uppercase, border + coral or ink-soft colour.
-- Section title: clamp(32px, 5vw, 52px) Fraunces 600, with a 1.5px solid ink-deep underline separator below the section eyebrow.
-- Modals share the same lavender-soft note card + 10px radius padding used in the original modals.
-- Pills (close button, action buttons) all use border-radius 999px.
+2. Desktop right-side primary button: 'Buy tools - EUR 5.99' -> 'Buy us a beer'. Link still points to #sign-up.
 
-The Modal component is shared across all three sub-pages; each page supplies its own header and content with the new palette.
+3. Mobile menu coral 'Buy tools' item: 'Buy tools - EUR 5.99' -> 'Buy us a beer'. Still links to /upgrade which redirects to /#sign-up.
 
-Drinks still has the "Download as PDF card" button that opens a print-styled window. Quit-list and meditation link out to the official websites.
-
-Homepage (Hero, Rules, Calculator, Workouts, Tracker, SixFeatures, FAQ) is unchanged - it still uses the original FIT50 palette (paper #FAF6EE ground, coral #E88B5A accents). The new tokens only apply to the sub-pages that needed to match the HTML files.
-
-Build clean. /account/quit-list 1.5 kB, /account/drinks and /account/meditation both also statically prerendered.
+Build clean.
