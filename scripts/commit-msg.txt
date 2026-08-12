@@ -1,38 +1,19 @@
-Collapse the Sign up section back into one section with the new copy
+Update Sign up section copy + switch checkout env to Stripe
 
-Per request: "Buy us a beer and we'll give you the tools to not need one for 50 days. One payment, yours forever, no subscription. A caneca is ~EUR 6. Skip one a day for 50 days and you keep EUR 300 - EUR 5.99 buys the tools, the challenge pays for them. What you get. Task tracker - tap to mark the nine daily habits; streak builds automatically. Streak protection - one free pass a week. Miss a day, the streak holds. Each save shows up as a banana on your certificate. Water tracker - tap to log each glass, target built in. Macro food tracker - search 1,000+ foods, log portions, tag meals, totals against your targets. Multi-purpose timer - reading, meditation, focus blocks, presets included. Kanban board - plan the 50 days across To do / In progress / Done. it needs to be 1 section on the home page."
+User requested changes to the Sign up section:
 
-SixFeatures is now ONE <section> element on a paper ground, with internal vertical flow:
+1. Marquee text: 'BUY US A CANECA - KEEP THE TOOLS FOREVER' (was the previous rolling text)
+2. Subhead: 'Walk away with six tools you could save yourself EUR 300.' (replaces 'and we'll give you the tools to not need one for 50 days.')
+3. Removed the math block entirely (the EUR 6 caneca / 50 days / EUR 300 you keep stat tiles + the 'A caneca is ~EUR 6...' headline). The new subhead now states the EUR 300 savings in a single line.
+4. 'What you get' section heading changed from 'Sign up for helpful tools.' to 'Six tools to walk into the challenge.'
+5. Removed the 'Pay with the same email you'll use to sign in...' hint from the CTA. The premium state still surfaces a clear 'You're in' panel.
+6. Removed the 'Free for everyone' /toolkit callout block entirely.
+7. Switched checkout provider from Creem to Stripe:
+   - Renamed env var NEXT_PUBLIC_CREEM_CHECKOUT_URL -> NEXT_PUBLIC_STRIPE_CHECKOUT_URL in both the homepage SixFeatures and /macrocalc page
+   - When the env var is missing, the error message now says 'Stripe checkout is not configured yet. We are switching over from Creem - check back soon.' so users know the swap is in progress
+   - The actual Stripe integration (Stripe Checkout session creation, webhook handler, RLS update on profiles table) is left for a follow-up once Stripe keys are wired up. The placeholder URL still uses prefilled_email which maps to Stripe's customer_email param.
+   - CTA caption updated: 'secure checkout via Stripe' (was 'via Creem')
 
-1. Marquee at the very top (paper-friendly text-ink/10 so it reads as a watermark, not a header)
+The Sign up section is still a single <section> on the homepage. Internal flow: marquee -> hero (eyebrow/headline/subhead/one-liner) -> What you get (heading + 6 feature grid) -> CTA.
 
-2. Hero block (centered):
-   - eyebrow: 'Helpful tools'
-   - headline: 'Buy us a beer.'
-   - subhead: "and we'll give you the tools to not need one for 50 days."
-   - one-liner: 'One payment, yours forever, no subscription.'
-
-3. The math block (border-top + border-bottom, vertically framed):
-   - eyebrow: 'The math'
-   - one-line headline: 'A caneca is ~EUR 6. Skip one a day for 50 days and you keep EUR 300 - EUR 5.99 buys the tools, the challenge pays for them.'
-   - 3-up stat tiles below: EUR 6 caneca / 50 days / EUR 300 you keep
-
-4. 'What you get' block (heading + 2x3 feature grid):
-   - heading: 'Sign up for helpful tools.'
-   - feature grid (matched to the actual tools in /account, simplified titles from the longer copy):
-     1. Task tracker - tap to mark the nine daily habits; streak builds automatically.
-     2. Streak protection - one free pass a week. Miss a day and the streak holds. Each save shows up as a banana on your certificate.
-     3. Water tracker - tap to log each glass, target built in.
-     4. Macro food tracker - search 1,000+ foods, log portions, tag meals, totals against your targets.
-     5. Multi-purpose timer - reading, meditation, focus blocks, presets included.
-     6. Kanban board - plan the 50 days across To do / In progress / Done.
-
-5. CTA (signed-out: 'Sign up for EUR 5.99' button + checkout; signed-in-premium: 'You're in' panel)
-
-6. 'Free for everyone' callout pointing to /toolkit
-
-Removed:
-- The 4 separate <section> tags (hero/teal, math/ink, features/paper, free-extras/paper) from the previous commit - now just one continuous section.
-- The teal hero background and the ink-toned math section - everything is paper now, matching the rest of the homepage sections.
-
-Build clean.
+No new components added; no public-API changes.

@@ -52,9 +52,9 @@ export default function SixFeatures({
   const handleCheckout = async () => {
     setCheckoutLoading(true);
     setError(null);
-    const checkoutUrl = process.env.NEXT_PUBLIC_CREEM_CHECKOUT_URL;
+    const checkoutUrl = process.env.NEXT_PUBLIC_STRIPE_CHECKOUT_URL;
     if (!checkoutUrl) {
-      setError('Checkout not configured. Please contact support.');
+      setError('Stripe checkout is not configured yet. We are switching over from Creem — check back soon.');
       setCheckoutLoading(false);
       return;
     }
@@ -72,7 +72,7 @@ export default function SixFeatures({
     >
       <div className="absolute top-0 left-0 right-0 h-32 md:h-52 overflow-hidden pointer-events-none z-0 flex items-center">
         <Marquee
-          text="BUY US A CANECA · €5.99 · ONE-TIME · YOURS FOREVER"
+          text="Buy us a Caneca - Keep the tools forever"
           separator="✦"
           speed={200}
           textClassName="text-ink/10"
@@ -89,48 +89,11 @@ export default function SixFeatures({
             Buy us a beer.
           </h1>
           <p className="font-display text-h2 text-ink/80 mb-12 leading-tight max-w-2xl mx-auto">
-            and we&apos;ll give you the tools to not need one for 50 days.
+            Walk away with six tools you could save yourself €300.
           </p>
           <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-2">
             One payment, yours forever, no subscription.
           </p>
-        </div>
-
-        {/* The math */}
-        <div className="mb-16 md:mb-20 border-t border-b border-ink/15 py-10 md:py-14 text-center">
-          <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-6">
-            The math
-          </p>
-          <p className="font-display text-h2 md:text-display-2 text-ink leading-tight max-w-3xl mx-auto">
-            A caneca is ~€6. Skip one a day for 50 days and you keep €300 — €5.99
-            buys the tools, the challenge pays for them.
-          </p>
-          <div className="grid grid-cols-3 gap-4 md:gap-8 mt-10 max-w-2xl mx-auto">
-            <div>
-              <p className="font-display text-h1 md:text-display-1 text-coral leading-none tabular-nums">
-                €6
-              </p>
-              <p className="font-body text-caption uppercase tracking-widest text-ink/60 mt-2">
-                caneca
-              </p>
-            </div>
-            <div>
-              <p className="font-display text-h1 md:text-display-1 text-coral leading-none tabular-nums">
-                50
-              </p>
-              <p className="font-body text-caption uppercase tracking-widest text-ink/60 mt-2">
-                days
-              </p>
-            </div>
-            <div>
-              <p className="font-display text-h1 md:text-display-1 text-coral leading-none tabular-nums">
-                €300
-              </p>
-              <p className="font-body text-caption uppercase tracking-widest text-ink/60 mt-2">
-                you keep
-              </p>
-            </div>
-          </div>
         </div>
 
         {/* What you get */}
@@ -141,7 +104,7 @@ export default function SixFeatures({
                 What you get
               </p>
               <h2 className="font-display text-display-2 text-ink leading-[0.95]">
-                Sign up for helpful tools.
+                Six tools to walk into the challenge.
               </h2>
             </div>
           </div>
@@ -197,31 +160,10 @@ export default function SixFeatures({
               {checkoutLoading ? 'Opening checkout…' : 'Sign up for €5.99'}
             </button>
             <p className="font-body text-caption uppercase tracking-widest text-ink/50 mt-4">
-              The price of a caneca · secure checkout via Creem · no auto-renew
+              The price of a caneca · secure checkout via Stripe
             </p>
-            {!user && (
-              <p className="font-body text-xs text-ink/40 mt-3">
-                Pay with the same email you&apos;ll use to sign in, and your premium unlocks automatically.
-              </p>
-            )}
           </div>
         )}
-
-        {/* Free extras */}
-        <div className="text-center mt-16 pt-12 border-t border-ink/10">
-          <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-4">
-            Free for everyone
-          </p>
-          <p className="font-body text-base text-ink/70 mb-6 max-w-2xl mx-auto">
-            The curated toolkit — quit resources, macro calculator, meditation apps, non-alcoholic recipes, sleep and step tracking — is open to everyone, no sign-up needed.
-          </p>
-          <a
-            href="/toolkit"
-            className="inline-flex items-center gap-2 font-body text-caption uppercase tracking-wider text-coral hover:text-ink transition-colors"
-          >
-            Open the toolkit <span>→</span>
-          </a>
-        </div>
       </div>
     </section>
   );

@@ -16,9 +16,9 @@ export default function MacrocalcPage() {
   const handleCheckout = async () => {
     setCheckoutLoading(true);
     setError(null);
-    const checkoutUrl = process.env.NEXT_PUBLIC_CREEM_CHECKOUT_URL;
+    const checkoutUrl = process.env.NEXT_PUBLIC_STRIPE_CHECKOUT_URL;
     if (!checkoutUrl) {
-      setError('Checkout not configured. Please contact support.');
+      setError('Stripe checkout is not configured yet. We are switching over from Creem — check back soon.');
       setCheckoutLoading(false);
       return;
     }
