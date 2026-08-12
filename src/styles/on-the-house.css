@@ -14,12 +14,16 @@ body { line-height: 1.5; -webkit-font-smoothing: antialiased; }
  *   .theme-teal  = teal      (meditation - cool, calming, the 'tranquil' tone)
  * The CSS variable is referenced by the page background, the marquee
  * strip, the sticky filter bar, and the coda so the filter bar always
- * matches the page background colour (per the user). */
+ * matches the page background colour (per the user). The theme class
+ * is applied to a child div of <body>, so we use :has() to propagate
+ * the chosen tone up to the body and onto the rest of the page. */
 :root {
   --on-the-house-bg: var(--lavender);
   --on-the-house-fg: var(--ink-deep);
 }
 body { background: var(--on-the-house-bg); color: var(--ink); }
+body:has(.theme-coral) { --on-the-house-bg: var(--coral-vibrant); --on-the-house-fg: var(--ink-deep); }
+body:has(.theme-teal)  { --on-the-house-bg: var(--teal);          --on-the-house-fg: var(--paper); }
 .theme-coral { --on-the-house-bg: var(--coral-vibrant); --on-the-house-fg: var(--ink-deep); }
 .theme-coral .site-footer { color: var(--ink-deep); }
 .theme-coral .region-blurb,
