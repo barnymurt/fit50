@@ -44,5 +44,5 @@ Full RLS:
 | `useAuth.refreshProfile` | `select id, email, display_name, is_premium, challenge_started_at from profiles where id = user.id` | User reads own profile |
 | Tracker sync (`useSyncTracker`) | `upsert tracker_progress on (user_id, day, habit_id)` | User writes own tracker |
 | `useStreakProtection.redeemProtection` | `insert streak_protections` | User writes own protection |
-| Creem webhook | `update profiles set is_premium = true where id = user.id` | Service role bypasses RLS |
+| Stripe webhook | `update profiles set is_premium = true where id = user.id` | Service role bypasses RLS |
 | Newsletter signup (Footer) | `upsert newsletter_subscribers on email` | Anyone can insert |

@@ -83,7 +83,7 @@ If sign-in magic links redirect to the wrong URL or emails aren't branded, see:
 - [`AUTH_SETUP.md`](./AUTH_SETUP.md) — Site URL, Redirect URLs, and auth debugging checklist
 - [`EMAIL_SETUP.md`](./EMAIL_SETUP.md) — Resend SMTP for branded magic-link emails
 
-For payments: see [`CREEM_SETUP.md`](./CREEM_SETUP.md).**
+For payments: see [`STRIPE_SETUP.md`](./STRIPE_SETUP.md).**
 
 ### 7. Test
 

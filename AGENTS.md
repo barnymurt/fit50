@@ -39,7 +39,6 @@ branches/initial-build/
 │   │   └── api/
 │   │       ├── stripe/checkout/  # POST /api/stripe/checkout (creates Stripe Checkout Session)
 │   │       └── stripe/webhook/   # POST /api/stripe/webhook (handles checkout.session.completed + charge.refunded)
-│   │       └── creem/webhook/    # Legacy Creem webhook (kept for fallback; safe to delete)
 │   ├── components/         # Reusable React components (Section, Heading, Button, etc.)
 │   ├── contexts/           # React contexts (AuthContext)
 │   ├── hooks/              # Custom hooks (useSyncTracker, usePremium, useStreakProtection)
@@ -68,7 +67,7 @@ branches/initial-build/
 - **Next.js 14** App Router + TypeScript
 - **Tailwind CSS** with custom theme tokens (see `tailwind.config.js`)
 - **Supabase** for auth, database, and the magic webhook
-- **Stripe** for payments (replaces Creem, hosted Checkout)
+- **Stripe** for payments (hosted Checkout)
 - **next/font/google** for Fraunces, Inter, Lilita One
 - **Sharp** for image processing (icon conversion, favicon generation)
 - **Resend** for branded emails (optional, only for password reset)

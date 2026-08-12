@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
   // The Supabase JS client's strict generic types don't always line up
   // with our Database['Insert'] shape. Cast through unknown to get the
   // payload we want without fighting the type system (matches the
-  // pattern in src/app/api/creem/webhook/route.ts).
+  // pattern in src/app/api/stripe/webhook/route.ts).
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (supabase
     .from('newsletter_subscribers') as any)
