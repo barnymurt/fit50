@@ -379,8 +379,8 @@ export default function DrinksPage() {
 
       <section className="coda">
         <div className="wrap">
-          <h2>Fifty days, no alcohol. Fifty drinks, no problem.</h2>
-          <a href="/#tracker" className="btn btn-primary">Back to the tracker</a>
+          <h2>Fifty days, no alcohol. Fifty drinks, cheers.</h2>
+          <a href="/#tracker" className="btn btn-primary" style={{ color: '#FFFFFF' }}>Back to the tracker</a>
         </div>
       </section>
 

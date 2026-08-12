@@ -1,23 +1,5 @@
-Meditation (Ten Minutes) page now uses teal
+Drinks coda copy + button readability
 
-The user wanted the Ten Minutes page in the teal tone from the design system instead of cream. Renamed .theme-cozy to .theme-teal and rewrote every rule so the page colour is teal (#4A9B9B) with paper text (#FBF7EE) for contrast.
-
-src/styles/on-the-house.css:
-  - --on-the-house-bg: var(--teal) and --on-the-house-fg: var(--paper)
-  - every text rule (eyebrow, region-title, region-blurb, count, count-meta, langs, org, blurb, etc.) inverted to paper because teal is dark
-  - tiles stay paper with coral-on-teal hover behaviour
-  - pills: glassy (rgba(255,255,255,0.18) background, paper border) and invert to paper/ink-deep when pressed
-  - .modal-title / .modal-eyebrow / .modal-section-title / .modal-meta > div > strong all paper
-  - .modal-note is glassy at 0.18 alpha, paper text
-  - .modal-action-primary is paper bg with teal text, hover goes to alpha 0.85
-  - .modal-close is paper bg with teal text, hover inverts to ink-deep
-  - .nav a, .footer-link, .coda a all paper; hover dials to 0.7 alpha so they don't fight the field
-
-src/app/account/meditation/page.tsx: page root switched from theme-cozy to theme-teal.
-
-So the three sub-pages now read as:
-  - Quit list: lavender (peaceful)
-  - Drinks: coral (vibrant, brand orange)
-  - Meditation: teal (cool, calming, the design system's 'tranquil' tone)
+src/app/account/drinks/page.tsx: changed the coda h2 from 'Fifty days, no alcohol. Fifty drinks, no problem.' to 'Fifty days, no alcohol. Fifty drinks, cheers.' and added an explicit inline style color: #FFFFFF to the 'Back to the tracker' .btn-primary so the text always reads white on the coral field regardless of any theme override.
 
 Build clean.
