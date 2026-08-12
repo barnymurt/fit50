@@ -396,26 +396,6 @@ export default function QuitListPage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="site-footer">
-        <div className="wrap">
-          <div>
-            <div className="footer-brand">FIT50</div>
-            <div className="footer-tag">50 days. 9 habits. 1 fresh start.</div>
-          </div>
-          <nav className="footer-nav" aria-label="Footer">
-            <a href="/#rules">Rules</a>
-            <a href="/#workouts">Workouts</a>
-            <a href="/#tracker">Tracker</a>
-            <a href="/#resources">On the house</a>
-            <a href="/#faq">FAQ</a>
-          </nav>
-          <div className="footer-copy">
-            © 2026 FIT50. All rights reserved. Numbers and web addresses are compiled from
-            publicly available government and NGO sources; verify locally before relying on them in a crisis.
-          </div>
-        </div>
-      </footer>
 
       {/* Modal */}
       <dialog className="modal" id="modal" aria-label="Service details">

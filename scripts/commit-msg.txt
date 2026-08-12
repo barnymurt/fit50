@@ -1,5 +1,11 @@
-Drinks coda copy + button readability
+Remove local header and footer from each sub-page (drinks, meditation, quit-list)
 
-src/app/account/drinks/page.tsx: changed the coda h2 from 'Fifty days, no alcohol. Fifty drinks, no problem.' to 'Fifty days, no alcohol. Fifty drinks, cheers.' and added an explicit inline style color: #FFFFFF to the 'Back to the tracker' .btn-primary so the text always reads white on the coral field regardless of any theme override.
+The user pointed out the page-level <header class="site-header"> and <footer class="site-footer"> were still rendered on each sub-page, duplicating the main site Nav and footer that the root layout already provides. Three sub-pages cleaned up:
+
+  - src/app/account/drinks/page.tsx: removed the <header class="site-header">...</header> block at the top of the JSX and the <footer class="site-footer">...</footer> block at the bottom. JSX still wraps in <div class="theme-coral">...</div> with the page-specific content + dialog.
+  - src/app/account/meditation/page.tsx: removed both blocks the same way. <div class="theme-teal">...</div> still wraps the page content.
+  - src/app/account/quit-list/page.tsx: removed the <footer> block (the local <header> was already removed in a previous commit; just the lingering footer remained).
+
+Now the only nav on every sub-page is the original main site Nav from the root layout, and the only footer is the one rendered by the site-footer in layout.tsx. No more duplicated header/footer on the sub-pages.
 
 Build clean.

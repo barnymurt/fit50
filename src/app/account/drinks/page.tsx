@@ -261,20 +261,6 @@ export default function DrinksPage() {
 
   return (
     <div className="theme-coral">
-      <header className="site-header">
-        <div className="wrap">
-          <a href="/" className="brand">FIT50</a>
-          <nav className="nav" aria-label="Primary">
-            <a href="/#rules">Rules</a>
-            <a href="/#workouts">Workouts</a>
-            <a href="/#tracker">Tracker</a>
-            <a href="/#resources">On the house</a>
-            <a href="/#faq">FAQ</a>
-          </nav>
-          <a href="/#sign-up" className="start-btn">Buy us a beer</a>
-        </div>
-      </header>
-
       <section className="hero">
         <div className="wrap">
           <span className="eyebrow">Rule 03 companion · Crispy Clarity</span>
@@ -383,23 +369,6 @@ export default function DrinksPage() {
           <a href="/#tracker" className="btn btn-primary" style={{ color: '#FFFFFF' }}>Back to the tracker</a>
         </div>
       </section>
-
-      <footer className="site-footer">
-        <div className="wrap">
-          <div>
-            <div className="footer-brand">FIT50</div>
-            <div className="footer-tag">50 days. 9 habits. 1 fresh start.</div>
-          </div>
-          <nav className="footer-nav" aria-label="Footer">
-            <a href="/#rules">Rules</a>
-            <a href="/#workouts">Workouts</a>
-            <a href="/#tracker">Tracker</a>
-            <a href="/#resources">On the house</a>
-            <a href="/#faq">FAQ</a>
-          </nav>
-          <div className="footer-copy">© 2026 FIT50. All rights reserved.</div>
-        </div>
-      </footer>
 
       <dialog className="modal" id="modal" aria-label="Drink recipe">
         <div className="modal-body" id="modal-content" />
