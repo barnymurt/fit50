@@ -178,6 +178,17 @@ export default function DrinksPage() {
     [flavours, occasions]
   );
 
+  const grouped = useMemo(() => {
+    const order = Object.keys(OCCASIONS) as OccasionKey[];
+    return order
+      .map((key) => ({
+        key,
+        label: OCCASIONS[key],
+        items: filtered.filter((d) => d.occasions[0] === key),
+      }))
+      .filter((g) => g.items.length > 0);
+  }, [filtered]);
+
   const toggleFlavour = (key: FlavourKey) => {
     setFlavours((prev) => {
       const next = new Set(prev);
@@ -281,34 +292,42 @@ export default function DrinksPage() {
             </div>
           </div>
 
-          {filtered.length === 0 ? (
+          {grouped.length === 0 ? (
             <div className="dk-empty">
               <h3>Nothing matches that combo.</h3>
               <p>Try clearing a filter.</p>
               <button type="button" className="dk-btn dk-btn-ghost" onClick={clearFilters}>Clear filters</button>
             </div>
           ) : (
-            <div className="dk-grid" role="list">
-              {filtered.map((d) => (
-                <button key={d.n} type="button" className="dk-tile" role="listitem" onClick={() => setOpenId(d.n)}>
-                  <div className="dk-tile-top">
-                    <div className="dk-tile-num">{pad(d.n)}</div>
-                    {d.macros && <div className="dk-tile-macro-flag">Macros</div>}
-                  </div>
-                  <div className="dk-tile-name">{d.name}</div>
-                  <div className="dk-tile-blurb">{d.blurb}</div>
-                  <div className="dk-tile-meta">
-                    <span className="dk-chip dk-chip-kcal">{d.kcal} kcal</span>
-                    <span className="dk-chip dk-chip-effort">{d.effort}</span>
-                  </div>
-                  <div className="dk-tile-tags">
-                    {d.flavour.slice(0, 2).map((f, i) => (
-                      <span key={i} className="dk-tile-tag">{FLAVOURS[f]}</span>
-                    ))}
-                  </div>
-                </button>
-              ))}
-            </div>
+            grouped.map(({ key, label, items }) => (
+              <section key={key} className="dk-occ-section" id={`dk-occ-${key}`}>
+                <div className="dk-occ-header">
+                  <h2 className="dk-occ-title">{label}</h2>
+                  <div className="dk-occ-count">{items.length} drink{items.length === 1 ? '' : 's'}</div>
+                </div>
+                <div className="dk-grid" role="list">
+                  {items.map((d) => (
+                    <button key={d.n} type="button" className="dk-tile" role="listitem" onClick={() => setOpenId(d.n)}>
+                      <div className="dk-tile-top">
+                        <div className="dk-tile-num">{pad(d.n)}</div>
+                        {d.macros && <div className="dk-tile-macro-flag">Macros</div>}
+                      </div>
+                      <div className="dk-tile-name">{d.name}</div>
+                      <div className="dk-tile-blurb">{d.blurb}</div>
+                      <div className="dk-tile-meta">
+                        <span className="dk-chip dk-chip-kcal">{d.kcal} kcal</span>
+                        <span className="dk-chip dk-chip-effort">{d.effort}</span>
+                      </div>
+                      <div className="dk-tile-tags">
+                        {d.flavour.slice(0, 2).map((f, i) => (
+                          <span key={i} className="dk-tile-tag">{FLAVOURS[f]}</span>
+                        ))}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </section>
+            ))
           )}
         </div>
       </section>
@@ -410,7 +429,7 @@ export default function DrinksPage() {
           --dk-shadow-hover: 0 1px 0 rgba(26, 23, 48, 0.06), 0 22px 40px -18px rgba(26, 23, 48, 0.28);
           --dk-tx-fast: 160ms cubic-bezier(0.4, 0, 0.2, 1);
           --dk-tx-mid: 260ms cubic-bezier(0.4, 0, 0.2, 1);
-          background: var(--coral-vibrant); color: var(--ink-deep);
+          background: var(--dk-lavender);
           color: var(--dk-ink);
           font-family: var(--dk-fb);
           font-size: 16px;
@@ -438,14 +457,14 @@ export default function DrinksPage() {
         .dk-btn-ghost { border: 1.5px solid var(--dk-ink); color: var(--dk-ink); background: transparent; }
         .dk-btn-ghost:hover { border-color: var(--dk-coral); color: var(--dk-coral); }
 
-        .dk-marquee { border-top: 1.5px solid var(--dk-ink); border-bottom: 1.5px solid var(--dk-ink); overflow: hidden; white-space: nowrap; font-family: var(--dk-fd); font-size: 15px; font-weight: 600; letter-spacing: 0.14em; padding: 16px 0; background: var(--coral-vibrant); color: var(--ink-deep); text-transform: uppercase; }
+        .dk-marquee { border-top: 1.5px solid var(--dk-ink); border-bottom: 1.5px solid var(--dk-ink); overflow: hidden; white-space: nowrap; font-family: var(--dk-fd); font-size: 15px; font-weight: 600; letter-spacing: 0.14em; padding: 16px 0; background: var(--dk-lavender); text-transform: uppercase; }
         .dk-marquee-track { display: inline-flex; animation: dk-marquee 42s linear infinite; will-change: transform; }
         .dk-marquee-group span { padding: 0 24px; }
         .dk-marquee-group .dk-star { color: var(--dk-coral); font-size: 18px; }
         @keyframes dk-marquee { from { transform: translateX(0); } to { transform: translateX(-33.333%); } }
 
         .dk-library { padding-top: 36px; padding-bottom: 60px; }
-        .dk-filter-wrap { position: sticky; top: 0; z-index: 30; background: var(--coral-vibrant); color: var(--ink-deep); padding: 22px 0 18px; border-bottom: 1px solid var(--dk-border); margin-bottom: 32px; }
+        .dk-filter-wrap { position: sticky; top: 0; z-index: 30; background: var(--dk-lavender); padding: 22px 0 18px; border-bottom: 1px solid var(--dk-border); margin-bottom: 32px; }
         .dk-filter-groups { display: flex; flex-direction: column; gap: 14px; }
         .dk-filter-group { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
         .dk-filter-label { font-family: var(--dk-fd); font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--dk-ink); min-width: 80px; }
@@ -458,12 +477,17 @@ export default function DrinksPage() {
         .dk-clear-btn { color: var(--dk-coral); font-weight: 600; text-decoration: underline; text-underline-offset: 4px; font-size: 14px; }
         .dk-clear-btn:hover { color: var(--dk-coral-deep); }
 
+        .dk-occ-section { margin-bottom: 56px; }
+        .dk-occ-section:last-child { margin-bottom: 0; }
+        .dk-occ-header { display: flex; align-items: baseline; justify-content: space-between; gap: 20px; flex-wrap: wrap; padding-bottom: 18px; margin-bottom: 22px; border-bottom: 1.5px solid var(--dk-ink); }
+        .dk-occ-title { font-family: var(--dk-fd); font-weight: 600; font-size: clamp(32px, 5vw, 52px); line-height: 1.02; letter-spacing: -0.03em; color: var(--dk-ink); margin: 0; }
+        .dk-occ-count { font-family: var(--dk-fd); font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--dk-ink-3); }
         .dk-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
         .dk-tile { background: var(--dk-paper); border-radius: var(--dk-radius); padding: 24px 22px 22px; box-shadow: var(--dk-shadow); border: 1.5px solid transparent; cursor: pointer; text-align: left; display: flex; flex-direction: column; gap: 14px; min-height: 300px; transition: transform var(--dk-tx-fast), box-shadow var(--dk-tx-fast), border-color var(--dk-tx-fast); position: relative; overflow: hidden; }
         .dk-tile:hover { transform: translateY(-3px); box-shadow: var(--dk-shadow-hover); border-color: var(--dk-coral); }
         .dk-tile:focus-visible { outline: 2px solid var(--dk-coral); outline-offset: 3px; }
         .dk-tile-top { display: flex; justify-content: space-between; align-items: flex-start; }
-        .dk-tile-num { font-family: var(--dk-fd); font-weight: 300; font-style: italic; font-size: 64px; line-height: 0.85; color: var(--dk-coral); letter-spacing: -0.04em; }
+        .dk-tile-num { font-family: var(--dk-fd); font-weight: 300; font-style: italic; font-size: 52px; line-height: 0.85; color: var(--dk-coral); letter-spacing: -0.04em; }
         .dk-tile-macro-flag { font-family: var(--dk-fd); font-weight: 700; font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--dk-ink); border: 1px solid var(--dk-ink); padding: 4px 8px; border-radius: var(--dk-radius-pill); }
         .dk-tile-name { font-family: var(--dk-fd); font-weight: 600; font-size: 22px; line-height: 1.08; letter-spacing: -0.02em; color: var(--dk-ink); }
         .dk-tile-blurb { font-size: 13.5px; color: var(--dk-ink-2); line-height: 1.5; flex-grow: 1; }

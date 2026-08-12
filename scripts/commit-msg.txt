@@ -1,22 +1,19 @@
-Fix button-reset CSS specificity on all three sub-pages
+Drinks page: group by occasion + tile styling
 
-The .ql-root button, .dk-root button, and .tm-root button rules had higher specificity than the .ql-tile, .dk-tile, and .tm-tile rules. Since the tiles are <button> elements, the button reset was winning, stripping the paper background and flattening the padding, which was why the text was sitting right at the rounded corners.
+src/app/account/drinks/page.tsx
 
-src/app/account/quit-list/page.tsx (line 574-587): wrapped the three reset rules in :where() to give them zero specificity. The tile styles now win and the paper background + 24px padding apply correctly.
+Replace the flat 50-tile grid with 8 sections grouped by primary
+occasion (first item in each drink's occasions array). Sections
+follow the same OCCASIONS order as the taxonomy: Everyday hydration,
+Post-workout, Afternoon pick-me-up, Dinner mocktail, Party / celebration,
+Cosy evening, Dessert replacement, Batch & top up.
 
-src/app/account/meditation/page.tsx (line 376-378): same fix with .tm-root prefix.
+Each section gets a dk-occ-header with a 1.5px ink underline to match
+the quit-list region headers, so all three companion pages read as a
+family. Tile number reduced from 64px to 52px so the coral stops
+dominating when 50 of them are on screen.
 
-src/app/account/drinks/page.tsx (line 421-424): same fix with .dk-root prefix, plus the fourth .dk-root ul, .dk-root ol rule wrapped in :where(.dk-root ul, .dk-root ol) as the user described.
+Filter behaviour preserved: filter by flavour, by occasion, or both
+(intersection). No filters shows all 50 drinks across 8 sections.
 
-Before:
-  .ql-root * { box-sizing: border-box; }       /* specificity 0,1,1 */
-  .ql-root button { ... }                        /* specificity 0,1,1 - resets bg + padding */
-  .ql-tile { background: var(--ql-paper); padding: 24px 22px 22px; }  /* specificity 0,1,1 - ties on tile rules */
-  Since .ql-tile and .ql-root button are both (0,1,1), the button rule (later in source) won the cascade tie, and tiles rendered as if they were the default button.
-
-After:
-  :where(.ql-root *) { box-sizing: border-box; }    /* specificity 0,0,0 - never wins */
-  :where(.ql-root button) { ... }                   /* specificity 0,0,0 - never wins */
-  .ql-tile { background: var(--ql-paper); padding: 24px 22px 22px; }  /* specificity 0,1,1 - always wins */
-
-Build clean. Tiles will now render with the paper background and proper 24px padding, text pulls away from the rounded corners on all three pages.
+scripts/commit-msg.txt: deleted (stale file left from prior session).
