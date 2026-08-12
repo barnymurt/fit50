@@ -420,11 +420,7 @@ export default function QuitListPage() {
       {/* Coda */}
       <section className="ql-coda">
         <div className="ql-wrap">
-          <h2 className="ql-coda-h2">Fifty days smoke-free starts with one call.</h2>
-          <div className="ql-coda-note">
-            Antarctica has no permanent population, so no cessation services exist there.
-            Researchers stationed on the ice rely on their home country&apos;s programme.
-          </div>
+          <h2 className="ql-coda-h2">Fifty days smoke-free starts tomorrow.</h2>
         </div>
       </section>
 
@@ -842,7 +838,7 @@ export default function QuitListPage() {
           gap: 20px;
         }
         .ql-tile {
-          background: var(--ql-paper);
+          background: #ffffff;
           border-radius: var(--ql-radius);
           padding: 24px 22px 22px;
           box-shadow: var(--ql-shadow);
@@ -853,6 +849,7 @@ export default function QuitListPage() {
           flex-direction: column;
           gap: 12px;
           min-height: 320px;
+          overflow-wrap: anywhere;
           transition: transform var(--ql-tx-fast), box-shadow var(--ql-tx-fast), border-color var(--ql-tx-fast);
           position: relative;
           overflow: hidden;
@@ -897,22 +894,25 @@ export default function QuitListPage() {
         .ql-tile-name {
           font-family: var(--ql-fd);
           font-weight: 600;
-          font-size: 20px;
-          line-height: 1.1;
+          font-size: 18px;
+          line-height: 1.2;
           letter-spacing: -0.02em;
           color: var(--ql-ink);
+          overflow-wrap: anywhere;
         }
         .ql-tile-org {
           font-size: 12px;
           color: var(--ql-ink-3);
           font-weight: 500;
           margin-top: -6px;
+          overflow-wrap: anywhere;
         }
         .ql-tile-blurb {
-          font-size: 13.5px;
+          font-size: 12.5px;
           color: var(--ql-ink-2);
           line-height: 1.5;
           flex-grow: 1;
+          overflow-wrap: anywhere;
         }
         .ql-tile-meta {
           display: flex;

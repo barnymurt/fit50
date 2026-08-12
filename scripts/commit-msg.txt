@@ -1,19 +1,15 @@
-Use the comprehensive page.tsx the user shared for the Quit List
+Quit List: remove Antarctica coda-note, change coda line, white tiles with no text clipping
 
-Replaced src/app/account/quit-list/page.tsx with the full single-file version the user shared at C:\Users\bmurt\Downloads\page.tsx. This consolidates all 40 services inline as a typed SERVICES array, uses next/font for Fraunces and Inter, and renders the entire page (hero, filter bar, region sections, dual marquees, modal, coda, footer) with self-contained styled-jsx (scoped to the component via the .ql-root class).
+src/app/account/quit-list/page.tsx:
 
-The user provided this file as a cleaner, more structured version of the page. Compared to the previous implementation:
-  - 40 services as a typed const SERVICES array (with RegionKey, SupportKey, Service type) inline, with one source of truth
-  - Tanstack-free filter / group / render (just plain useMemo + DOM updates)
-  - Self-contained <style jsx> block with .ql-* scoped classes (no need for the on-the-house.css .quit-list overrides - the component owns its entire look)
-  - Next.js Fraunces and Inter loaded via next/font/google with CSS variables (--ql-font-display, --ql-font-body) - the same fonts the rest of the site uses, but the scoped CSS variables keep the component's own typography stack isolated
-  - Two marquees that run on a single shared keyframe that handles multiple groups in one strip (clever CSS that translates -33.333% so the loop seams cleanly)
-  - Modal opens imperatively via dialogRef + useEffect (no re-render of the whole tree when the dialog opens) so the data is always fresh when the user clicks a tile
-  - Copy-to-clipboard uses navigator.clipboard.writeText with proper cleanup (resets the button label after 1.5s) and a fallback message on failure
-  - URL state syncing reads on mount and writes after hydration so refreshing the page or sharing a link preserves the active filter set
-  - Hash routing (#service-12) opens the matching tile's dialog on initial load
-  - The Phone-lines-only preset button pre-selects just the phone filter for the user
+  - Coda text now reads 'Fifty days smoke-free starts tomorrow.' (was '...starts with one call.').
+  - Removed the Antarctica coda-note block entirely (the user asked to delete that whole blockquote/note).
+  - The coda section is now just the headline + coda-note gone; the section still has the coda padding and spacing so the layout doesn't collapse.
 
-The component runs as a self-contained 1246-line file (services + types + component + styles). Build is clean: 16.4 kB / 104 kB First Load JS for the page (up from 1.5 kB / 97 kB because everything is in one file now instead of the previous code-split import of an external .json).
+  - .ql-tile background changed from var(--ql-paper) to #ffffff (pure white, as the user asked).
+  - The rounded corners stay (border-radius: var(--ql-radius) which is 20px - the same as before).
+  - To make sure no text gets clipped at the rounded corners, added overflow-wrap: anywhere on the .ql-tile and on the three text-heavy children (.ql-tile-name, .ql-tile-org, .ql-tile-blurb) so any long service/org/blurb text breaks inside the tile rather than overflowing the corner.
+  - .ql-tile-name font-size dropped from 20px to 18px and line-height from 1.1 to 1.2 to give the long names more vertical room.
+  - .ql-tile-blurb font-size dropped from 13.5px to 12.5px so the blurb still has room to grow inside the tile without being clipped by the rounded bottom corners.
 
-The /drinks and /ten-minutes pages are unchanged; this commit only replaces the Quit List. The new file uses the same design-system colour tokens (--ql-lavender, --ql-coral, --ql-paper, --ql-ink, --ql-teal, etc.) as the rest of the site, scoped under the .ql-root class so it doesn't leak to the rest of the page.
+Build clean.
