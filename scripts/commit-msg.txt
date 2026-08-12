@@ -1,23 +1,39 @@
-Fix /meditation page still not teal — :has() wasn't picking up the theme
+Fix sub-page theming: solid cards, working page backgrounds, visible close button
 
-The :has() selector fix from the previous commit didn't work for the user. :has() works in modern browsers but maybe the user is on an older one, or some other CSS specificity is interfering. To work regardless of the browser, the fix now applies the page background directly to the theme wrapper div rather than via a body-level selector.
+The user pointed out four problems with the current sub-page theming:
+  1. /meditation was still off-white (not teal)
+  2. /drinks was coral everywhere because the tile background was rgba(255,255,255,0.92) - the cards had 92% opacity so the coral page was showing through
+  3. The meditation page was floating text because the dark text colours were being used over a teal background
+  4. The close-button X was dark on dark (the .theme-teal override was making the button paper-on-paper with the X barely visible)
 
-src/styles/on-the-house.css:
+The previous CSS was using :root variables with :has() and the variable was being set on a child div, so the body never got the page colour. The 0.92-alpha cards were specifically the problem.
 
-  body { background: var(--on-the-house-bg); color: var(--ink); } — kept as the default, in case the wrapper div doesn't reach the full viewport.
+Rewrote src/styles/on-the-house.css from scratch. The key fixes:
 
-  .theme-default,
-  .theme-coral,
-  .theme-teal {
-    min-height: 100vh;
-    background: var(--on-the-house-bg);
-    color: var(--on-the-house-fg);
-  }
+  - The three theme classes are now applied directly to the wrapper div and set both background AND color explicitly. No more :has(), no more CSS-variable inheritance from child to parent:
+      .theme-default { background: var(--lavender); color: var(--ink); }
+      .theme-coral   { background: var(--coral-vibrant); color: var(--ink-deep); }
+      .theme-teal    { background: var(--teal); color: var(--paper); }
 
-  This guarantees that whichever theme class is on the page wrapper, the page wrapper itself fills at least the full viewport (100vh) and is coloured with the chosen tone. The page background now always shows through (instead of the body's default lavender showing in any gap), regardless of browser support for :has() or the body's ability to pick up the child variable.
+  - The wrapper div is min-height: 100vh so the page colour fills the entire viewport regardless of content length. Library, coda, and filter-wrap use background: inherit so they pick up the wrapper's colour.
 
-  The :has() body rules from the previous commit are removed since the wrapper now handles the background directly.
+  - Cards (.tile) are SOLID var(--paper) (off-white, NOT transparent) regardless of theme. No 0.92 alpha anywhere. Hover lifts and the border flips to coral so the cards still feel interactive.
 
-  The other rules that depended on the wrapper-level variable (the .theme-coral, .theme-teal, .theme-default overrides) are unchanged; they now scope the chosen background colour to the wrapper itself rather than to the body, which is what the user sees as the full-page background.
+  - Text colours inside the cards (.tile-name, .tile-blurb, .tile-org, .tile-country, etc.) are all var(--ink-deep) so they're readable on the paper card regardless of the page background.
 
-Build clean. The /meditation page should now show teal as the full-page background, the /drinks page coral, and the /quit-list page keeps the default lavender.
+  - The close button now uses var(--coral-vibrant) background with var(--paper) X glyph and a paper border - a high-contrast coral circle on a paper modal. No more dark-blue-on-dark-blue.
+
+  - The modal content (modal-body) has text-align: center so the eyebrow, title, blurb, support chips, action buttons all sit centred. Modal-blurb, modal-meta, modal-ingredients, modal-method and modal-macros are all capped at max-width: 520px and centred with margin auto, so they don't stretch to the modal's full width.
+
+  - Modal-title and modal-org explicitly text-align: left so the heading reads naturally (the eyebrow is centred but the title and org sit left-aligned below it).
+
+  - The .btn-primary defaults to var(--ink-deep) background and var(--paper) text, with a 1.5px var(--ink-deep) border. Always solid, always contrasting.
+
+  - The .btn-ghost has var(--ink-deep) text and border, transparent background, so it never bleeds into the page.
+
+The three sub-pages now have:
+  - /quit-list: lavender background, paper cards, dark text
+  - /drinks: coral background, paper cards, dark text
+  - /meditation: teal background, paper cards, dark text, paper-text outside the cards (eyebrow / coda / coda-note / filter-label / pill / nav links)
+
+Build clean.
