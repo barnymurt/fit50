@@ -99,43 +99,6 @@ export default function SixFeatures({
           </p>
         </div>
 
-        {/* The math */}
-        <div className="mb-12 md:mb-16 border-t border-b border-paper/20 py-10 md:py-12 text-center">
-          <p className="font-body text-caption uppercase tracking-widest text-coral mb-4">
-            The math
-          </p>
-          <p className="font-display text-h2 md:text-h1 text-paper leading-tight max-w-3xl mx-auto">
-            A caneca is ~€6. Skip one a day for 50 days and you keep €300 — €5.99
-            buys the tools, the challenge pays for them.
-          </p>
-          <div className="grid grid-cols-3 gap-4 md:gap-8 mt-8 max-w-2xl mx-auto">
-            <div>
-              <p className="font-display text-h1 md:text-display-1 text-coral leading-none tabular-nums">
-                €6
-              </p>
-              <p className="font-body text-caption uppercase tracking-widest text-paper/65 mt-2">
-                caneca
-              </p>
-            </div>
-            <div>
-              <p className="font-display text-h1 md:text-display-1 text-coral leading-none tabular-nums">
-                50
-              </p>
-              <p className="font-body text-caption uppercase tracking-widest text-paper/65 mt-2">
-                days
-              </p>
-            </div>
-            <div>
-              <p className="font-display text-h1 md:text-display-1 text-coral leading-none tabular-nums">
-                €300
-              </p>
-              <p className="font-body text-caption uppercase tracking-widest text-paper/65 mt-2">
-                you keep
-              </p>
-            </div>
-          </div>
-        </div>
-
         {/* What you get */}
         <div className="mb-12 md:mb-16">
           <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mb-8">

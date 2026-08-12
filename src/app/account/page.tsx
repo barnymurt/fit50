@@ -416,7 +416,7 @@ export default function AccountPage() {
             </p>
             <Title tone="dark">Unlock premium.</Title>
             <p className="font-body text-lg text-paper/70 mt-4 mb-8">
-              Get the macro calculator, the timer, the project board, and the rest of the premium tools. One payment, yours forever.
+              Unlock the detailed macro food tracker, streak protection, water tracker, multi-purpose timer, kanban board, and to-do list. One payment, yours forever.
             </p>
             <Link
               href="/upgrade"
