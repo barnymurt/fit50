@@ -178,14 +178,19 @@ export default function Tracker({ hideMarquee = false }: { hideMarquee?: boolean
             {!isPremium && (
               <a
                 href="/upgrade"
-                className="block bg-paper/10 hover:bg-paper/15 transition-colors p-4 mb-4"
+                className="block bg-coral hover:bg-coral/90 transition-colors p-5 mb-4 text-paper"
               >
-                <p className="font-body text-caption uppercase text-paper/70 mb-1">
+                <p className="font-body text-caption uppercase tracking-widest text-paper/90 mb-2">
                   🍌 Streak protection
                 </p>
-                <p className="font-body text-sm text-paper/85">
-                  Get 1 free pass a week. Miss a day, the streak holds.{' '}
-                  <span className="text-coral">Sign up for €5.99 →</span>
+                <p className="font-display text-h3 text-paper leading-tight mb-3">
+                  Buy us a beer. Keep the tools forever.
+                </p>
+                <p className="font-body text-sm text-paper/90 mb-3">
+                  One free pass a week. Miss a day and the streak holds. Plus all six helpful tools. €5.99, yours forever.
+                </p>
+                <p className="font-body text-caption uppercase tracking-widest text-paper inline-flex items-center gap-2">
+                  Sign up for €5.99 <span>→</span>
                 </p>
               </a>
             )}

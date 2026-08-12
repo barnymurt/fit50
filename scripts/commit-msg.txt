@@ -1,19 +1,20 @@
-Update Sign up section copy + switch checkout env to Stripe
+Sign up section updates + Resources as homepage section + Nav CTA
 
-User requested changes to the Sign up section:
+SixFeatures (Sign up section):
+- Background back to teal (#4A9B9B), like the original /upgrade hero. The paper-text colours were reintroduced with the strip removal but the user wants visual separation from the FAQ section above it.
+- Math block brought back: 'A caneca is ~EUR 6. Skip one a day for 50 days and you keep EUR 300 - EUR 5.99 buys the tools, the challenge pays for them.' with the 3-up stat tiles (EUR 6 caneca / 50 days / EUR 300 you keep).
+- Headline + subhead + one-liner stay on the teal ground using text-paper / text-paper/85 / text-paper/65. Border colours on the math block and feature grid switched to border-paper/20.
 
-1. Marquee text: 'BUY US A CANECA - KEEP THE TOOLS FOREVER' (was the previous rolling text)
-2. Subhead: 'Walk away with six tools you could save yourself EUR 300.' (replaces 'and we'll give you the tools to not need one for 50 days.')
-3. Removed the math block entirely (the EUR 6 caneca / 50 days / EUR 300 you keep stat tiles + the 'A caneca is ~EUR 6...' headline). The new subhead now states the EUR 300 savings in a single line.
-4. 'What you get' section heading changed from 'Sign up for helpful tools.' to 'Six tools to walk into the challenge.'
-5. Removed the 'Pay with the same email you'll use to sign in...' hint from the CTA. The premium state still surfaces a clear 'You're in' panel.
-6. Removed the 'Free for everyone' /toolkit callout block entirely.
-7. Switched checkout provider from Creem to Stripe:
-   - Renamed env var NEXT_PUBLIC_CREEM_CHECKOUT_URL -> NEXT_PUBLIC_STRIPE_CHECKOUT_URL in both the homepage SixFeatures and /macrocalc page
-   - When the env var is missing, the error message now says 'Stripe checkout is not configured yet. We are switching over from Creem - check back soon.' so users know the swap is in progress
-   - The actual Stripe integration (Stripe Checkout session creation, webhook handler, RLS update on profiles table) is left for a follow-up once Stripe keys are wired up. The placeholder URL still uses prefilled_email which maps to Stripe's customer_email param.
-   - CTA caption updated: 'secure checkout via Stripe' (was 'via Creem')
+Resources section (replaces /toolkit):
+- New src/components/Resources.tsx: same 6 curated links as the old /toolkit page (Quit resources, Non-alcoholic recipes, Macro calculator, Meditation apps, Workout inspiration, Sleep + steps) wrapped in the standard hero/Section shape (marquee at top + grid below below).
+- src/app/toolkit/page.tsx DELETED. /toolkit no longer exists as a route.
+- src/app/page.tsx mounts <Resources id=resources /> between <SixFeatures id=sign-up /> and <FAQ />, so the resources scroll into view sits at #resources on the homepage (parallel to the other section anchors).
 
-The Sign up section is still a single <section> on the homepage. Internal flow: marquee -> hero (eyebrow/headline/subhead/one-liner) -> What you get (heading + 6 feature grid) -> CTA.
+Nav (top-of-page):
+- 'Toolkit' link renamed to 'Resources' and now scrolls to #resources (not a separate page). The hamburger menu now also renders a coral 'Buy tools - EUR 5.99' item that opens /upgrade (which redirects to /#sign-up).
+- The main desktop right-side primary button is now 'Buy tools - EUR 5.99' (was 'Start' - a generic call-to-action that pointed to the homepage tracker). It now leads directly to the checkout flow.
 
-No new components added; no public-API changes.
+Tracker streak sidebar:
+- The non-premium 'Streak protection' CTA is now a full coral block with a display-3 headline ('Buy us a beer. Keep the tools forever.'), a one-liner, and the explicit EUR 5.99 price. It used to be a muted paper/10 panel with inline text + a coral link span; now it's a clear, distinct CTA that draws the eye and uses the same coral as the upgrade button elsewhere on the site.
+
+Build clean. /toolkit route is gone (verified in build output: only /, /account, /api/creem/webhook, /macrocalc, /upgrade, /_not-found remain as pages).

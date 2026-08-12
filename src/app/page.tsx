@@ -4,6 +4,7 @@ import Calculator from '@/components/Calculator';
 import Workouts from '@/components/Workouts';
 import Tracker from '@/components/Tracker';
 import SixFeatures from '@/components/SixFeatures';
+import Resources from '@/components/Resources';
 import FAQ from '@/components/FAQ';
 import type { Metadata } from 'next';
 
@@ -22,6 +23,7 @@ export default function Home() {
       <Workouts />
       <Tracker />
       <SixFeatures id="sign-up" />
+      <Resources id="resources" />
       <FAQ />
     </>
   );

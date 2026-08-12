@@ -9,7 +9,7 @@ const NAV_LINKS = [
   { href: '#rules', label: 'Rules' },
   { href: '#workouts', label: 'Workouts' },
   { href: '#tracker', label: 'Tracker' },
-  { href: '/toolkit', label: 'Toolkit' },
+  { href: '#resources', label: 'Resources' },
   { href: '#faq', label: 'FAQ' },
 ];
 
@@ -108,8 +108,8 @@ export default function Nav() {
               Account
             </Link>
           )}
-          <Button href="#tracker" variant="primary" tone="light" className="!px-5 !py-2.5 !text-xs">
-            Start
+          <Button href="#sign-up" variant="primary" tone="light" className="!px-5 !py-2.5 !text-xs">
+            Buy tools · €5.99
           </Button>
           <button
             type="button"
@@ -155,6 +155,15 @@ export default function Nav() {
                 )}
               </li>
             ))}
+            <li>
+              <Link
+                href="/upgrade"
+                onClick={() => setMobileOpen(false)}
+                className="block px-2 py-3 font-body text-caption uppercase tracking-widest text-coral hover:text-ink border-b border-rule"
+              >
+                Buy tools · €5.99
+              </Link>
+            </li>
             {!loading && user && (
               <li>
                 <Link

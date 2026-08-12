@@ -1,8 +1,7 @@
-'use client';
+import Section from './Section';
+import Marquee from './Marquee';
 
-import Section from '@/components/Section';
-
-interface ToolkitItem {
+interface ResourcesItem {
   category: string;
   title: string;
   description: string;
@@ -10,7 +9,7 @@ interface ToolkitItem {
   affiliate?: boolean;
 }
 
-const TOOLKIT: ToolkitItem[] = [
+const RESOURCES: ResourcesItem[] = [
   {
     category: 'Smoking cessation',
     title: 'Quit resources',
@@ -45,41 +44,51 @@ const TOOLKIT: ToolkitItem[] = [
   {
     category: 'Tracking',
     title: 'Sleep + steps',
-    description: "How to use your phone's built-in sleep and step tracking so the \"10K steps\" rule is friction-free.",
+    description: "How to use your phone's built-in sleep and step tracking so the '10K steps' rule is friction-free.",
     href: 'https://support.apple.com/en-us/108789',
   },
 ];
 
-export default function ToolkitPage() {
+export default function Resources({ id }: { id?: string }) {
   return (
     <Section
-      className="relative text-ink overflow-hidden pt-40 md:pt-56 pb-section"
+      id={id}
+      className="relative text-ink overflow-hidden pt-40 md:pt-56"
       tone="paper"
-      contained
     >
-      <div className="max-w-5xl mx-auto">
-        <div className="text-center mb-16">
+      <div className="absolute top-0 left-0 right-0 h-32 md:h-52 overflow-hidden pointer-events-none z-0 flex items-center">
+        <Marquee
+          text="FREE · CURATED · NO SCROLLING · OPEN THE LINK"
+          separator="✦"
+          speed={200}
+          textClassName="text-ink/10"
+        />
+      </div>
+
+      <div className="relative z-10 max-w-7xl mx-auto px-6 md:px-10 pb-section">
+        <div className="text-center mb-12 md:mb-16">
           <p className="font-body text-caption uppercase text-coral mb-3">
             Free for everyone
           </p>
-          <h1 className="font-display text-display-1 text-ink mb-6 leading-[0.95]">
-            The toolkit.
-          </h1>
+          <h2 className="font-display text-display-1 text-ink mb-6 leading-[0.95]">
+            The resources.
+          </h2>
           <p className="font-display text-h2 text-ink/80 max-w-2xl mx-auto leading-tight">
-            Curated links for each of the 9 rules. No googling. No scrolling. Open the link, do the thing.
+            Curated links for each of the 9 rules. No googling. No scrolling.
+            Open the link, do the thing.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 border-t border-l border-ink/10">
-          {TOOLKIT.map((item, i) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 border-t border-l border-ink/15">
+          {RESOURCES.map((item, i) => (
             <a
               key={item.title}
               href={item.href}
               target="_blank"
               rel={item.affiliate ? 'sponsored noopener noreferrer' : 'noopener noreferrer'}
-              className={`p-6 md:p-8 group hover:bg-paper transition-colors block ${
-                i % 2 === 0 ? 'border-r border-ink/10' : ''
-              } ${i < TOOLKIT.length - 2 ? 'border-b border-ink/10' : ''}`}
+              className={`p-6 md:p-8 group hover:bg-cream/40 transition-colors block ${
+                i % 2 === 0 ? 'border-r border-ink/15' : ''
+              } ${i < RESOURCES.length - 2 ? 'border-b border-ink/15' : ''}`}
             >
               <p className="font-body text-caption uppercase text-ink/50 mb-2">
                 {item.category}
