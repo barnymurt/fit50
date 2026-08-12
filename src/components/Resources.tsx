@@ -92,7 +92,7 @@ export default function Resources({ id }: { id?: string }) {
         </div>
 
         <p className="font-body text-caption uppercase tracking-widest text-ink/40 mt-12 text-center">
-          Premium members also get streak protection, the detailed macro food tracker, the multi-purpose timer, the kanban board, and the water tracker.
+          Feeling baller? Get streak protection, a detailed macro food tracker, the multi-purpose timer, an editable project board and a water tracker.
         </p>
       </div>
     </Section>
