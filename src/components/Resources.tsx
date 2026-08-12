@@ -58,11 +58,10 @@ export default function Resources({ id }: { id?: string }) {
             On the house
           </p>
           <h2 className="font-display text-display-1 text-ink mb-6 leading-[0.95]">
-            The resources.
+            Freebies
           </h2>
           <p className="font-display text-h2 text-ink/80 max-w-2xl mx-auto leading-tight">
-            Curated links for each of the 9 rules. No googling. No scrolling.
-            Open the link, do the thing.
+            Dive into the Quit list, 50 drink ideas, cheers!Grab the free checklist and Breathe...
           </p>
         </div>
 
