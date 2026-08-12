@@ -1,19 +1,24 @@
-Drinks page: group by occasion + tile styling
+Quit list: switch page tone from lavender to cream
 
-src/app/account/drinks/page.tsx
+src/app/account/quit-list/page.tsx
 
-Replace the flat 50-tile grid with 8 sections grouped by primary
-occasion (first item in each drink's occasions array). Sections
-follow the same OCCASIONS order as the taxonomy: Everyday hydration,
-Post-workout, Afternoon pick-me-up, Dinner mocktail, Party / celebration,
-Cosy evening, Dessert replacement, Batch & top up.
+The quit-list and drinks pages shared lavender (#e4def3) as their
+overall background tone, which made them feel like duplicates when
+navigated between. Switched quit-list to cream (#F2D9A2) so the three
+sub-pages now have three distinct tones: drinks=lavender,
+meditation=teal, quit-list=cream.
 
-Each section gets a dk-occ-header with a 1.5px ink underline to match
-the quit-list region headers, so all three companion pages read as a
-family. Tile number reduced from 64px to 52px so the coral stops
-dominating when 50 of them are on screen.
+Changes:
+- Added --ql-cream: #F2D9A2 token next to the existing --ql-lavender
+  tokens (kept lavender-* in place; modal notes still use
+  --ql-lavender-soft for their soft callout backgrounds).
+- .ql-root base background: lavender -> cream.
+- .ql-marquee background: lavender -> cream (carries ink text on
+  cream, design system allows).
+- .ql-filter-wrap (sticky filter bar) background: lavender -> cream.
 
-Filter behaviour preserved: filter by flavour, by occasion, or both
-(intersection). No filters shows all 50 drinks across 8 sections.
+Tiles, pills, empty state, and modal remain on paper so they continue
+to pop against the cream backdrop. Filter pills keep their 1px border
+to stay legible.
 
-scripts/commit-msg.txt: deleted (stale file left from prior session).
+Build clean. /account/quit-list unchanged size.
