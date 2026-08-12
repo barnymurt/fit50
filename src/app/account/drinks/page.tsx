@@ -7,6 +7,7 @@ import {
   DRINK_OCCASIONS,
   type Drink,
 } from '@/data/drinks';
+import '@/styles/on-the-house.css';
 
 function esc(s: string) {
   return String(s ?? '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c] || c));
@@ -260,17 +261,6 @@ export default function DrinksPage() {
 
   return (
     <>
-      <style>{`
-        *, *::before, *::after { box-sizing: border-box; }
-        * { margin: 0; }
-        html { scroll-behavior: smooth; }
-        body { line-height: 1.5; -webkit-font-smoothing: antialiased; }
-        img, svg { display: block; max-width: 100%; }
-        button { font: inherit; cursor: pointer; border: none; background: none; color: inherit; padding: 0; }
-        a { color: inherit; text-decoration: none; }
-        ul, ol { list-style: none; padding: 0; }
-      `}</style>
-
       <header className="site-header">
         <div className="wrap">
           <a href="/" className="brand">FIT50</a>

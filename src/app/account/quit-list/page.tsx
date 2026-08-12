@@ -8,6 +8,7 @@ import {
   type QuitService,
   type QuitService as QuitServiceType,
 } from '@/data/quit-list';
+import '@/styles/on-the-house.css';
 
 const QUIT_SERVICES_TYPE: QuitServiceType[] = QUIT_SERVICES;
 
@@ -274,17 +275,6 @@ export default function QuitListPage() {
 
   return (
     <>
-      <style>{`
-        *, *::before, *::after { box-sizing: border-box; }
-        * { margin: 0; }
-        html { scroll-behavior: smooth; }
-        body { line-height: 1.5; -webkit-font-smoothing: antialiased; }
-        img, svg { display: block; max-width: 100%; }
-        button { font: inherit; cursor: pointer; border: none; background: none; color: inherit; padding: 0; }
-        a { color: inherit; text-decoration: none; }
-        ul, ol { list-style: none; padding: 0; }
-      `}</style>
-
       {/* Header */}
       <header className="site-header">
         <div className="wrap">

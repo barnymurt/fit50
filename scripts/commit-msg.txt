@@ -1,20 +1,9 @@
-Sub-pages now match the original HTML files exactly
+Move sub-page CSS out of inline <style> blocks into a real stylesheet
 
-The /account/quit-list, /account/drinks, and /account/meditation pages were re-skinned to mirror the standalone HTML files the user shared. Each page now ships with the same class names, layout, and behaviour as the original:
+The /account/quit-list, /account/drinks, and /account/meditation pages each had an inline <style>{...}</style> block at the top of the component returning JSX. That style content only applies AFTER the client component hydrates - the initial server-rendered HTML ships with the right class names but no CSS, so for a brief moment (and on any page that errors before hydration) the page renders unstyled.
 
-- Header: site-header with FIT50 brand + nav (Rules/Workouts/Tracker/On the house/FAQ) + 'Buy us a beer' CTA.
-- Hero: eyebrow + h1 with the coral 'em' accent (clamp 60px, 11vw, 140px) + lede + primary CTA + ghost preset button ('Phone lines only' / 'Show batch drinks' / 'Free only').
-- Marquee 1 + Marquee 2 (dual marquees) with the original rotation text.
-- Library: sticky filter bar (region / support for quit-list; flavour / occasion for drinks; category / best for for meditation) with 'count' and 'Clear filters' in the dashed-border filter-meta strip. Each filter pill is a paper button that flips to coral on press.
-- Tiles: 4-column grid (3 at 1024, 2 at 720, 1 at 440), 20px radius, paper bg, soft shadow that deepens to a coral-bordered tile on hover with -3px translate. Tile num is the giant Fraunces 300 italic 64px coral in the corner. Country flag or Macros pill in the top right.
-- Modal: opens via the <dialog> element, fade-in with cubic-bezier(0.22,1,0.36,1) for the sheet, dismiss with ESC or backdrop click. The modal has its own macros grid (drinks), a Support types chip row, language chips, modal-actions with primary/secondary buttons, and a copy-to-clipboard button (writes the full detail block to the clipboard with a 'Copied ✓' confirmation).
-- Coda section: italic 76px h2 + coda-note dashed border for meditation + drinks, larger lede for quit-list.
-- Footer: same three-column footer as the originals.
-- Print stylesheet: hides everything except the open modal so the user can save the recipe card directly as a PDF via the browser print dialog.
+Fix: extracted every selector from those three inline blocks into src/styles/on-the-house.css. Each sub-page now does `import '@/styles/on-the-house.css';` at the top of its module, so the styles ship in the page bundle and apply on the very first paint, no FOUC.
 
-Data:
-- All 40 services from quit-list.html extracted into src/data/quit-list.ts (typed QuitService with region, support array, languages, phone, website, etc.).
-- All 50 drinks from drinks.html extracted into src/data/drinks.ts (typed Drink with macros, batch_note, flavour array, occasions array).
-- All 8 apps from ten-minutes.html extracted into src/data/meditation.ts (typed MeditationApp).
+The CSS file mirrors the original HTMLs exactly: .site-header, .hero, .eyebrow, h1 with the coral 'em', .btn, .marquee + .marquee-track with the keyframe, .filter-wrap + .pill, .tile, .modal (the <dialog> element with cubic-bezier modalIn keyframe), .modal-macros, .modal-method with the decimal-leading-zero counter, .modal-ingredients dashed dividers, .coda italic 76px h2, .site-footer three-column, the print stylesheet that hides everything except the open modal, and the responsive breakpoints at 1024 / 720 / 440 that match the original.
 
-Build clean. /account/quit-list 10.4 kB, /account/drinks 10.8 kB, /account/meditation 6.12 kB. Statically prerendered.
+Build clean. /account/quit-list 10.2 kB, /account/drinks 10.6 kB, /account/meditation 5.91 kB. CSS now lives in a shared 42 KB stylesheet, so the next sub-page added to this group gets the styling for free.
