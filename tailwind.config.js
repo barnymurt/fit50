@@ -8,6 +8,7 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        // Original FIT50 palette (homepage / marketing / sign-up)
         ink: '#1A1A1A',
         paper: '#FAF6EE',
         cream: '#F2D9A2',
@@ -16,6 +17,20 @@ module.exports = {
         lavender: '#D8B8D0',
         rule: 'rgba(26, 26, 26, 0.12)',
         'rule-light': 'rgba(254, 254, 254, 0.14)',
+
+        // "On the house" sub-page palette (quit-list / drinks / meditation)
+        // Extracted from the standalone HTML files the user shared.
+        'ink-deep': '#1A1730',
+        'ink-soft': '#4C4568',
+        'ink-muted': '#7A7396',
+        'coral-vibrant': '#F05A3E',
+        'coral-deep': '#D8422C',
+        lavender: '#E4DEF3',
+        'lavender-deep': '#D2C8EA',
+        'lavender-soft': '#EFEAF9',
+        'paper-warm': '#F3ECDC',
+        'border-soft': 'rgba(26, 23, 48, 0.10)',
+        'border-strong-soft': 'rgba(26, 23, 48, 0.20)',
       },
       fontFamily: {
         display: ['var(--font-display)', 'serif'],
@@ -41,6 +56,13 @@ module.exports = {
       },
       transitionTimingFunction: {
         smooth: 'cubic-bezier(0.4, 0, 0.2, 1)',
+      },
+      borderRadius: {
+        pill: '999px',
+      },
+      boxShadow: {
+        card: '0 1px 0 rgba(26,23,48,0.04), 0 12px 28px -14px rgba(26,23,48,0.20)',
+        'card-hover': '0 1px 0 rgba(26,23,48,0.06), 0 22px 40px -18px rgba(26,23,48,0.28)',
       },
     },
   },

@@ -10,6 +10,26 @@
   --color-teal: #4A9B9B;
   --color-lavender: #D8B8D0;
   --color-rule: rgba(26, 26, 26, 0.12);
+
+  /* "On the house" sub-page palette (extracted from the standalone HTML files) */
+  --ink-deep: #1A1730;
+  --ink-soft: #4C4568;
+  --ink-muted: #7A7396;
+  --coral-vibrant: #F05A3E;
+  --coral-deep: #D8422C;
+  --lavender: #E4DEF3;
+  --lavender-deep: #D2C8EA;
+  --lavender-soft: #EFEAF9;
+  --paper-warm: #F3ECDC;
+  --border-soft: rgba(26, 23, 48, 0.10);
+  --border-strong-soft: rgba(26, 23, 48, 0.20);
+  --radius: 20px;
+  --radius-sm: 10px;
+  --radius-pill: 999px;
+  --shadow: 0 1px 0 rgba(26,23,48,0.04), 0 12px 28px -14px rgba(26,23,48,0.20);
+  --shadow-hover: 0 1px 0 rgba(26,23,48,0.06), 0 22px 40px -18px rgba(26,23,48,0.28);
+  --tx-fast: 160ms cubic-bezier(0.4, 0, 0.2, 1);
+  --tx-mid: 260ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 * {
