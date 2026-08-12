@@ -365,7 +365,7 @@ export default function TenMinutesPage() {
           --tm-shadow-hover: 0 1px 0 rgba(26, 23, 48, 0.06), 0 22px 40px -18px rgba(26, 23, 48, 0.28);
           --tm-tx-fast: 160ms cubic-bezier(0.4, 0, 0.2, 1);
           --tm-tx-mid: 260ms cubic-bezier(0.4, 0, 0.2, 1);
-          background: var(--teal); color: var(--paper);
+          background: var(--color-cream);
           color: var(--tm-ink);
           font-family: var(--tm-fb);
           font-size: 16px;
@@ -392,14 +392,14 @@ export default function TenMinutesPage() {
         .tm-btn-ghost { border: 1.5px solid var(--tm-ink); color: var(--tm-ink); background: transparent; }
         .tm-btn-ghost:hover { border-color: var(--tm-coral); color: var(--tm-coral); }
 
-        .tm-marquee { border-top: 1.5px solid var(--tm-ink); border-bottom: 1.5px solid var(--tm-ink); overflow: hidden; white-space: nowrap; font-family: var(--tm-fd); font-size: 15px; font-weight: 600; letter-spacing: 0.14em; padding: 16px 0; background: var(--teal); color: var(--paper); text-transform: uppercase; }
+        .tm-marquee { border-top: 1.5px solid var(--tm-ink); border-bottom: 1.5px solid var(--tm-ink); overflow: hidden; white-space: nowrap; font-family: var(--tm-fd); font-size: 15px; font-weight: 600; letter-spacing: 0.14em; padding: 16px 0; background: var(--color-cream); color: var(--tm-ink); text-transform: uppercase; }
         .tm-marquee-track { display: inline-flex; animation: tm-marquee 46s linear infinite; will-change: transform; }
         .tm-marquee-group span { padding: 0 24px; }
         .tm-marquee-group .tm-star { color: var(--tm-coral); font-size: 18px; }
         @keyframes tm-marquee { from { transform: translateX(0); } to { transform: translateX(-33.333%); } }
 
         .tm-library { padding-top: 36px; padding-bottom: 60px; }
-        .tm-filter-wrap { position: sticky; top: 0; z-index: 30; background: var(--teal); color: var(--paper); padding: 22px 0 18px; border-bottom: 1px solid var(--tm-border); }
+        .tm-filter-wrap { position: sticky; top: 0; z-index: 30; background: var(--color-cream); color: var(--tm-ink); padding: 22px 0 18px; border-bottom: 1px solid var(--tm-border); }
         .tm-filter-groups { display: flex; flex-direction: column; gap: 14px; }
         .tm-filter-group { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
         .tm-filter-label { font-family: var(--tm-fd); font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--tm-ink); min-width: 90px; }

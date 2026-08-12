@@ -538,7 +538,7 @@ export default function QuitListPage() {
           --ql-lavender: #e4def3;
           --ql-lavender-deep: #d2c8ea;
           --ql-lavender-soft: #efeaf9;
-          --ql-cream: #F2D9A2;
+          --ql-teal: #4A9B9B;
           --ql-paper: #fbf7ee;
           --ql-paper-warm: #f3ecdc;
           --ql-coral: #f05a3e;
@@ -563,8 +563,8 @@ export default function QuitListPage() {
           --ql-tx-mid: 260ms cubic-bezier(0.4, 0, 0.2, 1);
 
           /* Base */
-          background: var(--ql-cream);
-          color: var(--ql-ink);
+          background: var(--ql-teal);
+          color: var(--ql-paper);
           font-family: var(--ql-fb);
           font-size: 16px;
           line-height: 1.5;
@@ -683,7 +683,8 @@ export default function QuitListPage() {
           font-weight: 600;
           letter-spacing: 0.14em;
           padding: 16px 0;
-          background: var(--ql-cream);
+          background: var(--ql-teal);
+          color: var(--ql-paper);
           text-transform: uppercase;
         }
         .ql-marquee-track {
@@ -716,7 +717,8 @@ export default function QuitListPage() {
           position: sticky;
           top: 0;
           z-index: 30;
-          background: var(--ql-cream);
+          background: var(--ql-teal);
+          color: var(--ql-paper);
           padding: 22px 0 18px;
           border-bottom: 1px solid var(--ql-border);
         }
