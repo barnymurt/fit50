@@ -1,0 +1,30 @@
+Move the entire /upgrade page into the homepage sign-up section
+
+SixFeatures is now the comprehensive sign-up section, structured as four consecutive parts (was: one part):
+
+1. HERO (teal ground, like the old /upgrade hero)
+   - Marquee at the top: BUY US A CANECA, EUR 5.99, ONE-TIME, YOURS FOREVER
+   - 'Buy us a beer.' headline + 'Well give you the tools to not need one for 50 days.'
+   - Price block with the one-time label + 'price of a caneca' subtitle
+   - If signed in + premium: 'Youre in' status + 'Open your account' button
+   - If signed out: 'Sign up for EUR 5.99' button that calls Creem checkout (logic moved out of /upgrade/page.tsx into this component, with the same prefilled_email behavior)
+   - Guest hint: 'Pay with the same email...'
+
+2. THE MATH (paper ground)
+   - 'One of the rules is no alcohol.'
+   - 3-up stats: EUR 6 average caneca, 50 days, EUR 300 you keep
+   - 'EUR 5.99 buys the tools. The 50 days pays for them many times over.'
+
+3. WHAT UNLOCKS (paper ground, with the Sign up marquee at the top)
+   - 'Sign up for helpful tools.' headline
+   - 'Buy us a beer for a handful of helpful tools. EUR 5.99 one-time, yours forever.'
+   - The same 6-feature grid mapping to the actual tools in /account (task completion tracker, streak protection, water tracker, detailed macro food tracker, multi-purpose timer, to-do planning board)
+
+4. FREE EXTRAS (paper ground)
+   - 'Free for everyone' for the curated /toolkit, no sign-up needed
+
+/upgrade/page.tsx is now a 3-line server component that redirects to /#sign-up, so any existing links to /upgrade still land on the right place.
+
+Homepage page.tsx now passes id=sign-up to SixFeatures, so the redirect target lands at the top of the hero. Internal anchors like the CTAs in the account sidebar and the macro calculator already link to /upgrade; they continue to work because /upgrade redirects to /#sign-up.
+
+Build clean. /upgrade is now 146 B (redirect).

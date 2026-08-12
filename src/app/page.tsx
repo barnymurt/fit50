@@ -21,7 +21,7 @@ export default function Home() {
       <Calculator />
       <Workouts />
       <Tracker />
-      <SixFeatures />
+      <SixFeatures id="sign-up" />
       <FAQ />
     </>
   );
