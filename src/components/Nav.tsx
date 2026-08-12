@@ -9,8 +9,8 @@ const NAV_LINKS = [
   { href: '#rules', label: 'Rules' },
   { href: '#workouts', label: 'Workouts' },
   { href: '#tracker', label: 'Tracker' },
-  { href: '#resources', label: 'On the house' },
   { href: '#faq', label: 'FAQ' },
+  { href: '#resources', label: 'On the house' },
 ];
 
 export default function Nav() {

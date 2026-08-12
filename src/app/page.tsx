@@ -23,8 +23,8 @@ export default function Home() {
       <Workouts />
       <Tracker />
       <SixFeatures id="sign-up" />
-      <Resources id="resources" />
       <FAQ />
+      <Resources id="resources" />
     </>
   );
 }

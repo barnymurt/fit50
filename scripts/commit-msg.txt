@@ -1,9 +1,6 @@
-Move sub-page CSS out of inline <style> blocks into a real stylesheet
+Resources section moved below FAQ; nav order updated to match
 
-The /account/quit-list, /account/drinks, and /account/meditation pages each had an inline <style>{...}</style> block at the top of the component returning JSX. That style content only applies AFTER the client component hydrates - the initial server-rendered HTML ships with the right class names but no CSS, so for a brief moment (and on any page that errors before hydration) the page renders unstyled.
+- src/app/page.tsx: <Resources id="resources" /> now rendered after <FAQ />, so the On the house section is the last content block on the homepage (Hero, Rules, Calculator, Workouts, Tracker, Sign up, FAQ, On the house).
+- src/components/Nav.tsx: NAV_LINKS reordered to match the new homepage flow (Rules, Workouts, Tracker, FAQ, On the house). The mobile menu reads from the same array so it auto-updates.
 
-Fix: extracted every selector from those three inline blocks into src/styles/on-the-house.css. Each sub-page now does `import '@/styles/on-the-house.css';` at the top of its module, so the styles ship in the page bundle and apply on the very first paint, no FOUC.
-
-The CSS file mirrors the original HTMLs exactly: .site-header, .hero, .eyebrow, h1 with the coral 'em', .btn, .marquee + .marquee-track with the keyframe, .filter-wrap + .pill, .tile, .modal (the <dialog> element with cubic-bezier modalIn keyframe), .modal-macros, .modal-method with the decimal-leading-zero counter, .modal-ingredients dashed dividers, .coda italic 76px h2, .site-footer three-column, the print stylesheet that hides everything except the open modal, and the responsive breakpoints at 1024 / 720 / 440 that match the original.
-
-Build clean. /account/quit-list 10.2 kB, /account/drinks 10.6 kB, /account/meditation 5.91 kB. CSS now lives in a shared 42 KB stylesheet, so the next sub-page added to this group gets the styling for free.
+Build clean.
