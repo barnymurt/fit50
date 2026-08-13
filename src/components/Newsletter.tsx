@@ -61,8 +61,7 @@ export default function Newsletter() {
           One email a fortnight. Useful, never noise.
         </h2>
         <p className="font-display text-base text-ink/70 mb-8 max-w-md mx-auto">
-          Field notes from the 50 days: what worked, what didn&apos;t, what
-          we&apos;re shipping next.
+          Field notes from the 50 days: what worked, what didn&apos;t.
         </p>
 
         {sent ? (
