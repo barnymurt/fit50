@@ -12,7 +12,7 @@ export default function AboutPage() {
       <article
         className="mx-auto"
         style={{
-          maxWidth: '640px',
+          maxWidth: '1200px',
           paddingTop: 'clamp(5rem, 10vw, 7rem)',
           paddingBottom: 'clamp(5rem, 10vw, 7rem)',
           paddingLeft: '24px',

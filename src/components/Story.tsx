@@ -33,79 +33,77 @@ export default function Story() {
           padding: '0 2rem 4rem 2rem',
         }}
       >
-        <div style={{ maxWidth: '640px' }}>
-          <h2 className="font-display font-light text-display-2 text-ink mb-8 leading-[0.95]">
-            Blame us.
-          </h2>
+        <h2 className="font-display font-light text-display-2 text-ink mb-8 leading-[0.95]">
+          Blame us.
+        </h2>
 
-          <div
-            className="space-y-4"
-            style={{
-              fontFamily: 'var(--font-display, Fraunces), Georgia, serif',
-              fontSize: '1.375rem',
-              lineHeight: '1.5',
-              color: 'var(--ink-soft, #4C4568)',
-            }}
-          >
-            <p>
-              Thanks to a good mate I finished 75 Hard — like the idiot I am,
-              I was training for a backyard ultra at the same time. Great for
-              the endurance mindset. I finished slightly slimmer with
-              crystal-clear pee and not much else to show for it. The moment
-              day 75 rolled past I stuffed my face with Aussie junk food to
-              celebrate.
-            </p>
-            <p>
-              By month two it had become a mental slog, and for my ADHD brain
-              the creative juices had dried up. It got joyless.
-            </p>
-            <p
-              style={{
-                fontWeight: 500,
-                color: 'var(--color-ink, #1A1A1A)',
-              }}
-            >
-              Six months later my mate and I wanted a fresh challenge — one
-              that pushed the body and fed the brain, gave us something to
-              build, and made the hard days feel like progress instead of
-              just enduring. So we made this.
-            </p>
-          </div>
-
-          <p
-            className="leading-none text-right"
-            style={{
-              fontFamily: 'var(--font-display, Fraunces), Georgia, serif',
-              fontStyle: 'italic',
-              fontWeight: 300,
-              fontSize: 'clamp(2.5rem, 5vw, 3.5rem)',
-              color: 'var(--color-coral, #E88B5A)',
-              letterSpacing: '-0.01em',
-              marginTop: '2rem',
-            }}
-          >
-            — Barny
+        <div
+          className="space-y-4"
+          style={{
+            fontFamily: 'var(--font-display, Fraunces), Georgia, serif',
+            fontSize: '1.375rem',
+            lineHeight: '1.5',
+            color: 'var(--ink-soft, #4C4568)',
+          }}
+        >
+          <p>
+            Thanks to a good mate I finished 75 Hard — like the idiot I am,
+            I was training for a backyard ultra at the same time. Great for
+            the endurance mindset. I finished slightly slimmer with
+            crystal-clear pee and not much else to show for it. The moment
+            day 75 rolled past I stuffed my face with Aussie junk food to
+            celebrate.
           </p>
+          <p>
+            By month two it had become a mental slog, and for my ADHD brain
+            the creative juices had dried up. It got joyless.
+          </p>
+          <p
+            style={{
+              fontWeight: 500,
+              color: 'var(--color-ink, #1A1A1A)',
+            }}
+          >
+            Six months later my mate and I wanted a fresh challenge — one
+            that pushed the body and fed the brain, gave us something to
+            build, and made the hard days feel like progress instead of
+            just enduring. So we made this.
+          </p>
+        </div>
 
-          <div className="text-right">
-            <Link
-              href="/about"
-              className="inline-block text-ink no-underline border-b border-ink pb-[3px] transition-colors duration-200 hover:text-coral hover:border-coral"
-              style={{
-                fontFamily: 'var(--font-body, Inter), system-ui, sans-serif',
-                fontSize: '0.9375rem',
-                fontWeight: 500,
-              }}
+        <p
+          className="leading-none text-right"
+          style={{
+            fontFamily: 'var(--font-display, Fraunces), Georgia, serif',
+            fontStyle: 'italic',
+            fontWeight: 300,
+            fontSize: 'clamp(2.5rem, 5vw, 3.5rem)',
+            color: 'var(--color-coral, #E88B5A)',
+            letterSpacing: '-0.01em',
+            marginTop: '2rem',
+          }}
+        >
+          — Barny
+        </p>
+
+        <div className="text-right">
+          <Link
+            href="/about"
+            className="inline-block text-ink no-underline border-b border-ink pb-[3px] transition-colors duration-200 hover:text-coral hover:border-coral"
+            style={{
+              fontFamily: 'var(--font-body, Inter), system-ui, sans-serif',
+              fontSize: '0.9375rem',
+              fontWeight: 500,
+            }}
+          >
+            Read the full story — 75 Hard hijinks on a flight to Australia
+            <span
+              className="inline-block ml-1.5 transition-transform duration-200"
+              aria-hidden="true"
             >
-              Read the full story — 75 Hard hijinks on a flight to Australia
-              <span
-                className="inline-block ml-1.5 transition-transform duration-200"
-                aria-hidden="true"
-              >
-                →
-              </span>
-            </Link>
-          </div>
+              →
+            </span>
+          </Link>
         </div>
       </div>
     </section>
