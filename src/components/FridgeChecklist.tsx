@@ -55,8 +55,19 @@ export default function FridgeChecklist({ onSubmitted, compact = false }: Fridge
     <div>
       {!compact && (
         <p className="font-display text-base text-ink-soft leading-[1.4] mb-6">
-          A printable checklist of what to keep on hand during the 50 days.
-          One page, easy to tick off, easy to stick on the fridge.
+          Drop your email and we&apos;ll send the checklist over. You&apos;ll
+          also get the occasional note from us — cohort start dates, new
+          tools, and whatever we&apos;ve learned. Unsubscribe whenever, no
+          drama.
+        </p>
+      )}
+
+      {compact && (
+        <p className="font-body text-sm text-ink-soft leading-[1.5] mb-6">
+          Drop your email and we&apos;ll send the checklist over. You&apos;ll
+          also get the occasional note from us — cohort start dates, new
+          tools, and whatever we&apos;ve learned. Unsubscribe whenever, no
+          drama.
         </p>
       )}
 
@@ -106,7 +117,7 @@ export default function FridgeChecklist({ onSubmitted, compact = false }: Fridge
               className="px-5 py-3.5 bg-ink-deep text-paper font-body text-sm font-semibold tracking-wider uppercase rounded-full transition-colors duration-200 hover:bg-coral-vibrant disabled:opacity-60 disabled:cursor-not-allowed"
               disabled={status === 'submitting'}
             >
-              {status === 'submitting' ? 'Sending…' : 'Send me the PDF'}
+              {status === 'submitting' ? 'Sending…' : 'Send me the checklist'}
             </button>
           </div>
           {status === 'error' && message && (

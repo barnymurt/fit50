@@ -125,7 +125,7 @@ export default function Resources({ id }: { id?: string }) {
       <Modal
         open={openModal === 'fridge-checklist'}
         onClose={() => setOpenModal(null)}
-        title="Fridge checklist"
+        title="One printout, better fridge"
         ariaLabel="On the house"
       >
         <FridgeChecklist onSubmitted={() => {}} compact />
