@@ -58,7 +58,7 @@ export default function FridgeChecklist({ onSubmitted, compact = false }: Fridge
           Drop your email and we&apos;ll send the checklist over. You&apos;ll
           also get the occasional note from us — cohort start dates, new
           tools, and whatever we&apos;ve learned. Unsubscribe whenever, no
-          drama.
+          dramas.
         </p>
       )}
 
@@ -67,7 +67,7 @@ export default function FridgeChecklist({ onSubmitted, compact = false }: Fridge
           Drop your email and we&apos;ll send the checklist over. You&apos;ll
           also get the occasional note from us — cohort start dates, new
           tools, and whatever we&apos;ve learned. Unsubscribe whenever, no
-          drama.
+          dramas.
         </p>
       )}
 
