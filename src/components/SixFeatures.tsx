@@ -89,7 +89,7 @@ export default function SixFeatures({
         <div className="text-center max-w-3xl mx-auto mb-12 md:mb-16">
           <div className="space-y-6 max-w-2xl mx-auto">
             <p className="font-display text-display-2 text-coral leading-[0.95] whitespace-nowrap">
-              €5.99 = one caneca
+              €5.99 = 1 Caneca
             </p>
             <p className="font-display text-h2 text-paper leading-snug">
               Our local word for a large beer.
