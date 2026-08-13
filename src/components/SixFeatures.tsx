@@ -87,11 +87,8 @@ export default function SixFeatures({
       <div className="relative z-10 max-w-5xl mx-auto px-6 md:px-10">
         {/* Hero */}
         <div className="text-center max-w-3xl mx-auto mb-12 md:mb-16">
-          <p className="font-body text-caption uppercase text-coral mb-10">
-            Helpful tools
-          </p>
           <div className="space-y-6 max-w-2xl mx-auto">
-            <p className="font-display text-display-2 text-coral leading-[0.95]">
+            <p className="font-display text-display-2 text-coral leading-[0.95] whitespace-nowrap">
               €5.99 = one caneca
             </p>
             <p className="font-display text-h2 text-paper leading-snug">
