@@ -51,8 +51,8 @@ export default function AboutPage() {
           </p>
         </div>
 
-        <p className="font-display italic text-base text-coral mt-12">
-          — B
+        <p className="font-display italic font-light text-6xl text-coral mt-12 leading-none">
+          B
         </p>
 
         <div className="mt-16 pt-8 border-t border-ink/15">

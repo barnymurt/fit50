@@ -26,7 +26,7 @@ export default function Story() {
           <p>So we made this.</p>
         </div>
 
-        <p className="font-display italic text-base text-coral mt-10">
+        <p className="font-display italic font-light text-5xl text-coral mt-10 leading-none">
           B
         </p>
 
