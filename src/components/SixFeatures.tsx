@@ -90,35 +90,17 @@ export default function SixFeatures({
           <p className="font-body text-caption uppercase text-coral mb-10">
             Helpful tools
           </p>
-          <div className="grid grid-cols-3 gap-4 md:gap-8 max-w-2xl mx-auto">
-            <div>
-              <p className="font-display text-display-1 text-coral leading-none tabular-nums">
-                €5.99
-              </p>
-              <p className="font-body text-caption uppercase tracking-widest text-paper/70 mt-3">
-                a caneca
-              </p>
-            </div>
-            <div>
-              <p className="font-display text-display-1 text-coral leading-none tabular-nums">
-                50
-              </p>
-              <p className="font-body text-caption uppercase tracking-widest text-paper/70 mt-3">
-                days
-              </p>
-            </div>
-            <div>
-              <p className="font-display text-display-1 text-coral leading-none tabular-nums">
-                €300
-              </p>
-              <p className="font-body text-caption uppercase tracking-widest text-paper/70 mt-3">
-                saved
-              </p>
-            </div>
+          <div className="space-y-4 max-w-xl mx-auto">
+            <p className="font-display text-h2 text-coral leading-tight">
+              €5.99 = one caneca
+            </p>
+            <p className="font-body text-sm text-paper/80 leading-relaxed">
+              Our local word for a large beer.
+            </p>
+            <p className="font-body text-caption uppercase tracking-widest text-paper/65 mt-6">
+              50 days · one payment · yours forever · no subscription
+            </p>
           </div>
-          <p className="font-body text-caption uppercase tracking-widest text-paper/65 mt-10">
-            One payment, yours forever, no subscription.
-          </p>
         </div>
 
         {/* What you get */}
