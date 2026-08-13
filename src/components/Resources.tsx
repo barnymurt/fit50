@@ -45,7 +45,7 @@ export default function Resources({ id }: { id?: string }) {
     >
       <div className="absolute top-0 left-0 right-0 h-32 md:h-52 overflow-hidden pointer-events-none z-0 flex items-center">
         <Marquee
-          text="On the house - curated links - free drinks"
+          text="Freebies - Curated Links - Tasty Drinks"
           separator="✦"
           speed={200}
           textClassName="text-ink/10"
@@ -55,10 +55,10 @@ export default function Resources({ id }: { id?: string }) {
       <div className="relative z-10 max-w-7xl mx-auto px-6 md:px-10 pb-section">
         <div className="text-center mb-12 md:mb-16">
           <h2 className="font-display text-display-1 text-ink mb-6 leading-[0.95]">
-            Freebies
+            On the house
           </h2>
           <p className="font-display text-h2 text-ink/80 max-w-2xl mx-auto leading-tight">
-            Dive into the Quit list, 50 drink ideas, cheers!Grab the free checklist and Breathe...
+            Four resources that make the hardest rules easier. Free, no challenge required.
           </p>
         </div>
 

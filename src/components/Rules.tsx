@@ -126,8 +126,19 @@ export default function Rules() {
                 >
                   {/* Front */}
                   <div
-                    className="absolute inset-0 flex flex-col items-center p-4 md:p-8 text-center border border-paper/20 hover:bg-paper/5 transition-colors"
+                    className="absolute inset-0 flex flex-col items-center p-4 md:p-8 text-center border border-paper/20 hover:bg-paper/5 transition-colors cursor-pointer"
                     style={{ backfaceVisibility: 'hidden' }}
+                    role="button"
+                    tabIndex={0}
+                    aria-expanded={isFlipped}
+                    aria-label={`${rule.title} — flip card to read the rule`}
+                    onClick={() => setFlippedId(rule.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setFlippedId(rule.id);
+                      }
+                    }}
                   >
                     <div className="flex items-center justify-between w-full mb-2 md:mb-4">
                       <span className="font-display text-base md:text-xl text-coral tabular-nums">
@@ -150,14 +161,13 @@ export default function Rules() {
                       {rule.title}
                     </h3>
 
-                    <button
-                      onClick={() => setFlippedId(rule.id)}
-                      className="font-body text-caption uppercase text-paper/70 hover:text-coral transition-colors duration-200 inline-flex items-center gap-2"
-                      aria-expanded={isFlipped}
+                    <span
+                      className="font-body text-caption uppercase text-paper/70 group-hover:text-coral inline-flex items-center gap-2 pointer-events-none"
+                      aria-hidden="true"
                     >
                       Show Rule
                       <span className="inline-block">→</span>
-                    </button>
+                    </span>
                   </div>
 
                   {/* Back */}
