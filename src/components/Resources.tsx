@@ -11,6 +11,12 @@ interface ResourcesItem {
 
 const RESOURCES: ResourcesItem[] = [
   {
+    category: 'Nutrition',
+    title: 'Fridge checklist',
+    description: 'A one-page printable of what to keep on hand for the 50 days. Drop your email, download the PDF.',
+    href: '/account/fridge-checklist',
+  },
+  {
     category: 'Smoking cessation',
     title: 'Quit resources',
     description: 'Forty tobacco-cessation services across six continents. Phone lines, online programmes, apps, and clinic networks — most are free.',
@@ -27,12 +33,6 @@ const RESOURCES: ResourcesItem[] = [
     title: '10 minutes',
     description: 'Eight meditation apps and sites that do great 10-minute sessions. Four free, four premium with structure.',
     href: '/account/meditation',
-  },
-  {
-    category: 'Nutrition',
-    title: 'Fridge checklist',
-    description: 'A one-page printable of what to keep on hand for the 50 days. Drop your email, download the PDF.',
-    href: '/account/fridge-checklist',
   },
 ];
 

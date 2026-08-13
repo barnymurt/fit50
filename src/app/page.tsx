@@ -1,11 +1,13 @@
 import Hero from '@/components/Hero';
+import Story from '@/components/Story';
 import Rules from '@/components/Rules';
-import Calculator from '@/components/Calculator';
-import Workouts from '@/components/Workouts';
-import Tracker from '@/components/Tracker';
-import SixFeatures from '@/components/SixFeatures';
 import Resources from '@/components/Resources';
+import Workouts from '@/components/Workouts';
+import Calculator from '@/components/Calculator';
+import Tracker from '@/components/Tracker';
 import FAQ from '@/components/FAQ';
+import SixFeatures from '@/components/SixFeatures';
+import Newsletter from '@/components/Newsletter';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -18,13 +20,15 @@ export default function Home() {
   return (
     <>
       <Hero />
+      <Story />
       <Rules />
-      <Calculator />
-      <Workouts />
-      <Tracker />
-      <SixFeatures id="sign-up" />
-      <FAQ />
       <Resources id="resources" />
+      <Workouts />
+      <Calculator />
+      <Tracker />
+      <FAQ />
+      <SixFeatures id="sign-up" />
+      <Newsletter />
     </>
   );
 }
