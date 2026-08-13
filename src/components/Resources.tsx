@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Section from './Section';
 import Marquee from './Marquee';
 import Modal from './Modal';
@@ -43,6 +43,12 @@ const RESOURCES: ResourcesItem[] = [
 
 export default function Resources({ id }: { id?: string }) {
   const [openModal, setOpenModal] = useState<ResourcesItem['modal'] | null>(null);
+
+  useEffect(() => {
+    const onOpen = () => setOpenModal('fridge-checklist');
+    window.addEventListener('open-fridge-checklist', onOpen);
+    return () => window.removeEventListener('open-fridge-checklist', onOpen);
+  }, []);
 
   return (
     <Section

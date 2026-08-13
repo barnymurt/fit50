@@ -3,17 +3,18 @@
 import Section from './Section';
 import Button from './Button';
 import Icon from './Icon';
-import { useAuth } from '@/contexts/AuthContext';
 
 export default function Hero() {
-  const { user } = useAuth();
+  const openChecklist = () => {
+    window.dispatchEvent(new CustomEvent('open-fridge-checklist'));
+  };
 
   return (
     <Section tone="paper" className="relative pt-32 pb-32 md:pt-40 md:pb-40 overflow-hidden" contained>
       <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center min-h-[70vh]">
         <div className="md:col-span-7 flex flex-col gap-8">
           <p className="font-body text-caption uppercase text-coral">
-            50 Days · 9 Habits · 1 Fresh Start
+            50 Days · 9 Habits · 1 Finished Thing
           </p>
 
           <h1 className="font-display text-display-1 text-ink">
@@ -22,29 +23,28 @@ export default function Hero() {
           </h1>
 
           <p className="font-body text-xl text-ink/70 max-w-xl">
-            Fifty days, nine habits, one simple test: can you show up every day? Let&apos;s find out.
+            Nine daily disciplines. Fifty days. More to show for it
+            than clear pee.
           </p>
 
           <div className="flex flex-wrap items-center gap-4 pt-2">
-            <Button href="#tracker" variant="primary" tone="light">
+            <Button
+              onClick={openChecklist}
+              variant="primary"
+              tone="light"
+            >
               Take the Challenge
             </Button>
             <a
               href="#rules"
               className="inline-flex items-center gap-2 font-body text-caption uppercase text-ink/70 hover:text-coral transition-colors duration-200 group"
             >
-              How it works
+              See the rules
               <span className="transition-transform duration-200 group-hover:translate-x-1">
                 <Icon name="arrow-right" size={16} />
               </span>
             </a>
           </div>
-
-          {!user && (
-            <p className="font-body text-sm text-ink/50 pt-2">
-              &nbsp;
-            </p>
-          )}
         </div>
 
         <div className="md:col-span-5 relative flex items-center justify-center">
