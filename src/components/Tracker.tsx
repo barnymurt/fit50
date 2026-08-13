@@ -73,26 +73,6 @@ export default function Tracker({ hideMarquee = false }: { hideMarquee?: boolean
 
   const [pulsingHabit, setPulsingHabit] = useState<string | null>(null);
   const [balloons, setBalloons] = useState(false);
-  const [checkoutLoading, setCheckoutLoading] = useState(false);
-  const [checkoutError, setCheckoutError] = useState<string | null>(null);
-
-  const handleCheckout = async () => {
-    setCheckoutLoading(true);
-    setCheckoutError(null);
-    try {
-      const res = await fetch('/api/stripe/checkout', { method: 'POST' });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data?.error ?? `checkout failed (${res.status})`);
-      }
-      const { url } = (await res.json()) as { url?: string };
-      if (!url) throw new Error('checkout returned no url');
-      window.location.href = url;
-    } catch (err) {
-      setCheckoutError(err instanceof Error ? err.message : 'checkout failed');
-      setCheckoutLoading(false);
-    }
-  };
 
   const handleToggle = (habitId: string, day: number) => {
     const wasDone = !!data.habitCompletions[habitId]?.[day];
@@ -196,11 +176,9 @@ export default function Tracker({ hideMarquee = false }: { hideMarquee?: boolean
             </p>
 
             {!isPremium && (
-              <button
-                type="button"
-                onClick={handleCheckout}
-                disabled={checkoutLoading}
-                className="block w-full text-left bg-coral hover:bg-coral/90 transition-colors p-5 mb-4 text-paper disabled:opacity-60"
+              <a
+                href="#sign-up"
+                className="block w-full bg-coral hover:bg-coral/90 transition-colors p-5 mb-4 text-paper"
               >
                 <p className="font-body text-caption uppercase tracking-widest text-paper/90 mb-2">
                   🍌 Streak protection
@@ -212,14 +190,9 @@ export default function Tracker({ hideMarquee = false }: { hideMarquee?: boolean
                   One free pass a week. Miss a day and the streak holds. Plus all six helpful tools. €5.99, yours forever.
                 </p>
                 <p className="font-body text-caption uppercase tracking-widest text-paper inline-flex items-center gap-2">
-                  {checkoutLoading ? 'Opening checkout…' : 'Spot us a Caneca, Cheers!'} <span>→</span>
+                  Spot us a Caneca, Cheers! <span>→</span>
                 </p>
-                {checkoutError && (
-                  <p className="font-body text-caption text-paper mt-2">
-                    {checkoutError}
-                  </p>
-                )}
-              </button>
+              </a>
             )}
 
             <div className="mt-auto space-y-3">
