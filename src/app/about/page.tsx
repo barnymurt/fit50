@@ -51,8 +51,19 @@ export default function AboutPage() {
           </p>
         </div>
 
-        <p className="font-display italic font-light text-6xl text-coral mt-12 leading-none">
-          B
+        <p
+          className="leading-none"
+          style={{
+            fontFamily: 'var(--font-display, Fraunces), Georgia, serif',
+            fontStyle: 'italic',
+            fontWeight: 300,
+            fontSize: 'clamp(3rem, 6vw, 4.5rem)',
+            color: 'var(--color-coral, #E88B5A)',
+            letterSpacing: '-0.01em',
+            marginTop: '3rem',
+          }}
+        >
+          — Barny
         </p>
 
         <div className="mt-16 pt-8 border-t border-ink/15">
