@@ -47,16 +47,23 @@ export default function Story() {
           }}
         >
           <p>
-            Thanks to a good mate I finished 75 Hard — like the idiot I am,
-            I was training for a backyard ultra at the same time. Great for
-            the endurance mindset. I finished slightly slimmer with
-            crystal-clear pee and not much else to show for it. The moment
+            Thanks to a good mate, I started and finished 75 Hard — like the
+            idiot I am, I was training for a backyard ultra at the same time,
+            more on that later. Ultimately I finished slightly slimmer with
+            crystal-clear pee but not much else to show for it. The moment
             day 75 rolled past I stuffed my face with Aussie junk food to
             celebrate.
           </p>
           <p>
-            By month two it had become a mental slog, and for my ADHD brain
-            the creative juices had dried up. It got joyless.
+            Basically by month two it had become a pure mental slog, and for
+            my ADHD brain the creative juices had dried up. The journey
+            became joyless.
+          </p>
+          <p>
+            Six months later my mate and I wanted a fresh challenge — one
+            that pushed the body and fed the mind, gave us something to
+            build, and made the hard days feel like progress instead of
+            just enduring.
           </p>
           <p
             style={{
@@ -64,10 +71,8 @@ export default function Story() {
               color: 'var(--color-ink, #1A1A1A)',
             }}
           >
-            Six months later my mate and I wanted a fresh challenge — one
-            that pushed the body and fed the brain, gave us something to
-            build, and made the hard days feel like progress instead of
-            just enduring. So we made this.
+            So we made this. Fifty days, nine disciplines, and something
+            tangible waiting for you on the other side.
           </p>
         </div>
 
