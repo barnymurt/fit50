@@ -1,50 +1,36 @@
 'use client';
 
 import Link from 'next/link';
+import { Caveat } from 'next/font/google';
+import Marquee from './Marquee';
+
+const caveat = Caveat({
+  subsets: ['latin'],
+  weight: ['400', '700'],
+  variable: '--font-handwritten',
+  display: 'swap',
+});
 
 export default function Story() {
   return (
     <section
       id="story"
-      className="bg-paper text-ink overflow-hidden"
+      className={`bg-paper text-ink overflow-hidden ${caveat.variable}`}
     >
-      {/* Marquee band */}
+      {/* Marquee band — matches other marquees on the site */}
       <div
-        className="overflow-hidden select-none"
         style={{
           backgroundColor: 'var(--color-teal, #4A9B9B)',
           padding: '2.5rem 0',
           marginBottom: 'clamp(3rem, 8vw, 5rem)',
         }}
-        aria-hidden="true"
       >
-        <div
-          className="whitespace-nowrap"
-          style={{
-            display: 'inline-flex',
-            animation: 'story-marquee 40s linear infinite',
-            width: 'max-content',
-          }}
-        >
-          {[0, 1].map((dup) => (
-            <span
-              key={dup}
-              className="leading-none"
-              style={{
-                fontFamily: 'var(--font-display, Fraunces), Georgia, serif',
-                fontStyle: 'italic',
-                fontWeight: 300,
-                fontSize: 'clamp(3.5rem, 8vw, 6.5rem)',
-                letterSpacing: '-0.02em',
-                color: 'rgba(250, 246, 238, 0.35)',
-                paddingRight: '3rem',
-              }}
-            >
-              THE SHORT STORY ✦ FRESH MIND &amp; BODY ✦ THE SHORT STORY ✦
-              FRESH MIND &amp; BODY ✦
-            </span>
-          ))}
-        </div>
+        <Marquee
+          text="THE SHORT STORY ✦ FRESH MIND & BODY"
+          separator="✦"
+          speed={200}
+          textClassName="text-paper/35"
+        />
       </div>
 
       {/* Content */}
@@ -56,27 +42,20 @@ export default function Story() {
         }}
       >
         <div style={{ maxWidth: '640px' }}>
-          <h2
-            className="leading-[0.95] mb-12"
-            style={{
-              fontFamily: 'var(--font-display, Fraunces), Georgia, serif',
-              fontWeight: 300,
-              fontSize: 'clamp(4rem, 9vw, 8rem)',
-              letterSpacing: '-0.03em',
-            }}
-          >
+          <h2 className="font-display font-light text-display-2 text-ink mb-10 leading-[0.95]">
             Blame us.
           </h2>
 
           <div
-            className="leading-[1.55]"
+            className="space-y-6"
             style={{
-              fontFamily: 'var(--font-body, Fraunces), Georgia, serif',
-              fontSize: '1.375rem',
+              fontFamily: 'var(--font-handwritten), cursive',
+              fontSize: '1.5rem',
+              lineHeight: '1.55',
               color: 'var(--ink-soft, #4C4568)',
             }}
           >
-            <p className="mb-6">
+            <p>
               Thanks to a good mate I finished 75 Hard — like the idiot I am,
               I was training for a backyard ultra at the same time. Great for
               the endurance mindset. I finished slightly slimmer with
@@ -84,14 +63,13 @@ export default function Story() {
               day 75 rolled past I stuffed my face with Aussie junk food to
               celebrate.
             </p>
-            <p className="mb-6">
+            <p>
               By month two it had become a mental slog, and for my ADHD brain
               the creative juices had dried up. It got joyless.
             </p>
             <p
-              className="mb-10"
               style={{
-                fontWeight: 400,
+                fontWeight: 700,
                 color: 'var(--color-ink, #1A1A1A)',
               }}
             >
@@ -105,13 +83,12 @@ export default function Story() {
           <p
             className="leading-none"
             style={{
-              fontFamily: 'var(--font-display, Fraunces), Georgia, serif',
-              fontStyle: 'italic',
-              fontWeight: 300,
+              fontFamily: 'var(--font-handwritten), cursive',
+              fontWeight: 400,
               fontSize: 'clamp(2.5rem, 5vw, 3.5rem)',
               color: 'var(--color-coral, #E88B5A)',
-              letterSpacing: '-0.01em',
-              marginBottom: '2.5rem',
+              marginTop: '2.5rem',
+              marginBottom: '2rem',
             }}
           >
             — Barny
@@ -121,9 +98,8 @@ export default function Story() {
             href="/about"
             className="inline-block text-ink no-underline border-b border-ink pb-[3px] transition-colors duration-200 hover:text-coral hover:border-coral"
             style={{
-              fontFamily: 'var(--font-body, Inter), system-ui, sans-serif',
-              fontSize: '0.9375rem',
-              fontWeight: 500,
+              fontFamily: 'var(--font-handwritten), cursive',
+              fontSize: '1.25rem',
             }}
           >
             Read the full story — 75 Hard hijinks on a flight to Australia
@@ -136,16 +112,6 @@ export default function Story() {
           </Link>
         </div>
       </div>
-
-      <style jsx>{`
-        @keyframes story-marquee {
-          from { transform: translateX(0); }
-          to { transform: translateX(-50%); }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          [data-story-marquee] { animation: none !important; }
-        }
-      `}</style>
     </section>
   );
 }

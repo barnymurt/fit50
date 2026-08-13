@@ -1,4 +1,12 @@
 import Link from 'next/link';
+import { Caveat } from 'next/font/google';
+
+const caveat = Caveat({
+  subsets: ['latin'],
+  weight: ['400', '700'],
+  variable: '--font-handwritten',
+  display: 'swap',
+});
 
 export const metadata = {
   title: 'About — FIT50',
@@ -8,7 +16,7 @@ export const metadata = {
 
 export default function AboutPage() {
   return (
-    <main className="bg-paper text-ink">
+    <main className={`bg-paper text-ink ${caveat.variable}`}>
       <article
         className="mx-auto"
         style={{
@@ -23,11 +31,19 @@ export default function AboutPage() {
           The story
         </p>
 
-        <h1 className="font-display text-display-2 text-ink leading-[1.05] mb-12">
+        <h1 className="font-display font-light text-display-2 text-ink leading-[1.05] mb-12">
           Blame us.
         </h1>
 
-        <div className="font-display text-base text-ink/85 leading-[1.7] space-y-6">
+        <div
+          className="space-y-6"
+          style={{
+            fontFamily: 'var(--font-handwritten), cursive',
+            fontSize: '1.5rem',
+            lineHeight: '1.55',
+            color: 'var(--ink-soft, #4C4568)',
+          }}
+        >
           <p>
             Thanks to a good mate I finished 75 Hard — like the idiot I am, I
             was training for a backyard ultra at the same time. Great for the
@@ -45,7 +61,12 @@ export default function AboutPage() {
             made the hard days feel like progress instead of just enduring. So
             we made this.
           </p>
-          <p>
+          <p
+            style={{
+              fontWeight: 700,
+              color: 'var(--color-ink, #1A1A1A)',
+            }}
+          >
             Fifty days, nine disciplines, and something tangible waiting for
             you on the other side.
           </p>
@@ -54,12 +75,10 @@ export default function AboutPage() {
         <p
           className="leading-none"
           style={{
-            fontFamily: 'var(--font-display, Fraunces), Georgia, serif',
-            fontStyle: 'italic',
-            fontWeight: 300,
+            fontFamily: 'var(--font-handwritten), cursive',
+            fontWeight: 400,
             fontSize: 'clamp(3rem, 6vw, 4.5rem)',
             color: 'var(--color-coral, #E88B5A)',
-            letterSpacing: '-0.01em',
             marginTop: '3rem',
           }}
         >
