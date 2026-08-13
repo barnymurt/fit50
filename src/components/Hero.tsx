@@ -24,7 +24,7 @@ export default function Hero() {
 
           <p className="font-body text-xl text-ink/70 max-w-xl">
             Nine daily disciplines. Fifty days. More to show for it
-            than clear pee.
+            than just crystal clear pee.
           </p>
 
           <div className="flex flex-wrap items-center gap-4 pt-2">
@@ -75,7 +75,7 @@ export default function Hero() {
               <circle cx="100" cy="100" r="55" />
             </svg>
             <p className="absolute -bottom-2 left-0 right-0 text-center font-body text-caption uppercase text-ink/50">
-              days to change everything
+              days · one finished thing
             </p>
           </div>
         </div>
