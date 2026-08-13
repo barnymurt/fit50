@@ -14,19 +14,20 @@ export default function Story() {
 
         <div className="font-display text-base text-ink/85 leading-[1.7] space-y-5">
           <p>
-            We were on a flight to Australia and one of us had just finished 75
-            Hard. The other was three weeks into a no-drink January that kept
-            accidentally stretching into February. By the time the wheels
-            touched down we&apos;d sketched FIT50 on a sick bag.
+            Thanks to a good mate I finished 75 Hard — like the idiot I am, I
+            was training for a backyard ultra at the same time. I finished
+            slightly slimmer with crystal-clear pee and not much else to show
+            for it.
           </p>
           <p>
-            Nine disciplines, fifty days, no coaching upsell. Just the rules,
-            the tools, and a fridge full of things you can actually cook.
+            By month two it had become a mental slog, and for my ADHD brain the
+            creative juices had dried up. It got joyless.
           </p>
+          <p>So we made this.</p>
         </div>
 
         <p className="font-display italic text-base text-coral mt-10">
-          — B
+          B
         </p>
 
         <Link
