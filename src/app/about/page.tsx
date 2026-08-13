@@ -29,38 +29,25 @@ export default function AboutPage() {
 
         <div className="font-display text-base text-ink/85 leading-[1.7] space-y-6">
           <p>
-            We were on a flight to Australia and one of us had just finished
-            75 Hard. The other was three weeks into a no-drink January that
-            kept accidentally stretching into February. Somewhere over the
-            Indian Ocean, between the second gin and the third episode of a
-            podcast neither of us can now name, the conversation turned, as
-            these conversations always do, to the question: could we keep
-            this going?
+            Thanks to a good mate I finished 75 Hard — like the idiot I am, I
+            was training for a backyard ultra at the same time. Great for the
+            endurance mindset. I finished slightly slimmer with crystal-clear
+            pee and not much else to show for it. The moment day 75 rolled
+            past I stuffed my face with Aussie junk food to celebrate.
           </p>
           <p>
-            75 Hard is brutal in a way that works for a fortnight and
-            collapses in week three. We wanted the discipline without the
-            punishment. By the time the wheels touched down in Sydney
-            we&apos;d sketched nine rules on the back of a sick bag — feed
-            the brain, move the body, fuel right, crispy clarity, fresh
-            lungs, open mind, step it up, wet the lips, chill out — and
-            an honest fifty-day window in which to actually try them.
+            By month two it had become a mental slog, and for my ADHD brain the
+            creative juices had dried up. It got joyless.
           </p>
           <p>
-            The tools came second. A tracker that didn&apos;t shout at you.
-            A kanban for the project you keep promising yourself. A water
-            counter because &quot;drink more water&quot; stops working as
-            advice the moment you hear it. A macro calculator that didn&apos;t
-            want your email, your phone number, and the next twelve months
-            of your attention. We built them for us, then we cleaned them
-            up for everyone else.
+            Six months later my mate and I wanted a fresh challenge — one that
+            pushed the body and fed the brain, gave us something to build, and
+            made the hard days feel like progress instead of just enduring. So
+            we made this.
           </p>
           <p>
-            Fifty days, nine disciplines, yours forever. The whole toolkit is
-            a one-time €5.99 — the price of a caneca in Lisbon — and we
-            use the money to keep the lights on and the servers paid for.
-            No subscription, no coaching tier, no upsell. Blame us if we
-            ever add one.
+            Fifty days, nine disciplines, and something tangible waiting for
+            you on the other side.
           </p>
         </div>
 
