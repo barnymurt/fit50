@@ -6,11 +6,13 @@ import Button from './Button';
 import { useAuth } from '@/contexts/AuthContext';
 
 const NAV_LINKS = [
+  { href: '#story', label: 'Blame us' },
   { href: '#rules', label: 'Rules' },
+  { href: '#resources', label: 'On the House' },
   { href: '#workouts', label: 'Workouts' },
   { href: '#tracker', label: 'Tracker' },
   { href: '#faq', label: 'FAQ' },
-  { href: '#resources', label: 'On the house' },
+  { href: '#sign-up', label: 'Keep the tools' },
 ];
 
 export default function Nav() {
