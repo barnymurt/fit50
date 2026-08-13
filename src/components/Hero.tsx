@@ -5,10 +5,6 @@ import Button from './Button';
 import Icon from './Icon';
 
 export default function Hero() {
-  const openChecklist = () => {
-    window.dispatchEvent(new CustomEvent('open-fridge-checklist'));
-  };
-
   return (
     <Section tone="paper" className="relative pt-32 pb-32 md:pt-40 md:pb-40 overflow-hidden" contained>
       <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center min-h-[70vh]">
@@ -28,11 +24,7 @@ export default function Hero() {
           </p>
 
           <div className="flex flex-wrap items-center gap-4 pt-2">
-            <Button
-              onClick={openChecklist}
-              variant="primary"
-              tone="light"
-            >
+            <Button href="#resources" variant="primary" tone="light">
               Take the Challenge
             </Button>
             <a
