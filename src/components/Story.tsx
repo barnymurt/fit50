@@ -1,28 +1,20 @@
 'use client';
 
 import Link from 'next/link';
-import { Caveat } from 'next/font/google';
 import Marquee from './Marquee';
-
-const caveat = Caveat({
-  subsets: ['latin'],
-  weight: ['400', '700'],
-  variable: '--font-handwritten',
-  display: 'swap',
-});
 
 export default function Story() {
   return (
     <section
       id="story"
-      className={`bg-paper text-ink overflow-hidden ${caveat.variable}`}
+      className="bg-paper text-ink overflow-hidden"
     >
       {/* Marquee band — matches other marquees on the site */}
       <div
         style={{
           backgroundColor: 'var(--color-teal, #4A9B9B)',
           padding: '2.5rem 0',
-          marginBottom: 'clamp(3rem, 8vw, 5rem)',
+          marginBottom: '3rem',
         }}
       >
         <Marquee
@@ -38,20 +30,20 @@ export default function Story() {
         className="mx-auto"
         style={{
           maxWidth: '1200px',
-          padding: '0 2rem clamp(3rem, 8vw, 5rem) clamp(3rem, 8vw, 5rem)',
+          padding: '0 2rem 4rem 2rem',
         }}
       >
         <div style={{ maxWidth: '640px' }}>
-          <h2 className="font-display font-light text-display-2 text-ink mb-10 leading-[0.95]">
+          <h2 className="font-display font-light text-display-2 text-ink mb-8 leading-[0.95]">
             Blame us.
           </h2>
 
           <div
-            className="space-y-6"
+            className="space-y-4"
             style={{
-              fontFamily: 'var(--font-handwritten), cursive',
-              fontSize: '1.5rem',
-              lineHeight: '1.55',
+              fontFamily: 'var(--font-display, Fraunces), Georgia, serif',
+              fontSize: '1.375rem',
+              lineHeight: '1.5',
               color: 'var(--ink-soft, #4C4568)',
             }}
           >
@@ -69,7 +61,7 @@ export default function Story() {
             </p>
             <p
               style={{
-                fontWeight: 700,
+                fontWeight: 500,
                 color: 'var(--color-ink, #1A1A1A)',
               }}
             >
@@ -81,35 +73,39 @@ export default function Story() {
           </div>
 
           <p
-            className="leading-none"
+            className="leading-none text-right"
             style={{
-              fontFamily: 'var(--font-handwritten), cursive',
-              fontWeight: 400,
+              fontFamily: 'var(--font-display, Fraunces), Georgia, serif',
+              fontStyle: 'italic',
+              fontWeight: 300,
               fontSize: 'clamp(2.5rem, 5vw, 3.5rem)',
               color: 'var(--color-coral, #E88B5A)',
-              marginTop: '2.5rem',
-              marginBottom: '2rem',
+              letterSpacing: '-0.01em',
+              marginTop: '2rem',
             }}
           >
             — Barny
           </p>
 
-          <Link
-            href="/about"
-            className="inline-block text-ink no-underline border-b border-ink pb-[3px] transition-colors duration-200 hover:text-coral hover:border-coral"
-            style={{
-              fontFamily: 'var(--font-handwritten), cursive',
-              fontSize: '1.25rem',
-            }}
-          >
-            Read the full story — 75 Hard hijinks on a flight to Australia
-            <span
-              className="inline-block ml-1.5 transition-transform duration-200"
-              aria-hidden="true"
+          <div className="text-right">
+            <Link
+              href="/about"
+              className="inline-block text-ink no-underline border-b border-ink pb-[3px] transition-colors duration-200 hover:text-coral hover:border-coral"
+              style={{
+                fontFamily: 'var(--font-body, Inter), system-ui, sans-serif',
+                fontSize: '0.9375rem',
+                fontWeight: 500,
+              }}
             >
-              →
-            </span>
-          </Link>
+              Read the full story — 75 Hard hijinks on a flight to Australia
+              <span
+                className="inline-block ml-1.5 transition-transform duration-200"
+                aria-hidden="true"
+              >
+                →
+              </span>
+            </Link>
+          </div>
         </div>
       </div>
     </section>

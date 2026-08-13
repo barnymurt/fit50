@@ -1,12 +1,4 @@
 import Link from 'next/link';
-import { Caveat } from 'next/font/google';
-
-const caveat = Caveat({
-  subsets: ['latin'],
-  weight: ['400', '700'],
-  variable: '--font-handwritten',
-  display: 'swap',
-});
 
 export const metadata = {
   title: 'About — FIT50',
@@ -16,13 +8,13 @@ export const metadata = {
 
 export default function AboutPage() {
   return (
-    <main className={`bg-paper text-ink ${caveat.variable}`}>
+    <main className="bg-paper text-ink">
       <article
         className="mx-auto"
         style={{
           maxWidth: '640px',
-          paddingTop: 'clamp(6rem, 12vw, 9rem)',
-          paddingBottom: 'clamp(6rem, 12vw, 9rem)',
+          paddingTop: 'clamp(5rem, 10vw, 7rem)',
+          paddingBottom: 'clamp(5rem, 10vw, 7rem)',
           paddingLeft: '24px',
           paddingRight: '24px',
         }}
@@ -31,16 +23,16 @@ export default function AboutPage() {
           The story
         </p>
 
-        <h1 className="font-display font-light text-display-2 text-ink leading-[1.05] mb-12">
+        <h1 className="font-display font-light text-display-2 text-ink leading-[1.05] mb-8">
           Blame us.
         </h1>
 
         <div
-          className="space-y-6"
+          className="space-y-4"
           style={{
-            fontFamily: 'var(--font-handwritten), cursive',
-            fontSize: '1.5rem',
-            lineHeight: '1.55',
+            fontFamily: 'var(--font-display, Fraunces), Georgia, serif',
+            fontSize: '1.375rem',
+            lineHeight: '1.5',
             color: 'var(--ink-soft, #4C4568)',
           }}
         >
@@ -63,7 +55,7 @@ export default function AboutPage() {
           </p>
           <p
             style={{
-              fontWeight: 700,
+              fontWeight: 500,
               color: 'var(--color-ink, #1A1A1A)',
             }}
           >
@@ -73,19 +65,21 @@ export default function AboutPage() {
         </div>
 
         <p
-          className="leading-none"
+          className="leading-none text-right"
           style={{
-            fontFamily: 'var(--font-handwritten), cursive',
-            fontWeight: 400,
+            fontFamily: 'var(--font-display, Fraunces), Georgia, serif',
+            fontStyle: 'italic',
+            fontWeight: 300,
             fontSize: 'clamp(3rem, 6vw, 4.5rem)',
             color: 'var(--color-coral, #E88B5A)',
-            marginTop: '3rem',
+            letterSpacing: '-0.01em',
+            marginTop: '2rem',
           }}
         >
           — Barny
         </p>
 
-        <div className="mt-16 pt-8 border-t border-ink/15">
+        <div className="mt-12 pt-8 border-t border-ink/15 text-right">
           <Link
             href="/#rules"
             className="font-body text-caption uppercase text-coral underline underline-offset-4 decoration-coral/40 hover:decoration-coral transition-colors"
