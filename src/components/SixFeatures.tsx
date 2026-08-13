@@ -90,14 +90,14 @@ export default function SixFeatures({
           <p className="font-body text-caption uppercase text-coral mb-10">
             Helpful tools
           </p>
-          <div className="space-y-4 max-w-xl mx-auto">
-            <p className="font-display text-h2 text-coral leading-tight">
+          <div className="space-y-6 max-w-2xl mx-auto">
+            <p className="font-display text-display-2 text-coral leading-[0.95]">
               €5.99 = one caneca
             </p>
-            <p className="font-body text-sm text-paper/80 leading-relaxed">
+            <p className="font-display text-h2 text-paper leading-snug">
               Our local word for a large beer.
             </p>
-            <p className="font-body text-caption uppercase tracking-widest text-paper/65 mt-6">
+            <p className="font-body text-caption uppercase tracking-widest text-paper/65 mt-8">
               50 days · one payment · yours forever · no subscription
             </p>
           </div>
