@@ -414,8 +414,11 @@ export function useTrackerState() {
     if (user && supabase) {
       // Wipe all daily progress from Supabase. profile + macro_profile
       // + food_favorites are kept intact (those are user preferences,
-      // not progress). Errors are swallowed — the local state still
-      // resets cleanly even if the network call fails.
+      // not progress). Permission errors (RLS 42501) and "table not
+      // found" (Postgres 42P01) are surfaced loudly — silent failures
+      // here previously left streak_protections rows stranded after
+      // a 'reset' and the streak card reported 'Used this week.'
+      // despite the user clicking the button.
       const tables = [
         'daily_state',
         'daily_totals',
@@ -423,16 +426,25 @@ export function useTrackerState() {
         'streak_protections',
         'food_log',
       ];
-      await Promise.all(
-        tables.map((table) =>
-          (supabase.from(table) as any)
+      const results = await Promise.all(
+        tables.map(async (table) => {
+          const { error } = await (supabase.from(table) as any)
             .delete()
-            .eq('user_id', user.id)
-            .then(({ error }: { error: unknown }) => {
-              if (error) console.error(`reset delete on ${table} failed:`, error);
-            })
-        )
+            .eq('user_id', user.id);
+          return { table, error };
+        })
       );
+      results.forEach(({ table, error }) => {
+        if (!error) return;
+        console.error(`reset delete on ${table} failed:`, error);
+        if (error.code === '42501') {
+          console.error(
+            `^ RLS denied the DELETE on ${table}. Run the latest ` +
+            `migration in supabase/migrations/ to add the missing ` +
+            `DELETE policy.`
+          );
+        }
+      });
     }
     const fresh = emptyTrackerV2();
     setData(fresh);
