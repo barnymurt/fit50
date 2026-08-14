@@ -235,7 +235,7 @@ export default function AccountPage() {
                       <span className="bg-paper px-3 font-body text-caption uppercase text-ink/40">or</span>
                     </div>
                   </div>
-                  <Link href="/toolkit" className="block text-center font-body text-caption uppercase tracking-widest text-ink/60 hover:text-ink">
+                  <Link href="/#sign-up" className="block text-center font-body text-caption uppercase tracking-widest text-ink/60 hover:text-ink">
                     Browse the toolkit →
                   </Link>
                 </>

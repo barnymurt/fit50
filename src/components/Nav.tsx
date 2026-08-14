@@ -110,7 +110,12 @@ export default function Nav() {
               Account
             </Link>
           )}
-          <Button href="#sign-up" variant="primary" tone="light" className="!px-5 !py-2.5 !text-xs">
+          <Button
+            href="/#sign-up"
+            variant="primary"
+            tone="light"
+            className="!px-5 !py-2.5 !text-xs"
+          >
             Buy us a beer
           </Button>
           <button

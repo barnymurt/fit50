@@ -3,10 +3,11 @@
 import Section from './Section';
 
 const FOOTER_LINKS = [
+  { href: '/#story', label: 'Blame us' },
   { href: '/#rules', label: 'Rules' },
+  { href: '/#resources', label: 'On the House' },
   { href: '/#workouts', label: 'Workouts' },
   { href: '/#tracker', label: 'Tracker' },
-  { href: '/#resources', label: 'Freebies' },
   { href: '/#faq', label: 'FAQ' },
   { href: '/#sign-up', label: 'Keep the tools' },
 ];
