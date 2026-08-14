@@ -17,6 +17,15 @@ export default function FridgeChecklist({ onSubmitted, compact = false }: Fridge
   const [status, setStatus] = useState<Status>('idle');
   const [message, setMessage] = useState('');
 
+  const triggerDownload = () => {
+    const link = document.createElement('a');
+    link.href = PDF_URL;
+    link.download = PDF_FILENAME;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = email.trim();
@@ -43,7 +52,10 @@ export default function FridgeChecklist({ onSubmitted, compact = false }: Fridge
       }
 
       setStatus('ready');
-      setMessage("Saved. Download below — it's a one-page PDF.");
+      setMessage(
+        'Congratulations on taking the first step. Your download should be in your downloads folder — print, stick it on the fridge, tick it each morning.'
+      );
+      triggerDownload();
       onSubmitted?.();
     } catch {
       setStatus('error');
@@ -68,7 +80,7 @@ export default function FridgeChecklist({ onSubmitted, compact = false }: Fridge
       {!compact && (
         <p className="font-display text-base text-ink-soft leading-[1.4] mb-6">
           A printable, nine-discipline daily tracker for the fifty days.
-          Drop your email and download the PDF below. You&apos;ll also get
+          Drop your email and we&apos;ll fire the download straight over. You&apos;ll also get
           the occasional note from us — cohort start dates, new tools, and
           whatever we&apos;ve learned. Unsubscribe whenever, no dramas.
         </p>
@@ -77,7 +89,7 @@ export default function FridgeChecklist({ onSubmitted, compact = false }: Fridge
       {compact && (
         <p className="font-body text-sm text-ink-soft leading-[1.5] mb-6">
           A printable, nine-discipline daily tracker for the fifty days.
-          Drop your email and download the PDF below. You&apos;ll also get
+          Drop your email and we&apos;ll fire the download straight over. You&apos;ll also get
           the occasional note from us — cohort start dates, new tools, and
           whatever we&apos;ve learned. Unsubscribe whenever, no dramas.
         </p>
@@ -88,15 +100,7 @@ export default function FridgeChecklist({ onSubmitted, compact = false }: Fridge
           <p className="font-display text-base text-ink leading-[1.4] mb-5">
             {message}
           </p>
-          <a
-            className="inline-flex items-center gap-3 px-7 py-4 bg-coral-vibrant text-paper font-body text-sm font-semibold tracking-wider uppercase rounded-full transition-colors duration-200 hover:bg-coral-deep"
-            href={PDF_URL}
-            download={PDF_FILENAME}
-          >
-            Download {PDF_FILENAME}
-            <span aria-hidden="true">↓</span>
-          </a>
-          <p className="font-body text-caption text-ink-muted mt-4">
+          <p className="font-body text-caption text-ink-muted">
             We added you to the FIT50 newsletter. Unsubscribe any time.
           </p>
         </div>
@@ -129,7 +133,7 @@ export default function FridgeChecklist({ onSubmitted, compact = false }: Fridge
               className="px-5 py-3.5 bg-ink-deep text-paper font-body text-sm font-semibold tracking-wider uppercase rounded-full transition-colors duration-200 hover:bg-coral-vibrant disabled:opacity-60 disabled:cursor-not-allowed"
               disabled={status === 'submitting'}
             >
-              {status === 'submitting' ? 'Sending…' : 'Send me the checklist'}
+              {status === 'submitting' ? 'Sending…' : 'My fridge wants the Checklist!'}
             </button>
           </div>
           {status === 'error' && message && (
