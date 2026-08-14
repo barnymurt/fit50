@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { createClient } from '@/lib/supabase';
+import { TRACKER_RESET_EVENT } from './useTrackerState';
 import {
   FoodLogEntry,
   DailyTotals,
@@ -62,10 +63,16 @@ export function useFoodLog() {
     const id = setInterval(onTick, 30 * 1000);
     window.addEventListener('focus', onTick);
     document.addEventListener('visibilitychange', onTick);
+    // Also refetch whenever the user fully resets the tracker, so
+    // the food log empties immediately rather than waiting for the
+    // next 30s tick or tab focus.
+    const onReset = () => refetch();
+    window.addEventListener(TRACKER_RESET_EVENT, onReset);
     return () => {
       clearInterval(id);
       window.removeEventListener('focus', onTick);
       document.removeEventListener('visibilitychange', onTick);
+      window.removeEventListener(TRACKER_RESET_EVENT, onReset);
     };
   }, [refetch]);
 

@@ -20,6 +20,13 @@ import {
 
 const TICKER_INTERVAL_MS = 60_000;
 
+/**
+ * Dispatched on window after a successful reset() so other tracker-
+ * related hooks (useStreakProtection, useFoodLog, …) know to
+ * refetch their Supabase caches instead of showing stale data.
+ */
+export const TRACKER_RESET_EVENT = 'fit50-tracker-reset';
+
 export interface TrackerDay {
   dayNumber: number;
   dateKey: string;
@@ -431,6 +438,9 @@ export function useTrackerState() {
     setData(fresh);
     setStartDate(null);
     todayKeyRef.current = localDateKey();
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent(TRACKER_RESET_EVENT));
+    }
   }, [user, supabase]);
 
   return {
