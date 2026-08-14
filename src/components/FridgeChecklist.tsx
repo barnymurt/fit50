@@ -55,19 +55,17 @@ export default function FridgeChecklist({ onSubmitted, compact = false }: Fridge
     <div>
       {!compact && (
         <p className="font-display text-base text-ink-soft leading-[1.4] mb-6">
-          Drop your email and we&apos;ll send the checklist over. You&apos;ll
-          also get the occasional note from us — cohort start dates, new
-          tools, and whatever we&apos;ve learned. Unsubscribe whenever, no
-          dramas.
+          Drop your email and download the PDF below. You&apos;ll also get
+          the occasional note from us — cohort start dates, new tools, and
+          whatever we&apos;ve learned. Unsubscribe whenever, no dramas.
         </p>
       )}
 
       {compact && (
         <p className="font-body text-sm text-ink-soft leading-[1.5] mb-6">
-          Drop your email and we&apos;ll send the checklist over. You&apos;ll
-          also get the occasional note from us — cohort start dates, new
-          tools, and whatever we&apos;ve learned. Unsubscribe whenever, no
-          dramas.
+          Drop your email and download the PDF below. You&apos;ll also get
+          the occasional note from us — cohort start dates, new tools, and
+          whatever we&apos;ve learned. Unsubscribe whenever, no dramas.
         </p>
       )}
 
