@@ -56,10 +56,9 @@ function calculateStreak(days: TrackerDay[]): {
 interface StartSplashProps {
   hasSession: boolean;
   onStart: (iso?: string) => Promise<void> | void;
-  onDiscardOld: () => void;
 }
 
-function StartSplash({ hasSession, onStart, onDiscardOld }: StartSplashProps) {
+function StartSplash({ hasSession, onStart }: StartSplashProps) {
   const today = dateKeyLocal(new Date());
   const minDate = new Date();
   minDate.setDate(minDate.getDate() - 30);
@@ -146,14 +145,6 @@ function StartSplash({ hasSession, onStart, onDiscardOld }: StartSplashProps) {
           ? 'Your start date syncs to your account across devices.'
           : 'Starting as a guest. Your progress is saved on this device.'}
       </p>
-
-      <button
-        type="button"
-        onClick={onDiscardOld}
-        className="mt-6 font-body text-caption uppercase tracking-widest text-ink/40 hover:text-coral underline underline-offset-4 transition-colors"
-      >
-        Discard old data and start fresh
-      </button>
     </div>
   );
 }
@@ -247,10 +238,6 @@ export default function Tracker({ hideMarquee = false }: { hideMarquee?: boolean
     tracker.updateStartDate(resolved);
   };
 
-  const handleDiscardOld = () => {
-    setResetConfirmOpen(true);
-  };
-
   const performReset = async () => {
     await tracker.reset();
   };
@@ -294,7 +281,6 @@ export default function Tracker({ hideMarquee = false }: { hideMarquee?: boolean
           <StartSplash
             hasSession={!!user}
             onStart={handleStart}
-            onDiscardOld={handleDiscardOld}
           />
         </div>
       </Section>
