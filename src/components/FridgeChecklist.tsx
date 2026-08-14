@@ -98,21 +98,27 @@ export default function FridgeChecklist({ onSubmitted, compact = false }: Fridge
       {status === 'ready' ? (
         <div role="status" className="-mx-6 -mb-6 p-6 bg-paper">
           <p className="font-body text-caption uppercase tracking-widest text-coral mb-3">
-            Fridge fed.
+            Well done
           </p>
           <h3 className="font-display text-h1 text-ink leading-[1.05] mb-4">
-            Well done.
+            Fridge Fed.
           </h3>
+          <p className="font-display text-base text-ink-soft leading-[1.4] mb-6">
+            You just took step one toward a sexier fridge and finally starting
+            that thing you&apos;ve been putting off. The checklist is
+            downloading now — stick it up, admire it, and start day one
+            whenever you&apos;re ready.
+          </p>
           <p className="font-display text-base text-ink-soft leading-[1.4] mb-8">
-            Congratulations on taking the first step. Your download should be
-            in your downloads folder — print, stick it on the fridge, tick it
-            each morning.
+            Nothing else to do here. Just know: if you&apos;d rather do this
+            digitally, with a tracker, macro calculator, streak protection
+            and a kanban for the project you&apos;re about to start,
+            we&apos;ve got you.
           </p>
           <a
             href="#sign-up"
             onClick={() => {
-              const evt = new CustomEvent('close-fridge-checklist');
-              window.dispatchEvent(evt);
+              window.dispatchEvent(new CustomEvent('close-fridge-checklist'));
             }}
             className="inline-flex items-center justify-center w-full px-6 py-4 bg-coral-vibrant text-paper font-body text-sm font-semibold tracking-wider uppercase rounded-full transition-colors duration-200 hover:bg-coral-deep mb-4"
           >
