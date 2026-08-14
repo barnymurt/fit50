@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { createClient } from '@/lib/supabase';
+import { TRACKER_RESET_EVENT } from './useTrackerState';
 import {
   FoodLogEntry,
   DailyTotals,
@@ -16,7 +17,11 @@ export function useFoodLog() {
   const supabase = createClient();
   const [entries, setEntries] = useState<FoodLogEntry[]>([]);
   const [loaded, setLoaded] = useState(false);
-  const today = useMemo(() => dayKeyFor(), []);
+  // Reactive: updated on mount, on auth change, and whenever the
+  // day-rollover tick detects a new local date. Before this was a
+  // useMemo(..., []) so todayEntries kept filtering on yesterday's
+  // date_key after midnight and the bar froze.
+  const [today, setToday] = useState<string>(() => dayKeyFor());
 
   const refetch = useCallback(async () => {
     if (!user || !supabase) return;
@@ -39,6 +44,7 @@ export function useFoodLog() {
       return;
     }
     setLoaded(false);
+    setToday(dayKeyFor());
     refetch().then(() => setLoaded(true));
   }, [user, supabase, refetch]);
 
@@ -50,16 +56,23 @@ export function useFoodLog() {
       const current = dayKeyFor();
       if (current !== lastDayKey) {
         lastDayKey = current;
+        setToday(current);
         refetch();
       }
     };
     const id = setInterval(onTick, 30 * 1000);
     window.addEventListener('focus', onTick);
     document.addEventListener('visibilitychange', onTick);
+    // Also refetch whenever the user fully resets the tracker, so
+    // the food log empties immediately rather than waiting for the
+    // next 30s tick or tab focus.
+    const onReset = () => refetch();
+    window.addEventListener(TRACKER_RESET_EVENT, onReset);
     return () => {
       clearInterval(id);
       window.removeEventListener('focus', onTick);
       document.removeEventListener('visibilitychange', onTick);
+      window.removeEventListener(TRACKER_RESET_EVENT, onReset);
     };
   }, [refetch]);
 

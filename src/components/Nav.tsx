@@ -82,54 +82,61 @@ export default function Nav() {
           )}
         </nav>
 
-        <div className="flex items-center gap-3">
-          {!loading && user && (
-            <>
+        <div className="flex flex-col items-end gap-1">
+          <div className="flex items-center gap-3">
+            {!loading && user && (
+              <>
+                <Link
+                  href="/account"
+                  className="hidden md:inline font-body text-caption uppercase text-ink/70 hover:text-ink transition-colors"
+                >
+                  Account
+                </Link>
+                <button
+                  onClick={handleSignOut}
+                  className="hidden md:inline font-body text-caption uppercase text-ink/70 hover:text-ink transition-colors"
+                >
+                  Sign out
+                </button>
+              </>
+            )}
+            {!loading && !user && (
               <Link
                 href="/account"
                 className="hidden md:inline font-body text-caption uppercase text-ink/70 hover:text-ink transition-colors"
               >
                 Account
               </Link>
-              <span className="font-body text-caption uppercase text-ink/50 hidden md:inline">
-                {user.email}
-              </span>
-              <button
-                onClick={handleSignOut}
-                className="hidden md:inline font-body text-caption uppercase text-ink/70 hover:text-ink transition-colors"
-              >
-                Sign out
-              </button>
-            </>
-          )}
-          {!loading && !user && (
-            <Link
-              href="/account"
-              className="hidden md:inline font-body text-caption uppercase text-ink/70 hover:text-ink transition-colors"
+            )}
+            <Button
+              href="/#sign-up"
+              variant="primary"
+              tone="light"
+              className="!px-5 !py-2.5 !text-xs"
             >
-              Account
-            </Link>
+              Buy us a beer
+            </Button>
+            <button
+              type="button"
+              aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={mobileOpen}
+              aria-controls="mobile-nav"
+              onClick={() => setMobileOpen((v) => !v)}
+              className="md:hidden -mr-2 p-2 text-ink/70 hover:text-ink"
+            >
+              <span aria-hidden="true" className="text-xl leading-none">
+                {mobileOpen ? '✕' : '☰'}
+              </span>
+            </button>
+          </div>
+          {!loading && user && (
+            <div
+              className="hidden md:block max-w-[280px] truncate text-right font-body text-[11px] uppercase tracking-widest text-ink/40"
+              title={user.email}
+            >
+              {user.email}
+            </div>
           )}
-          <Button
-            href="/#sign-up"
-            variant="primary"
-            tone="light"
-            className="!px-5 !py-2.5 !text-xs"
-          >
-            Buy us a beer
-          </Button>
-          <button
-            type="button"
-            aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
-            aria-expanded={mobileOpen}
-            aria-controls="mobile-nav"
-            onClick={() => setMobileOpen((v) => !v)}
-            className="md:hidden -mr-2 p-2 text-ink/70 hover:text-ink"
-          >
-            <span aria-hidden="true" className="text-xl leading-none">
-              {mobileOpen ? '✕' : '☰'}
-            </span>
-          </button>
         </div>
       </div>
 

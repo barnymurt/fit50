@@ -10,13 +10,14 @@ import Timer from '@/components/Timer';
 import { Board, TodoList, useBoardState } from '@/components/ProjectBoard';
 import CalculatorForm from '@/components/macro-calculator/CalculatorForm';
 import { useAuth } from '@/contexts/AuthContext';
-import { useSyncTracker } from '@/hooks/useSyncTracker';
+import { useTrackerState } from '@/hooks/useTrackerState';
 import { useStreakProtection } from '@/hooks/useStreakProtection';
 import { usePremium } from '@/hooks/usePremium';
 import { calculateMacros } from '@/components/macro-calculator/formulas';
 import type { Goal, Diet, Activity, Sex, HeightUnit, WeightUnit } from '@/components/macro-calculator/types';
 import WaterCounter from '@/components/WaterCounter';
 import Tracker from '@/components/Tracker';
+import PremiumGate from '@/components/PremiumGate';
 import AccountNav from '@/components/AccountNav';
 import FoodDatabase from '@/components/food-database/FoodDatabase';
 import { useMacroTargets } from '@/hooks/useMacroTargets';
@@ -40,7 +41,11 @@ const HABIT_IDS = Object.keys(HABIT_LABELS);
 export default function AccountPage() {
   const router = useRouter();
   const { user, profile, loading, signIn, signUp, signOut, resetPassword } = useAuth();
-  const { data: trackerData, loaded: trackerLoaded } = useSyncTracker();
+  const tracker = useTrackerState();
+  const trackerData = tracker.data;
+  const trackerLoaded = tracker.loaded;
+  const currentDay = tracker.currentDay;
+  const todayTaps = tracker.todayTaps;
   const { isPremium } = usePremium();
   const { totalUsed, hasProtectionForWeek, redeemProtection } = useStreakProtection();
   const [authMode, setAuthMode] = useState<'signin' | 'signup' | 'forgot'>('signin');
@@ -62,12 +67,17 @@ export default function AccountPage() {
       })
     : '—';
 
-  const completedDays = Object.keys(trackerData.habitCompletions).reduce((acc, habitId) => {
-    return acc + Object.values(trackerData.habitCompletions[habitId] || {}).filter(Boolean).length;
-  }, 0);
-  const totalDays = trackerData.currentDay - 1;
+  const completedDays = (() => {
+    let n = 0;
+    Object.values(trackerData.closedDays || {}).forEach((day) => {
+      Object.values(day || {}).forEach((done) => { if (done) n++; });
+    });
+    Object.values(trackerData.pendingTaps || {}).forEach((done) => { if (done) n++; });
+    return n;
+  })();
+  const totalDays = Math.max(0, trackerData.startDate ? Math.floor((Date.now() - new Date(trackerData.startDate).getTime()) / 86_400_000) : 0);
   const completionPct = totalDays > 0 ? Math.round((completedDays / (totalDays * 9)) * 100) : 0;
-  const progressPct = Math.min(100, Math.round((trackerData.currentDay - 1) / 50 * 100));
+  const progressPct = Math.min(100, Math.round((totalDays / 50) * 100));
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,7 +120,7 @@ export default function AccountPage() {
     if (!isPremium) return;
     setStreakRedeeming(true);
     setStreakMessage(null);
-    const success = await redeemProtection(trackerData.currentDay);
+    const success = await redeemProtection(currentDay);
     setStreakRedeeming(false);
     if (success) {
       setStreakMessage('✓ Streak protected. Your day is banked.');
@@ -248,7 +258,7 @@ export default function AccountPage() {
   }
 
   // ---------- Signed in: account content ----------
-  const todayDone = HABIT_IDS.filter((h) => trackerData.habitCompletions[h]?.[trackerData.currentDay]).length;
+  const todayDone = HABIT_IDS.filter((h) => todayTaps[h]).length;
   const todayTotal = HABIT_IDS.length;
 
   return (
@@ -288,7 +298,12 @@ export default function AccountPage() {
           <p className="font-body text-base text-ink/70 mt-3 mb-8 max-w-2xl">
             Tap a preset or enter a custom amount. Saved to your account daily.
           </p>
-          <WaterCounter />
+          <PremiumGate
+            feature="water tracker"
+            description="Track every glass against your 2.5L target. Synced across devices, daily reset, per-day history. Hold yourself accountable without writing it on a Post-it."
+          >
+            <WaterCounter />
+          </PremiumGate>
         </div>
       </Section>
 
@@ -346,7 +361,12 @@ export default function AccountPage() {
                 </div>
               </div>
 
-              <FoodDatabase targets={targets} />
+              <PremiumGate
+                feature="food log"
+                description="Search 1,000+ foods, log portions, tag meals, totals roll up against your daily macro targets in seconds. Premium unlocks the food database and the macro math."
+              >
+                <FoodDatabase targets={targets} />
+              </PremiumGate>
             </div>
           </Section>
 
@@ -373,9 +393,30 @@ export default function AccountPage() {
 
                 <div className="flex justify-center mb-16">
                   <Timer
-                    label="Feed Your Brain"
-                    context="Read 5 books in 50 days · 30 mins/day on personal projects"
                     defaultMinutes={30}
+                    purposes={[
+                      {
+                        key: 'project',
+                        durationMinutes: 30,
+                        buttonLabel: 'Project time',
+                        heading: 'Feed Your Brain.',
+                        lede: "Read a book or work on a project for 30 minutes. Walk out of the 50 days with something you can hold, open, or point at.",
+                      },
+                      {
+                        key: 'meditate',
+                        durationMinutes: 10,
+                        buttonLabel: 'Meditate',
+                        heading: 'Open Mind.',
+                        lede: "Sit, breathe, notice for 10 minutes. Start at 5 if 10 feels hard — the minutes get easier faster than you think.",
+                      },
+                      {
+                        key: 'workout',
+                        durationMinutes: 1,
+                        buttonLabel: 'Workout loop',
+                        heading: 'Move Your Body.',
+                        lede: "One minute of core or cardio between sets — motion creates emotion.",
+                      },
+                    ]}
                   />
                 </div>
               </div>

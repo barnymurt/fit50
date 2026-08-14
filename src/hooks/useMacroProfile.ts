@@ -3,6 +3,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { createClient } from '@/lib/supabase';
+import { saveJson } from '@/lib/storage';
+import {
+  MACRO_RESULTS_CHANGED_EVENT,
+} from './useMacroTargets';
 import { Activity, Diet, Goal, Sex } from '@/components/macro-calculator/types';
 import { MacroResults } from '@/components/macro-calculator/types';
 
@@ -98,6 +102,11 @@ export function useMacroProfile() {
           error: friendlyProfileError(error),
         };
       }
+      // Mirror the freshly-saved result into the localStorage cache
+      // and notify any mounted FoodDatabase so the totals bar updates
+      // without a page reload.
+      saveJson('fit50-macro-results-v1', input.results);
+      window.dispatchEvent(new CustomEvent(MACRO_RESULTS_CHANGED_EVENT));
       await refetch();
       return { ok: true };
     },
