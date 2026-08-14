@@ -5,7 +5,6 @@ import Section from './Section';
 import Heading from './Heading';
 import HabitIcon, { HabitIconName } from './HabitIcon';
 import Marquee from './Marquee';
-import BalloonBurst from './BalloonBurst';
 import CellConfetti from './CellConfetti';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTrackerState, TrackerDay } from '@/hooks/useTrackerState';
@@ -207,7 +206,8 @@ export default function Tracker({ hideMarquee = false }: { hideMarquee?: boolean
   const { hasProtectionForWeek } = useStreakProtection();
 
   const [pulsingHabit, setPulsingHabit] = useState<string | null>(null);
-  const [balloons, setBalloons] = useState(false);
+  const [confettiKey, setConfettiKey] = useState(0);
+  const [confettiIntensity, setConfettiIntensity] = useState<'small' | 'big'>('small');
 
   const streak = useMemo(
     () => calculateStreak(tracker.days),
@@ -217,20 +217,21 @@ export default function Tracker({ hideMarquee = false }: { hideMarquee?: boolean
   const handleToggle = (habitId: string) => {
     setPulsingHabit(habitId);
     setTimeout(() => setPulsingHabit(null), 600);
+    const wasDone = !!tracker.todayTaps[habitId];
     tracker.toggleHabit(habitId);
 
-    // Was the day complete before the toggle?
-    const wasDone = !!tracker.todayTaps[habitId];
+    // Only fire confetti when a habit goes from un-done -> done.
+    // The tap that completes the full 9/9 day gets the big burst;
+    // every other completion gets the small one.
     if (!wasDone) {
-      const nextCount = HABIT_IDS.filter((id) => {
-        if (id === habitId) return true;
-        return !!tracker.todayTaps[id];
-      }).length;
-      if (nextCount === 9) {
-        setTimeout(() => {
-          setBalloons(true);
-          setTimeout(() => setBalloons(false), 2400);
-        }, 300);
+      const nextCount =
+        HABIT_IDS.filter((id) => !!tracker.todayTaps[id]).length + 1;
+      if (nextCount === HABIT_IDS.length) {
+        setConfettiIntensity('big');
+        setConfettiKey((k) => k + 1);
+      } else {
+        setConfettiIntensity('small');
+        setConfettiKey((k) => k + 1);
       }
     }
   };
@@ -446,8 +447,7 @@ export default function Tracker({ hideMarquee = false }: { hideMarquee?: boolean
         </div>
       </div>
 
-      <BalloonBurst />
-      <CellConfetti show={balloons} />
+      <CellConfetti key={confettiKey} show={confettiKey > 0} intensity={confettiIntensity} />
     </Section>
   );
 }

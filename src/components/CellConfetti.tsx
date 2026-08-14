@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 
-const COLORS = ['#E88B5A', '#4A9B9B', '#F2D9A2', '#D8B8D0'];
+const COLORS = ['#E88B5A', '#4A9B9B', '#F2D9A2', '#D8B8D0', '#1A1730', '#FAF6EE'];
 
 interface Piece {
   id: number;
@@ -17,7 +17,54 @@ interface Piece {
   size: number;
 }
 
-export default function CellConfetti({ show }: { show: boolean }) {
+interface CellConfettiProps {
+  show: boolean;
+  intensity?: 'small' | 'big';
+}
+
+interface BurstSpec {
+  count: number;
+  startYBase: number;
+  startYSpread: number;
+  durationBase: number;
+  durationSpread: number;
+  dxSpread: number;
+  dyBase: number;
+  dySpread: number;
+  sizeBase: number;
+  sizeSpread: number;
+}
+
+const SMALL: BurstSpec = {
+  count: 14,
+  startYBase: 70,
+  startYSpread: 28,
+  durationBase: 0.5,
+  durationSpread: 0.3,
+  dxSpread: 120,
+  dyBase: -140,
+  dySpread: 60,
+  sizeBase: 3,
+  sizeSpread: 3,
+};
+
+const BIG: BurstSpec = {
+  count: 80,
+  startYBase: 75,
+  startYSpread: 25,
+  durationBase: 0.85,
+  durationSpread: 0.7,
+  dxSpread: 320,
+  dyBase: -240,
+  dySpread: 200,
+  sizeBase: 4,
+  sizeSpread: 6,
+};
+
+export default function CellConfetti({
+  show,
+  intensity = 'big',
+}: CellConfettiProps) {
   const [pieces, setPieces] = useState<Piece[]>([]);
 
   useEffect(() => {
@@ -25,25 +72,30 @@ export default function CellConfetti({ show }: { show: boolean }) {
       setPieces([]);
       return;
     }
+    const spec = intensity === 'big' ? BIG : SMALL;
     const generated: Piece[] = [];
-    // 24 shoot-up pieces: spawn across the entire bottom edge,
-    // launch upward, arch outward, pop outside the cell
-    for (let i = 0; i < 24; i++) {
+    for (let i = 0; i < spec.count; i++) {
       generated.push({
         id: i,
         startX: Math.random() * 100,
-        startY: 80 + Math.random() * 20,
-        delay: Math.random() * 0.12,
-        duration: 0.7 + Math.random() * 0.3,
+        startY: spec.startYBase + Math.random() * spec.startYSpread,
+        delay: Math.random() * 0.15,
+        duration:
+          intensity === 'big'
+            ? spec.durationBase + Math.random() * spec.durationSpread
+            : spec.durationBase + Math.random() * spec.durationSpread * 0.6,
         rot: (Math.random() - 0.5) * 900,
-        dx: (Math.random() - 0.5) * 200,
-        dy: -160 - Math.random() * 120,
+        dx: (Math.random() - 0.5) * spec.dxSpread,
+        dy:
+          intensity === 'big'
+            ? spec.dyBase - Math.random() * spec.dySpread
+            : spec.dyBase * 0.55 - Math.random() * spec.dySpread * 0.4,
         color: COLORS[Math.floor(Math.random() * COLORS.length)],
-        size: 3 + Math.random() * 4,
+        size: spec.sizeBase + Math.random() * spec.sizeSpread,
       });
     }
     setPieces(generated);
-  }, [show]);
+  }, [show, intensity]);
 
   if (!show || pieces.length === 0) return null;
 
