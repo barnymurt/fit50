@@ -12,21 +12,56 @@ interface Exercise {
   slot: string;
   name: string;
   reps: string;
-  isFinisher?: boolean;
 }
 
-const workoutLines: Record<string, Exercise[]> = {
-  A: [
-    { slot: '01', name: 'Push-ups', reps: '5 × 10' },
-    { slot: '02', name: 'Supermans', reps: '5 × 10' },
-    { slot: '03', name: 'Bodyweight Squats', reps: '5 × 10', isFinisher: true },
-  ],
-  B: [
-    { slot: '01', name: 'Wide Push-ups', reps: '5 × 10' },
-    { slot: '02', name: 'Reverse Snow Angels', reps: '5 × 10' },
-    { slot: '03', name: 'Lunges', reps: '5 × 10', isFinisher: true },
-  ],
+const workoutLines: Record<string, { name: string; subtitle: string; exercises: Exercise[] }> = {
+  A: {
+    name: 'The Base',
+    subtitle: 'Foundations',
+    exercises: [
+      { slot: '01', name: 'Push-ups', reps: '5 × 10' },
+      { slot: '02', name: 'Supermans', reps: '5 × 10' },
+      { slot: '03', name: 'Bodyweight Squats', reps: '5 × 10' },
+      { slot: '04', name: 'Bird Dogs', reps: '5 × 10/side' },
+      { slot: '05', name: 'Plank', reps: '5 × 50s' },
+    ],
+  },
+  B: {
+    name: 'Wide Angles',
+    subtitle: 'Chest & full-body',
+    exercises: [
+      { slot: '01', name: 'Wide Push-ups', reps: '5 × 10' },
+      { slot: '02', name: 'Reverse Snow Angels', reps: '5 × 10' },
+      { slot: '03', name: 'Lunges', reps: '5 × 10' },
+      { slot: '04', name: 'Plank Shoulder Taps', reps: '5 × 10/side' },
+      { slot: '05', name: 'Burpees', reps: '5 × 50s' },
+    ],
+  },
+  C: {
+    name: 'Ground Floor',
+    subtitle: 'Posterior chain',
+    exercises: [
+      { slot: '01', name: 'Tricep Dips (floor)', reps: '5 × 10' },
+      { slot: '02', name: 'Prone Y-Raises', reps: '5 × 10' },
+      { slot: '03', name: 'Glute Bridges', reps: '5 × 10' },
+      { slot: '04', name: 'Flutter Kicks', reps: '5 × 10' },
+      { slot: '05', name: 'Mountain Climbers', reps: '5 × 50s' },
+    ],
+  },
+  D: {
+    name: 'Isolation',
+    subtitle: 'Fine control',
+    exercises: [
+      { slot: '01', name: 'Tricep Push-ups', reps: '5 × 10' },
+      { slot: '02', name: 'Wall Slides', reps: '5 × 10' },
+      { slot: '03', name: 'Single-Leg Glute Bridge', reps: '5 × 10/leg' },
+      { slot: '04', name: 'Dead Bugs', reps: '5 × 10/side' },
+      { slot: '05', name: 'Russian Twists', reps: '5 × 50s' },
+    ],
+  },
 };
+
+const FINISHER_SLOTS = new Set(['05']);
 
 export default function Workouts() {
   const [openGuide, setOpenGuide] = useState(false);
@@ -78,49 +113,64 @@ export default function Workouts() {
         </div>
 
         <div className="space-y-0 border-t border-paper/15">
-          {Object.entries(workoutLines).map(([line, exercises]) => (
+          {Object.entries(workoutLines).map(([line, block]) => (
             <div
               key={line}
               className="grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-10 items-start md:items-center py-10 md:py-12 border-b border-paper/15"
             >
-              <div className="md:col-span-3">
+              <div className="md:col-span-3 flex items-baseline gap-4">
                 <span
                   className="font-display text-paper leading-none"
                   style={{ fontSize: 'clamp(6rem, 12vw, 10rem)', letterSpacing: '-0.04em' }}
                 >
                   {line}
                 </span>
+                <div className="hidden md:block">
+                  <p className="font-body text-caption uppercase tracking-widest text-paper/50">
+                    {block.name}
+                  </p>
+                  <p className="font-body text-sm text-paper/30 mt-1">
+                    {block.subtitle}
+                  </p>
+                </div>
               </div>
 
-              <div className="md:col-span-9 grid grid-cols-2 md:grid-cols-5 gap-x-6 gap-y-6">
-                {exercises.map((exercise, index) => (
-                  <div
-                    key={index}
-                    className={`pl-4 ${
-                      exercise.isFinisher
-                        ? 'border-l-2 border-coral'
-                        : 'border-l border-paper/15'
-                    }`}
-                  >
-                    <p
-                      className={`font-body text-caption uppercase tracking-widest mb-1.5 ${
-                        exercise.isFinisher ? 'text-coral' : 'text-paper/40'
+              <div className="md:col-span-9 grid grid-cols-2 md:grid-cols-5 gap-x-4 gap-y-8">
+                {block.exercises.map((exercise, index) => {
+                  const isFinisher = FINISHER_SLOTS.has(exercise.slot);
+                  return (
+                    <div
+                      key={index}
+                      className={`pl-4 ${
+                        isFinisher
+                          ? 'border-l-2 border-coral'
+                          : 'border-l border-paper/15'
                       }`}
                     >
-                      {exercise.slot}
-                    </p>
-                    <h4 className="font-display text-lg text-paper leading-tight mb-1">
-                      {exercise.name}
-                    </h4>
-                    <p
-                      className={`font-body text-sm ${
-                        exercise.isFinisher ? 'text-coral' : 'text-paper/50'
-                      }`}
-                    >
-                      {exercise.reps}
-                    </p>
-                  </div>
-                ))}
+                      <p
+                        className={`font-body text-caption uppercase tracking-widest mb-1.5 ${
+                          isFinisher ? 'text-coral' : 'text-paper/40'
+                        }`}
+                      >
+                        {exercise.slot}
+                      </p>
+                      <h4
+                        className={`font-display text-base md:text-lg leading-tight mb-1 ${
+                          isFinisher ? 'text-coral' : 'text-paper'
+                        }`}
+                      >
+                        {exercise.name}
+                      </h4>
+                      <p
+                        className={`font-body text-sm tabular-nums ${
+                          isFinisher ? 'text-coral' : 'text-paper/50'
+                        }`}
+                      >
+                        {exercise.reps}
+                      </p>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           ))}
