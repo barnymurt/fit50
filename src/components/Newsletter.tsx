@@ -2,49 +2,45 @@
 
 import { useState } from 'react';
 import Section from './Section';
-import { createClient, isSupabaseConfigured } from '@/lib/supabase';
+
+type Status = 'idle' | 'submitting' | 'ready' | 'error';
 
 export default function Newsletter() {
   const [email, setEmail] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const [sent, setSent] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [status, setStatus] = useState<Status>('idle');
+  const [message, setMessage] = useState('');
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) return;
-
-    setSubmitting(true);
-    setError(null);
-
-    if (!isSupabaseConfigured) {
-      setSent(true);
-      setEmail('');
-      setSubmitting(false);
+    const trimmed = email.trim();
+    if (!trimmed) {
+      setStatus('error');
+      setMessage('Enter an email to subscribe.');
       return;
     }
 
-    const supabase = createClient();
-    if (!supabase) {
-      setSent(true);
-      setEmail('');
-      setSubmitting(false);
-      return;
+    setStatus('submitting');
+    setMessage('');
+
+    try {
+      const res = await fetch('/api/newsletter/subscribe', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ email: trimmed }),
+      });
+
+      if (!res.ok) {
+        setStatus('error');
+        setMessage('Could not subscribe. Try again later.');
+        return;
+      }
+
+      setStatus('ready');
+      setMessage("You're on the list. We'll be in touch.");
+    } catch {
+      setStatus('error');
+      setMessage('Network error. Check your connection and try again.');
     }
-
-    const { error: err } = await supabase
-      .from('newsletter_subscribers')
-      .upsert({ email: email.toLowerCase() }, { onConflict: 'email' });
-
-    setSubmitting(false);
-
-    if (err) {
-      setError('Could not subscribe. Try again later.');
-      return;
-    }
-
-    setSent(true);
-    setEmail('');
   };
 
   return (
@@ -64,32 +60,37 @@ export default function Newsletter() {
           Field notes from the 50 days: what worked, what didn&apos;t.
         </p>
 
-        {sent ? (
-          <p className="font-body text-base text-ink/70">
-            ✓ You&apos;re on the list. We&apos;ll be in touch.
+        {status === 'ready' ? (
+          <p className="font-body text-base text-ink/70" role="status">
+            ✓ {message}
           </p>
         ) : (
-          <form onSubmit={handleSubmit} className="max-w-md mx-auto">
+          <form onSubmit={onSubmit} noValidate className="max-w-md mx-auto">
             <div className="flex flex-col sm:flex-row gap-3">
               <input
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (status === 'error') setStatus('idle');
+                }}
                 placeholder="you@email.com"
                 required
-                disabled={submitting}
+                disabled={status === 'submitting'}
                 className="flex-1 px-4 py-3 bg-white border border-ink/30 text-ink placeholder:text-ink/30 font-body focus:border-coral outline-none disabled:opacity-50"
               />
               <button
                 type="submit"
-                disabled={submitting}
+                disabled={status === 'submitting'}
                 className="px-7 py-3 bg-ink text-paper font-body text-caption uppercase hover:bg-coral transition-colors duration-200 disabled:opacity-50"
               >
-                {submitting ? 'Sending…' : 'Subscribe'}
+                {status === 'submitting' ? 'Sending…' : 'Subscribe'}
               </button>
             </div>
-            {error && (
-              <p className="font-body text-sm text-coral mt-3">{error}</p>
+            {status === 'error' && message && (
+              <p className="font-body text-sm text-coral mt-3" role="alert">
+                {message}
+              </p>
             )}
           </form>
         )}
