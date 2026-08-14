@@ -2,6 +2,15 @@
 
 import Section from './Section';
 
+const FOOTER_LINKS = [
+  { href: '/#rules', label: 'Rules' },
+  { href: '/#workouts', label: 'Workouts' },
+  { href: '/#tracker', label: 'Tracker' },
+  { href: '/#resources', label: 'Freebies' },
+  { href: '/#faq', label: 'FAQ' },
+  { href: '/#sign-up', label: 'Keep the tools' },
+];
+
 export default function Footer() {
   return (
     <Section
@@ -23,13 +32,13 @@ export default function Footer() {
 
       <div className="pt-8 border-t border-paper/15 flex flex-col md:flex-row md:items-center gap-4">
         <nav className="flex flex-wrap gap-x-8 gap-y-2">
-          {['Rules', 'Workouts', 'Tracker', 'FAQ'].map((label) => (
+          {FOOTER_LINKS.map((link) => (
             <a
-              key={label}
-              href={`#${label.toLowerCase()}`}
+              key={link.href}
+              href={link.href}
               className="font-body text-caption uppercase text-paper/60 hover:text-paper transition-colors"
             >
-              {label}
+              {link.label}
             </a>
           ))}
         </nav>

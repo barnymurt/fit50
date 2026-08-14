@@ -6,13 +6,13 @@ import Button from './Button';
 import { useAuth } from '@/contexts/AuthContext';
 
 const NAV_LINKS = [
-  { href: '#story', label: 'Blame us' },
-  { href: '#rules', label: 'Rules' },
-  { href: '#resources', label: 'On the House' },
-  { href: '#workouts', label: 'Workouts' },
-  { href: '#tracker', label: 'Tracker' },
-  { href: '#faq', label: 'FAQ' },
-  { href: '#sign-up', label: 'Keep the tools' },
+  { href: '/#story', label: 'Blame us' },
+  { href: '/#rules', label: 'Rules' },
+  { href: '/#resources', label: 'On the House' },
+  { href: '/#workouts', label: 'Workouts' },
+  { href: '/#tracker', label: 'Tracker' },
+  { href: '/#faq', label: 'FAQ' },
+  { href: '/#sign-up', label: 'Keep the tools' },
 ];
 
 export default function Nav() {
@@ -159,7 +159,7 @@ export default function Nav() {
             ))}
             <li>
               <a
-                href="#sign-up"
+                href="/#sign-up"
                 onClick={() => setMobileOpen(false)}
                 className="block px-2 py-3 font-body text-caption uppercase tracking-widest text-coral hover:text-ink border-b border-rule"
               >
