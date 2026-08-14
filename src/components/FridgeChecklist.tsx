@@ -53,8 +53,21 @@ export default function FridgeChecklist({ onSubmitted, compact = false }: Fridge
 
   return (
     <div>
+      <div className="-mx-6 mb-6 bg-cream/30 border-y border-ink/10 overflow-hidden">
+        <img
+          src="/previews/fit50-fridge-checklist.png"
+          alt="Preview of the FIT50 Free Daily Fridge Checklist"
+          className="block w-full h-auto"
+        />
+      </div>
+
+      <p className="inline-block font-body text-caption uppercase tracking-widest text-coral mb-3 px-2 py-1 border border-coral/30 bg-coral/5">
+        Free Daily Fridge Checklist
+      </p>
+
       {!compact && (
         <p className="font-display text-base text-ink-soft leading-[1.4] mb-6">
+          A printable, nine-discipline daily tracker for the fifty days.
           Drop your email and download the PDF below. You&apos;ll also get
           the occasional note from us — cohort start dates, new tools, and
           whatever we&apos;ve learned. Unsubscribe whenever, no dramas.
@@ -63,6 +76,7 @@ export default function FridgeChecklist({ onSubmitted, compact = false }: Fridge
 
       {compact && (
         <p className="font-body text-sm text-ink-soft leading-[1.5] mb-6">
+          A printable, nine-discipline daily tracker for the fifty days.
           Drop your email and download the PDF below. You&apos;ll also get
           the occasional note from us — cohort start dates, new tools, and
           whatever we&apos;ve learned. Unsubscribe whenever, no dramas.
