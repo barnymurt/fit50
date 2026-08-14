@@ -16,7 +16,11 @@ export function useFoodLog() {
   const supabase = createClient();
   const [entries, setEntries] = useState<FoodLogEntry[]>([]);
   const [loaded, setLoaded] = useState(false);
-  const today = useMemo(() => dayKeyFor(), []);
+  // Reactive: updated on mount, on auth change, and whenever the
+  // day-rollover tick detects a new local date. Before this was a
+  // useMemo(..., []) so todayEntries kept filtering on yesterday's
+  // date_key after midnight and the bar froze.
+  const [today, setToday] = useState<string>(() => dayKeyFor());
 
   const refetch = useCallback(async () => {
     if (!user || !supabase) return;
@@ -39,6 +43,7 @@ export function useFoodLog() {
       return;
     }
     setLoaded(false);
+    setToday(dayKeyFor());
     refetch().then(() => setLoaded(true));
   }, [user, supabase, refetch]);
 
@@ -50,6 +55,7 @@ export function useFoodLog() {
       const current = dayKeyFor();
       if (current !== lastDayKey) {
         lastDayKey = current;
+        setToday(current);
         refetch();
       }
     };
