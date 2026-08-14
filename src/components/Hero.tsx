@@ -6,7 +6,9 @@ import Icon from './Icon';
 
 export default function Hero() {
   const openChecklist = () => {
-    window.dispatchEvent(new CustomEvent('open-fridge-checklist'));
+    window.dispatchEvent(
+      new CustomEvent('open-active-modal', { detail: { kind: 'fridge-checklist' } })
+    );
   };
 
   return (

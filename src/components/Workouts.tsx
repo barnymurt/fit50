@@ -1,6 +1,12 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import Section from './Section';
 import Button from './Button';
 import Marquee from './Marquee';
+import Modal from './Modal';
+import EmailGate from './EmailGate';
+import { BODYWEIGHT_FOUR_CONFIG } from './emailGates';
 
 interface Exercise {
   slot: string;
@@ -11,36 +17,40 @@ interface Exercise {
 
 const workoutLines: Record<string, Exercise[]> = {
   A: [
-    { slot: 'Push', name: 'Push-ups', reps: '5 × 10 reps' },
-    { slot: 'Pull', name: 'Supermans', reps: '5 × 10 reps' },
-    { slot: 'Legs', name: 'Bodyweight Squats', reps: '5 × 10 reps' },
-    { slot: 'Core', name: 'Bird Dogs', reps: '5 × 10 reps (5 per side)' },
-    { slot: 'Conditioning', name: 'Plank', reps: '5 × 50 sec', isFinisher: true },
+    { slot: '01', name: 'Push-ups', reps: '5 × 10' },
+    { slot: '02', name: 'Supermans', reps: '5 × 10' },
+    { slot: '03', name: 'Bodyweight Squats', reps: '5 × 10', isFinisher: true },
   ],
   B: [
-    { slot: 'Push', name: 'Wide Push-ups', reps: '5 × 10 reps' },
-    { slot: 'Pull', name: 'Reverse Snow Angels', reps: '5 × 10 reps' },
-    { slot: 'Legs', name: 'Lunges', reps: '5 × 10 reps' },
-    { slot: 'Core', name: 'Plank Shoulder Taps', reps: '5 × 10 reps (5 per side)' },
-    { slot: 'Conditioning', name: 'Burpees', reps: '5 × 50 sec', isFinisher: true },
-  ],
-  C: [
-    { slot: 'Push', name: 'Tricep Dips (floor)', reps: '5 × 10 reps' },
-    { slot: 'Pull', name: 'Prone Y-Raises', reps: '5 × 10 reps' },
-    { slot: 'Legs', name: 'Glute Bridges', reps: '5 × 10 reps' },
-    { slot: 'Core', name: 'Flutter Kicks', reps: '5 × 10 reps' },
-    { slot: 'Conditioning', name: 'Mountain Climbers', reps: '5 × 50 sec', isFinisher: true },
-  ],
-  D: [
-    { slot: 'Push', name: 'Tricep Push-ups (elbows tucked)', reps: '5 × 10 reps' },
-    { slot: 'Pull', name: 'Wall Slides', reps: '5 × 10 reps' },
-    { slot: 'Legs', name: 'Single-Leg Glute Bridges', reps: '5 × 10 reps (per leg)' },
-    { slot: 'Core', name: 'Dead Bugs', reps: '5 × 10 reps (5 per side)' },
-    { slot: 'Conditioning', name: 'Russian Twists', reps: '5 × 50 sec', isFinisher: true },
+    { slot: '01', name: 'Wide Push-ups', reps: '5 × 10' },
+    { slot: '02', name: 'Reverse Snow Angels', reps: '5 × 10' },
+    { slot: '03', name: 'Lunges', reps: '5 × 10', isFinisher: true },
   ],
 };
 
 export default function Workouts() {
+  const [openGuide, setOpenGuide] = useState(false);
+
+  useEffect(() => {
+    const onOpen = (e: Event) => {
+      const kind = (e as CustomEvent<{ kind: 'bodyweight-four' }>).detail?.kind;
+      if (kind === 'bodyweight-four') setOpenGuide(true);
+    };
+    const onClose = () => setOpenGuide(false);
+    window.addEventListener('open-active-modal', onOpen);
+    window.addEventListener('close-active-modal', onClose);
+    return () => {
+      window.removeEventListener('open-active-modal', onOpen);
+      window.removeEventListener('close-active-modal', onClose);
+    };
+  }, []);
+
+  const openGuideModal = () => {
+    window.dispatchEvent(
+      new CustomEvent('open-active-modal', { detail: { kind: 'bodyweight-four' } })
+    );
+  };
+
   return (
     <Section
       id="workouts"
@@ -116,15 +126,33 @@ export default function Workouts() {
           ))}
         </div>
 
-        <div className="mt-16 md:mt-20 flex flex-col items-center text-center gap-8">
+        <div className="mt-16 md:mt-20 flex flex-col items-center text-center gap-6">
           <p className="font-display text-h2 text-paper max-w-md">
             Day 1 starts when you do.
           </p>
-          <Button href="#tracker" variant="primary" tone="dark">
-            Start tracking
-          </Button>
+          <div className="flex flex-wrap items-center justify-center gap-4">
+            <Button href="#tracker" variant="primary" tone="dark">
+              Start tracking
+            </Button>
+            <button
+              type="button"
+              onClick={openGuideModal}
+              className="inline-flex items-center justify-center gap-2 font-body text-caption uppercase tracking-widest text-paper/70 hover:text-coral border border-paper/30 hover:border-coral px-7 py-3.5 rounded-full transition-colors duration-200"
+            >
+              Download the Bodyweight Four →
+            </button>
+          </div>
         </div>
       </div>
+
+      <Modal
+        open={openGuide}
+        onClose={() => setOpenGuide(false)}
+        title="The Bodyweight Four."
+        ariaLabel="On the house"
+      >
+        <EmailGate config={BODYWEIGHT_FOUR_CONFIG} />
+      </Modal>
     </Section>
   );
 }

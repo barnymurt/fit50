@@ -45,13 +45,16 @@ export default function Resources({ id }: { id?: string }) {
   const [openModal, setOpenModal] = useState<ResourcesItem['modal'] | null>(null);
 
   useEffect(() => {
-    const onOpen = () => setOpenModal('fridge-checklist');
+    const onOpen = (e: Event) => {
+      const kind = (e as CustomEvent<{ kind: 'fridge-checklist' }>).detail?.kind;
+      if (kind === 'fridge-checklist') setOpenModal(kind);
+    };
     const onClose = () => setOpenModal(null);
-    window.addEventListener('open-fridge-checklist', onOpen);
-    window.addEventListener('close-fridge-checklist', onClose);
+    window.addEventListener('open-active-modal', onOpen);
+    window.addEventListener('close-active-modal', onClose);
     return () => {
-      window.removeEventListener('open-fridge-checklist', onOpen);
-      window.removeEventListener('close-fridge-checklist', onClose);
+      window.removeEventListener('open-active-modal', onOpen);
+      window.removeEventListener('close-active-modal', onClose);
     };
   }, []);
 
