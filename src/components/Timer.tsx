@@ -2,10 +2,20 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 
+export interface TimerPurpose {
+  key: string;
+  durationMinutes: number;
+  durationSeconds?: number;
+  buttonLabel: string;
+  heading?: string;
+  lede?: string;
+}
+
 interface TimerProps {
   defaultMinutes?: number;
   label?: string;
   context?: string;
+  purposes?: TimerPurpose[];
   onComplete?: () => void;
 }
 
@@ -13,12 +23,23 @@ export default function Timer({
   defaultMinutes = 30,
   label,
   context,
+  purposes,
   onComplete,
 }: TimerProps) {
-  const [totalSeconds, setTotalSeconds] = useState(defaultMinutes * 60);
-  const [remainingSeconds, setRemainingSeconds] = useState(defaultMinutes * 60);
+  const initialTotal = defaultMinutes * 60;
+  const [totalSeconds, setTotalSeconds] = useState(initialTotal);
+  const [remainingSeconds, setRemainingSeconds] = useState(initialTotal);
   const [isRunning, setIsRunning] = useState(false);
   const [completed, setCompleted] = useState(false);
+  const [activePurposeKey, setActivePurposeKey] = useState<string | null>(() => {
+    if (!purposes) return null;
+    const targetSeconds = defaultMinutes * 60;
+    const exact = purposes.find(
+      (p) =>
+        p.durationMinutes * 60 + (p.durationSeconds ?? 0) === targetSeconds
+    );
+    return exact ? exact.key : purposes[0]?.key ?? null;
+  });
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const onCompleteRef = useRef(onComplete);
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -114,17 +135,32 @@ export default function Timer({
     const total = minutes * 60 + seconds;
     setTotalSeconds(total);
     setRemainingSeconds(total);
-  }, []);
+    if (purposes) {
+      const exact = purposes.find(
+        (p) => p.durationMinutes === minutes && (p.durationSeconds ?? 0) === seconds
+      );
+      setActivePurposeKey(exact ? exact.key : null);
+    } else {
+      setActivePurposeKey(null);
+    }
+  }, [purposes]);
+
+  const activePurpose =
+    purposes && activePurposeKey
+      ? purposes.find((p) => p.key === activePurposeKey) ?? null
+      : null;
+  const displayHeading = activePurpose?.heading ?? label ?? 'Timer';
+  const displayLede = activePurpose?.lede ?? context ?? null;
 
   return (
     <div className="bg-paper border border-ink/10 p-6 text-center">
-      {label && (
-        <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-1">
-          {label}
+      <p className="font-display text-h2 text-ink mb-2 leading-tight">
+        {displayHeading}
+      </p>
+      {displayLede && (
+        <p className="font-body text-sm text-ink/65 mb-6 max-w-sm mx-auto leading-snug">
+          {displayLede}
         </p>
-      )}
-      {context && (
-        <p className="font-body text-xs text-ink/40 mb-4">{context}</p>
       )}
 
       <div className={`font-display tabular-nums mb-4 leading-none ${completed ? 'text-teal' : 'text-ink'}`}
@@ -178,10 +214,13 @@ export default function Timer({
         </button>
       </div>
 
-      {/* Editable duration presets — user can change minutes and seconds directly */}
+      {/* Editable duration presets — purpose buttons change the timer copy */}
       <EditableDuration
         defaultMinutes={defaultMinutes}
         onSetDuration={handleSetDuration}
+        purposes={purposes}
+        activePurposeKey={activePurposeKey}
+        onSelectPurpose={setActivePurposeKey}
       />
     </div>
   );
@@ -190,9 +229,18 @@ export default function Timer({
 interface EditableDurationProps {
   defaultMinutes: number;
   onSetDuration: (minutes: number, seconds: number) => void;
+  purposes?: TimerPurpose[];
+  activePurposeKey: string | null;
+  onSelectPurpose: (key: string) => void;
 }
 
-function EditableDuration({ defaultMinutes, onSetDuration }: EditableDurationProps) {
+function EditableDuration({
+  defaultMinutes,
+  onSetDuration,
+  purposes,
+  activePurposeKey,
+  onSelectPurpose,
+}: EditableDurationProps) {
   const [open, setOpen] = useState(false);
   const [minutes, setMinutes] = useState(defaultMinutes);
   const [seconds, setSeconds] = useState(0);
@@ -202,27 +250,48 @@ function EditableDuration({ defaultMinutes, onSetDuration }: EditableDurationPro
     setOpen(false);
   };
 
-  const presets = [
-    { label: '30m', mins: 30, secs: 0 },
-    { label: '15m', mins: 15, secs: 0 },
-    { label: '10m', mins: 10, secs: 0 },
-    { label: '50m', mins: 50, secs: 0 },
-    { label: '5m', mins: 5, secs: 0 },
-    { label: '1m', mins: 1, secs: 0 },
-  ];
+  // Purpose presets first (e.g. "Project time" at 30m), then any
+  // generic time slots that don't overlap with a purpose.
+  const purposesAsPresets = (purposes ?? []).map((p) => ({
+    kind: 'purpose' as const,
+    key: p.key,
+    label: p.buttonLabel,
+    mins: p.durationMinutes,
+    secs: p.durationSeconds ?? 0,
+  }));
+  const coveredKeys = new Set(
+    purposesAsPresets.map((p) => `${p.mins}:${p.secs}`)
+  );
+  const genericPresets = [
+    { kind: 'generic' as const, label: '15m', mins: 15, secs: 0 },
+    { kind: 'generic' as const, label: '50m', mins: 50, secs: 0 },
+    { kind: 'generic' as const, label: '5m', mins: 5, secs: 0 },
+  ].filter((p) => !coveredKeys.has(`${p.mins}:${p.secs}`));
+  const presets = [...purposesAsPresets, ...genericPresets];
 
   if (!open) {
     return (
       <div className="flex items-center justify-center gap-2 flex-wrap">
-        {presets.map((p) => (
-          <button
-            key={p.label}
-            onClick={() => onSetDuration(p.mins, p.secs)}
-            className="font-body text-xs uppercase tracking-widest px-3 py-1 border border-ink/20 text-ink/60 hover:border-ink/40 transition-colors"
-          >
-            {p.label}
-          </button>
-        ))}
+        {presets.map((p) => {
+          const isActive = p.kind === 'purpose' && p.key === activePurposeKey;
+          const labelText = p.label;
+          return (
+            <button
+              key={`${p.mins}-${p.secs}-${labelText}`}
+              onClick={() => {
+                onSetDuration(p.mins, p.secs);
+                if (p.kind === 'purpose') onSelectPurpose(p.key);
+              }}
+              className={`font-body text-xs uppercase tracking-widest px-3 py-1 border transition-colors ${
+                isActive
+                  ? 'border-coral text-coral bg-coral/5'
+                  : 'border-ink/20 text-ink/60 hover:border-ink/40'
+              }`}
+            >
+              {labelText}
+            </button>
+          );
+        })}
         <button
           onClick={() => setOpen(true)}
           className="font-body text-xs uppercase tracking-widest px-3 py-1 border border-ink/20 text-ink/60 hover:border-ink/40 transition-colors"

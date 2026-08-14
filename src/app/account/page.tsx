@@ -393,9 +393,30 @@ export default function AccountPage() {
 
                 <div className="flex justify-center mb-16">
                   <Timer
-                    label="Feed Your Brain"
-                    context="Read 5 books in 50 days · 30 mins/day on personal projects"
                     defaultMinutes={30}
+                    purposes={[
+                      {
+                        key: 'project',
+                        durationMinutes: 30,
+                        buttonLabel: 'Project time',
+                        heading: 'Feed Your Brain.',
+                        lede: "Read a book or work on a project for 30 minutes. Walk out of the 50 days with something you can hold, open, or point at.",
+                      },
+                      {
+                        key: 'meditate',
+                        durationMinutes: 10,
+                        buttonLabel: 'Meditate',
+                        heading: 'Open Mind.',
+                        lede: "Sit, breathe, notice for 10 minutes. Start at 5 if 10 feels hard — the minutes get easier faster than you think.",
+                      },
+                      {
+                        key: 'workout',
+                        durationMinutes: 1,
+                        buttonLabel: 'Workout loop',
+                        heading: 'Move Your Body.',
+                        lede: "One minute of core or cardio between sets — motion creates emotion.",
+                      },
+                    ]}
                   />
                 </div>
               </div>
