@@ -36,7 +36,7 @@ export const BODYWEIGHT_FOUR_CONFIG: EmailGateConfig = {
     title: 'the bodyweight four',
     lede:
       'Four workouts. Twenty exercises. Zero equipment. Rotate A \u2192 B \u2192 C \u2192 D across the week and you\u2019ll hit push, pull, legs, core and conditioning every session. Drop your email and we\u2019ll fire the download straight over. Unsubscribe whenever, no dramas.',
-    buttonText: 'My body wants the guide!',
+    buttonText: 'My love handles demand the guide',
     buttonLoadingText: 'Sending\u2026',
   },
   success: {
