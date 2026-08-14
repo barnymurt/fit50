@@ -96,13 +96,37 @@ export default function FridgeChecklist({ onSubmitted, compact = false }: Fridge
       )}
 
       {status === 'ready' ? (
-        <div role="status">
-          <p className="font-display text-base text-ink leading-[1.4] mb-5">
-            {message}
+        <div role="status" className="-mx-6 -mb-6 p-6 bg-paper">
+          <p className="font-body text-caption uppercase tracking-widest text-coral mb-3">
+            Fridge fed.
           </p>
-          <p className="font-body text-caption text-ink-muted">
-            We added you to the FIT50 newsletter. Unsubscribe any time.
+          <h3 className="font-display text-h1 text-ink leading-[1.05] mb-4">
+            Well done.
+          </h3>
+          <p className="font-display text-base text-ink-soft leading-[1.4] mb-8">
+            Congratulations on taking the first step. Your download should be
+            in your downloads folder — print, stick it on the fridge, tick it
+            each morning.
           </p>
+          <a
+            href="#sign-up"
+            onClick={() => {
+              const evt = new CustomEvent('close-fridge-checklist');
+              window.dispatchEvent(evt);
+            }}
+            className="inline-flex items-center justify-center w-full px-6 py-4 bg-coral-vibrant text-paper font-body text-sm font-semibold tracking-wider uppercase rounded-full transition-colors duration-200 hover:bg-coral-deep mb-4"
+          >
+            See the toolkit →
+          </a>
+          <a
+            href="#rules"
+            onClick={() => {
+              window.dispatchEvent(new CustomEvent('close-fridge-checklist'));
+            }}
+            className="block text-center font-body text-caption uppercase tracking-widest text-ink/60 hover:text-coral underline underline-offset-4 decoration-ink/20 hover:decoration-coral transition-colors"
+          >
+            I&apos;m good with the printout, thanks
+          </a>
         </div>
       ) : (
         <form onSubmit={onSubmit} noValidate>

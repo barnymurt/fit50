@@ -46,8 +46,13 @@ export default function Resources({ id }: { id?: string }) {
 
   useEffect(() => {
     const onOpen = () => setOpenModal('fridge-checklist');
+    const onClose = () => setOpenModal(null);
     window.addEventListener('open-fridge-checklist', onOpen);
-    return () => window.removeEventListener('open-fridge-checklist', onOpen);
+    window.addEventListener('close-fridge-checklist', onClose);
+    return () => {
+      window.removeEventListener('open-fridge-checklist', onOpen);
+      window.removeEventListener('close-fridge-checklist', onClose);
+    };
   }, []);
 
   return (
