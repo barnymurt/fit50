@@ -402,16 +402,36 @@ export function useTrackerState() {
     return true;
   }, [data.streakUsedWeekKeys, persistAnon, startDate, user, supabase, currentDay]);
 
-  const reset = useCallback(() => {
-    if (typeof window !== 'undefined' && !window.confirm('Reset all tracker progress? This cannot be undone.')) {
-      return;
-    }
+  const reset = useCallback(async () => {
     wipeAllTrackerData();
+    if (user && supabase) {
+      // Wipe all daily progress from Supabase. profile + macro_profile
+      // + food_favorites are kept intact (those are user preferences,
+      // not progress). Errors are swallowed — the local state still
+      // resets cleanly even if the network call fails.
+      const tables = [
+        'daily_state',
+        'daily_totals',
+        'water_log',
+        'streak_protections',
+        'food_log',
+      ];
+      await Promise.all(
+        tables.map((table) =>
+          (supabase.from(table) as any)
+            .delete()
+            .eq('user_id', user.id)
+            .then(({ error }: { error: unknown }) => {
+              if (error) console.error(`reset delete on ${table} failed:`, error);
+            })
+        )
+      );
+    }
     const fresh = emptyTrackerV2();
     setData(fresh);
     setStartDate(null);
     todayKeyRef.current = localDateKey();
-  }, []);
+  }, [user, supabase]);
 
   return {
     data,

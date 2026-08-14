@@ -6,6 +6,7 @@ import Heading from './Heading';
 import HabitIcon, { HabitIconName } from './HabitIcon';
 import Marquee from './Marquee';
 import CellConfetti from './CellConfetti';
+import ConfirmDialog from './ConfirmDialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTrackerState, TrackerDay } from '@/hooks/useTrackerState';
 import { useStreakProtection } from '@/hooks/useStreakProtection';
@@ -206,6 +207,7 @@ export default function Tracker({ hideMarquee = false }: { hideMarquee?: boolean
   const [pulsingHabit, setPulsingHabit] = useState<string | null>(null);
   const [confettiKey, setConfettiKey] = useState(0);
   const [confettiIntensity, setConfettiIntensity] = useState<'small' | 'big'>('small');
+  const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
 
   const streak = useMemo(
     () => calculateStreak(tracker.days),
@@ -246,8 +248,11 @@ export default function Tracker({ hideMarquee = false }: { hideMarquee?: boolean
   };
 
   const handleDiscardOld = () => {
-    if (typeof window !== 'undefined' && !window.confirm('Discard existing tracker data and start fresh?')) return;
-    tracker.reset();
+    setResetConfirmOpen(true);
+  };
+
+  const performReset = async () => {
+    await tracker.reset();
   };
 
   if (authLoading || !tracker.loaded) {
@@ -432,10 +437,7 @@ export default function Tracker({ hideMarquee = false }: { hideMarquee?: boolean
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <button
             type="button"
-            onClick={() => {
-              if (typeof window !== 'undefined' && !window.confirm('Reset all tracker progress?')) return;
-              tracker.reset();
-            }}
+            onClick={() => setResetConfirmOpen(true)}
             className="font-body text-caption uppercase tracking-widest text-ink/40 hover:text-coral underline underline-offset-4 transition-colors"
           >
             Reset all progress
@@ -447,6 +449,16 @@ export default function Tracker({ hideMarquee = false }: { hideMarquee?: boolean
       </div>
 
       <CellConfetti key={confettiKey} show={confettiKey > 0} intensity={confettiIntensity} />
+
+      <ConfirmDialog
+        open={resetConfirmOpen}
+        onClose={() => setResetConfirmOpen(false)}
+        title="Reset all progress?"
+        description="This wipes today's taps, every closed day in your archive, your water log, food log, and any streak-protection you've used. Your macro profile and food favourites stay where they are. There's no undo."
+        confirmLabel="Yes, reset it all"
+        destructive
+        onConfirm={performReset}
+      />
     </Section>
   );
 }
