@@ -10,7 +10,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTrackerState, TrackerDay } from '@/hooks/useTrackerState';
 import { useStreakProtection } from '@/hooks/useStreakProtection';
 import { usePremium } from '@/hooks/usePremium';
-import { useStartChallenge } from '@/hooks/useStartChallenge';
 import { dateKeyLocal, formatDateKeyShort, dayKeyFromStart } from '@/lib/dates';
 
 interface Habit {
@@ -201,7 +200,6 @@ function ChipStrip({ days, startDate }: ChipStripProps) {
 export default function Tracker({ hideMarquee = false }: { hideMarquee?: boolean }) {
   const { user, loading: authLoading } = useAuth();
   const { isPremium } = usePremium();
-  const { start } = useStartChallenge();
   const tracker = useTrackerState();
   const { hasProtectionForWeek } = useStreakProtection();
 
@@ -243,7 +241,8 @@ export default function Tracker({ hideMarquee = false }: { hideMarquee?: boolean
   };
 
   const handleStart = async (iso?: string) => {
-    await start(iso);
+    const resolved = iso || `${dateKeyLocal(new Date())}T00:00:00`;
+    tracker.updateStartDate(resolved);
   };
 
   const handleDiscardOld = () => {
