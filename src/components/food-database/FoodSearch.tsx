@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Food } from './types';
+import { Food, getStandardServing } from './types';
 import { useFoodData, searchFoods, getCategories, SortKey } from './search';
 
 interface Props {
@@ -146,22 +146,33 @@ export default function FoodSearch({ favorites, onPickFood, recentlyLoggedFoods 
                   .food-search-scroll { scrollbar-width: none; -ms-overflow-style: none; }
                 `}</style>
                 <ul className="food-search-scroll">
-                  {results.map((f) => (
-                    <li key={f.id}>
-                      <button
-                        onClick={() => onPickFood(f)}
-                        className="w-full px-6 py-3 border-b border-ink/10 hover:bg-coral/5 text-left flex items-baseline justify-between gap-4"
-                      >
-                        <span className="font-body text-sm text-ink truncate">
-                          {f.name}
-                        </span>
-                        <span className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums shrink-0">
-                          {Math.round(f.kcal)} kcal · {Math.round(f.protein)}g P
-                          {favorites.has(f.id) ? ' · ★' : ''}
-                        </span>
-                      </button>
-                    </li>
-                  ))}
+                  {results.map((f) => {
+                    const std = getStandardServing(f);
+                    const m = std.grams / 100;
+                    const stdKcal = Math.round(f.kcal * m);
+                    const stdProtein = Math.round(f.protein * m);
+                    return (
+                      <li key={f.id}>
+                        <button
+                          onClick={() => onPickFood(f)}
+                          className="w-full px-6 py-3 border-b border-ink/10 hover:bg-coral/5 text-left flex items-baseline justify-between gap-3"
+                        >
+                          <span className="min-w-0 flex-1">
+                            <span className="font-body text-sm text-ink truncate block">
+                              {f.name}
+                            </span>
+                            <span className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums">
+                              {std.label}
+                            </span>
+                          </span>
+                          <span className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums shrink-0">
+                            {stdKcal} kcal · {stdProtein}g P
+                            {favorites.has(f.id) ? ' · ★' : ''}
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             ) : !loaded ? (

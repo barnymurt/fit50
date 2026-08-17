@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Food, Meal, scaleFood } from './types';
+import { Food, Meal, scaleFood, getStandardServing } from './types';
 
 interface Props {
   food: Food;
@@ -34,7 +34,8 @@ const MEALS: { value: Meal; label: string }[] = [
 ];
 
 export default function FoodDetail({ food, onAdd, onClose }: Props) {
-  const [grams, setGrams] = useState(100);
+  const standard = getStandardServing(food);
+  const [grams, setGrams] = useState(standard.grams);
   const [meal, setMeal] = useState<Meal | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -129,6 +130,17 @@ export default function FoodDetail({ food, onAdd, onClose }: Props) {
               Portion
             </p>
             <div className="grid grid-cols-4 gap-2 mb-3">
+              <button
+                onClick={() => setGrams(standard.grams)}
+                className={`px-3 py-3 md:py-2 border font-body text-caption uppercase tracking-widest transition-colors ${
+                  grams === standard.grams
+                    ? 'border-coral bg-coral/10 text-coral'
+                    : 'border-ink/20 text-ink/70 hover:border-ink/40'
+                }`}
+                title={standard.label}
+              >
+                {standard.label}
+              </button>
               {PRESETS.map((p) => (
                 <button
                   key={p.grams}
