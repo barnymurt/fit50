@@ -204,29 +204,25 @@ function saveWorkout(date: string, data: { line: Line; sets: Record<string, numb
   window.localStorage.setItem(`fit50-workout-${date}`, JSON.stringify(data));
 }
 
-function bicepIcon(filled: boolean, className = '') {
+function TickBox({ filled, size = 28, className = '' }: { filled: boolean; size?: number; className?: string }) {
+  const stroke = filled ? '#10B981' : 'currentColor';
+  const fill = filled ? '#10B981' : 'transparent';
   return (
     <svg
-      width="32"
-      height="32"
+      width={size}
+      height={size}
       viewBox="0 0 24 24"
-      fill={filled ? 'currentColor' : 'none'}
-      stroke="currentColor"
+      fill="none"
+      stroke={stroke}
+      fillOpacity={filled ? 1 : 0}
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
       className={className}
       aria-hidden="true"
     >
-      <path d="M14 6a2 2 0 1 0-4 0v3.5" />
-      <path d="M6 14a2 2 0 1 0-2-2" />
-      <path d="M22 14a2 2 0 1 0-2-2" />
-      <path d="M8 8a3 3 0 1 0 0 6h0a3 3 0 0 0 3 3h2a3 3 0 0 0 3-3h0a3 3 0 0 0 0-6" />
-      <path d="M14 11.5h0a3 3 0 0 0 3 3h2a3 3 0 0 0 3-3h0a3 3 0 0 1 0-6" />
-      <path d="M5 12.5h0a3 3 0 1 1 0-6" />
-      <path d="M7 20h10" />
-      <path d="M10 17v3" />
-      <path d="M14 17v3" />
+      <rect x="3" y="3" width="18" height="18" rx="2" fill={fill} stroke={stroke} />
+      {filled && <path d="M7 12l3 3 7-7" stroke="#fff" strokeWidth="2.5" fill="none" />}
     </svg>
   );
 }
@@ -340,10 +336,9 @@ export default function AccountWorkouts() {
               const done = sets[ex.name] || 0;
               const complete = done >= TOTAL_SETS;
               return (
-                <button
+                <div
                   key={ex.name}
-                  onClick={() => setActiveIdx(i)}
-                  className={`w-full px-4 py-4 border text-left flex items-center gap-4 transition-colors ${
+                  className={`w-full px-4 py-4 border flex items-center gap-3 transition-colors ${
                     complete
                       ? 'border-teal/40 bg-teal/5'
                       : 'border-ink/15 hover:bg-cream/30'
@@ -352,30 +347,38 @@ export default function AccountWorkouts() {
                   <span className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums w-6 shrink-0">
                     {ex.slot}
                   </span>
-                  <span className="font-body text-base text-ink flex-1 truncate">
+                  <button
+                    onClick={() => setActiveIdx(i)}
+                    className="font-body text-base text-ink flex-1 truncate text-left hover:text-coral transition-colors"
+                  >
                     {ex.name}
-                  </span>
-                  <span className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums shrink-0">
+                  </button>
+                  <span className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums shrink-0 hidden sm:inline">
                     {ex.reps}
                   </span>
                   <span className="flex gap-1 shrink-0">
                     {Array.from({ length: TOTAL_SETS }).map((_, j) => (
-                      <span
+                      <button
                         key={j}
-                        className={j < done ? 'text-coral' : 'text-ink/20'}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          cycleSet(ex.name);
+                        }}
+                        aria-label={`Set ${j + 1} ${j < done ? 'completed, tap to undo' : 'tap to log'}`}
+                        className="min-w-[36px] min-h-[36px] flex items-center justify-center"
                       >
-                        {bicepIcon(j < done, 'w-4 h-4')}
-                      </span>
+                        <TickBox filled={j < done} size={26} />
+                      </button>
                     ))}
                   </span>
-                  <span className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums shrink-0 w-12 text-right">
+                  <span className={`font-body text-caption uppercase tracking-widest tabular-nums shrink-0 w-10 text-right ${complete ? 'text-teal' : 'text-ink/40'}`}>
                     {done}/{TOTAL_SETS}
                   </span>
-                </button>
+                </div>
               );
             })}
             <p className="font-body text-caption uppercase tracking-widest text-ink/40 mt-4 text-center">
-              Tap an exercise to start · {totalCompleted}/{TOTAL_SETS * exercises.length} sets today
+              Tap a tick to log a set · Tap the name for how-to · {totalCompleted}/{TOTAL_SETS * exercises.length} sets today
             </p>
           </div>
         ) : (
@@ -417,12 +420,10 @@ export default function AccountWorkouts() {
                       <button
                         key={j}
                         onClick={() => cycleSet(exercises[activeIdx].name)}
-                        aria-label={`Set ${j + 1} ${isFilled ? 'completed' : 'tap to log'}`}
-                        className={`min-w-[48px] min-h-[48px] flex items-center justify-center transition-colors ${
-                          isFilled ? 'text-coral' : 'text-ink/25 hover:text-ink/50'
-                        }`}
+                        aria-label={`Set ${j + 1} ${isFilled ? 'completed, tap to undo' : 'tap to log'}`}
+                        className="min-w-[48px] min-h-[48px] flex items-center justify-center"
                       >
-                        {bicepIcon(isFilled, 'w-8 h-8')}
+                        <TickBox filled={isFilled} size={32} />
                       </button>
                     );
                   })}
@@ -431,7 +432,7 @@ export default function AccountWorkouts() {
                   </span>
                 </div>
                 <p className="font-body text-caption uppercase tracking-widest text-ink/40 mt-3">
-                  Tap a bicep to log a set. Tap the highlighted one to undo.
+                  Tap a tick to log a set. Tap a filled one to undo.
                 </p>
               </div>
 
