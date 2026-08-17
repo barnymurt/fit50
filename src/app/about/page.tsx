@@ -40,7 +40,7 @@ export default function AboutPage() {
               size="h2"
               className="text-ink leading-[1.05] mb-6"
             >
-              How it started
+              Stack 'em up obvs!
             </Heading>
             <div
               className="space-y-4"
@@ -76,7 +76,7 @@ export default function AboutPage() {
               size="h2"
               className="text-ink leading-[1.05] mb-6"
             >
-              How it went
+              Raised eyebrows in Duty free
             </Heading>
             <div
               className="space-y-4"
@@ -125,7 +125,7 @@ export default function AboutPage() {
               size="h2"
               className="text-ink leading-[1.05] mb-6"
             >
-              The gap
+              Left holding the basket
             </Heading>
             <div
               className="space-y-4"
@@ -158,7 +158,7 @@ export default function AboutPage() {
               size="h2"
               className="text-ink leading-[1.05] mb-6"
             >
-              So we made this
+              Three beers later
             </Heading>
             <div
               className="space-y-4"
