@@ -27,7 +27,7 @@ export const SIX_FEATURES: SixFeaturesItem[] = [
   {
     title: 'Macro food tracker',
     description:
-      'Search 1,000+ foods, log portions, tag meals, totals against your targets.',
+      'Search over 5,000 foods from an international taste palette, log portions, tag meals, totals against your targets.',
   },
   {
     title: 'Multi-purpose timer',

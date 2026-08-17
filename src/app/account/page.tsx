@@ -475,7 +475,7 @@ export default function AccountPage() {
 
               <PremiumGate
                 feature="food log"
-                description="Search 1,000+ foods, log portions, tag meals, totals roll up against your daily macro targets in seconds. Premium unlocks the food database and the macro math."
+                description="Search over 5,000 foods from an international taste palette, log portions, tag meals, totals roll up against your daily macro targets in seconds. Premium unlocks the food database and the macro math."
               >
                 <FoodDatabase targets={targets} />
               </PremiumGate>

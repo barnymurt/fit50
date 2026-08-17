@@ -34,7 +34,7 @@ const rules: Rule[] = [
     icon: 'fuel-right',
     title: 'Fuel Right',
     description: 'Track your macros every day. Hit your protein, carb, and fat targets.',
-    tip: 'The macro tracker gives you 1,000+ foods and totals against your targets in seconds. Consistency beats perfection.',
+    tip: 'The macro tracker gives you over 5,000 foods from an international taste palette and totals against your targets in seconds. Consistency beats perfection.',
   },
   {
     id: 4,
