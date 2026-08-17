@@ -317,13 +317,13 @@ export default function AccountPage() {
       <AccountNav
         sections={[
           { id: 'tracker', label: 'Tracker' },
+          ...(profile?.is_premium ? [{ id: 'timer', label: 'Timer' }] : []),
           { id: 'workouts', label: 'Workouts' },
           { id: 'hydration', label: 'Hydration' },
+          { id: 'macro-calc', label: 'Macro calc' },
           ...(profile?.is_premium
             ? [
-                { id: 'macro-calc', label: 'Macro calc' },
                 { id: 'food-database', label: 'Foods' },
-                { id: 'timer', label: 'Timer' },
                 { id: 'todo', label: 'To-do' },
                 { id: 'board', label: 'Board' },
               ]
@@ -333,6 +333,64 @@ export default function AccountPage() {
 
       {/* ============ The tracker ============ */}
       <Tracker hideMarquee />
+
+      {/* ============ Timer (premium) — sits between tracker and workouts ============ */}
+      {profile?.is_premium && (
+        <Section
+          id="timer"
+          className="relative pt-12 md:pt-16 pb-section"
+          tone="paper"
+          contained
+        >
+          <div className="max-w-5xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mb-8">
+              <div className="md:col-span-5">
+                <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-3">
+                  The timer
+                </p>
+                <Heading>Feed Your Brain.</Heading>
+                <p className="font-body text-base text-ink/70 mt-3 mb-8">
+                  30 mins a day on a book or personal project. Start the timer, get to work.
+                </p>
+              </div>
+              <div className="md:col-span-6 md:col-start-7 flex items-end">
+                <p className="font-body text-base text-ink/70">
+                  Set any custom time down to seconds. Pre-set at 30 mins for the Feed Your Brain rule.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex justify-center">
+              <Timer
+                defaultMinutes={30}
+                purposes={[
+                  {
+                    key: 'project',
+                    durationMinutes: 30,
+                    buttonLabel: 'Project time',
+                    heading: 'Feed Your Brain.',
+                    lede: "Read a book or work on a project for 30 minutes. Walk out of the 50 days with something you can hold, open, or point at.",
+                  },
+                  {
+                    key: 'meditate',
+                    durationMinutes: 10,
+                    buttonLabel: 'Meditate',
+                    heading: 'Open Mind.',
+                    lede: "Sit, breathe, notice for 10 minutes. Start at 5 if 10 feels hard — the minutes get easier faster than you think.",
+                  },
+                  {
+                    key: 'workout',
+                    durationMinutes: 1,
+                    buttonLabel: 'Workout loop',
+                    heading: 'Move Your Body.',
+                    lede: "One minute of core or cardio between sets — motion creates emotion.",
+                  },
+                ]}
+              />
+            </div>
+          </div>
+        </Section>
+      )}
 
       {/* ============ Workouts (free + premium) ============ */}
       <AccountWorkouts />
@@ -361,40 +419,40 @@ export default function AccountPage() {
         </div>
       </Section>
 
+      {/* ============ Macro calculator (free + premium) ============ */}
+      <Section
+        id="macro-calc"
+        className="relative pt-12 md:pt-16 pb-section"
+        style={{ backgroundColor: '#4A9B9B' }}
+        contained
+      >
+        <div className="max-w-5xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mb-8">
+            <div className="md:col-span-5">
+              <p className="font-body text-caption uppercase text-paper/70 mb-3">
+                Macro calculator
+              </p>
+              <h2 className="font-display text-display-2 text-paper leading-[0.95]">
+                Know your numbers.
+              </h2>
+              <p className="font-body text-base text-paper/85 mt-4 max-w-md">
+                BMR, TDEE, protein, carbs, fat, water. Built for the 50-day challenge.
+              </p>
+            </div>
+            <div className="md:col-span-6 md:col-start-7 flex items-end">
+              <p className="font-body text-base text-paper/70">
+                Enter your stats, get your daily targets. Adjust for your goal.
+              </p>
+            </div>
+          </div>
+
+          <MacroCalculatorInline />
+        </div>
+      </Section>
+
       {/* ============ Premium tools ============ */}
       {profile?.is_premium ? (
         <>
-          {/* Macro calculator inline */}
-          <Section
-            id="macro-calc"
-            className="relative pt-12 md:pt-16 pb-section"
-            style={{ backgroundColor: '#4A9B9B' }}
-            contained
-          >
-            <div className="max-w-5xl mx-auto">
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mb-8">
-                <div className="md:col-span-5">
-                  <p className="font-body text-caption uppercase text-paper/70 mb-3">
-                    Macro calculator
-                  </p>
-                  <h2 className="font-display text-display-2 text-paper leading-[0.95]">
-                    Know your numbers.
-                  </h2>
-                  <p className="font-body text-base text-paper/85 mt-4 max-w-md">
-                    BMR, TDEE, protein, carbs, fat, water. Built for the 50-day challenge.
-                  </p>
-                </div>
-                <div className="md:col-span-6 md:col-start-7 flex items-end">
-                  <p className="font-body text-base text-paper/70">
-                    Enter your stats, get your daily targets. Adjust for your goal.
-                  </p>
-                </div>
-              </div>
-
-              <MacroCalculatorInline />
-            </div>
-          </Section>
-
           {/* Food database */}
           <Section
             id="food-database"
@@ -424,64 +482,16 @@ export default function AccountPage() {
             </div>
           </Section>
 
-          {/* Timer + Board + To-do list */}
+          {/* To-do list + Board */}
           <Section className="relative pt-12 md:pt-16 pb-section" tone="paper" contained>
             <div className="max-w-5xl mx-auto">
-              <div id="timer">
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mb-12">
-                  <div className="md:col-span-5">
-                    <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-3">
-                      The timer
-                    </p>
-                    <Heading>Feed Your Brain.</Heading>
-                    <p className="font-body text-base text-ink/70 mt-3 mb-8">
-                      30 mins a day on a book or personal project. Start the timer, get to work.
-                    </p>
-                  </div>
-                  <div className="md:col-span-6 md:col-start-7 flex items-end">
-                    <p className="font-body text-base text-ink/70">
-                      Set any custom time down to seconds. Pre-set at 30 mins for the Feed Your Brain rule.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex justify-center mb-16">
-                  <Timer
-                    defaultMinutes={30}
-                    purposes={[
-                      {
-                        key: 'project',
-                        durationMinutes: 30,
-                        buttonLabel: 'Project time',
-                        heading: 'Feed Your Brain.',
-                        lede: "Read a book or work on a project for 30 minutes. Walk out of the 50 days with something you can hold, open, or point at.",
-                      },
-                      {
-                        key: 'meditate',
-                        durationMinutes: 10,
-                        buttonLabel: 'Meditate',
-                        heading: 'Open Mind.',
-                        lede: "Sit, breathe, notice for 10 minutes. Start at 5 if 10 feels hard — the minutes get easier faster than you think.",
-                      },
-                      {
-                        key: 'workout',
-                        durationMinutes: 1,
-                        buttonLabel: 'Workout loop',
-                        heading: 'Move Your Body.',
-                        lede: "One minute of core or cardio between sets — motion creates emotion.",
-                      },
-                    ]}
-                  />
-                </div>
-              </div>
-
               <div id="todo">
                 <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-3">
                   The to-do list
                 </p>
                 <Heading>Capture first. Sort later.</Heading>
                 <p className="font-body text-base text-ink/70 mt-3 mb-8">
-                  Things you don't want to lose. Drop them here, drag them to the board when you're ready.
+                  Things you don&apos;t want to lose. Drop them here, drag them to the board when you&apos;re ready.
                 </p>
                 <TodoList />
               </div>
@@ -511,7 +521,7 @@ export default function AccountPage() {
             </p>
             <Title tone="dark">Unlock premium.</Title>
             <p className="font-body text-lg text-paper/70 mt-4 mb-8">
-              Unlock the detailed macro food tracker, streak protection, water tracker, multi-purpose timer, kanban board, and to-do list. One payment, yours forever.
+              Unlock the detailed macro food tracker, streak protection, multi-purpose timer, kanban board, and to-do list. One payment, yours forever.
             </p>
             <Link
               href="/upgrade"
