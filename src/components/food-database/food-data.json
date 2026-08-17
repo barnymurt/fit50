@@ -23876,7 +23876,8 @@
       "carbs": 80,
       "fat": 0,
       "finger": 0,
-      "servingBasis": "100g"
+      "servingBasis": "100g",
+      "fiber": 0
     },
     {
       "id": "candy-bar-gummy-sharks",
@@ -26547,7 +26548,8 @@
       "carbs": 21,
       "fat": 11,
       "fiber": 1,
-      "servingBasis": "100g"
+      "servingBasis": "100g",
+      "category": "Pizza & Fast Food"
     },
     {
       "id": "burger-arbys-beef-n-cheddar",
@@ -27462,7 +27464,8 @@
       "carcs": 42,
       "fat": 16,
       "fiber": 1,
-      "servingBasis": "100g"
+      "servingBasis": "100g",
+      "carbs": 0
     },
     {
       "id": "pie-fast-food-pumpkin",
@@ -30672,7 +30675,8 @@
       "carcs": 6,
       "fat": 13,
       "fiber": 3,
-      "servingBasis": "100g"
+      "servingBasis": "100g",
+      "carbs": 0
     },
     {
       "id": "salad-coleslaw-classic",
@@ -32457,7 +32461,8 @@
       "carcs": 22,
       "fat": 5,
       "fiber": 2,
-      "servingBasis": "100g"
+      "servingBasis": "100g",
+      "carbs": 0
     },
     {
       "id": "pasta-ravioli-meat",
@@ -34767,7 +34772,8 @@
       "carcs": 24,
       "fat": 5,
       "fiber": 1,
-      "servingBasis": "100g"
+      "servingBasis": "100g",
+      "carbs": 0
     },
     {
       "id": "rice-chicken-tikka-bowl",
@@ -41607,7 +41613,8 @@
       "carcs": 2.2,
       "fat": 0.2,
       "fiber": 1.2,
-      "servingBasis": "100g"
+      "servingBasis": "100g",
+      "carbs": 0
     },
     {
       "id": "cabbage-stuffed",
@@ -42012,7 +42019,8 @@
       "carcs": 4,
       "fat": 0.4,
       "fiber": 1.5,
-      "servingBasis": "100g"
+      "servingBasis": "100g",
+      "carbs": 0
     },
     {
       "id": "microgreens-broccoli",
@@ -42717,7 +42725,8 @@
       "carcs": 21,
       "fat": 1.5,
       "fiber": 2.4,
-      "servingBasis": "100g"
+      "servingBasis": "100g",
+      "carbs": 0
     },
     {
       "id": "corn-on-cob-boiled",
@@ -43046,7 +43055,8 @@
       "protein": 2.9,
       "carbs": 5,
       "fiber": 4,
-      "servingBasis": "100g"
+      "servingBasis": "100g",
+      "fat": 0
     },
     {
       "id": "corn-fresh-husked",
@@ -45656,7 +45666,8 @@
       "carcs": 22,
       "fat": 5,
       "fiber": 2,
-      "servingBasis": "100g"
+      "servingBasis": "100g",
+      "carbs": 0
     },
     {
       "id": "chow-mein-vegetable",
@@ -45671,7 +45682,8 @@
       "carcs": 22,
       "fat": 4,
       "fiber": 3,
-      "servingBasis": "100g"
+      "servingBasis": "100g",
+      "carbs": 0
     },
     {
       "id": "pho-bo-beef",
@@ -45941,7 +45953,8 @@
       "carcs": 11,
       "fat": 3,
       "fiber": 0.5,
-      "servingBasis": "100g"
+      "servingBasis": "100g",
+      "carbs": 0
     },
     {
       "id": "bun-rieu",
@@ -46031,7 +46044,8 @@
       "carcs": 22,
       "fat": 6,
       "fiber": 1,
-      "servingBasis": "100g"
+      "servingBasis": "100g",
+      "carbs": 0
     },
     {
       "id": "vermicelli-bun-shrimp",
@@ -48986,7 +49000,8 @@
       "carcs": 6,
       "fat": 11,
       "fiber": 1,
-      "servingBasis": "100g"
+      "servingBasis": "100g",
+      "carbs": 0
     },
     {
       "id": "samgyetang-ginseng-chicken",
@@ -50981,7 +50996,8 @@
       "carcs": 22,
       "fat": 12,
       "fiber": 1.5,
-      "servingBasis": "100g"
+      "servingBasis": "100g",
+      "carbs": 0
     },
     {
       "id": "kathi-roll-chicken",
@@ -52661,7 +52677,8 @@
       "carcs": 28,
       "fat": 12,
       "fiber": 4,
-      "servingBasis": "100g"
+      "servingBasis": "100g",
+      "carbs": 0
     },
     {
       "id": "chimichanga-shrimp",
@@ -52736,7 +52753,8 @@
       "carcs": 22,
       "fat": 8,
       "fiber": 2,
-      "servingBasis": "100g"
+      "servingBasis": "100g",
+      "carbs": 0
     },
     {
       "id": "tostada-cactus",
@@ -54355,7 +54373,8 @@
       "protein": 8,
       "carbs": 18,
       "fiber": 14,
-      "servingBasis": "100g"
+      "servingBasis": "100g",
+      "fat": 0
     },
     {
       "id": "kleftiko-traditional",

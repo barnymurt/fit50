@@ -60,12 +60,13 @@ function tokenize(q: string): string[] {
 
 function scoreFood(food: Food, tokens: string[]): number {
   if (tokens.length === 0) return 0;
-  const name = food.name.toLowerCase();
-  const category = food.category.toLowerCase();
-  const subcategory = (food.subcategory || '').toLowerCase();
-  const preparation = (food.preparation || '').toLowerCase();
-  const state = (food.state || '').toLowerCase();
-  const aliases = (food.aliases || []).map((a) => a.toLowerCase());
+  const lower = (v: unknown) => (typeof v === 'string' ? v : '').toLowerCase();
+  const name = lower(food.name);
+  const category = lower(food.category);
+  const subcategory = lower(food.subcategory);
+  const preparation = lower(food.preparation);
+  const state = lower(food.state);
+  const aliases = (food.aliases || []).map(lower);
 
   let score = 0;
   for (const t of tokens) {
