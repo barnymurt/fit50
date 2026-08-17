@@ -1,5 +1,5 @@
 {
-  "version": 53,
+  "version": 54,
   "source": "starter-tier-1",
   "foods": [
     {
@@ -82695,6 +82695,57 @@
       "fat": 3,
       "fiber": 0,
       "servingBasis": "100g"
+    },
+    {
+      "id": "collagen-powder",
+      "name": "Collagen powder",
+      "category": "Protein Foods",
+      "subcategory": "Supplement",
+      "preparation": "Hydrolysed collagen",
+      "state": "Ready-to-eat",
+      "type": "ingredient",
+      "kcal": 375,
+      "protein": 90,
+      "carbs": 0,
+      "fat": 0,
+      "fiber": 0,
+      "servingBasis": "100g",
+      "standardServingGrams": 10,
+      "standardServingLabel": "1 scoop"
+    },
+    {
+      "id": "marmite",
+      "name": "Marmite",
+      "category": "Condiments & Sauces",
+      "subcategory": "Spread",
+      "preparation": "Yeast extract spread",
+      "state": "Ready-to-eat",
+      "type": "ingredient",
+      "kcal": 225,
+      "protein": 40,
+      "carbs": 25,
+      "fat": 1,
+      "fiber": 0,
+      "servingBasis": "100g",
+      "standardServingGrams": 4,
+      "standardServingLabel": "1 tsp"
+    },
+    {
+      "id": "vegemite",
+      "name": "Vegemite",
+      "category": "Condiments & Sauces",
+      "subcategory": "Spread",
+      "preparation": "Yeast extract spread (Australian)",
+      "state": "Ready-to-eat",
+      "type": "ingredient",
+      "kcal": 225,
+      "protein": 25,
+      "carbs": 25,
+      "fat": 1,
+      "fiber": 0,
+      "servingBasis": "100g",
+      "standardServingGrams": 4,
+      "standardServingLabel": "1 tsp"
     }
   ]
 }

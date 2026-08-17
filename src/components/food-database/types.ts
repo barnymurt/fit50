@@ -249,6 +249,9 @@ export const ITEM_SERVING_OVERRIDES: Record<string, { grams: number; label: stri
   honey: { grams: 21, label: '1 tbsp' },
   jam: { grams: 20, label: '1 tbsp' },
   olive: { grams: 4, label: '1 olive' },
+  marmite: { grams: 4, label: '1 tsp' },
+  vegemite: { grams: 4, label: '1 tsp' },
+  'collagen powder': { grams: 10, label: '1 scoop' },
   'black olive': { grams: 4, label: '1 olive' },
   'green olive': { grams: 4, label: '1 olive' },
   // Nuts / Seeds (1 oz = 28 g)
