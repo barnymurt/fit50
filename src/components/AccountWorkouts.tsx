@@ -204,26 +204,36 @@ function saveWorkout(date: string, data: { line: Line; sets: Record<string, numb
   window.localStorage.setItem(`fit50-workout-${date}`, JSON.stringify(data));
 }
 
-function TickBox({ filled, size = 28, className = '' }: { filled: boolean; size?: number; className?: string }) {
-  const stroke = filled ? '#10B981' : 'currentColor';
-  const fill = filled ? '#10B981' : 'transparent';
+function TickBox({ filled, size = 28 }: { filled: boolean; size?: number }) {
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke={stroke}
-      fillOpacity={filled ? 1 : 0}
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-      aria-hidden="true"
+    <div
+      style={{
+        width: size,
+        height: size,
+        border: '2px solid',
+        borderColor: filled ? '#10B981' : 'currentColor',
+        backgroundColor: filled ? '#10B981' : 'transparent',
+        borderRadius: '4px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: filled ? '#ffffff' : 'transparent',
+      }}
     >
-      <rect x="3" y="3" width="18" height="18" rx="2" fill={fill} stroke={stroke} />
-      {filled && <path d="M7 12l3 3 7-7" stroke="#fff" strokeWidth="2.5" fill="none" />}
-    </svg>
+      <svg
+        width={Math.round(size * 0.6)}
+        height={Math.round(size * 0.6)}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M5 12l5 5L20 7" />
+      </svg>
+    </div>
   );
 }
 
