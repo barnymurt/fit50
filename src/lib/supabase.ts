@@ -5,11 +5,76 @@ const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 const hasConfig = !!url && !!key && !url.includes('your-project') && !key.includes('your-anon-key');
 
+const REMEMBER_KEY = 'fit50-remember-me';
+
+export function getRememberMe(): boolean {
+  if (typeof window === 'undefined') return true;
+  const stored = window.localStorage.getItem(REMEMBER_KEY);
+  return stored !== 'false';
+}
+
+export function setRememberMe(value: boolean) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(REMEMBER_KEY, value ? 'true' : 'false');
+}
+
 export function createClient() {
   if (!hasConfig || typeof window === 'undefined') {
     return null as unknown as ReturnType<typeof createBrowserClient>;
   }
-  return createBrowserClient(url!, key!);
+  // Storage that switches between localStorage and sessionStorage at runtime
+  // based on the current "Remember me" preference. Reads/writes go to the
+  // chosen storage on every call, so toggling the preference takes effect
+  // immediately without reloading.
+  //
+  // Also enforces a 7-day max session lifetime when "Remember me" is on:
+  // we stamp the session at sign-in and reject anything older, so a
+  // forgotten signed-in browser doesn't keep the user authenticated
+  // forever.
+  const SESSION_KEY = 'fit50-auth';
+  const SESSION_TS_KEY = 'fit50-auth-issued-at';
+  const SESSION_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+
+  const baseStorage = (): Storage =>
+    getRememberMe() ? window.localStorage : window.sessionStorage;
+
+  const authStorage = {
+    getItem: (key: string) => {
+      if (key === SESSION_KEY && getRememberMe()) {
+        const ts = window.localStorage.getItem(SESSION_TS_KEY);
+        if (ts) {
+          const age = Date.now() - parseInt(ts, 10);
+          if (Number.isFinite(age) && age > SESSION_MAX_AGE_MS) {
+            window.localStorage.removeItem(SESSION_KEY);
+            window.localStorage.removeItem(SESSION_TS_KEY);
+            return null;
+          }
+        }
+      }
+      return baseStorage().getItem(key);
+    },
+    setItem: (key: string, value: string) => {
+      if (key === SESSION_KEY && getRememberMe()) {
+        window.localStorage.setItem(SESSION_TS_KEY, String(Date.now()));
+      }
+      baseStorage().setItem(key, value);
+    },
+    removeItem: (key: string) => {
+      if (key === SESSION_KEY) {
+        window.localStorage.removeItem(SESSION_TS_KEY);
+        window.sessionStorage.removeItem(SESSION_TS_KEY);
+      }
+      window.localStorage.removeItem(key);
+      window.sessionStorage.removeItem(key);
+    },
+  };
+  return createBrowserClient(url!, key!, {
+    auth: {
+      persistSession: true,
+      storage: authStorage,
+      storageKey: SESSION_KEY,
+    },
+  });
 }
 
 export const isSupabaseConfigured = hasConfig;
