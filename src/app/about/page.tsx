@@ -221,7 +221,7 @@ export default function AboutPage() {
         </div>
 
         <div className="mt-16 flex justify-center">
-          <Button href="/#rules" variant="primary" tone="light" shape="pill">
+          <Button href="/#tracker" variant="primary" tone="light" shape="pill">
             Take the Challenge →
           </Button>
         </div>
