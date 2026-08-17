@@ -20,6 +20,7 @@ import Tracker from '@/components/Tracker';
 import PremiumGate from '@/components/PremiumGate';
 import AccountNav from '@/components/AccountNav';
 import FoodDatabase from '@/components/food-database/FoodDatabase';
+import AccountWorkouts from '@/components/AccountWorkouts';
 import { useMacroTargets } from '@/hooks/useMacroTargets';
 import { saveJson } from '@/lib/storage';
 import { useMacroProfile, timeSince } from '@/hooks/useMacroProfile';
@@ -316,6 +317,7 @@ export default function AccountPage() {
       <AccountNav
         sections={[
           { id: 'tracker', label: 'Tracker' },
+          { id: 'workouts', label: 'Workouts' },
           { id: 'hydration', label: 'Hydration' },
           ...(profile?.is_premium
             ? [
@@ -331,6 +333,9 @@ export default function AccountPage() {
 
       {/* ============ The tracker ============ */}
       <Tracker hideMarquee />
+
+      {/* ============ Workouts (free + premium) ============ */}
+      <AccountWorkouts />
 
       {/* ============ Water counter ============ */}
       <Section
