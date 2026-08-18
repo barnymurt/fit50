@@ -31,61 +31,72 @@ export default function BuddyCard() {
     const supabase = createClient();
     if (!supabase) return;
 
-    supabase
-      .from('profiles')
-      .select('display_name, is_premium')
-      .eq('id', profile.buddy_user_id)
-      .maybeSingle()
-      .then(({ data: buddy }: { data: { display_name: string | null; is_premium: boolean } | null }) => {
-        if (!buddy) {
-          setStatus({ activated: false });
-          return;
-        }
-        // Buddy's tracker progress — current day + completion count.
-        supabase
-          .from('tracker_progress')
-          .select('day, completed')
-          .eq('user_id', profile.buddy_user_id)
-          .order('day', { ascending: false })
-          .limit(50)
-          .then(({ data: tps }: { data: Array<{ day: number; completed: boolean }> | null }) => {
-            const completedDays = (tps ?? [])
-              .filter((r) => r.completed)
-              .map((r) => r.day);
-            const buddyDay = completedDays.length
-              ? Math.max(...completedDays)
-              : 0;
-            setStatus({
-              activated: true,
-              buddy_name: (buddy.display_name as string) || 'Your buddy',
-              buddy_day: buddyDay,
-              is_premium: buddy.is_premium as boolean,
-            });
-          });
-      });
-
-    // Check for pending purchases (purchaser's outgoing buddy invite).
-    if (profile.id) {
+    try {
       supabase
-        .from('buddy_purchases')
-        .select('id, buddy_email, buddy_name, expires_at, status')
-        .eq('purchaser_user_id', profile.id)
-        .eq('status', 'pending')
-        .order('created_at', { ascending: false })
-        .limit(1)
+        .from('profiles')
+        .select('display_name, is_premium')
+        .eq('id', profile.buddy_user_id)
         .maybeSingle()
-        .then(({ data: p }: { data: { buddy_email: string; buddy_name: string; expires_at: string } | null }) => {
-          if (p) {
-            setPending({
-              pending: true,
-              email: p.buddy_email,
-              name: p.buddy_name,
-              expires_at: p.expires_at,
-            });
-          } else {
-            setPending({ pending: false });
+        .then(({ data: buddy }: { data: { display_name: string | null; is_premium: boolean } | null }) => {
+          try {
+            if (!buddy) {
+              setStatus({ activated: false });
+              return;
+            }
+            // Buddy's tracker progress — current day + completion count.
+            supabase
+              .from('tracker_progress')
+              .select('day, completed')
+              .eq('user_id', profile.buddy_user_id)
+              .order('day', { ascending: false })
+              .limit(50)
+              .then(({ data: tps }: { data: Array<{ day: number; completed: boolean }> | null }) => {
+                const completedDays = (tps ?? [])
+                  .filter((r) => r.completed)
+                  .map((r) => r.day);
+                const buddyDay = completedDays.length
+                  ? Math.max(...completedDays)
+                  : 0;
+                setStatus({
+                  activated: true,
+                  buddy_name: (buddy.display_name as string) || 'Your buddy',
+                  buddy_day: buddyDay,
+                  is_premium: buddy.is_premium as boolean,
+                });
+              })
+              .catch(() => setStatus({ activated: false }));
+          } catch {
+            setStatus({ activated: false });
           }
-        });
+        })
+        .catch(() => setStatus({ activated: false }));
+
+      // Check for pending purchases (purchaser's outgoing buddy invite).
+      if (profile.id) {
+        supabase
+          .from('buddy_purchases')
+          .select('id, buddy_email, buddy_name, expires_at, status')
+          .eq('purchaser_user_id', profile.id)
+          .eq('status', 'pending')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+          .then(({ data: p }: { data: { buddy_email: string; buddy_name: string; expires_at: string } | null }) => {
+            if (p) {
+              setPending({
+                pending: true,
+                email: p.buddy_email,
+                name: p.buddy_name,
+                expires_at: p.expires_at,
+              });
+            } else {
+              setPending({ pending: false });
+            }
+          })
+          .catch(() => setPending({ pending: false }));
+      }
+    } catch {
+      // Defensive: never crash the parent Tracker.
     }
   }, [user, profile]);
 
