@@ -28,14 +28,8 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const PRIX_EUR_CENTS = 599;
-const PAIR_PRICE_EUR_CENTS = 999;
-// Stripe line items are per-seat. The pair has two seats, so total
-// charge is 2 × €5.99 = €11.98. We charge the lower €9.99 by
-// applying a coupon at the session level.
-
-const PRODUCT_NAME = 'FIT50 Premium';
-const PRODUCT_DESCRIPTION =
-  'Streak protection, macro food tracker, multi-purpose timer, project board and water tracker. One payment, yours forever.';
+const PAIR_COUPON_AMOUNT_OFF_CENTS = 199;  // €1.99 off — pair of seats at €5.99 = €9.99
+const LOYALTY_COUPON_AMOUNT_OFF_CENTS = 199; // €1.99 off — premium user adds buddy at €4.00
 
 function isValidEmail(s: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
@@ -127,6 +121,7 @@ export async function POST(req: NextRequest) {
 
   // 2. Does the buddy email already exist as a FIT50 user?
   //     If they're premium, block. If they're free, auto-upgrade.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: buddyProfile } = await (admin.from('profiles') as any)
     .select('id, is_premium, display_name')
     .eq('email', buddyEmail)
@@ -144,16 +139,48 @@ export async function POST(req: NextRequest) {
     buddyResolution = 'free';
   }
 
-  // 3. Build the Stripe Checkout session.
+  // 3. Is the purchaser already premium? If so, they get a loyalty
+  //    discount on the buddy seat: €4.00 instead of €5.99. We charge
+  //    one line item + €1.99 loyalty coupon. They don't get a second
+  //    seat for themselves — they already paid for themselves.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: purchaserProfile } = await (admin.from('profiles') as any)
+    .select('id, is_premium')
+    .eq('id', user.id)
+    .maybeSingle();
+  const purchaserIsPremium = !!purchaserProfile?.is_premium;
+
+  // 4. Build the Stripe Checkout session.
+  //    - Non-premium purchaser: 2 line items + pair coupon (€9.99)
+  //    - Premium purchaser: 1 line item + loyalty coupon (€4.00)
   const origin = req.nextUrl.origin;
   const stripe = new Stripe(stripeSecret);
 
   try {
-    const session = await stripe.checkout.sessions.create({
-      mode: 'payment',
-      payment_method_types: ['card'],
-      customer_email: user.email,
-      line_items: [
+    let line_items: Stripe.Checkout.SessionCreateParams.LineItem[];
+    let couponName: string;
+    let couponAmountOffCents: number;
+    let totalCents: number;
+
+    if (purchaserIsPremium) {
+      line_items = [
+        {
+          quantity: 1,
+          price_data: {
+            currency: 'eur',
+            unit_amount: PRIX_EUR_CENTS,
+            product_data: {
+              name: `FIT50 Premium (${buddyName || 'buddy'})`,
+              description: 'Lifetime access for your buddy. They\u2019ll get their own account once they activate.',
+            },
+          },
+        },
+      ];
+      couponName = 'FIT50-LOYALTY-BUDDY';
+      couponAmountOffCents = LOYALTY_COUPON_AMOUNT_OFF_CENTS;
+      totalCents = PRIX_EUR_CENTS - LOYALTY_COUPON_AMOUNT_OFF_CENTS; // 400
+    } else {
+      line_items = [
         {
           quantity: 1,
           price_data: {
@@ -161,7 +188,7 @@ export async function POST(req: NextRequest) {
             unit_amount: PRIX_EUR_CENTS,
             product_data: {
               name: 'FIT50 Premium (you)',
-              description: PRODUCT_DESCRIPTION,
+              description: 'Streak protection, macro food tracker, multi-purpose timer, project board and water tracker. One payment, yours forever.',
             },
           },
         },
@@ -176,12 +203,20 @@ export async function POST(req: NextRequest) {
             },
           },
         },
-      ],
-      discounts: [
-        {
-          coupon: await ensurePairDiscount(stripe),
-        },
-      ],
+      ];
+      couponName = 'FIT50-BUDDY-PAIR';
+      couponAmountOffCents = PAIR_COUPON_AMOUNT_OFF_CENTS;
+      totalCents = PRIX_EUR_CENTS * 2 - PAIR_COUPON_AMOUNT_OFF_CENTS; // 999
+    }
+
+    const couponId = await ensureDiscount(stripe, couponName, couponAmountOffCents);
+
+    const session = await stripe.checkout.sessions.create({
+      mode: 'payment',
+      payment_method_types: ['card'],
+      customer_email: user.email,
+      line_items,
+      discounts: [{ coupon: couponId }],
       metadata: {
         type: 'buddy_pair',
         purchaser_user_id: user.id,
@@ -190,6 +225,8 @@ export async function POST(req: NextRequest) {
         buddy_name: buddyName,
         personal_note: personalNote,
         buddy_resolution: buddyResolution,
+        purchaser_was_premium: purchaserIsPremium ? 'true' : 'false',
+        amount_paid_cents: totalCents.toString(),
       },
       success_url: `${origin}/account?checkout=buddy_pair`,
       cancel_url: `${origin}/?checkout=canceled`,
@@ -202,17 +239,17 @@ export async function POST(req: NextRequest) {
   }
 }
 
-const COUPON_NAME = 'FIT50-BUDDY-PAIR';
-
-async function ensurePairDiscount(stripe: Stripe): Promise<string> {
-  // The discount is (2 × €5.99 - €9.99) = €1.99 off. Reuse the
-  // coupon if it exists; create if it doesn't.
+async function ensureDiscount(
+  stripe: Stripe,
+  name: string,
+  amountOffCents: number
+): Promise<string> {
   const list = await stripe.coupons.list({ limit: 100 });
-  const existing = list.data.find((c) => c.name === COUPON_NAME);
+  const existing = list.data.find((c) => c.name === name);
   if (existing) return existing.id;
   const created = await stripe.coupons.create({
-    name: COUPON_NAME,
-    amount_off: 199,
+    name,
+    amount_off: amountOffCents,
     currency: 'eur',
     duration: 'once',
   });

@@ -407,7 +407,7 @@ export default function Tracker({ hideMarquee = false }: { hideMarquee?: boolean
                 onClick={() => handleToggle(habit.id)}
                 className={`flex flex-col items-center p-3 md:p-4 border transition-colors ${
                   done
-                    ? 'bg-coral/10 border-coral/40'
+                    ? 'bg-teal border-teal'
                     : 'bg-cream/20 border-ink/15 hover:border-ink/40'
                 } ${pulsingHabit === habit.id ? 'animate-pulse' : ''}`}
               >
@@ -416,7 +416,7 @@ export default function Tracker({ hideMarquee = false }: { hideMarquee?: boolean
                   size={56}
                   className="md:!w-16 md:!h-auto mb-2"
                 />
-                <span className="font-body text-caption uppercase tracking-widest text-ink text-center leading-tight">
+                <span className={`font-body text-caption uppercase tracking-widest text-center leading-tight ${done ? 'text-paper' : 'text-ink'}`}>
                   {habit.name}
                 </span>
               </button>

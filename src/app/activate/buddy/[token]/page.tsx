@@ -49,6 +49,13 @@ export default function ActivateBuddyPage({ params }: Props) {
       }
       // The API returns a magic link; redirect to it so the user is
       // signed in immediately.
+      if (data.user_id) {
+        fetch('/api/email/activated', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: data.user_id }),
+        }).catch((err) => console.warn('activated email failed:', err));
+      }
       if (data.action_link) {
         window.location.href = data.action_link;
         return;

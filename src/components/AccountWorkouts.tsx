@@ -348,42 +348,46 @@ export default function AccountWorkouts() {
               return (
                 <div
                   key={ex.name}
-                  className={`w-full px-4 py-4 border flex items-center gap-3 transition-colors ${
+                  className={`w-full px-4 py-4 border transition-colors ${
                     complete
                       ? 'border-teal/40 bg-teal/5'
                       : 'border-ink/15 hover:bg-cream/30'
                   }`}
                 >
-                  <span className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums w-6 shrink-0">
-                    {ex.slot}
-                  </span>
-                  <button
-                    onClick={() => setActiveIdx(i)}
-                    className="font-body text-base text-ink flex-1 truncate text-left hover:text-coral transition-colors"
-                  >
-                    {ex.name}
-                  </button>
-                  <span className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums shrink-0 hidden sm:inline">
-                    {ex.reps}
-                  </span>
-                  <span className="flex gap-1 shrink-0">
-                    {Array.from({ length: TOTAL_SETS }).map((_, j) => (
-                      <button
-                        key={j}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          cycleSet(ex.name);
-                        }}
-                        aria-label={`Set ${j + 1} ${j < done ? 'completed, tap to undo' : 'tap to log'}`}
-                        className="min-w-[36px] min-h-[36px] flex items-center justify-center"
-                      >
-                        <TickBox filled={j < done} size={26} />
-                      </button>
-                    ))}
-                  </span>
-                  <span className={`font-body text-caption uppercase tracking-widest tabular-nums shrink-0 w-10 text-right ${complete ? 'text-teal' : 'text-ink/40'}`}>
-                    {done}/{TOTAL_SETS}
-                  </span>
+                  <div className="flex items-center gap-3">
+                    <span className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums w-6 shrink-0">
+                      {ex.slot}
+                    </span>
+                    <button
+                      onClick={() => setActiveIdx(i)}
+                      className="font-body text-base text-ink flex-1 truncate text-left hover:text-coral transition-colors"
+                    >
+                      {ex.name}
+                    </button>
+                    <span className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums shrink-0 hidden sm:inline">
+                      {ex.reps}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between mt-3 sm:mt-2">
+                    <span className="flex gap-1 shrink-0">
+                      {Array.from({ length: TOTAL_SETS }).map((_, j) => (
+                        <button
+                          key={j}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            cycleSet(ex.name);
+                          }}
+                          aria-label={`Set ${j + 1} ${j < done ? 'completed, tap to undo' : 'tap to log'}`}
+                          className="min-w-[36px] min-h-[36px] flex items-center justify-center"
+                        >
+                          <TickBox filled={j < done} size={26} />
+                        </button>
+                      ))}
+                    </span>
+                    <span className={`font-body text-caption uppercase tracking-widest tabular-nums shrink-0 w-10 text-right ${complete ? 'text-teal' : 'text-ink/40'}`}>
+                      {done}/{TOTAL_SETS}
+                    </span>
+                  </div>
                 </div>
               );
             })}

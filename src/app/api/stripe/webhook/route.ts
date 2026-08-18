@@ -113,6 +113,7 @@ async function handleBuddyPurchase(
   const buddyName = (meta.buddy_name as string) || 'Your buddy';
   const personalNote = (meta.personal_note as string) || '';
   const buddyResolution = (meta.buddy_resolution as string) || 'new';
+  const purchaserWasPremium = (meta.purchaser_was_premium as string) === 'true';
 
   if (!purchaserUserId || !purchaserEmail || !buddyEmail) {
     console.error('buddy_pair missing required metadata', {
@@ -123,17 +124,22 @@ async function handleBuddyPurchase(
     return { ok: false, error: 'missing metadata' };
   }
 
-  // 1. Grant premium to the purchaser.
+  // 1. Grant premium to the purchaser — only if they weren't
+  //    already premium. Premium users with the loyalty discount
+  //    have already paid for themselves; we just need to grant
+  //    the buddy seat.
   await ensureProfileExists(supabase, purchaserUserId, purchaserEmail);
-  const purchaserOk = await setPremium(
-    supabase,
-    purchaserUserId,
-    true,
-    purchaserEmail,
-    'checkout.session.completed (buddy_pair, purchaser)'
-  );
-  if (!purchaserOk) {
-    return { ok: false, error: 'purchaser premium update failed' };
+  if (!purchaserWasPremium) {
+    const purchaserOk = await setPremium(
+      supabase,
+      purchaserUserId,
+      true,
+      purchaserEmail,
+      'checkout.session.completed (buddy_pair, purchaser)'
+    );
+    if (!purchaserOk) {
+      return { ok: false, error: 'purchaser premium update failed' };
+    }
   }
 
   // 2. Pair the purchaser with themselves so the buddy_user_id link

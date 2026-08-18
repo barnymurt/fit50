@@ -21,6 +21,7 @@ import PremiumGate from '@/components/PremiumGate';
 import AccountNav from '@/components/AccountNav';
 import FoodDatabase from '@/components/food-database/FoodDatabase';
 import AccountWorkouts from '@/components/AccountWorkouts';
+import BuddyPurchasePicker from '@/components/BuddyPurchasePicker';
 import { useMacroTargets } from '@/hooks/useMacroTargets';
 import { saveJson } from '@/lib/storage';
 import { useMacroProfile, timeSince } from '@/hooks/useMacroProfile';
@@ -321,7 +322,7 @@ export default function AccountPage() {
           { id: 'workouts', label: 'Workouts' },
           { id: 'hydration', label: 'Hydration' },
           { id: 'macro-calc', label: 'Macro calc' },
-          { id: 'buddy', label: 'Buddy', href: '/account/buddy' },
+          { id: 'buddy-section', label: 'Buddy' },
           ...(profile?.is_premium
             ? [
                 { id: 'food-database', label: 'Foods' },
@@ -335,7 +336,31 @@ export default function AccountPage() {
       {/* ============ The tracker ============ */}
       <Tracker hideMarquee />
 
-      {/* ============ Timer (premium) — sits between tracker and workouts ============ */}
+      {/* ============ Buddy (free + premium) — directly below tracker ============ */}
+      <Section
+        id="buddy-section"
+        className="relative pt-12 md:pt-16 pb-section"
+        tone="paper"
+        contained
+      >
+        <div className="max-w-5xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mb-8">
+            <div className="md:col-span-7">
+              <p className="font-body text-caption uppercase tracking-widest text-coral mb-3">
+                Buddy
+              </p>
+              <Heading>Bring a mate.</Heading>
+              <p className="font-body text-base text-ink/70 mt-3 mb-8 max-w-xl">
+                Pair up. Better odds, better story. You&apos;ll see each other&apos;s
+                streaks on the tracker — one more reason to keep showing up.
+              </p>
+            </div>
+          </div>
+          <BuddyPurchasePicker variant="wide" />
+        </div>
+      </Section>
+
+      {/* ============ Timer (premium) — sits between buddy and workouts ============ */}
       {profile?.is_premium && (
         <Section
           id="timer"

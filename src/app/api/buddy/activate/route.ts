@@ -136,6 +136,7 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({
     ok: true,
+    user_id: profile.id,
     action_link: link.properties.action_link,
   });
 }

@@ -31,6 +31,13 @@ export default function Timer({
   const [remainingSeconds, setRemainingSeconds] = useState(initialTotal);
   const [isRunning, setIsRunning] = useState(false);
   const [completed, setCompleted] = useState(false);
+
+  // Timestamp-based timer so the screen going off (and the resulting
+  // interval throttling) doesn't lose time. We store the wall-clock
+  // start time and the original total duration; remaining = total -
+  // (now - start) / 1000.
+  const startedAtRef = useRef<number | null>(null);
+
   const [activePurposeKey, setActivePurposeKey] = useState<string | null>(() => {
     if (!purposes) return null;
     const targetSeconds = defaultMinutes * 60;
@@ -86,29 +93,65 @@ export default function Timer({
     }
   }, [ensureAudio]);
 
+  // Tick loop. Re-derives remaining time from the wall clock each
+  // tick so any interval throttling (mobile screen off, background tab)
+  // doesn't lose time.
   useEffect(() => {
-    if (isRunning && remainingSeconds > 0) {
-      intervalRef.current = setInterval(() => {
-        setRemainingSeconds((prev) => {
-          if (prev <= 1) {
-            setIsRunning(false);
-            setCompleted(true);
-            playDing();
-            onCompleteRef.current?.();
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    } else if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
+    if (!isRunning) {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      return;
     }
 
+    const tick = () => {
+      if (startedAtRef.current === null) return;
+      const elapsedMs = Date.now() - startedAtRef.current;
+      const elapsedSec = Math.floor(elapsedMs / 1000);
+      const remaining = Math.max(0, totalSeconds - elapsedSec);
+      setRemainingSeconds(remaining);
+      if (remaining <= 0) {
+        setIsRunning(false);
+        setCompleted(true);
+        playDing();
+        onCompleteRef.current?.();
+      }
+    };
+
+    tick();
+    intervalRef.current = setInterval(tick, 250);
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
+      intervalRef.current = null;
     };
-  }, [isRunning, remainingSeconds, playDing]);
+  }, [isRunning, totalSeconds, playDing]);
+
+  // When the tab/window regains focus, recompute immediately so the
+  // display snaps back to the right number even if the interval was
+  // heavily throttled while in the background.
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && isRunning && startedAtRef.current !== null) {
+        const elapsedMs = Date.now() - startedAtRef.current;
+        const elapsedSec = Math.floor(elapsedMs / 1000);
+        const remaining = Math.max(0, totalSeconds - elapsedSec);
+        setRemainingSeconds(remaining);
+        if (remaining <= 0 && !completed) {
+          setIsRunning(false);
+          setCompleted(true);
+          playDing();
+          onCompleteRef.current?.();
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    window.addEventListener('focus', onVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      window.removeEventListener('focus', onVisibilityChange);
+    };
+  }, [isRunning, totalSeconds, completed, playDing]);
 
   const hours = Math.floor(remainingSeconds / 3600);
   const minutes = Math.floor((remainingSeconds % 3600) / 60);
@@ -118,20 +161,23 @@ export default function Timer({
   const handleStart = useCallback(() => {
     ensureAudio();
     setCompleted(false);
+    startedAtRef.current = Date.now() - (totalSeconds - remainingSeconds) * 1000;
     setIsRunning(true);
-  }, [ensureAudio]);
+  }, [ensureAudio, remainingSeconds, totalSeconds]);
 
   const handlePause = useCallback(() => setIsRunning(false), []);
 
   const handleReset = useCallback(() => {
     setIsRunning(false);
     setCompleted(false);
+    startedAtRef.current = null;
     setRemainingSeconds(totalSeconds);
   }, [totalSeconds]);
 
   const handleSetDuration = useCallback((minutes: number, seconds: number = 0) => {
     setIsRunning(false);
     setCompleted(false);
+    startedAtRef.current = null;
     const total = minutes * 60 + seconds;
     setTotalSeconds(total);
     setRemainingSeconds(total);
@@ -176,177 +222,72 @@ export default function Timer({
         )}
       </div>
 
-      <div className="h-1 bg-ink/10 mb-5 overflow-hidden">
+      <div className="font-body text-caption uppercase tracking-widest text-ink/40 mb-6">
+        {isRunning ? 'In progress' : completed ? 'Done' : 'Ready'}
+      </div>
+
+      <div className="h-1 bg-ink/10 mb-6 overflow-hidden">
         <div
-          className="h-full bg-coral transition-all duration-1000 ease-linear"
+          className="h-full bg-coral transition-all duration-100"
           style={{ width: `${progress}%` }}
         />
       </div>
 
-      {completed && (
-        <p className="font-body text-sm text-teal mb-4">
-          ✓ Done. Well executed.
-        </p>
-      )}
-
-      <div className="flex items-center justify-center gap-2 mb-4">
+      <div className="flex justify-center gap-3 mb-6">
         {!isRunning ? (
           <button
+            type="button"
             onClick={handleStart}
-            disabled={remainingSeconds === 0}
-            className="bg-ink text-paper font-body text-sm px-6 py-3 uppercase tracking-wider hover:bg-ink/85 transition-colors disabled:opacity-50"
+            disabled={remainingSeconds <= 0}
+            className="bg-coral text-paper font-body text-sm px-8 py-3 uppercase tracking-wider hover:bg-coral/85 transition-colors disabled:opacity-40"
           >
-            {remainingSeconds === totalSeconds ? 'Start' : remainingSeconds === 0 ? 'Done' : 'Resume'}
+            {completed ? 'Run again' : remainingSeconds < totalSeconds ? 'Resume' : 'Start'}
           </button>
         ) : (
           <button
+            type="button"
             onClick={handlePause}
-            className="bg-ink text-paper font-body text-sm px-6 py-3 uppercase tracking-wider hover:bg-ink/85 transition-colors"
+            className="bg-ink text-paper font-body text-sm px-8 py-3 uppercase tracking-wider hover:bg-ink/85 transition-colors"
           >
             Pause
           </button>
         )}
         <button
+          type="button"
           onClick={handleReset}
-          className="font-body text-caption uppercase text-ink/60 hover:text-ink transition-colors px-4 py-3"
+          className="border border-ink/30 text-ink font-body text-caption uppercase tracking-widest px-4 py-3 hover:bg-cream/30 transition-colors"
         >
           Reset
         </button>
       </div>
 
-      {/* Editable duration presets — purpose buttons change the timer copy */}
-      <EditableDuration
-        defaultMinutes={defaultMinutes}
-        onSetDuration={handleSetDuration}
-        purposes={purposes}
-        activePurposeKey={activePurposeKey}
-        onSelectPurpose={setActivePurposeKey}
-      />
-    </div>
-  );
-}
-
-interface EditableDurationProps {
-  defaultMinutes: number;
-  onSetDuration: (minutes: number, seconds: number) => void;
-  purposes?: TimerPurpose[];
-  activePurposeKey: string | null;
-  onSelectPurpose: (key: string) => void;
-}
-
-function EditableDuration({
-  defaultMinutes,
-  onSetDuration,
-  purposes,
-  activePurposeKey,
-  onSelectPurpose,
-}: EditableDurationProps) {
-  const [open, setOpen] = useState(false);
-  const [minutes, setMinutes] = useState(defaultMinutes);
-  const [seconds, setSeconds] = useState(0);
-
-  const handleSet = () => {
-    onSetDuration(minutes, seconds);
-    setOpen(false);
-  };
-
-  // Purpose presets first (e.g. "Project time" at 30m), then any
-  // generic time slots that don't overlap with a purpose.
-  const purposesAsPresets = (purposes ?? []).map((p) => ({
-    kind: 'purpose' as const,
-    key: p.key,
-    label: p.buttonLabel,
-    mins: p.durationMinutes,
-    secs: p.durationSeconds ?? 0,
-  }));
-  const coveredKeys = new Set(
-    purposesAsPresets.map((p) => `${p.mins}:${p.secs}`)
-  );
-  const genericPresets = [
-    { kind: 'generic' as const, label: '15m', mins: 15, secs: 0 },
-    { kind: 'generic' as const, label: '50m', mins: 50, secs: 0 },
-    { kind: 'generic' as const, label: '5m', mins: 5, secs: 0 },
-  ].filter((p) => !coveredKeys.has(`${p.mins}:${p.secs}`));
-  const presets = [...purposesAsPresets, ...genericPresets];
-
-  if (!open) {
-    return (
-      <div className="flex items-center justify-center gap-2 flex-wrap">
-        {presets.map((p) => {
-          const isActive = p.kind === 'purpose' && p.key === activePurposeKey;
-          const labelText = p.label;
-          return (
-            <button
-              key={`${p.mins}-${p.secs}-${labelText}`}
-              onClick={() => {
-                onSetDuration(p.mins, p.secs);
-                if (p.kind === 'purpose') onSelectPurpose(p.key);
-              }}
-              className={`font-body text-xs uppercase tracking-widest px-3 py-1 border transition-colors ${
-                isActive
-                  ? 'border-coral text-coral bg-coral/5'
-                  : 'border-ink/20 text-ink/60 hover:border-ink/40'
-              }`}
-            >
-              {labelText}
-            </button>
-          );
-        })}
-        <button
-          onClick={() => setOpen(true)}
-          className="font-body text-xs uppercase tracking-widest px-3 py-1 border border-ink/20 text-ink/60 hover:border-ink/40 transition-colors"
-        >
-          Custom
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="border border-ink/20 p-4">
-      <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-3">
-        Set duration
-      </p>
-      <div className="flex items-center justify-center gap-3 mb-4">
-        <div className="flex items-center gap-2">
-          <input
-            type="number"
-            min={0}
-            max={23}
-            value={minutes}
-            onChange={(e) => setMinutes(Math.max(0, Math.min(23, parseInt(e.target.value) || 0)))}
-            className="w-16 text-center font-display text-2xl bg-transparent border-b-2 border-ink/40 text-ink focus:border-ink outline-none tabular-nums"
-            aria-label="minutes"
-          />
-          <span className="font-body text-caption uppercase text-ink/50">min</span>
+      {purposes && (
+        <div className="border-t border-ink/10 pt-5">
+          <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-3">
+            Quick set
+          </p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {purposes.map((p) => {
+              const total = p.durationMinutes * 60 + (p.durationSeconds ?? 0);
+              const active = total === totalSeconds;
+              return (
+                <button
+                  key={p.key}
+                  type="button"
+                  onClick={() => handleSetDuration(p.durationMinutes, p.durationSeconds ?? 0)}
+                  className={`px-3 py-2 border font-body text-caption uppercase tracking-widest transition-colors ${
+                    active
+                      ? 'border-coral text-coral bg-coral/5'
+                      : 'border-ink/20 text-ink/70 hover:border-ink/40'
+                  }`}
+                >
+                  {p.buttonLabel}
+                </button>
+              );
+            })}
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <input
-            type="number"
-            min={0}
-            max={59}
-            value={seconds}
-            onChange={(e) => setSeconds(Math.max(0, Math.min(59, parseInt(e.target.value) || 0)))}
-            className="w-16 text-center font-display text-2xl bg-transparent border-b-2 border-ink/40 text-ink focus:border-ink outline-none tabular-nums"
-            aria-label="seconds"
-          />
-          <span className="font-body text-caption uppercase text-ink/50">sec</span>
-        </div>
-      </div>
-      <div className="flex items-center justify-center gap-2">
-        <button
-          onClick={handleSet}
-          className="bg-ink text-paper font-body text-xs px-4 py-2 uppercase tracking-wider hover:bg-ink/85 transition-colors"
-        >
-          Set
-        </button>
-        <button
-          onClick={() => setOpen(false)}
-          className="font-body text-caption uppercase text-ink/60 hover:text-ink transition-colors px-4 py-2"
-        >
-          Cancel
-        </button>
-      </div>
+      )}
     </div>
   );
 }
