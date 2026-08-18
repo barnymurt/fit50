@@ -7,6 +7,7 @@ import HabitIcon, { HabitIconName } from './HabitIcon';
 import Marquee from './Marquee';
 import CellConfetti from './CellConfetti';
 import ConfirmDialog from './ConfirmDialog';
+import BuddyCard from './BuddyCard';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTrackerState, TrackerDay } from '@/hooks/useTrackerState';
 import { useStreakProtection } from '@/hooks/useStreakProtection';
@@ -374,6 +375,9 @@ export default function Tracker({ hideMarquee = false }: { hideMarquee?: boolean
             </div>
           )}
         </div>
+
+        {/* Buddy card — shows for premium users with a paired buddy */}
+        <BuddyCard />
 
         {/* 50-day chip strip */}
         {tracker.startDate && (

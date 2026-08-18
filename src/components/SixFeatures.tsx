@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Marquee from './Marquee';
 import { useAuth } from '@/contexts/AuthContext';
+import BuddyPurchasePicker from './BuddyPurchasePicker';
 
 export interface SixFeaturesItem {
   title: string;
@@ -152,20 +153,28 @@ export default function SixFeatures({
             </Link>
           </div>
         ) : (
-          <div className="text-center max-w-2xl mx-auto">
-            {error && (
-              <p className="font-body text-sm text-coral mb-4">{error}</p>
-            )}
-            <button
-              onClick={handleCheckout}
-              disabled={checkoutLoading}
-              className="inline-flex items-center justify-center bg-coral text-paper font-body text-sm px-12 py-5 uppercase tracking-wider hover:bg-coral/85 transition-colors disabled:opacity-50"
-            >
-              {checkoutLoading ? 'Opening checkout…' : 'Unlock for €5.99'}
-            </button>
-            <p className="font-body text-caption uppercase tracking-widest text-paper/65 mt-4">
-              The price of a caneca · secure checkout via Stripe
+          <div className="max-w-3xl mx-auto">
+            <p className="font-body text-caption uppercase tracking-widest text-paper/65 text-center mb-4">
+              Two ways to start
             </p>
+            <BuddyPurchasePicker
+              headline="Bring a mate."
+              subheadline="Two seats, one price. €9.99. Better odds, better story."
+            />
+            <p className="font-body text-caption uppercase tracking-widest text-paper/65 mt-4 text-center">
+              or{' '}
+              <button
+                type="button"
+                onClick={handleCheckout}
+                disabled={checkoutLoading}
+                className="underline text-paper hover:text-coral transition-colors disabled:opacity-50"
+              >
+                {checkoutLoading ? 'Opening checkout…' : 'go solo for €5.99'}
+              </button>
+            </p>
+            {error && (
+              <p className="font-body text-sm text-coral mt-4 text-center">{error}</p>
+            )}
           </div>
         )}
       </div>

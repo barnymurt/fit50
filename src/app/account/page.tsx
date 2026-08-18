@@ -321,6 +321,7 @@ export default function AccountPage() {
           { id: 'workouts', label: 'Workouts' },
           { id: 'hydration', label: 'Hydration' },
           { id: 'macro-calc', label: 'Macro calc' },
+          { id: 'buddy', label: 'Buddy', href: '/account/buddy' },
           ...(profile?.is_premium
             ? [
                 { id: 'food-database', label: 'Foods' },

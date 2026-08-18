@@ -10,6 +10,7 @@ interface Profile {
   display_name: string | null;
   is_premium: boolean;
   challenge_started_at: string;
+  buddy_user_id?: string | null;
 }
 
 export type AuthError = {
