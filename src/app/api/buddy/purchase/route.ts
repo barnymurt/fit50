@@ -41,11 +41,23 @@ export async function POST(req: NextRequest) {
   const supabaseAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  if (!stripeSecret) {
-    return NextResponse.json({ error: 'stripe not configured' }, { status: 503 });
-  }
-  if (!supabaseUrl || !supabaseAnon || !supabaseServiceKey) {
-    return NextResponse.json({ error: 'supabase not configured' }, { status: 503 });
+  if (
+    !stripeSecret ||
+    !supabaseUrl ||
+    !supabaseAnon ||
+    !supabaseServiceKey
+  ) {
+    const missing: string[] = [];
+    if (!stripeSecret) missing.push('STRIPE_SECRET_KEY');
+    if (!supabaseUrl) missing.push('NEXT_PUBLIC_SUPABASE_URL');
+    if (!supabaseAnon) missing.push('NEXT_PUBLIC_SUPABASE_ANON_KEY');
+    if (!supabaseServiceKey) missing.push('SUPABASE_SERVICE_ROLE_KEY');
+    return NextResponse.json(
+      {
+        error: `Env var${missing.length > 1 ? 's' : ''} missing: ${missing.join(', ')}. Add ${missing.length > 1 ? 'them' : 'it'} in Vercel env vars.`,
+      },
+      { status: 503 }
+    );
   }
 
   const body = await req.json().catch(() => ({}));

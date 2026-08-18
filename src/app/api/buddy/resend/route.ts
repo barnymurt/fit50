@@ -22,7 +22,16 @@ export async function POST(req: NextRequest) {
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl || !supabaseAnon || !supabaseServiceKey) {
-    return NextResponse.json({ error: 'supabase not configured' }, { status: 503 });
+    const missing: string[] = [];
+    if (!supabaseUrl) missing.push('NEXT_PUBLIC_SUPABASE_URL');
+    if (!supabaseAnon) missing.push('NEXT_PUBLIC_SUPABASE_ANON_KEY');
+    if (!supabaseServiceKey) missing.push('SUPABASE_SERVICE_ROLE_KEY');
+    return NextResponse.json(
+      {
+        error: `Supabase env var${missing.length > 1 ? 's' : ''} missing: ${missing.join(', ')}. Add ${missing.length > 1 ? 'them' : 'it'} in Vercel env vars.`,
+      },
+      { status: 503 }
+    );
   }
 
   const cookieStore = cookies();
