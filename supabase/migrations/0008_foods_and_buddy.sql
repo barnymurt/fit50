@@ -2,6 +2,12 @@
 -- 5,591 entries, ~5MB JSON. Replaces the bundled food-data.json with a
 -- searchable table. Required for scaling past a few thousand users
 -- (bandwidth) and unlocks real full-text search.
+--
+-- search_text is maintained by a BEFORE INSERT/UPDATE trigger rather
+-- than a generated column. to_tsvector is STABLE (not IMMUTABLE)
+-- in PostgreSQL, which makes it ineligible for generated columns
+-- (ERROR 42P17). The trigger pattern is the standard way to keep
+-- a tsvector up to date on row writes.
 
 create table if not exists foods (
   id text primary key,
@@ -20,23 +26,30 @@ create table if not exists foods (
   standard_serving_grams real,
   standard_serving_label text,
   aliases text[] not null default '{}',
-  search_text tsvector generated always as (
-    setweight(to_tsvector('simple', coalesce(name, '')), 'A') ||
-    setweight(to_tsvector('simple', coalesce(array_to_string(aliases, ' '), '')), 'A') ||
-    setweight(to_tsvector('simple', coalesce(category, '')), 'B') ||
-    setweight(to_tsvector('simple', coalesce(subcategory, '')), 'C') ||
-    setweight(to_tsvector('simple', coalesce(preparation, '')), 'C') ||
-    setweight(to_tsvector('simple', coalesce(state, '')), 'C')
-  ) stored
+  search_text tsvector
 );
 
-create index if not exists foods_search_idx on foods using gin (search_text);
-create index if not exists foods_category_idx on foods (category);
-create index if not exists foods_type_idx on foods (type);
+create index if not exists foods_search_idx
+  on foods using gin (search_text);
 
--- Public read access. Anyone can read the food database (it's
--- effectively public data). Writes happen only via the service-role
--- key from the migration script.
+create or replace function foods_set_search_text() returns trigger as $$
+begin
+  new.search_text :=
+    setweight(to_tsvector('simple', coalesce(new.name, '')), 'A') ||
+    setweight(to_tsvector('simple', coalesce(array_to_string(new.aliases, ' '), '')), 'A') ||
+    setweight(to_tsvector('simple', coalesce(new.category, '')), 'B') ||
+    setweight(to_tsvector('simple', coalesce(new.subcategory, '')), 'C') ||
+    setweight(to_tsvector('simple', coalesce(new.preparation, '')), 'C') ||
+    setweight(to_tsvector('simple', coalesce(new.state, '')), 'C');
+  return new;
+end;
+$$ language plpgsql;
+
+drop trigger if exists foods_search_text_update on foods;
+create trigger foods_search_text_update
+  before insert or update on foods
+  for each row execute function foods_set_search_text();
+
 alter table foods enable row level security;
 
 drop policy if exists "foods are publicly readable" on foods;
@@ -110,7 +123,7 @@ create policy "anyone can read unredeemed gift codes by code" on gift_codes
 
 -- Stripe webhook idempotency log
 create table if not exists webhook_events (
-  id text primary key,  -- Stripe event id (e.g. evt_xxx)
+  id text primary key,
   type text not null,
   received_at timestamptz not null default now(),
   processed_at timestamptz
