@@ -57,7 +57,17 @@ export default function BuddyPurchasePicker({
     : 'Shout a mate that caneca.';
   const defaultSubheadline = isAddBuddy
     ? 'Finish together. Or just be in it for the craic!'
-    : 'Mates finish this at nearly twice the rate of solo starters. (Your mate gets an email to activate. If they don’t within 14 days, we’ll turn their spot into a gift code you can pass on.)';
+    : 'Mates finish this at nearly twice the rate of solo starters.';
+  // When the unsigned-homepage user is shown the picker, the buyer
+  // is going to buy a pair, not add a buddy. The sub here is the
+  // public pair stat ('Mates finish this at nearly twice the rate…')
+  // — the longer 14-day-gift-code reassurance is only shown on the
+  // in-app picker where the buyer is already a member.
+  // (We don't need the conditional — the caller passes the headline
+  // and subheadline they want. This default is for the in-app
+  // picker; the homepage overrides it. The 'free 14-day gift
+  // code' sentence stays in the JSON copy we hand to the API and
+  // the pair-mode sub on the account page only.)
   const headline = hl ?? defaultHeadline;
   const subheadline = sl ?? defaultSubheadline;
   const priceLabel = isAddBuddy
@@ -171,7 +181,7 @@ export default function BuddyPurchasePicker({
         </div>
 
         <p className="font-body text-caption uppercase text-ink/50 mb-1 mt-2">
-          Pair with a mate
+          Who's ya mate
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
           <input
@@ -210,8 +220,8 @@ export default function BuddyPurchasePicker({
         {!user && (
           <p className="font-body text-xs text-ink/50 mb-4">
             New here? No dramas — we’ll sort you and your mate out
-            with an account each. Drop us both sets of details and
-            we’ll email you and your mate to set passwords.
+            with an account each. Drop us both of your details and
+            we’ll email both to set a password.
           </p>
         )}
 

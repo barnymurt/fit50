@@ -349,7 +349,7 @@ export default function AccountPage() {
               <p className="font-body text-caption uppercase tracking-widest text-coral mb-3">
                 Buddy
               </p>
-              <Heading>Buddy up.</Heading>
+              <Heading>Shout ya mate</Heading>
               <p className="font-body text-base text-ink/70 mt-3 mb-8 max-w-xl">
                 Finish together. Or just be in it for the craic! You&apos;ll see
                 each other&apos;s streaks on the tracker — one more

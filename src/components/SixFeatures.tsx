@@ -151,7 +151,7 @@ export default function SixFeatures({
                 href="/account#buddy-section"
                 className="inline-flex items-center justify-center bg-paper text-ink font-body text-sm px-8 py-4 uppercase tracking-wider hover:bg-cream/80 transition-colors"
               >
-                Bring a buddy
+                Shout a mate
               </Link>
               <Link
                 href="/account"
@@ -205,7 +205,7 @@ export default function SixFeatures({
               <div className="mt-6">
                 <BuddyPurchasePicker
                   variant="wide"
-                  headline="Shout a mate."
+                  headline="Start together."
                   subheadline="Mates finish this at nearly twice the rate of solo starters."
                 />
               </div>
