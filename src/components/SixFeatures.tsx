@@ -173,7 +173,7 @@ export default function SixFeatures({
                 </p>
                 <p className="font-display text-h2 text-ink leading-none mb-1">€5.99</p>
                 <p className="font-body text-sm text-ink/60 mb-4">
-                  One account. Fifty days. Just you against the calendar.
+                  One player. Fifty days. Just you against the calendar.
                 </p>
                 <button
                   type="button"
@@ -181,7 +181,7 @@ export default function SixFeatures({
                   disabled={checkoutLoading}
                   className="w-full bg-coral text-paper font-body text-caption uppercase tracking-widest px-6 py-3 hover:bg-coral/85 transition-colors disabled:opacity-50"
                 >
-                  {checkoutLoading ? 'Opening…' : 'Go solo'}
+                  {checkoutLoading ? 'Opening…' : 'Mines a Caneca'}
                 </button>
               </div>
               <button
@@ -197,7 +197,7 @@ export default function SixFeatures({
                 </p>
                 <p className="font-display text-h2 text-coral leading-none mb-1">€9.99</p>
                 <span className="block w-full text-center bg-coral text-paper font-body text-caption uppercase tracking-widest px-6 py-3">
-                  {showBuddyForm ? 'Hide form' : 'Mines a double on the rocks.'}
+                  {showBuddyForm ? 'Hide form' : 'Mines a double.'}
                 </span>
               </button>
             </div>

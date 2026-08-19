@@ -209,9 +209,9 @@ export default function BuddyPurchasePicker({
 
         {!user && (
           <p className="font-body text-xs text-ink/50 mb-4">
-            No account yet? We’ll create one for you and your buddy
-            when the payment clears. You’ll get an email to set a
-            password.
+            New here? No dramas — we’ll sort you and your mate out
+            with an account each. Drop us both sets of details and
+            we’ll email you and your mate to set passwords.
           </p>
         )}
 
