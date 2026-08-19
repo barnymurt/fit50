@@ -1,14 +1,15 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface Props {
-  // "compact" = render inline (used inside article copy)
-  // "wide" = full-width cards, used as a primary CTA section
   variant?: 'compact' | 'wide';
   headline?: string;
   subheadline?: string;
+  // Hide the loyalty-discount path for premium users (e.g. when
+  // shown on the homepage CTA where we want a single clear price).
+  hideLoyaltyPath?: boolean;
 }
 
 function isValidEmail(s: string): boolean {
@@ -19,39 +20,63 @@ export default function BuddyPurchasePicker({
   variant = 'wide',
   headline = 'Bring a mate.',
   subheadline = 'Two seats, one price. Better odds, better story.',
+  hideLoyaltyPath = false,
 }: Props) {
   const { user, profile, loading: authLoading } = useAuth();
-  const [step, setStep] = useState<'choose' | 'form' | 'error'>(
-    'choose'
-  );
+
+  const [purchaserName, setPurchaserName] = useState('');
+  const [purchaserEmail, setPurchaserEmail] = useState('');
   const [buddyName, setBuddyName] = useState('');
   const [buddyEmail, setBuddyEmail] = useState('');
   const [personalNote, setPersonalNote] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
-  const [purchaserName, setPurchaserName] = useState('');
+  // Pre-fill from the signed-in user's profile. Don't pre-fill on
+  // unauthenticated renders — the visitor types in their own details.
   useEffect(() => {
-    if (user?.email) setPurchaserName(user.email.split('@')[0]);
-  }, [user]);
+    if (user?.email) setPurchaserEmail(user.email);
+    if (profile?.display_name) setPurchaserName(profile.display_name);
+  }, [user?.email, profile?.display_name]);
 
   const isPremium = !!user && !!profile?.is_premium;
 
+  const containerCls =
+    variant === 'wide'
+      ? 'bg-paper border border-ink/10 p-6 md:p-8'
+      : 'bg-paper border border-ink/10 p-5';
+
   const submit = async () => {
+    if (!isValidEmail(purchaserEmail)) {
+      setErrorMsg('Please enter a valid email for you.');
+      return;
+    }
+    if (!purchaserName.trim()) {
+      setErrorMsg('Please enter your first name.');
+      return;
+    }
     if (!isValidEmail(buddyEmail)) {
       setErrorMsg('Please enter a valid email for your buddy.');
       return;
     }
     if (!buddyName.trim()) {
-      setErrorMsg('Please enter your buddy\u2019s first name.');
+      setErrorMsg('Please enter your buddy’s first name.');
+      return;
+    }
+    if (purchaserEmail.toLowerCase() === buddyEmail.toLowerCase()) {
+      setErrorMsg('You can’t pair with yourself.');
       return;
     }
     setErrorMsg(null);
+    setSubmitting(true);
     try {
       const res = await fetch('/api/buddy/purchase', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          buddy_email: buddyEmail,
+          purchaser_email: purchaserEmail.trim(),
+          purchaser_name: purchaserName.trim(),
+          buddy_email: buddyEmail.trim(),
           buddy_name: buddyName.trim(),
           personal_note: personalNote.trim(),
         }),
@@ -59,276 +84,132 @@ export default function BuddyPurchasePicker({
       const data = await res.json();
       if (!res.ok || !data.url) {
         setErrorMsg(data.error || 'Could not start checkout.');
-        setStep('error');
+        setSubmitting(false);
         return;
       }
       window.location.href = data.url;
     } catch {
       setErrorMsg('Network error. Try again.');
-      setStep('error');
+      setSubmitting(false);
     }
   };
 
-  const containerCls =
-    variant === 'wide'
-      ? 'bg-paper border border-ink/10 p-6 md:p-8'
-      : 'bg-paper border border-ink/10 p-5';
+  // Decide which price to show.
+  //  - signed-in + premium + not in "hide" mode: loyalty path
+  //  - everyone else: full pair price
+  const showLoyalty =
+    !hideLoyaltyPath && isPremium && !!user;
 
-  if (authLoading) {
-    return (
-      <div className={containerCls}>
-        <p className="font-body text-caption uppercase tracking-widest text-ink/50">
-          Loading…
-        </p>
-      </div>
-    );
-  }
-
-  // When the buyer's premium status resolves, reset the form to step
-  // 'choose' so the correct card / button text shows. Avoids the
-  // "Add a buddy for €4.00 → Buy for €9.99" flip that happens when
-  // profile loads mid-flow. Track the last premium value so we only
-  // reset on actual status change, not every render.
-  const lastPremiumRef = useRef<boolean | null>(null);
-  useEffect(() => {
-    if (lastPremiumRef.current === null) {
-      lastPremiumRef.current = isPremium;
-      return;
-    }
-    if (lastPremiumRef.current !== isPremium) {
-      lastPremiumRef.current = isPremium;
-      setStep('choose');
-    }
-  }, [isPremium]);
-
-  if (step === 'choose') {
-    // For premium users: only the buddy option (loyalty discount).
-    if (isPremium) {
-      return (
-        <div className={containerCls}>
-          <p className="font-body text-caption uppercase text-coral mb-2">
-            Buddy pair
-          </p>
-          <p className="font-display text-h2 text-ink leading-tight mb-1">
-            {headline}
-          </p>
-          <p className="font-body text-base text-ink/70 mb-6">
-            You&apos;re already on the premium plan — just €4.00 to add a buddy.
-            They get their own account, you see each other&apos;s streaks.
-          </p>
-
-          {!user ? (
-            <div className="border border-ink/10 p-4 bg-cream/30 mb-4">
-              <p className="font-body text-sm text-ink/80">
-                <a href="/account?next=/#sign-up" className="text-coral underline">
-                  Sign in
-                </a>
-                {' '}first to add a buddy.
-              </p>
-            </div>
-          ) : (
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                submit();
-              }}
-            >
-              <p className="font-body text-caption uppercase text-ink/50 mb-1">You</p>
-              <p className="font-body text-base text-ink/80 mb-4">
-                {user.email} — {purchaserName}
-              </p>
-
-              <label htmlFor="buddy-name-premium" className="block font-body text-caption uppercase tracking-widest text-ink/50 mb-3">
-                Your buddy&apos;s first name
-              </label>
-              <input
-                id="buddy-name-premium"
-                type="text"
-                value={buddyName}
-                onChange={(e) => setBuddyName(e.target.value)}
-                placeholder="Barnaby"
-                required
-                maxLength={60}
-                className="w-full p-4 bg-cream/30 border-2 border-ink/20 text-ink font-body focus:border-ink outline-none rounded-none mb-4"
-              />
-
-              <label htmlFor="buddy-email-premium" className="block font-body text-caption uppercase tracking-widest text-ink/50 mb-3">
-                Your buddy&apos;s email
-              </label>
-              <input
-                id="buddy-email-premium"
-                type="email"
-                value={buddyEmail}
-                onChange={(e) => setBuddyEmail(e.target.value)}
-                placeholder="buddy@email.com"
-                required
-                className="w-full p-4 bg-cream/30 border-2 border-ink/20 text-ink font-body focus:border-ink outline-none rounded-none mb-4"
-              />
-
-              <label htmlFor="personal-note-premium" className="block font-body text-caption uppercase tracking-widest text-ink/50 mb-3">
-                Personal note (optional)
-              </label>
-              <textarea
-                id="personal-note-premium"
-                value={personalNote}
-                onChange={(e) => setPersonalNote(e.target.value)}
-                placeholder="Fancy doing this with me?"
-                maxLength={200}
-                rows={2}
-                className="w-full p-4 bg-cream/30 border-2 border-ink/20 text-ink font-body focus:border-ink outline-none rounded-none mb-4"
-              />
-              <p className="font-body text-xs text-ink/50 -mt-2 mb-4">
-                {200 - personalNote.length} characters left.
-              </p>
-
-              <p className="font-body text-xs text-ink/50 mb-4">
-                By continuing you confirm you have permission to share your buddy&apos;s email.
-              </p>
-
-              {errorMsg && (
-                <p role="alert" className="font-body text-sm text-coral mb-3">{errorMsg}</p>
-              )}
-
-              <button
-                type="submit"
-                className="bg-ink text-paper font-body text-sm px-6 py-4 uppercase tracking-wider hover:bg-ink/85 transition-colors"
-              >
-                Add a buddy for €4.00 →
-              </button>
-            </form>
-          )}
-        </div>
-      );
-    }
-
-    // For non-premium users: two-card picker.
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <button
-          type="button"
-          onClick={() => (window.location.href = '/#sign-up')}
-          className="border border-ink/15 p-5 text-left hover:bg-cream/30 transition-colors"
-        >
-          <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-2">
-            Solo
-          </p>
-          <p className="font-display text-h2 text-ink leading-none mb-1">€5.99</p>
-          <p className="font-body text-sm text-ink/60">
-            Just me, thanks.
-          </p>
-        </button>
-        <button
-          type="button"
-          onClick={() => setStep('form')}
-          className="border-2 border-coral p-5 text-left hover:bg-coral/5 transition-colors"
-        >
-          <p className="font-body text-caption uppercase tracking-widest text-coral mb-2">
-            Buddy pair
-          </p>
-          <p className="font-display text-h2 text-coral leading-none mb-1">€9.99</p>
-          <p className="font-body text-sm text-ink/60">
-            Bring a mate. Better odds, better story.
-          </p>
-        </button>
-      </div>
-    );
-  }
+  const priceLabel = showLoyalty
+    ? `Add a buddy for €4.00 →`
+    : `Buy for €9.99 →`;
 
   return (
     <div className={containerCls}>
       <p className="font-body text-caption uppercase text-coral mb-2">Buddy pair</p>
-      <p className="font-display text-h2 text-ink leading-tight mb-1">{headline}</p>
-      <p className="font-body text-base text-ink/70 mb-6">{subheadline}</p>
+      <p className="font-display text-h2 text-ink leading-tight mb-1">
+        {headline}
+      </p>
+      <p className="font-body text-base text-ink/70 mb-6">
+        {showLoyalty
+          ? 'You’re already on the premium plan — just €4.00 to add a buddy. They get their own account, you see each other’s streaks.'
+          : subheadline}
+      </p>
 
-      {!user ? (
-        <div className="border border-ink/10 p-4 bg-cream/30 mb-4">
-          <p className="font-body text-sm text-ink/80">
-            <a href="/account?next=/#sign-up" className="text-coral underline">
-              Sign in
-            </a>
-            {' '}first to buy a buddy pair. We need your account so we can pair the two seats.
-          </p>
-        </div>
-      ) : (
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            submit();
-          }}
-        >
-          <p className="font-body text-caption uppercase text-ink/50 mb-1">You</p>
-          <p className="font-body text-base text-ink/80 mb-4">
-            {user.email} — {purchaserName}
-          </p>
-
-          <label htmlFor="buddy-name" className="block font-body text-caption uppercase tracking-widest text-ink/50 mb-3">
-            Your buddy&apos;s first name
-          </label>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          submit();
+        }}
+      >
+        <p className="font-body text-caption uppercase text-ink/50 mb-1">
+          You
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
           <input
-            id="buddy-name"
+            type="text"
+            value={purchaserName}
+            onChange={(e) => setPurchaserName(e.target.value)}
+            placeholder="Your first name"
+            required
+            maxLength={60}
+            disabled={submitting}
+            className="w-full px-3 py-3 bg-cream/30 border-2 border-ink/20 text-ink font-body focus:border-ink outline-none disabled:opacity-50"
+          />
+          <input
+            type="email"
+            value={purchaserEmail}
+            onChange={(e) => setPurchaserEmail(e.target.value)}
+            placeholder="you@email.com"
+            required
+            disabled={submitting || !!user}
+            className="w-full px-3 py-3 bg-cream/30 border-2 border-ink/20 text-ink font-body focus:border-ink outline-none disabled:opacity-50"
+          />
+        </div>
+
+        <p className="font-body text-caption uppercase text-ink/50 mb-1 mt-2">
+          Pair with a mate
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+          <input
             type="text"
             value={buddyName}
             onChange={(e) => setBuddyName(e.target.value)}
-            placeholder="Barnaby"
+            placeholder="Their first name"
             required
             maxLength={60}
-            className="w-full p-4 bg-cream/30 border-2 border-ink/20 text-ink font-body focus:border-ink outline-none rounded-none mb-4"
+            disabled={submitting}
+            className="w-full px-3 py-3 bg-cream/30 border-2 border-ink/20 text-ink font-body focus:border-ink outline-none disabled:opacity-50"
           />
-
-          <label htmlFor="buddy-email" className="block font-body text-caption uppercase tracking-widest text-ink/50 mb-3">
-            Your buddy&apos;s email
-          </label>
           <input
-            id="buddy-email"
             type="email"
             value={buddyEmail}
             onChange={(e) => setBuddyEmail(e.target.value)}
             placeholder="buddy@email.com"
             required
-            className="w-full p-4 bg-cream/30 border-2 border-ink/20 text-ink font-body focus:border-ink outline-none rounded-none mb-4"
+            disabled={submitting}
+            className="w-full px-3 py-3 bg-cream/30 border-2 border-ink/20 text-ink font-body focus:border-ink outline-none disabled:opacity-50"
           />
+        </div>
+        <textarea
+          value={personalNote}
+          onChange={(e) => setPersonalNote(e.target.value)}
+          placeholder="Fancy doing this with me?"
+          maxLength={200}
+          rows={2}
+          disabled={submitting}
+          className="w-full px-3 py-3 bg-cream/30 border-2 border-ink/20 text-ink font-body focus:border-ink outline-none rounded-none mb-2 disabled:opacity-50"
+        />
+        <p className="font-body text-xs text-ink/50 mb-4 text-right">
+          {200 - personalNote.length} characters left
+        </p>
 
-          <label htmlFor="personal-note" className="block font-body text-caption uppercase tracking-widest text-ink/50 mb-3">
-            Personal note (optional)
-          </label>
-          <textarea
-            id="personal-note"
-            value={personalNote}
-            onChange={(e) => setPersonalNote(e.target.value)}
-            placeholder="Fancy doing this with me?"
-            maxLength={200}
-            rows={2}
-            className="w-full p-4 bg-cream/30 border-2 border-ink/20 text-ink font-body focus:border-ink outline-none rounded-none mb-4"
-          />
-          <p className="font-body text-xs text-ink/50 -mt-2 mb-4">
-            {200 - personalNote.length} characters left.
-          </p>
-
+        {!user && (
           <p className="font-body text-xs text-ink/50 mb-4">
-            By continuing you confirm you have permission to share your buddy&apos;s email.
+            No account yet? We’ll create one for you and your buddy
+            when the payment clears. You’ll get an email to set a
+            password.
           </p>
+        )}
 
-          {errorMsg && (
-            <p role="alert" className="font-body text-sm text-coral mb-3">{errorMsg}</p>
-          )}
+        {errorMsg && (
+          <p role="alert" className="font-body text-sm text-coral mb-3">
+            {errorMsg}
+          </p>
+        )}
 
-          <div className="flex flex-wrap gap-3">
-              <button
-                type="submit"
-                className="bg-ink text-paper font-body text-sm px-6 py-4 uppercase tracking-wider hover:bg-ink/85 transition-colors"
-              >
-                Buy for €9.99 →
-              </button>
-            <button
-              type="button"
-              onClick={() => setStep('choose')}
-              className="border border-ink/30 text-ink px-6 py-4 uppercase font-body text-caption tracking-widest hover:bg-cream/30 transition-colors"
-            >
-              Back
-            </button>
-          </div>
-        </form>
-      )}
+        <button
+          type="submit"
+          disabled={submitting}
+          className="w-full bg-ink text-paper font-body text-caption uppercase tracking-widest px-6 py-3 hover:bg-ink/85 transition-colors disabled:opacity-50"
+        >
+          {authLoading
+            ? 'Loading…'
+            : submitting
+            ? 'Redirecting…'
+            : priceLabel}
+        </button>
+      </form>
     </div>
   );
 }

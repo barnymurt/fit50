@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Marquee from './Marquee';
 import { useAuth } from '@/contexts/AuthContext';
+import BuddyPurchasePicker from './BuddyPurchasePicker';
 
 export interface SixFeaturesItem {
   title: string;
@@ -48,6 +49,7 @@ export default function SixFeatures({
   const { user, profile, loading } = useAuth();
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showBuddyForm, setShowBuddyForm] = useState(false);
 
   const handleCheckout = async () => {
     setCheckoutLoading(true);
@@ -182,9 +184,10 @@ export default function SixFeatures({
                   {checkoutLoading ? 'Opening…' : 'Go solo'}
                 </button>
               </div>
-              <Link
-                href="/account#buddy-section"
-                className="bg-paper border-2 border-coral p-6 text-left hover:bg-coral/5 transition-colors block"
+              <button
+                type="button"
+                onClick={() => setShowBuddyForm((v) => !v)}
+                className="bg-paper border-2 border-coral p-6 text-left hover:bg-coral/5 transition-colors block w-full"
               >
                 <p className="font-body text-caption uppercase tracking-widest text-coral mb-2">
                   Buddy pair
@@ -194,10 +197,19 @@ export default function SixFeatures({
                   Bring a mate. Better odds, better story.
                 </p>
                 <span className="block w-full text-center bg-coral text-paper font-body text-caption uppercase tracking-widest px-6 py-3">
-                  Pick a buddy
+                  {showBuddyForm ? 'Hide form' : 'Pick a buddy'}
                 </span>
-              </Link>
+              </button>
             </div>
+            {showBuddyForm && (
+              <div className="mt-6">
+                <BuddyPurchasePicker
+                  variant="wide"
+                  headline="Bring a mate."
+                  subheadline="Two seats, one price. Better odds, better story."
+                />
+              </div>
+            )}
             {error && (
               <p className="font-body text-sm text-coral mt-4 text-center">{error}</p>
             )}

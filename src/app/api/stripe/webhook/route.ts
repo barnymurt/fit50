@@ -96,13 +96,22 @@ function newToken(): string {
   return randomBytes(24).toString('hex');
 }
 
+interface HandleBuddyPurchaseResult {
+  ok: boolean;
+  error?: string;
+}
+
 async function handleBuddyPurchase(
   supabase: ReturnType<typeof createClient<Database>>,
   session: Stripe.Checkout.Session,
   origin: string
-): Promise<{ ok: boolean; error?: string }> {
+): Promise<HandleBuddyPurchaseResult> {
   const meta = session.metadata || {};
-  const purchaserUserId = (meta.purchaser_user_id as string) || '';
+  const existingPurchaserUserId =
+    (meta.purchaser_existing_user_id as string) ||
+    (meta.purchaser_user_id as string) || // legacy field
+    '';
+  const purchaserName = (meta.purchaser_name as string) || '';
   const purchaserEmail = (
     (meta.purchaser_email as string) ||
     session.customer_details?.email ||
@@ -115,54 +124,95 @@ async function handleBuddyPurchase(
   const buddyResolution = (meta.buddy_resolution as string) || 'new';
   const purchaserWasPremium = (meta.purchaser_was_premium as string) === 'true';
 
-  if (!purchaserUserId || !purchaserEmail || !buddyEmail) {
+  if (!purchaserEmail || !buddyEmail) {
     console.error('buddy_pair missing required metadata', {
-      purchaserUserId,
       purchaserEmail,
       buddyEmail,
     });
     return { ok: false, error: 'missing metadata' };
   }
 
-  // 1. Grant premium to the purchaser — only if they weren't
-  //    already premium. Premium users with the loyalty discount
-  //    have already paid for themselves; we just need to grant
-  //    the buddy seat.
-  await ensureProfileExists(supabase, purchaserUserId, purchaserEmail);
-  if (!purchaserWasPremium) {
-    const purchaserOk = await setPremium(
-      supabase,
-      purchaserUserId,
-      true,
-      purchaserEmail,
-      'checkout.session.completed (buddy_pair, purchaser)'
-    );
-    if (!purchaserOk) {
-      return { ok: false, error: 'purchaser premium update failed' };
+  // 1. Resolve the purchaser. If the buyer was anonymous at
+  //    checkout, create the account now. If the buyer was signed
+  //    in, use their existing id and grant premium (skipped if
+  //    they were already premium and using the loyalty path).
+  let purchaserUserId = existingPurchaserUserId;
+  let purchaserActivationToken: string | null = null;
+
+  if (!purchaserUserId) {
+    // Anonymous checkout — create the buyer.
+    const { data: created, error: createError } = await supabase.auth.admin.createUser({
+      email: purchaserEmail,
+      email_confirm: true,
+      user_metadata: {
+        display_name: purchaserName,
+        created_by_buddy_purchase: true,
+      },
+    });
+    if (createError || !created?.user?.id) {
+      console.error('Failed to create purchaser user:', createError);
+      return { ok: false, error: 'createUser (purchaser) failed' };
     }
+    purchaserUserId = created.user.id;
+    purchaserActivationToken = newToken();
+    // The buyer is also pending_activation — they need to set a
+    // password via the magic link in their welcome email.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase.from('profiles') as any).upsert(
+      {
+        id: purchaserUserId,
+        email: purchaserEmail,
+        display_name: purchaserName,
+        is_premium: true,
+        premium_purchased_at: new Date().toISOString(),
+        challenge_started_at: new Date().toISOString().slice(0, 10),
+        activation_status: 'pending_activation',
+        activation_token: purchaserActivationToken,
+        activation_expires_at: new Date(
+          Date.now() + BUDDY_WINDOW_MS
+        ).toISOString(),
+      },
+      { onConflict: 'id' }
+    );
+    console.log(`✓ Purchaser (anonymous checkout) created: ${purchaserEmail}`);
+  } else {
+    // Signed-in checkout — use the existing profile.
+    await ensureProfileExists(supabase, purchaserUserId, purchaserEmail);
+    if (!purchaserWasPremium) {
+      const purchaserOk = await setPremium(
+        supabase,
+        purchaserUserId,
+        true,
+        purchaserEmail,
+        'checkout.session.completed (buddy_pair, purchaser)'
+      );
+      if (!purchaserOk) {
+        return { ok: false, error: 'purchaser premium update failed' };
+      }
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase.from('profiles') as any)
+      .update({ activation_status: 'active' })
+      .eq('id', purchaserUserId);
   }
 
-  // 2. Pair the purchaser with themselves so the buddy_user_id link
-  //    is wired up even on the purchaser's side.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await (supabase.from('profiles') as any)
-    .update({ activation_status: 'active' })
-    .eq('id', purchaserUserId);
-
-  // 3. Resolve the buddy.
+  // 2. Resolve the buddy. The buyer email is always a new user at
+  //    this point (we blocked existing FIT50 users at purchase
+  //    time). If the API-route check missed an edge case, fall
+  //    through to handling the buddy as new.
   let buddyUserId: string | null = null;
   let status: 'pending' | 'activated' = 'pending';
 
   if (buddyResolution === 'free') {
-    // Existing free user — auto-upgrade to premium.
+    // Buyer is a non-premium existing user who tried to gift a
+    // buddy pair. The API route should have rejected this in the
+    // strictest check, but we handle the leftover case gracefully.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: existingBuddy } = await (supabase.from('profiles') as any)
       .select('id')
       .eq('email', buddyEmail)
       .maybeSingle();
     if (!existingBuddy) {
-      // Edge case: profile existed at checkout but is gone by webhook
-      // time. Treat as 'new'.
       console.warn('buddy_resolution=free but buddy profile missing at webhook time');
     } else {
       buddyUserId = existingBuddy.id;
@@ -233,7 +283,7 @@ async function handleBuddyPurchase(
     const url = activationUrl(origin, token);
     const emailContent = renderBuddyInviteEmail({
       buddyName,
-      purchaserName: meta.buddy_name_placeholder ? buddyName : (purchaserEmail.split('@')[0] || 'Your friend'),
+      purchaserName: purchaserName || purchaserEmail.split('@')[0] || 'A friend',
       purchaserEmail,
       personalNote,
       activationUrl: url,
@@ -249,10 +299,35 @@ async function handleBuddyPurchase(
 
     if (!emailResult.ok) {
       console.error('Buddy invite email failed:', emailResult.error);
-      // The account + premium are still granted. Email can be resent
-      // from the dashboard.
     } else {
       console.log(`✓ Buddy invite sent to ${buddyEmail} (Resend id ${emailResult.id})`);
+    }
+  }
+
+  // 3. If the buyer was created anonymously in this webhook,
+  //    email them a welcome with their magic link so they can set
+  //    a password. The link is the same activation flow the buddy
+  //    uses (existing /activate/buddy/[token] page).
+  if (purchaserActivationToken) {
+    const url = activationUrl(origin, purchaserActivationToken);
+    const emailContent = renderBuddyInviteEmail({
+      buddyName: 'your mate',
+      purchaserName: purchaserName || 'You',
+      purchaserEmail,
+      personalNote: `Your buddy is ${buddyName}. ${personalNote}`.trim(),
+      activationUrl: url,
+    });
+    const buyerMail = await sendEmail({
+      to: purchaserEmail,
+      subject: 'Your buddy pair is live — set your password',
+      html: emailContent.html,
+      text: emailContent.text,
+      tags: [{ name: 'kind', value: 'purchaser-welcome' }],
+    });
+    if (!buyerMail.ok) {
+      console.error('Purchaser welcome email failed:', buyerMail.error);
+    } else {
+      console.log(`✓ Purchaser welcome sent to ${purchaserEmail} (Resend id ${buyerMail.id})`);
     }
   }
 
