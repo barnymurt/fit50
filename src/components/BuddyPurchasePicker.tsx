@@ -1,16 +1,20 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface Props {
   variant?: 'compact' | 'wide';
+  mode?: 'pair' | 'add_buddy';
+  // Override the auto-derived headline / subheadline.
   headline?: string;
   subheadline?: string;
-  // Hide the loyalty-discount path for premium users (e.g. when
-  // shown on the homepage CTA where we want a single clear price).
+  // Suppress the loyalty path (used on the homepage where we want
+  // a single clear price for all visitors).
   hideLoyaltyPath?: boolean;
 }
+
+const UPSELL = 'Save €2 and bring a mate along. Pairs finish at nearly 2x the rate of solo challengers.';
 
 function isValidEmail(s: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
@@ -18,8 +22,9 @@ function isValidEmail(s: string): boolean {
 
 export default function BuddyPurchasePicker({
   variant = 'wide',
-  headline = 'Bring a mate.',
-  subheadline = 'Two seats, one price. Better odds, better story.',
+  mode = 'pair',
+  headline: hl,
+  subheadline: sl,
   hideLoyaltyPath = false,
 }: Props) {
   const { user, profile, loading: authLoading } = useAuth();
@@ -39,12 +44,25 @@ export default function BuddyPurchasePicker({
     if (profile?.display_name) setPurchaserName(profile.display_name);
   }, [user?.email, profile?.display_name]);
 
-  const isPremium = !!user && !!profile?.is_premium;
-
   const containerCls =
     variant === 'wide'
       ? 'bg-paper border border-ink/10 p-6 md:p-8'
       : 'bg-paper border border-ink/10 p-5';
+
+  // Per-mode copy. The headline and subheadline can be overridden
+  // by the caller.
+  const isAddBuddy = mode === 'add_buddy';
+  const defaultHeadline = isAddBuddy
+    ? 'Add a buddy.'
+    : 'Bring a mate.';
+  const defaultSubheadline = isAddBuddy
+    ? 'Same price as solo — €5.99. They get their own account, you see each other’s streaks.'
+    : 'Two seats, one price. €9.99. Better odds, better story.';
+  const headline = hl ?? defaultHeadline;
+  const subheadline = sl ?? defaultSubheadline;
+  const priceLabel = isAddBuddy
+    ? 'Add a buddy for €5.99 →'
+    : 'Buy for €9.99 →';
 
   const submit = async () => {
     if (!isValidEmail(purchaserEmail)) {
@@ -74,6 +92,7 @@ export default function BuddyPurchasePicker({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          mode,
           purchaser_email: purchaserEmail.trim(),
           purchaser_name: purchaserName.trim(),
           buddy_email: buddyEmail.trim(),
@@ -94,27 +113,25 @@ export default function BuddyPurchasePicker({
     }
   };
 
-  // Decide which price to show.
-  //  - signed-in + premium + not in "hide" mode: loyalty path
-  //  - everyone else: full pair price
-  const showLoyalty =
-    !hideLoyaltyPath && isPremium && !!user;
-
-  const priceLabel = showLoyalty
-    ? `Add a buddy for €4.00 →`
-    : `Buy for €9.99 →`;
+  if (authLoading) {
+    return (
+      <div className={containerCls}>
+        <p className="font-body text-caption uppercase tracking-widest text-ink/50">
+          Loading…
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className={containerCls}>
-      <p className="font-body text-caption uppercase text-coral mb-2">Buddy pair</p>
+      <p className="font-body text-caption uppercase text-coral mb-2">
+        {isAddBuddy ? 'Buddy' : 'Buddy pair'}
+      </p>
       <p className="font-display text-h2 text-ink leading-tight mb-1">
         {headline}
       </p>
-      <p className="font-body text-base text-ink/70 mb-6">
-        {showLoyalty
-          ? 'You’re already on the premium plan — just €4.00 to add a buddy. They get their own account, you see each other’s streaks.'
-          : subheadline}
-      </p>
+      <p className="font-body text-base text-ink/70 mb-6">{subheadline}</p>
 
       <form
         onSubmit={(e) => {
@@ -209,6 +226,14 @@ export default function BuddyPurchasePicker({
             ? 'Redirecting…'
             : priceLabel}
         </button>
+
+        {/* Checkout upsell — only on the pair path. Encourages the
+            €9.99 buy-now over a later €5.99 add-buddy. */}
+        {!isAddBuddy && (
+          <p className="font-body text-xs text-ink/60 mt-3 text-center">
+            {UPSELL}
+          </p>
+        )}
       </form>
     </div>
   );

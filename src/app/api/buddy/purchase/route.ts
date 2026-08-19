@@ -1,20 +1,21 @@
 // POST /api/buddy/purchase
 //
-// Creates a Stripe Checkout session for a buddy-pair purchase.
-// Accepts non-signed-in buyers: the form is the single source of
-// truth for buyer_email, buyer_name, buddy_email, buddy_name.
-//
-// Validation:
-//   - both emails well-formed
-//   - emails are different
-//   - neither email is already a FIT50 Premium member
-//   - the buyer email isn't already a pending buddy purchase
-//   - the buddy email isn't already a pending buddy purchase
+// Two pricing paths:
+//   mode = 'pair'      : €9.99 — Pair at checkout. Both seats are
+//                          purchased together. Both accounts get
+//                          created / updated. No loyalty discount.
+//   mode = 'add_buddy'  : €5.99 — Add a buddy later. The buyer is
+//                          already a solo user; they pay for one
+//                          new seat (the buddy's). No pair discount.
 //
 // Auth: optional. The API attaches user_id to metadata when the
 // caller is signed in (so the webhook can pair accounts and skip
 // creating a new user for the buyer). For unsigned buyers, the
 // webhook creates the user on payment success.
+//
+// Checkout upsell: "Save €2 and bring a mate along. Pairs finish
+// at nearly 2x the rate of solo challengers." Surfaced in the
+// homepage / account UI when the picker is in pair mode.
 
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
@@ -26,9 +27,9 @@ import type { Database } from '@/lib/supabase';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const PRIX_EUR_CENTS = 599;
-const PAIR_COUPON_AMOUNT_OFF_CENTS = 199;   // 2 × 5.99 − 1.99 = 9.99
-const LOYALTY_COUPON_AMOUNT_OFF_CENTS = 199; // 5.99 − 1.99 = 4.00
+const SEAT_EUR_CENTS = 599;        // €5.99 per seat
+const PAIR_COUPON_OFF_CENTS = 199; // €1.99 off — pair nets €9.99
+// mode=add_buddy has no discount — full €5.99.
 
 function isValidEmail(s: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
@@ -60,6 +61,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json().catch(() => ({}));
+  const mode = body.mode === 'add_buddy' ? 'add_buddy' : 'pair';
   const purchaserEmail = typeof body.purchaser_email === 'string'
     ? body.purchaser_email.trim().toLowerCase()
     : '';
@@ -131,7 +133,26 @@ export async function POST(req: NextRequest) {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
-  // 1. Block if the buyer email is already a pending purchase.
+  // mode = 'add_buddy' requires a signed-in buyer (the buyer is
+  // adding a buddy to their own existing account).
+  if (mode === 'add_buddy' && !user) {
+    return NextResponse.json(
+      { error: 'Sign in to add a buddy to your account.' },
+      { status: 401 }
+    );
+  }
+
+  // The buyer email must match the signed-in account when adding
+  // a buddy to an existing solo (we don't allow users to claim a
+  // purchase for someone else).
+  if (mode === 'add_buddy' && user && user.email?.toLowerCase() !== purchaserEmail) {
+    return NextResponse.json(
+      { error: 'The signed-in account does not match the buyer email.' },
+      { status: 403 }
+    );
+  }
+
+  // 1. Block if the buddy email is already a pending purchase.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: existingPurchase } = await (admin.from('buddy_purchases') as any)
     .select('id, status, purchaser_user_id')
@@ -151,46 +172,9 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // 2. Check the buyer email — if it's already a FIT50 Premium
-  //    member, we need to apply the loyalty discount. If they're
-  //    not signed in but the email is a free account, the user
-  //    should sign in first to claim that account.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: purchaserProfile } = await (admin.from('profiles') as any)
-    .select('id, is_premium, display_name')
-    .eq('email', purchaserEmail)
-    .maybeSingle();
-
-  let purchaserIsPremium = false;
-  if (purchaserProfile?.is_premium) {
-    // Buyer already has a FIT50 Premium account. The price drops to
-    // the loyalty price, and we need a signed-in session to pair the
-    // accounts in the webhook. If the cookie session is anonymous,
-    // block — the user should sign in to claim the discount.
-    if (!user) {
-      return NextResponse.json(
-        {
-          error:
-            'That email already has a paid FIT50 account. Sign in to claim the loyalty discount.',
-        },
-        { status: 401 }
-      );
-    }
-    if (user.email?.toLowerCase() !== purchaserEmail) {
-      return NextResponse.json(
-        {
-          error:
-            'The signed-in account does not match the buyer email. Sign in with the buyer email to claim the loyalty discount.',
-        },
-        { status: 403 }
-      );
-    }
-    purchaserIsPremium = true;
-  }
-
-  // 3. The buddy must be a brand-new email. If they already have an
+  // 2. The buddy must be a brand-new email. If they already have an
   //    account, even a free one, the buddy is no longer a "gift" — we
-  //    can't create another account for them. Block with a clear msg.
+  //    can't create another account for them.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: buddyProfile } = await (admin.from('profiles') as any)
     .select('id, is_premium, display_name')
@@ -209,40 +193,23 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // 4. Build the Stripe Checkout session.
+  // 3. Build the Stripe Checkout session.
   const origin = req.nextUrl.origin.replace(/\/$/, '');
   const stripe = new Stripe(stripeSecret);
 
   let line_items: Stripe.Checkout.SessionCreateParams.LineItem[];
-  let couponName: string;
-  let couponAmountOffCents: number;
+  let couponName: string | null = null;
+  let couponAmountOffCents: number | null = null;
   let totalCents: number;
 
-  if (purchaserIsPremium) {
+  if (mode === 'pair') {
+    // Pair at checkout: two seats at €5.99 minus €1.99 = €9.99.
     line_items = [
       {
         quantity: 1,
         price_data: {
           currency: 'eur',
-          unit_amount: PRIX_EUR_CENTS,
-          product_data: {
-            name: `FIT50 Premium (${buddyName || 'buddy'})`,
-            description:
-              'Lifetime access for your buddy. They’ll get their own account once they activate.',
-          },
-        },
-      },
-    ];
-    couponName = 'FIT50-LOYALTY-BUDDY';
-    couponAmountOffCents = LOYALTY_COUPON_AMOUNT_OFF_CENTS;
-    totalCents = PRIX_EUR_CENTS - LOYALTY_COUPON_AMOUNT_OFF_CENTS;
-  } else {
-    line_items = [
-      {
-        quantity: 1,
-        price_data: {
-          currency: 'eur',
-          unit_amount: PRIX_EUR_CENTS,
+          unit_amount: SEAT_EUR_CENTS,
           product_data: {
             name: 'FIT50 Premium (you)',
             description:
@@ -254,7 +221,7 @@ export async function POST(req: NextRequest) {
         quantity: 1,
         price_data: {
           currency: 'eur',
-          unit_amount: PRIX_EUR_CENTS,
+          unit_amount: SEAT_EUR_CENTS,
           product_data: {
             name: `FIT50 Premium (${buddyName || 'buddy'})`,
             description:
@@ -264,37 +231,58 @@ export async function POST(req: NextRequest) {
       },
     ];
     couponName = 'FIT50-BUDDY-PAIR';
-    couponAmountOffCents = PAIR_COUPON_AMOUNT_OFF_CENTS;
-    totalCents = PRIX_EUR_CENTS * 2 - PAIR_COUPON_AMOUNT_OFF_CENTS;
+    couponAmountOffCents = PAIR_COUPON_OFF_CENTS;
+    totalCents = SEAT_EUR_CENTS * 2 - PAIR_COUPON_OFF_CENTS; // 999
+  } else {
+    // Add buddy later: one new seat at €5.99, no discount.
+    line_items = [
+      {
+        quantity: 1,
+        price_data: {
+          currency: 'eur',
+          unit_amount: SEAT_EUR_CENTS,
+          product_data: {
+            name: `FIT50 Premium (${buddyName || 'buddy'})`,
+            description:
+              'Lifetime access for your buddy. They’ll get their own account once they activate.',
+          },
+        },
+      },
+    ];
+    totalCents = SEAT_EUR_CENTS; // 599
   }
 
-  const couponId = await ensureDiscount(stripe, couponName, couponAmountOffCents);
-
-  const session = await stripe.checkout.sessions.create({
+  const sessionParams: Stripe.Checkout.SessionCreateParams = {
     mode: 'payment',
     payment_method_types: ['card'],
-    customer_email: purchaserIsPremium ? purchaserEmail : undefined,
     line_items,
-    discounts: [{ coupon: couponId }],
     metadata: {
       type: 'buddy_pair',
-      // For the webhook to know who's who and how to pair them up.
+      mode,
+      // Only set this when the buyer is already signed in. The
+      // webhook creates a brand-new user when this is empty.
+      purchaser_existing_user_id: user?.id ?? '',
       purchaser_email: purchaserEmail,
       purchaser_name: purchaserName,
-      purchaser_existing_user_id: user?.id ?? '',
       buddy_email: buddyEmail,
       buddy_name: buddyName,
       personal_note: personalNote,
-      // Was the buyer already premium at purchase time? The webhook
-      // uses this to skip the buyer's premium grant + skip createUser
-      // for the buyer. The buddy is still created as a brand-new
-      // account.
-      purchaser_was_premium: purchaserIsPremium ? 'true' : 'false',
       amount_paid_cents: totalCents.toString(),
     },
     success_url: `${origin}/account?checkout=buddy_pair`,
     cancel_url: `${origin}/?checkout=canceled`,
-  });
+  };
+
+  if (couponName && couponAmountOffCents) {
+    const couponId = await ensureDiscount(stripe, couponName, couponAmountOffCents);
+    sessionParams.discounts = [{ coupon: couponId }];
+  }
+
+  if (mode === 'add_buddy' && user) {
+    sessionParams.customer_email = user.email;
+  }
+
+  const session = await stripe.checkout.sessions.create(sessionParams);
 
   return NextResponse.json({ url: session.url });
 }

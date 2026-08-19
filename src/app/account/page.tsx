@@ -349,14 +349,15 @@ export default function AccountPage() {
               <p className="font-body text-caption uppercase tracking-widest text-coral mb-3">
                 Buddy
               </p>
-              <Heading>Bring a mate.</Heading>
+              <Heading>Add a buddy.</Heading>
               <p className="font-body text-base text-ink/70 mt-3 mb-8 max-w-xl">
-                Pair up. Better odds, better story. You&apos;ll see each other&apos;s
-                streaks on the tracker — one more reason to keep showing up.
+                Bring a mate to your challenge for €5.99. You&apos;ll see
+                each other&apos;s streaks on the tracker — one more
+                reason to keep showing up.
               </p>
             </div>
           </div>
-          <BuddyPurchasePicker variant="wide" />
+          <BuddyPurchasePicker variant="wide" mode="add_buddy" />
         </div>
       </Section>
 
