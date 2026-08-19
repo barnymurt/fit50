@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface Props {
@@ -83,6 +83,23 @@ export default function BuddyPurchasePicker({
       </div>
     );
   }
+
+  // When the buyer's premium status resolves, reset the form to step
+  // 'choose' so the correct card / button text shows. Avoids the
+  // "Add a buddy for €4.00 → Buy for €9.99" flip that happens when
+  // profile loads mid-flow. Track the last premium value so we only
+  // reset on actual status change, not every render.
+  const lastPremiumRef = useRef<boolean | null>(null);
+  useEffect(() => {
+    if (lastPremiumRef.current === null) {
+      lastPremiumRef.current = isPremium;
+      return;
+    }
+    if (lastPremiumRef.current !== isPremium) {
+      lastPremiumRef.current = isPremium;
+      setStep('choose');
+    }
+  }, [isPremium]);
 
   if (step === 'choose') {
     // For premium users: only the buddy option (loyalty discount).
