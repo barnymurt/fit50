@@ -26,6 +26,7 @@ import { useMacroTargets } from '@/hooks/useMacroTargets';
 import { saveJson } from '@/lib/storage';
 import { useMacroProfile, timeSince } from '@/hooks/useMacroProfile';
 import { getRememberMe, setRememberMe } from '@/lib/supabase';
+import MyMotivator from '@/components/MyMotivator';
 
 const HABIT_LABELS: Record<string, string> = {
   'chill-out': 'Chill Out',
@@ -335,6 +336,9 @@ export default function AccountPage() {
 
       {/* ============ The tracker ============ */}
       <Tracker hideMarquee />
+
+      {/* ============ My motivator (buddy view: tiny shout-out) ============ */}
+      <MyMotivator />
 
       {/* ============ Buddy (free + premium) — directly below tracker ============ */}
       <Section

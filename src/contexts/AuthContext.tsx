@@ -11,6 +11,7 @@ interface Profile {
   is_premium: boolean;
   challenge_started_at: string;
   buddy_user_id?: string | null;
+  purchased_by_user_id?: string | null;
 }
 
 export type AuthError = {
