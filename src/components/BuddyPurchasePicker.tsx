@@ -109,6 +109,7 @@ export default function BuddyPurchasePicker({
         cache: 'no-store',
         body: JSON.stringify({
           mode,
+          user_id: user?.id ?? '',
           purchaser_email: purchaserEmail.trim(),
           purchaser_name: purchaserName.trim(),
           buddy_email: buddyEmail.trim(),
