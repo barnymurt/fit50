@@ -14,9 +14,15 @@ const BARS: { key: 'kcal' | 'protein' | 'carbs' | 'fat'; label: string; unit: st
   { key: 'fat', label: 'Fat', unit: 'g' },
 ];
 
-// ±5% buffer zone. Within 5% of target → acceptable.
-// Past 105% → over (warning).
+// Bar zones (% of target):
+//   0%–95%  : empty (ink/10 background)
+//   95%–100%: teal hatched (close to target)
+//   100%–105%: coral hatched (over-target but within tolerance)
+//   >105%   : full coral (warning)
+const TIGHT = 0.95;
 const BUFFER = 0.05;
+// Total bar width represents target × (TIGHT + BUFFER) = 100% of target.
+const TOTAL_BAR = TIGHT + BUFFER; // 1.0
 
 export default function DailyTotalsBar({ totals, targets }: Props) {
   return (
@@ -29,7 +35,7 @@ export default function DailyTotalsBar({ totals, targets }: Props) {
           Today
         </p>
       </div>
-      <div className="p-6 space-y-4">
+      <div className="p-6 space-y-5">
         {BARS.map(({ key, label, unit }) => {
           const value = totals[key];
           const target = targets?.[key] ?? 0;
@@ -52,25 +58,22 @@ export default function DailyTotalsBar({ totals, targets }: Props) {
           }
 
           const ratio = value / target;
-          const fillRatio = Math.min(1, ratio);
-          const fillPct = Math.round(fillRatio * 100);
-          const targetPct = 100; // bar's 100% mark is the target
-          const bufferEndPct = 105;
+          // Positions on the bar (0 .. TOTAL_BAR):
+          //   tightEndPct   = 95% mark  (teal zone starts)
+          //   targetPct    = 100% mark (finish line)
+          //   bufferEndPct = 105% mark (end of bar)
+          const tightEnd = TIGHT / TOTAL_BAR;        // 0.95 / 1.0 = 0.95
+          const targetPct = 1 / TOTAL_BAR;            // 1.0 / 1.0 = 1.0
+          const bufferEndPct = TOTAL_BAR / TOTAL_BAR;  // 1.0
+          // Fill position:
+          const fillPct = Math.min(ratio / TOTAL_BAR, 1);  // how far across the visible bar
 
-          // Status:
-          //  on track   : 95% ≤ ratio ≤ 100%   → fill teal
-          //  acceptable : 100% < ratio ≤ 105%  → fill 100% teal, buffer orange to 105%
-          //  over       : ratio > 105%        → fill 100% red, ratio continues
-          //  under      : ratio < 95%          → fill teal to ratio, no warning
-          let status: 'on-track' | 'acceptable' | 'over' | 'under' = 'on-track';
-          if (ratio > 1.05) status = 'over';
-          else if (ratio > 1) status = 'acceptable';
-          else if (ratio < 0.95) status = 'under';
+          // Status: only flag "over" past 105% — within 95-105% is
+          // acceptable and shown in the standard teal/ink colour.
+          let status: 'on-track' | 'over' = 'on-track';
+          if (ratio > 1 + BUFFER) status = 'over';
 
-          // Bar visible region: 0% → 105% of target (so the 5% buffer
-          // is part of the bar, not a separate strip clipped off). Total
-          // bar width represents 105% of target.
-          const barTotalPct = 105;
+          const fillPctLabel = Math.round(ratio * 100);
 
           return (
             <div key={key}>
@@ -87,77 +90,95 @@ export default function DailyTotalsBar({ totals, targets }: Props) {
                   <span className="text-ink/40 font-body text-sm font-normal ml-1">
                     / {Math.round(target)} {unit}
                   </span>
-                  <span
-                    className={`ml-2 font-body text-caption uppercase tracking-widest tabular-nums ${
-                      status === 'over'
-                        ? 'text-coral'
-                        : status === 'acceptable'
-                        ? 'text-coral/80'
-                        : 'text-ink/50'
-                    }`}
-                  >
-                    {fillPct}%
-                  </span>
                 </span>
               </div>
               <div
-                className="h-3 bg-ink/10 relative"
-                aria-label={`${label} ${fillPct}% of target ${Math.round(target)} ${unit} with 5% buffer`}
+                className="h-4 bg-ink/10 relative"
+                aria-label={`${label} ${fillPctLabel}% of target ${Math.round(target)} ${unit}, 5% buffer at 100-105%`}
               >
-                {/* Filled portion (clipped to bar width) */}
+                {/* 95%→100% zone — teal hatched (you're getting close) */}
+                <div
+                  className="absolute inset-y-0"
+                  style={{
+                    left: `${tightEnd * 100}%`,
+                    width: `${(targetPct - tightEnd) * 100}%`,
+                    backgroundImage:
+                      'repeating-linear-gradient(45deg, rgba(74,155,155,0.30) 0 4px, transparent 4px 8px)',
+                    backgroundColor: 'rgba(74,155,155,0.10)',
+                  }}
+                  aria-hidden
+                />
+                {/* 100%→105% zone — coral hatched (over-target but within tolerance) */}
+                <div
+                  className="absolute inset-y-0"
+                  style={{
+                    left: `${targetPct * 100}%`,
+                    width: `${(bufferEndPct - targetPct) * 100}%`,
+                    backgroundImage:
+                      'repeating-linear-gradient(45deg, rgba(232,139,90,0.30) 0 4px, transparent 4px 8px)',
+                    backgroundColor: 'rgba(232,139,90,0.10)',
+                  }}
+                  aria-hidden
+                />
+                {/* Fill (clipped to bar width) */}
                 <div
                   className="absolute inset-y-0 left-0 overflow-hidden"
-                  style={{ width: `${(fillRatio / 1.05) * 100}%` }}
+                  style={{ width: `${fillPct * 100}%` }}
                 >
                   <div
                     className={`h-full transition-all duration-300 ${
                       status === 'over' ? 'bg-coral' : 'bg-teal'
                     }`}
-                    style={{ width: `${(fillPct / bufferEndPct) * 100}%` }}
+                    style={{ width: '100%' }}
                   />
                 </div>
-                {/* 5% buffer zone — always visible. Hatched coral pattern
-                    so it reads as 'acceptable tolerance' rather than
-                    'extra room to fill'. Sits at 100-105% of target. */}
+                {/* 100% target marker — thick line + flag + "100%" label */}
                 <div
-                  className="absolute inset-y-0 bg-coral/25"
-                  style={{
-                    left: `${(100 / 105) * 100}%`,
-                    width: `${(5 / 105) * 100}%`,
-                    backgroundImage:
-                      'repeating-linear-gradient(45deg, rgba(232,139,90,0.22) 0 4px, transparent 4px 8px)',
-                  }}
+                  className="absolute inset-y-0 w-0.5 bg-ink"
+                  style={{ left: `${targetPct * 100}%` }}
                   aria-hidden
                 />
-                {/* Target marker (solid line at 100%) */}
                 <div
-                  className="absolute inset-y-0 w-px bg-ink/60"
-                  style={{ left: `${(100 / 105) * 100}%` }}
-                  aria-hidden
-                />
-                {/* +5% buffer label, sits to the right of the bar */}
-                <span
-                  className="absolute top-1/2 -translate-y-1/2 left-full ml-1 text-[10px] font-body uppercase tracking-widest text-coral/80 pointer-events-none whitespace-nowrap"
+                  className="absolute top-0 -translate-x-1/2"
+                  style={{ left: `${targetPct * 100}%` }}
                   aria-hidden
                 >
-                  +5%
+                  <div className="w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-ink" />
+                </div>
+                <span
+                  className="absolute top-3 -translate-x-1/2 font-body text-caption uppercase tracking-widest text-ink/70 font-medium"
+                  style={{ left: `${targetPct * 100}%` }}
+                  aria-hidden
+                >
+                  100%
                 </span>
-                {/* Percent-complete label on the fill (only when fill is
-                    wide enough to host it without clipping) */}
-                {fillRatio >= 0.18 && (
+                {/* 95% and 105% boundary labels (small) */}
+                <span
+                  className="absolute -bottom-5 -translate-x-1/2 font-body text-[10px] uppercase tracking-widest text-ink/40"
+                  style={{ left: `${tightEnd * 100}%` }}
+                  aria-hidden
+                >
+                  95%
+                </span>
+                <span
+                  className="absolute -bottom-5 -translate-x-1/2 font-body text-[10px] uppercase tracking-widest text-ink/40"
+                  style={{ left: `${bufferEndPct * 100}%` }}
+                  aria-hidden
+                >
+                  105%
+                </span>
+                {/* Percent-complete label — sits right of the fill's
+                    leading edge, with a dark ink pill for readability. */}
+                {fillPct > 0 && (
                   <span
-                    className={`absolute top-1/2 -translate-y-1/2 font-body text-caption tabular-nums font-medium ${
-                      status === 'over' ? 'text-paper' : 'text-paper'
-                    }`}
+                    className="absolute top-1/2 -translate-y-1/2 inline-flex items-center justify-center font-body text-caption tabular-nums font-semibold bg-ink text-paper px-1.5 py-0.5 pointer-events-none whitespace-nowrap"
                     style={{
-                      left: `${(fillRatio / 1.05) * 100}%`,
-                      transform: 'translate(-50%, -50%)',
-                      textShadow: '0 1px 2px rgba(0,0,0,0.4)',
-                      pointerEvents: 'none',
+                      left: `calc(${fillPct * 100}% + 4px)`,
+                      transform: 'translate(0, -50%)',
                     }}
                     aria-hidden
                   >
-                    {fillPct}%
+                    {fillPctLabel}%
                   </span>
                 )}
               </div>
