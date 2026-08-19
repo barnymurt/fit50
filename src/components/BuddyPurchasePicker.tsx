@@ -14,7 +14,7 @@ interface Props {
   hideLoyaltyPath?: boolean;
 }
 
-const UPSELL = 'Save €2 and bring a mate along. Pairs finish at nearly 2x the rate of solo challengers.';
+const UPSELL = 'Shout a mate. Mates finish this at nearly twice the rate of solo starters.';
 
 function isValidEmail(s: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
@@ -53,11 +53,11 @@ export default function BuddyPurchasePicker({
   // by the caller.
   const isAddBuddy = mode === 'add_buddy';
   const defaultHeadline = isAddBuddy
-    ? 'Add a buddy.'
+    ? 'Buddy up.'
     : 'Bring a mate.';
   const defaultSubheadline = isAddBuddy
-    ? 'Same price as solo — €5.99. They get their own account, you see each other’s streaks.'
-    : 'Two seats, one price. €9.99. Better odds, better story.';
+    ? 'Finish together. Or just be in it for the craic!'
+    : 'Mine’s a double, on the rocks.';
   const headline = hl ?? defaultHeadline;
   const subheadline = sl ?? defaultSubheadline;
   const priceLabel = isAddBuddy

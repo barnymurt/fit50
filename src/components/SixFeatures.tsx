@@ -194,7 +194,7 @@ export default function SixFeatures({
                 </p>
                 <p className="font-display text-h2 text-coral leading-none mb-1">€9.99</p>
                 <p className="font-body text-sm text-ink/60 mb-4">
-                  Bring a mate. Better odds, better story.
+                  Mine’s a double, on the rocks.
                 </p>
                 <span className="block w-full text-center bg-coral text-paper font-body text-caption uppercase tracking-widest px-6 py-3">
                   {showBuddyForm ? 'Hide form' : 'Pick a buddy'}
@@ -206,7 +206,7 @@ export default function SixFeatures({
                 <BuddyPurchasePicker
                   variant="wide"
                   headline="Bring a mate."
-                  subheadline="Two seats, one price. Better odds, better story."
+                  subheadline="Mine’s a double, on the rocks."
                 />
               </div>
             )}

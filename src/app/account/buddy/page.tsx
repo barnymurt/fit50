@@ -92,7 +92,7 @@ export default function BuddyDashboardPage() {
           <p className="font-body text-caption uppercase text-coral mb-3">Buddy</p>
           <Heading as="h1" size="display-2" className="text-ink mb-4">No buddy yet.</Heading>
           <p className="font-body text-base text-ink/70 mb-8">
-            Don&apos;t have a buddy yet? Pair up for €9.99. Better odds, better story.
+            Don&apos;t have a buddy yet? Pair up for €9.99. Mates finish this at nearly twice the rate of solo starters.
           </p>
           <a
             href="/#sign-up"
