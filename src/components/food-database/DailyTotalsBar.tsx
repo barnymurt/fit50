@@ -21,8 +21,8 @@ const BARS: { key: 'kcal' | 'protein' | 'carbs' | 'fat'; label: string; unit: st
 //   >105%   : full coral (warning)
 const TIGHT = 0.95;
 const BUFFER = 0.05;
-// Total bar width represents target × (TIGHT + BUFFER) = 100% of target.
-const TOTAL_BAR = TIGHT + BUFFER; // 1.0
+// Total bar width represents 100% target + 5% buffer = 1.05 of target.
+const TOTAL_BAR = 1 + BUFFER; // 1.05
 
 export default function DailyTotalsBar({ totals, targets }: Props) {
   return (
