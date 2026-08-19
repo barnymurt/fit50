@@ -187,7 +187,7 @@ export default function SixFeatures({
               <button
                 type="button"
                 onClick={() => setShowBuddyForm((v) => !v)}
-                className="bg-paper border-2 border-coral p-6 text-left hover:bg-coral/5 transition-colors block w-full"
+                className="bg-paper border-2 border-coral p-6 text-left block w-full"
               >
                 <p className="font-body text-caption uppercase tracking-widest text-coral mb-2">
                   Buddy Up.
