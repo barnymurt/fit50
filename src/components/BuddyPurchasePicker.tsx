@@ -65,6 +65,10 @@ export default function BuddyPurchasePicker({
     : 'Buy for €9.99 →';
 
   const submit = async () => {
+    if (isAddBuddy && !user) {
+      setErrorMsg('Please sign in to add a buddy to your account.');
+      return;
+    }
     if (!isValidEmail(purchaserEmail)) {
       setErrorMsg('Please enter a valid email for you.');
       return;
@@ -91,6 +95,8 @@ export default function BuddyPurchasePicker({
       const res = await fetch('/api/buddy/purchase', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        cache: 'no-store',
         body: JSON.stringify({
           mode,
           purchaser_email: purchaserEmail.trim(),

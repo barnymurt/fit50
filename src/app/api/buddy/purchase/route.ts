@@ -108,11 +108,20 @@ export async function POST(req: NextRequest) {
 
   // SSR-aware auth: if the buyer is signed in, use their user.id so
   // the webhook can pair accounts and skip the createUser step.
+  // Read cookies via both the request and the next/headers helper
+  // (Next 14: the request cookie store is the most reliable way to
+  // see cookies set by a different rendering).
   const cookieStore = cookies();
+  const requestCookies = req.cookies.getAll();
   const ssrClient = createServerClient<Database>(supabaseUrl, supabaseAnon, {
     cookies: {
       getAll() {
-        return cookieStore.getAll();
+        const fromHeaders = cookieStore.getAll();
+        // Merge — request cookies win (latest value wins).
+        const map = new Map<string, { name: string; value: string }>();
+        for (const c of fromHeaders) map.set(c.name, c);
+        for (const c of requestCookies) map.set(c.name, c);
+        return Array.from(map.values());
       },
       setAll(toSet) {
         try {
@@ -127,6 +136,7 @@ export async function POST(req: NextRequest) {
   });
   const {
     data: { user },
+    error: userErr,
   } = await ssrClient.auth.getUser();
 
   const admin = createAdminClient<Database>(supabaseUrl, supabaseServiceKey, {
