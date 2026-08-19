@@ -92,13 +92,13 @@ export default function BuddyDashboardPage() {
           <p className="font-body text-caption uppercase text-coral mb-3">Buddy</p>
           <Heading as="h1" size="display-2" className="text-ink mb-4">No buddy yet.</Heading>
           <p className="font-body text-base text-ink/70 mb-8">
-            Don&apos;t have a buddy yet? Pair up for €9.99. Mates finish this at nearly twice the rate of solo starters.
+            Don&apos;t have a buddy yet? Shout a mate — €9.99 for the pair. Mates finish this at nearly twice the rate of solo starters.
           </p>
           <a
             href="/#sign-up"
             className="inline-flex items-center justify-center bg-coral text-paper font-body text-sm px-8 py-4 uppercase tracking-wider hover:bg-coral/85 transition-colors"
           >
-            Bring a mate
+            Shout a mate
           </a>
         </div>
       </Section>

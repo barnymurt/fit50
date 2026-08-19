@@ -144,7 +144,7 @@ export default function SixFeatures({
               All helpful tools are active.
             </h3>
             <p className="font-body text-base text-paper/75 mb-6">
-              Thank you for the caneca. Bring a mate to keep you both honest.
+                Thank you for the caneca. Shout a mate to keep you both honest.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Link
@@ -169,11 +169,11 @@ export default function SixFeatures({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="bg-paper border border-paper/20 p-6 text-left">
                 <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-2">
-                  Solo
+                  Flying Solo.
                 </p>
                 <p className="font-display text-h2 text-ink leading-none mb-1">€5.99</p>
                 <p className="font-body text-sm text-ink/60 mb-4">
-                  Just me, thanks.
+                  Just the one, Cheers.
                 </p>
                 <button
                   type="button"
@@ -190,14 +190,14 @@ export default function SixFeatures({
                 className="bg-paper border-2 border-coral p-6 text-left hover:bg-coral/5 transition-colors block w-full"
               >
                 <p className="font-body text-caption uppercase tracking-widest text-coral mb-2">
-                  Buddy pair
+                  Buddy Up.
+                </p>
+                <p className="font-body text-sm text-ink/60 mb-4">
+                  Mates finish this at nearly twice the rate of solo starters.
                 </p>
                 <p className="font-display text-h2 text-coral leading-none mb-1">€9.99</p>
-                <p className="font-body text-sm text-ink/60 mb-4">
-                  Mine’s a double, on the rocks.
-                </p>
                 <span className="block w-full text-center bg-coral text-paper font-body text-caption uppercase tracking-widest px-6 py-3">
-                  {showBuddyForm ? 'Hide form' : 'Pick a buddy'}
+                  {showBuddyForm ? 'Hide form' : 'Mines a double on the rocks.'}
                 </span>
               </button>
             </div>
@@ -205,8 +205,8 @@ export default function SixFeatures({
               <div className="mt-6">
                 <BuddyPurchasePicker
                   variant="wide"
-                  headline="Bring a mate."
-                  subheadline="Mine’s a double, on the rocks."
+                  headline="Shout a mate."
+                  subheadline="Mates finish this at nearly twice the rate of solo starters."
                 />
               </div>
             )}
