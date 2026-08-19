@@ -52,9 +52,11 @@ function rowToFood(row: Record<string, unknown>): Food {
   };
 }
 
-// Hook returns the food list for a given search. The DB is the single
-// source of truth, but in-memory caching is preserved (same as before)
-// so navigating between views doesn't re-hit the network.
+// Hook returns the food list for a given search. The DB is the primary
+// source of truth, but a JSON fallback kicks in if the DB is empty
+// (the foods table hasn't been populated yet) or if the Supabase
+// query fails. This way the food log is usable even before running
+// the foods migration script.
 export function useFoodData() {
   const [foods, setFoods] = useState<Food[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -67,9 +69,16 @@ export function useFoodData() {
         setFoods(list);
         setLoaded(true);
       })
-      .catch((err) => {
-        console.error('Failed to load foods:', err);
-        if (!cancelled) setLoaded(true);
+      .catch(async () => {
+        try {
+          const fallback = await loadJsonFallback();
+          if (cancelled) return;
+          setFoods(fallback);
+          cachedFoods = fallback;
+        } catch {
+          // give up
+        }
+        setLoaded(true);
       });
     return () => {
       cancelled = true;
@@ -84,20 +93,42 @@ let cachedFoods: Food[] | null = null;
 async function loadAllFoods(): Promise<Food[]> {
   if (cachedFoods) return cachedFoods;
   const supabase = createClient();
-  if (!supabase) return [];
-
-  const { data, error } = await supabase
-    .from('foods')
-    .select('id, name, category, subcategory, preparation, state, type, kcal, protein, carbs, fat, fiber, serving_basis, standard_serving_grams, standard_serving_label, aliases')
-    .order('name', { ascending: true });
-
-  if (error) {
-    console.error('Foods load failed:', error);
-    return [];
+  if (!supabase) {
+    return loadJsonFallback();
   }
-  const list = (data ?? []).map(rowToFood);
-  cachedFoods = list;
-  return list;
+
+  try {
+    const { data, error } = await supabase
+      .from('foods')
+      .select('id, name, category, subcategory, preparation, state, type, kcal, protein, carbs, fat, fiber, serving_basis, standard_serving_grams, standard_serving_label, aliases')
+      .order('name', { ascending: true });
+
+    if (error) {
+      console.error('Foods load failed:', error);
+      return loadJsonFallback();
+    }
+    if (!data || data.length === 0) {
+      // Migration not run yet. Fall back to the bundled JSON so the
+      // food log still works. When the user later populates the DB,
+      // a refresh picks it up.
+      return loadJsonFallback();
+    }
+    const list = (data as Record<string, unknown>[]).map(rowToFood);
+    cachedFoods = list;
+    return list;
+  } catch (err) {
+    console.error('Foods load exception:', err);
+    return loadJsonFallback();
+  }
+}
+
+let cachedJsonFallback: Food[] | null = null;
+async function loadJsonFallback(): Promise<Food[]> {
+  if (cachedJsonFallback) return cachedJsonFallback;
+  const mod = await import('./food-data.json');
+  const data = mod.default as unknown as { version?: number; foods: Food[] };
+  cachedJsonFallback = data.foods;
+  return data.foods;
 }
 
 // Server-friendly loader: fetch a single page of search results from

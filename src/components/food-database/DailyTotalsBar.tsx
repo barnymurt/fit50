@@ -82,15 +82,20 @@ export default function DailyTotalsBar({ totals, targets }: Props) {
                   </span>
                 </span>
               </div>
-              <div className="h-2 bg-ink/10 relative overflow-hidden">
-                {/* Buffer zone (only visible if value >= target) */}
-                {ratio > 1 && ratio <= 1.05 && (
-                  <div
-                    className="absolute inset-y-0 left-0 bg-coral/40"
-                    style={{ width: `${bufferRatio * 100}%` }}
-                    aria-hidden
-                  />
-                )}
+              <div className="h-3 bg-ink/10 relative overflow-hidden" aria-label={`${label} target ${Math.round(target)} with 5% buffer`}>
+                {/* 5% buffer zone — always visible. Hatched pattern so
+                    it reads as 'acceptable tolerance' rather than 'extra
+                    room to fill'. */}
+                <div
+                  className="absolute inset-y-0 bg-coral/25"
+                  style={{
+                    left: '100%',
+                    width: '5%',
+                    backgroundImage:
+                      'repeating-linear-gradient(45deg, rgba(232,139,90,0.18) 0 4px, transparent 4px 8px)',
+                  }}
+                  aria-hidden
+                />
                 {/* Filled portion */}
                 <div
                   className={`absolute inset-y-0 left-0 transition-all duration-300 ${
@@ -100,10 +105,18 @@ export default function DailyTotalsBar({ totals, targets }: Props) {
                 />
                 {/* Target marker (small line at 100%) */}
                 <div
-                  className="absolute inset-y-0 w-px bg-ink/40"
+                  className="absolute inset-y-0 w-px bg-ink/60"
                   style={{ left: '100%' }}
                   aria-hidden
                 />
+                {/* Buffer zone label (5% small tag) — always visible */}
+                <span
+                  className="absolute top-1/2 -translate-y-1/2 text-[9px] font-body uppercase tracking-widest text-ink/50 pointer-events-none whitespace-nowrap"
+                  style={{ left: '100.5%', paddingLeft: '2px' }}
+                  aria-hidden
+                >
+                  +5%
+                </span>
               </div>
             </div>
           );
