@@ -157,11 +157,20 @@ export default function FoodDetail({ food, onAdd, onClose }: Props) {
             </div>
             <input
               type="number"
-              min={1}
-              value={grams}
-              onChange={(e) => setGrams(Math.max(1, parseInt(e.target.value) || 0))}
+              min={0}
+              value={grams || ''}
+              onChange={(e) => {
+                const raw = e.target.value;
+                if (raw === '') {
+                  setGrams(0);
+                  return;
+                }
+                const n = parseInt(raw, 10);
+                if (Number.isFinite(n) && n >= 0) setGrams(n);
+              }}
               className="w-full px-3 py-3 md:py-2 bg-paper border-2 border-ink/20 font-body focus:border-ink outline-none"
               aria-label="Grams"
+              placeholder={String(standard.grams)}
             />
           </div>
 
