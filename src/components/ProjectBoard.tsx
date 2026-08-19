@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { loadJson, saveJson } from '@/lib/storage';
+import { useAuth } from '@/contexts/AuthContext';
+import { createClient } from '@/lib/supabase';
 
 type ColumnId = string;
 
@@ -43,6 +45,8 @@ const STORAGE_KEY = 'fit50-board-v2';
 const COLUMN_COLORS = ['paper', 'teal', 'coral', 'cream', 'lavender', 'ink'] as const;
 
 export function useBoardState() {
+  const { user } = useAuth();
+  const supabase = createClient();
   const [state, setState] = useState<BoardState>(DEFAULT_BOARD);
   const [hydrated, setHydrated] = useState(false);
   const dragItem = useRef<{ id: string; fromColumnId: ColumnId | 'todos' } | null>(null);
@@ -51,15 +55,110 @@ export function useBoardState() {
   const [editingText, setEditingText] = useState('');
 
   useEffect(() => {
-    const saved = loadJson<BoardState>(STORAGE_KEY, DEFAULT_BOARD);
-    setState(saved);
-    setHydrated(true);
-  }, []);
+    let cancelled = false;
+    const loadFromRemote = async () => {
+      if (!user || !supabase) {
+        const saved = loadJson<BoardState>(STORAGE_KEY, DEFAULT_BOARD);
+        if (!cancelled) {
+          setState(saved);
+          setHydrated(true);
+        }
+        return;
+      }
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const [colsRes, itemsRes] = await Promise.all([
+          (supabase.from('board_columns') as any)
+            .select('id, label, color, order_idx')
+            .eq('user_id', user.id)
+            .order('order_idx', { ascending: true }),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (supabase.from('board_items') as any)
+            .select('id, column_id, text, order_idx, created_at')
+            .eq('user_id', user.id)
+            .order('order_idx', { ascending: true }),
+        ]);
+        if (cancelled) return;
+        const cols: BoardColumn[] = (colsRes.data || []).map(
+          (r: { id: string; label: string; color: string }) => ({
+            id: r.id,
+            label: r.label,
+            color: r.color,
+          })
+        );
+        const items: BoardItem[] = (itemsRes.data || []).map(
+          (r: { id: string; column_id: string; text: string; created_at: string }) => ({
+            id: r.id,
+            text: r.text,
+            columnId: r.column_id,
+            createdAt: r.created_at,
+          })
+        );
+        // Seed defaults if user has no columns yet
+        const next: BoardState = {
+          columns: cols.length > 0 ? cols : DEFAULT_BOARD.columns,
+          items,
+          todos: [], // To-do list lives elsewhere (todo_items)
+        };
+        setState(next);
+        saveJson(STORAGE_KEY, next);
+        setHydrated(true);
+      } catch (err) {
+        console.error('board sync failed:', err);
+        const saved = loadJson<BoardState>(STORAGE_KEY, DEFAULT_BOARD);
+        if (!cancelled) {
+          setState(saved);
+          setHydrated(true);
+        }
+      }
+    };
+    loadFromRemote();
+    return () => {
+      cancelled = true;
+    };
+  }, [user, supabase]);
 
   useEffect(() => {
     if (!hydrated) return;
     saveJson(STORAGE_KEY, state);
-  }, [state, hydrated]);
+    if (user && supabase) {
+      // Persist columns + items to Supabase. Errors are non-fatal
+      // — local cache is the source of truth until the next load.
+      (async () => {
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const colsRes = await (supabase.from('board_columns') as any).upsert(
+            state.columns.map((c, i) => ({
+              user_id: user.id,
+              id: c.id,
+              label: c.label,
+              color: c.color,
+              order_idx: i,
+              updated_at: new Date().toISOString(),
+            })),
+            { onConflict: 'user_id,id' }
+          );
+          if (colsRes.error) console.error('board_columns upsert:', colsRes.error);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const itemsRes = await (supabase.from('board_items') as any).upsert(
+            state.items.map((it, i) => ({
+              user_id: user.id,
+              id: it.id,
+              column_id: it.columnId,
+              text: it.text,
+              order_idx: i,
+              created_at: it.createdAt,
+              updated_at: new Date().toISOString(),
+            })),
+            { onConflict: 'user_id,id' }
+          );
+          if (itemsRes.error) console.error('board_items upsert:', itemsRes.error);
+        } catch (err) {
+          console.error('board persist failed:', err);
+        }
+      })();
+    }
+  }, [state, hydrated, user, supabase]);
 
   const addItem = (columnId: ColumnId, text: string) => {
     const trimmed = text.trim();

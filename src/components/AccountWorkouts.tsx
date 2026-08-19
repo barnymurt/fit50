@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import Section from './Section';
 import Heading from './Heading';
+import { useAuth } from '@/contexts/AuthContext';
+import { createClient } from '@/lib/supabase';
 
 interface Exercise {
   slot: string;
@@ -188,10 +190,12 @@ function todayKey() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-function loadWorkout(date: string) {
+const LOCAL_KEY = (date: string) => `fit50-workout-${date}`;
+
+function loadWorkoutLocal(date: string) {
   if (typeof window === 'undefined') return { line: 'A' as Line, sets: {} as Record<string, number> };
   try {
-    const raw = window.localStorage.getItem(`fit50-workout-${date}`);
+    const raw = window.localStorage.getItem(LOCAL_KEY(date));
     if (!raw) return { line: 'A' as Line, sets: {} as Record<string, number> };
     return JSON.parse(raw);
   } catch {
@@ -199,9 +203,49 @@ function loadWorkout(date: string) {
   }
 }
 
-function saveWorkout(date: string, data: { line: Line; sets: Record<string, number> }) {
+function saveWorkoutLocal(date: string, data: { line: Line; sets: Record<string, number> }) {
   if (typeof window === 'undefined') return;
-  window.localStorage.setItem(`fit50-workout-${date}`, JSON.stringify(data));
+  window.localStorage.setItem(LOCAL_KEY(date), JSON.stringify(data));
+}
+
+async function loadWorkoutRemote(supabase: ReturnType<typeof createClient>, userId: string, date: string) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase.from('workout_log') as any)
+    .select('line, sets')
+    .eq('user_id', userId)
+    .eq('date_key', date)
+    .maybeSingle();
+  if (error) {
+    console.error('workout_log fetch failed:', error);
+    return null;
+  }
+  if (!data) return null;
+  return {
+    line: data.line as Line,
+    // data.sets is a jsonb column — Supabase returns it as a parsed
+    // object already.
+    sets: (data.sets || {}) as Record<string, number>,
+  };
+}
+
+async function saveWorkoutRemote(
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+  date: string,
+  data: { line: Line; sets: Record<string, number> }
+) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase.from('workout_log') as any).upsert(
+    {
+      user_id: userId,
+      date_key: date,
+      line: data.line,
+      sets: data.sets,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'user_id,date_key,line' }
+  );
+  if (error) console.error('workout_log upsert failed:', error);
 }
 
 function TickBox({ filled, size = 28 }: { filled: boolean; size?: number }) {
@@ -238,6 +282,8 @@ function TickBox({ filled, size = 28 }: { filled: boolean; size?: number }) {
 }
 
 export default function AccountWorkouts() {
+  const { user } = useAuth();
+  const supabase = createClient();
   const [date, setDate] = useState<string>('');
   const [line, setLine] = useState<Line>('A');
   const [sets, setSets] = useState<Record<string, number>>({});
@@ -246,15 +292,33 @@ export default function AccountWorkouts() {
   useEffect(() => {
     const k = todayKey();
     setDate(k);
-    const data = loadWorkout(k);
-    setLine(data.line);
-    setSets(data.sets);
-  }, []);
+    // Try remote first, fall back to local.
+    if (user && supabase) {
+      loadWorkoutRemote(supabase, user.id, k).then((remote) => {
+        if (remote) {
+          setLine(remote.line);
+          setSets(remote.sets);
+          saveWorkoutLocal(k, remote);
+          return;
+        }
+        const local = loadWorkoutLocal(k);
+        setLine(local.line);
+        setSets(local.sets);
+      });
+    } else {
+      const local = loadWorkoutLocal(k);
+      setLine(local.line);
+      setSets(local.sets);
+    }
+  }, [user, supabase]);
 
   useEffect(() => {
     if (!date) return;
-    saveWorkout(date, { line, sets });
-  }, [date, line, sets]);
+    saveWorkoutLocal(date, { line, sets });
+    if (user && supabase) {
+      saveWorkoutRemote(supabase, user.id, date, { line, sets });
+    }
+  }, [date, line, sets, user, supabase]);
 
   const exercises = workoutLines[line].exercises;
   const totalCompleted = exercises.reduce((sum, ex) => sum + (sets[ex.name] || 0), 0);
