@@ -53,11 +53,11 @@ export default function BuddyPurchasePicker({
   // by the caller.
   const isAddBuddy = mode === 'add_buddy';
   const defaultHeadline = isAddBuddy
-    ? 'Buddy up.'
-    : 'Shout a mate.';
+    ? 'Start together.'
+    : 'Shout a mate that caneca.';
   const defaultSubheadline = isAddBuddy
     ? 'Finish together. Or just be in it for the craic!'
-    : 'Mates finish this at nearly twice the rate of solo starters.';
+    : 'Mates finish this at nearly twice the rate of solo starters. (Your mate gets an email to activate. If they don’t within 14 days, we’ll turn their spot into a gift code you can pass on.)';
   const headline = hl ?? defaultHeadline;
   const subheadline = sl ?? defaultSubheadline;
   const priceLabel = isAddBuddy

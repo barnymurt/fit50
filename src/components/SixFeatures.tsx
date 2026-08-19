@@ -173,7 +173,7 @@ export default function SixFeatures({
                 </p>
                 <p className="font-display text-h2 text-ink leading-none mb-1">€5.99</p>
                 <p className="font-body text-sm text-ink/60 mb-4">
-                  Just the one, Cheers.
+                  One account. Fifty days. Just you against the calendar.
                 </p>
                 <button
                   type="button"
