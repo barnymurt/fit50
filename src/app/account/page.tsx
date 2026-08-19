@@ -351,9 +351,9 @@ export default function AccountPage() {
               </p>
               <Heading>Shout ya mate</Heading>
               <p className="font-body text-base text-ink/70 mt-3 mb-8 max-w-xl">
-                Finish together. Or just be in it for the craic! You&apos;ll see
-                each other&apos;s streaks on the tracker — one more
-                reason to keep showing up.
+                The finish line is so much sweeter with mates. Tag in a
+                mate and You&apos;ll see each other&apos;s streaks on the
+                tracker — one more reason to keep showing up.
               </p>
             </div>
           </div>

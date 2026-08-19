@@ -206,7 +206,7 @@ export default function SixFeatures({
                 <BuddyPurchasePicker
                   variant="wide"
                   headline="Start together."
-                  subheadline="Mates finish this at nearly twice the rate of solo starters."
+                  subheadline="Finish together. Or just be in it for the craic! Mates finish this at nearly twice the rate of solo starters."
                 />
               </div>
             )}

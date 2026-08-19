@@ -72,7 +72,7 @@ export default function BuddyPurchasePicker({
   const subheadline = sl ?? defaultSubheadline;
   const priceLabel = isAddBuddy
     ? 'Add a buddy for €5.99 →'
-    : 'Buy for €9.99 →';
+    : 'Shout ya mate!';
 
   const submit = async () => {
     if (isAddBuddy && !user) {
