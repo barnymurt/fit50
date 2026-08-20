@@ -2,18 +2,13 @@
 -- Provisions a test buddy + purchaser so the activation flow can be
 -- exercised end-to-end. Re-runnable: existing rows are upserted.
 --
--- After this runs, look at the bottom of the SQL result — the
--- activation link is printed via raise notice. Visit it on the
--- cohort-buddies preview to set the password and complete the
--- activation flow (profile flips pending_activation → active,
--- activation_token cleared, buddy_purchases.status → activated).
+-- After this runs, the activation link is the last row of the result
+-- set. Copy the activation_url value into the cohort-buddies preview
+-- URL with /activate/buddy/<token> to set the password and complete
+-- the activation flow.
 
 -- 1. Purchaser: barnabymurtagh@me.com
--- Read existing id (if any) into a session-scoped variable.
-select id into temp_purchaser from auth.users
-  where email = 'barnabymurtagh@me.com' limit 1;
-
--- Insert if missing.
+-- Read existing id, insert if missing, otherwise update metadata.
 insert into auth.users (
   instance_id, id, aud, role,
   email, encrypted_password, email_confirmed_at,
@@ -32,22 +27,12 @@ select
   '', '', '', ''
 where not exists (select 1 from auth.users where email = 'barnabymurtagh@me.com');
 
--- Otherwise update metadata only.
 update auth.users
   set raw_user_meta_data = '{"display_name":"B"}',
       updated_at = now()
 where email = 'barnabymurtagh@me.com';
 
--- Re-read into the session variable.
-select id into temp_purchaser from auth.users
-  where email = 'barnabymurtagh@me.com' limit 1;
-
-select 'purchaser id' as label, temp_purchaser::text as id;
-
 -- 2. Buddy: barnabymurtagh@yahoo.co.uk
-select id into temp_buddy from auth.users
-  where email = 'barnabymurtagh@yahoo.co.uk' limit 1;
-
 insert into auth.users (
   instance_id, id, aud, role,
   email, encrypted_password, email_confirmed_at,
@@ -71,33 +56,26 @@ update auth.users
       updated_at = now()
 where email = 'barnabymurtagh@yahoo.co.uk';
 
-select id into temp_buddy from auth.users
-  where email = 'barnabymurtagh@yahoo.co.uk' limit 1;
-
--- Generate a fresh activation token and stash it in a session
--- variable for the profile insert and the print at the end.
-select encode(gen_random_bytes(24), 'hex') into temp_token;
-
-select 'buddy id' as label, temp_buddy::text as id, 'token' as lbl, temp_token as aid;
-
 -- 3. Profile: pending_activation, 14-day token, is_premium = true.
+-- Read the freshly-inserted ids back from auth.users and write the
+-- profile in a single statement. The activation_token is freshly
+-- generated so re-running the script always produces a fresh URL.
 insert into profiles (
   id, email, display_name, is_premium, premium_purchased_at,
   challenge_started_at, activation_status, activation_token,
   activation_expires_at, purchased_by_user_id
 )
-values (
-  temp_buddy,
+select
+  (select id from auth.users where email = 'barnabymurtagh@yahoo.co.uk' limit 1),
   'barnabymurtagh@yahoo.co.uk',
   'Barnaby Murtagh',
   true,
   now(),
   current_date::text,
   'pending_activation',
-  temp_token,
+  encode(gen_random_bytes(24), 'hex'),
   now() + interval '14 days',
-  temp_purchaser
-)
+  (select id from auth.users where email = 'barnabymurtagh@me.com' limit 1)
 on conflict (id) do update set
   email = excluded.email,
   display_name = excluded.display_name,
@@ -116,7 +94,7 @@ insert into buddy_purchases (
   status, expires_at
 )
 values (
-  temp_purchaser,
+  (select id from auth.users where email = 'barnabymurtagh@me.com' limit 1),
   'barnabymurtagh@me.com',
   'barnabymurtagh@yahoo.co.uk',
   'Barnaby Murtagh',
@@ -125,11 +103,9 @@ values (
   999, 'pending', now() + interval '14 days'
 );
 
--- 5. Print the activation link with the freshly-minted token.
-select '────────────────────────────────────────' as notice
-union all
-select 'Activation link (substitute your preview host):'
-union all
-select 'https://fit50-hpgvdtd5w-hazelrigg-projects.vercel.app/activate/buddy/' || temp_token
-union all
-select '────────────────────────────────────────';
+-- 5. Surface the activation link as a result-set row.
+select
+  'https://fit50-hpgvdtd5w-hazelrigg-projects.vercel.app/activate/buddy/'
+    || (select activation_token from profiles
+        where email = 'barnabymurtagh@yahoo.co.uk' limit 1)
+    as activation_url;
