@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { createClient } from '@/lib/supabase';
+import HabitIcon, { HabitIconName } from '@/components/HabitIcon';
 
 interface BuyerSnapshot {
   buyer_name: string;
@@ -217,13 +218,19 @@ export default function MyMotivator() {
               <div
                 key={id}
                 title={`${HABIT_LABEL[id] || id}${done ? ' · done' : ''}`}
-                className={`aspect-square rounded-sm ${
+                className={`aspect-square rounded-sm flex items-center justify-center ${
                   done
                     ? 'bg-teal'
                     : 'border border-ink/15 bg-paper/40'
                 }`}
                 aria-label={HABIT_LABEL[id] || id}
-              />
+              >
+                <HabitIcon
+                  name={id as HabitIconName}
+                  size={28}
+                  className={done ? 'opacity-100' : 'opacity-25 grayscale'}
+                />
+              </div>
             );
           })}
         </div>
