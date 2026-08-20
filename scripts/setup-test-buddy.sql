@@ -9,54 +9,65 @@
 -- activation_token cleared, buddy_purchases.status → activated).
 
 -- 1. Purchaser: barnabymurtagh@me.com
-insert into auth.users (
-  instance_id, id, aud, role,
-  email, encrypted_password, email_confirmed_at,
-  raw_app_meta_data, raw_user_meta_data,
-  created_at, updated_at,
-  confirmation_token, email_change, email_change_token_new, recovery_token
-) values (
-  '00000000-0000-0000-0000-000000000000', gen_random_uuid(),
-  'authenticated', 'authenticated',
-  'barnabymurtagh@me.com', '', now(),
-  '{"provider":"email","providers":["email"]}',
-  '{"display_name":"B"}',
-  now(), now(),
-  '', '', '', ''
-)
-on conflict (email) do update set raw_user_meta_data = excluded.raw_user_meta_data
-returning id;
-
--- Capture the purchaser id for use later.
-do $$ declare b uuid; begin
+do $$
+declare b uuid;
+begin
   select id into b from auth.users where email = 'barnabymurtagh@me.com' limit 1;
+  if b is null then
+    insert into auth.users (
+      instance_id, id, aud, role,
+      email, encrypted_password, email_confirmed_at,
+      raw_app_meta_data, raw_user_meta_data,
+      created_at, updated_at,
+      confirmation_token, email_change, email_change_token_new, recovery_token
+    ) values (
+      '00000000-0000-0000-0000-000000000000', gen_random_uuid(),
+      'authenticated', 'authenticated',
+      'barnabymurtagh@me.com', '', now(),
+      '{"provider":"email","providers":["email"]}',
+      '{"display_name":"B"}',
+      now(), now(),
+      '', '', '', ''
+    ) returning id into b;
+  else
+    update auth.users
+      set raw_user_meta_data = '{"display_name":"B"}',
+          updated_at = now()
+      where id = b;
+  end if;
   create temp table if not exists _bid(id) on commit drop;
   delete from _bid; insert into _bid values(b);
 end $$;
 select 'purchaser id' as label, id::text from _bid;
 
 -- 2. Buddy: barnabymurtagh@yahoo.co.uk
-insert into auth.users (
-  instance_id, id, aud, role,
-  email, encrypted_password, email_confirmed_at,
-  raw_app_meta_data, raw_user_meta_data,
-  created_at, updated_at,
-  confirmation_token, email_change, email_change_token_new, recovery_token
-) values (
-  '00000000-0000-0000-0000-000000000000', gen_random_uuid(),
-  'authenticated', 'authenticated',
-  'barnabymurtagh@yahoo.co.uk', '', now(),
-  '{"provider":"email","providers":["email"]}',
-  '{"display_name":"Barnaby Murtagh"}',
-  now(), now(),
-  '', '', '', ''
-)
-on conflict (email) do update set raw_user_meta_data = excluded.raw_user_meta_data
-returning id;
-
--- Capture the buddy id and generate a fresh activation token.
-do $$ declare b uuid; declare t text; begin
+do $$
+declare b uuid;
+declare t text;
+begin
   select id into b from auth.users where email = 'barnabymurtagh@yahoo.co.uk' limit 1;
+  if b is null then
+    insert into auth.users (
+      instance_id, id, aud, role,
+      email, encrypted_password, email_confirmed_at,
+      raw_app_meta_data, raw_user_meta_data,
+      created_at, updated_at,
+      confirmation_token, email_change, email_change_token_new, recovery_token
+    ) values (
+      '00000000-0000-0000-0000-000000000000', gen_random_uuid(),
+      'authenticated', 'authenticated',
+      'barnabymurtagh@yahoo.co.uk', '', now(),
+      '{"provider":"email","providers":["email"]}',
+      '{"display_name":"Barnaby Murtagh"}',
+      now(), now(),
+      '', '', '', ''
+    ) returning id into b;
+  else
+    update auth.users
+      set raw_user_meta_data = '{"display_name":"Barnaby Murtagh"}',
+          updated_at = now()
+      where id = b;
+  end if;
   t := encode(gen_random_bytes(24), 'hex');
   create temp table if not exists _bt(id uuid, aid text) on commit drop;
   delete from _bt; insert into _bt values(b, t);
