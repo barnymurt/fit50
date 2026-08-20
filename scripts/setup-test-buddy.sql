@@ -71,7 +71,7 @@ select
   'Barnaby Murtagh',
   true,
   now(),
-  current_date::text,
+  now(),
   'pending_activation',
   encode(gen_random_bytes(24), 'hex'),
   now() + interval '14 days',
