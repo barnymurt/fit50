@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Section from '@/components/Section';
 import Heading from '@/components/Heading';
@@ -9,19 +9,17 @@ interface Props {
   params: { token: string };
 }
 
+type Mode = 'password' | 'magic_link';
+
 export default function ActivateBuddyPage({ params }: Props) {
   const { token } = params;
   const router = useRouter();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [sendingLink, setSendingLink] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [tokenValid, setTokenValid] = useState<boolean | null>(null);
-
-  // The token is validated server-side during activation. We don't
-  // show a separate "is this token valid" check on page load — that
-  // would create an enumeration oracle. The first error paste back
-  // tells the user if it's invalid.
+  const [mode, setMode] = useState<Mode>('password');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,6 +41,14 @@ export default function ActivateBuddyPage({ params }: Props) {
       });
       const data = await res.json();
       if (!res.ok || !data.ok) {
+        // If the server is missing the service role key, flip the
+        // UI into the magic-link flow so the user can still complete
+        // activation without setting a password here.
+        if (data?.needs_service_role) {
+          setMode('magic_link');
+          setSubmitting(false);
+          return;
+        }
         setError(data.error || 'Activation failed. Try again.');
         setSubmitting(false);
         return;
@@ -67,10 +73,74 @@ export default function ActivateBuddyPage({ params }: Props) {
     }
   };
 
+  const handleSendLink = async () => {
+    setSendingLink(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/buddy/activate/otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.action_link) {
+        setError(data.error || 'Could not send sign-in link.');
+        setSendingLink(false);
+        return;
+      }
+      window.location.href = data.action_link;
+    } catch (err) {
+      setError('Network error. Try again.');
+      setSendingLink(false);
+    }
+  };
+
+  if (mode === 'magic_link') {
+    return (
+      <Section className="relative py-section min-h-[70vh] flex items-center" tone="paper" contained>
+        <div className="max-w-md mx-auto w-full">
+          <p className="font-body text-caption uppercase tracking-widest text-coral mb-3 text-center">
+            Activate your seat
+          </p>
+          <Heading as="h1" size="display-2" className="text-ink text-center mb-4">
+            Send me a sign-in link.
+          </Heading>
+          <p className="font-body text-base text-ink/70 mb-8 text-center">
+            We&apos;ll email you a sign-in link. You can set a password
+            from the account page after you&apos;re in. Start the
+            50 days whenever you&apos;re ready.
+          </p>
+
+          {error && (
+            <p role="alert" className="font-body text-sm text-coral mb-3">
+              {error}
+            </p>
+          )}
+
+          <button
+            type="button"
+            onClick={handleSendLink}
+            disabled={sendingLink}
+            className="w-full bg-ink text-paper font-body text-sm px-6 py-4 uppercase tracking-wider hover:bg-ink/85 transition-colors disabled:opacity-50"
+          >
+            {sendingLink ? 'Sending…' : 'Send me a sign-in link'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode('password')}
+            className="w-full mt-2 text-ink/60 font-body text-caption uppercase tracking-widest hover:text-ink transition-colors"
+          >
+            Actually, set a password instead
+          </button>
+        </div>
+      </Section>
+    );
+  }
+
   return (
     <Section className="relative py-section min-h-[70vh] flex items-center" tone="paper" contained>
       <div className="max-w-md mx-auto w-full">
-        <p className="font-body text-caption uppercase text-coral mb-3 text-center">
+        <p className="font-body text-caption uppercase tracking-widest text-coral mb-3 text-center">
           Activate your seat
         </p>
         <Heading
@@ -125,7 +195,15 @@ export default function ActivateBuddyPage({ params }: Props) {
             disabled={submitting}
             className="w-full bg-ink text-paper font-body text-sm px-6 py-4 uppercase tracking-wider hover:bg-ink/85 transition-colors disabled:opacity-50"
           >
-            {submitting ? 'Activating\u2026' : 'Activate my seat'}
+            {submitting ? 'Activating…' : 'Activate my seat'}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setMode('magic_link')}
+            className="w-full mt-2 text-ink/60 font-body text-caption uppercase tracking-widest hover:text-ink transition-colors"
+          >
+            Sign me in with a link instead
           </button>
 
           <p className="font-body text-xs text-ink/50 mt-4 text-center">

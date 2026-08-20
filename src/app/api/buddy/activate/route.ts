@@ -3,8 +3,16 @@
 // Body: { token, password }
 // Validates the activation token, sets the password on the pending
 // Supabase Auth user, activates the profile, pairs the two
-// accounts, and returns a session so the buddy is signed in
+// accounts, and returns a magic link so the buddy is signed in
 // immediately.
+//
+// Two paths:
+//  - Service role key set: directly set the password via
+//    admin.updateUserById. Most reliable, no extra email roundtrip.
+//  - Service role key missing: 503 with a code that the page
+//    uses to flip the UI into "send a sign-in link" mode. The
+//    user can then click /api/buddy/activate/otp (anon-only) to
+//    skip the password set and complete the flow with a magic link.
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
@@ -19,13 +27,11 @@ export async function POST(req: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  if (!supabaseUrl || !supabaseServiceKey) {
-    const missing: string[] = [];
-    if (!supabaseUrl) missing.push('NEXT_PUBLIC_SUPABASE_URL');
-    if (!supabaseServiceKey) missing.push('SUPABASE_SERVICE_ROLE_KEY');
+  if (!supabaseUrl) {
     return NextResponse.json(
       {
-        error: `Supabase env var${missing.length > 1 ? 's' : ''} missing: ${missing.join(', ')}. Add ${missing.length > 1 ? 'them' : 'it'} in Vercel env vars.`,
+        error:
+          'NEXT_PUBLIC_SUPABASE_URL is not set on the server. Add it in Vercel env vars.',
       },
       { status: 503 }
     );
@@ -38,10 +44,22 @@ export async function POST(req: NextRequest) {
   if (!token || token.length > 200) {
     return NextResponse.json({ error: 'Invalid activation link.' }, { status: 400 });
   }
-  if (password.length < MIN_PASSWORD_LENGTH) {
+
+  // No service role → return a code so the client flips into the
+  // magic-link fallback. (Doing the lookup with anon-key requires
+  // the profiles SELECT policy to permit anonymous reads, which our
+  // current RLS does not — so we have to bail here. The OTP
+  // endpoint at /api/buddy/activate/otp runs the activation lookups
+  // with the same auth context the user already proved via the
+  // activation token, and doesn't need the service role.)
+  if (!supabaseServiceKey) {
     return NextResponse.json(
-      { error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters.` },
-      { status: 400 }
+      {
+        error:
+          'SUPABASE_SERVICE_ROLE_KEY is missing. The activation flow needs it to set the password server-side. Click the link below to finish the flow with a sign-in email instead — then you can set a password from the account page.',
+        needs_service_role: true,
+      },
+      { status: 503 }
     );
   }
 
@@ -82,13 +100,21 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // Password strength check.
+  if (password.length < MIN_PASSWORD_LENGTH) {
+    return NextResponse.json(
+      { error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters.` },
+      { status: 400 }
+    );
+  }
+
   // 2. Set the password on the underlying Auth user.
   const { data: updatedUser, error: updateError } = await admin.auth.admin.updateUserById(
     profile.id,
     { password, email_confirm: true }
   );
 
-  if (updateError || !updatedUser.user) {
+  if (updateError || !updatedUser?.user) {
     console.error('Auth update failed:', updateError);
     return NextResponse.json(
       { error: 'Could not set password. Try again or contact support.' },
@@ -96,8 +122,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // 3. Activate the profile. Pair the two accounts by setting
-  //    buddy_user_id on both sides.
+  // 3. Activate the profile + pair the two accounts.
   const now = new Date().toISOString();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await (admin.from('profiles') as any)
@@ -124,7 +149,6 @@ export async function POST(req: NextRequest) {
     .eq('status', 'pending');
 
   // 5. Generate a magic link so the browser is signed in immediately.
-  //    The user clicks the link from the same browser and is logged in.
   const { data: link, error: linkError } = await admin.auth.admin.generateLink({
     type: 'magiclink',
     email: profile.email as string,
@@ -135,7 +159,6 @@ export async function POST(req: NextRequest) {
 
   if (linkError || !link?.properties?.action_link) {
     console.error('Magiclink generation failed:', linkError);
-    // The account is still activated; the user can sign in manually.
     return NextResponse.json(
       { error: 'Account activated. Please sign in to continue.' },
       { status: 200 }
