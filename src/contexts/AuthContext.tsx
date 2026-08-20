@@ -56,6 +56,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .eq('id', userId)
       .single();
 
+    if (typeof window !== 'undefined') {
+      console.log('[profile fetch]', { userId, data, error: error?.message });
+    }
     if (error) {
       console.error('Failed to fetch profile:', error);
       return null;
