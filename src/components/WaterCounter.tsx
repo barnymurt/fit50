@@ -1,10 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { loadJson, saveJson } from '@/lib/storage';
-
-const STORAGE_KEY = 'fit50-water-v1';
-const DAILY_GOAL_ML = 2500; // 2.5L
+import { useWaterLog } from '@/hooks/useWaterLog';
 
 const PRESETS = [
   { ml: 250, label: '250 ml', subtitle: 'Small glass' },
@@ -12,72 +9,29 @@ const PRESETS = [
   { ml: 750, label: '750 ml', subtitle: 'Bottle' },
 ];
 
-interface DayWater {
-  date: string; // YYYY-MM-DD
-  amount: number; // ml
-}
-
-function todayKey() {
-  return new Date().toISOString().split('T')[0];
-}
-
 export default function WaterCounter() {
-  const [history, setHistory] = useState<DayWater[]>([]);
-  const [hydrated, setHydrated] = useState(false);
+  const {
+    history,
+    hydrated,
+    todayAmount,
+    fillPct,
+    goalHit,
+    dailyGoalMl,
+    addWater,
+    removeLastLog,
+    resetToday,
+  } = useWaterLog();
   const [customAmount, setCustomAmount] = useState('');
   const [flash, setFlash] = useState(false);
 
+  // Flash + persist happens via the hook.
   useEffect(() => {
-    const saved = loadJson<DayWater[]>(STORAGE_KEY, []);
-    setHistory(saved);
-    setHydrated(true);
-  }, []);
-
-  useEffect(() => {
-    if (!hydrated) return;
-    saveJson(STORAGE_KEY, history);
-  }, [history, hydrated]);
-
-  const today = todayKey();
-  const todayAmount = history.find((d) => d.date === today)?.amount ?? 0;
-  const fillPct = Math.min(100, Math.round((todayAmount / DAILY_GOAL_ML) * 100));
-  const goalHit = todayAmount >= DAILY_GOAL_ML;
-
-  const addWater = (ml: number) => {
-    if (ml <= 0) return;
-    setHistory((prev) => {
-      const next = [...prev];
-      const idx = next.findIndex((d) => d.date === today);
-      if (idx >= 0) {
-        next[idx] = { ...next[idx], amount: next[idx].amount + ml };
-      } else {
-        next.push({ date: today, amount: ml });
-      }
-      return next;
-    });
-    setFlash(true);
-    setTimeout(() => setFlash(false), 400);
-  };
-
-  const removeLastLog = () => {
-    setHistory((prev) => {
-      const next = [...prev];
-      const idx = next.findIndex((d) => d.date === today);
-      if (idx < 0) return prev;
-      const current = next[idx].amount;
-      const last = Math.max(0, current - 250);
-      if (last === 0) {
-        next.splice(idx, 1);
-      } else {
-        next[idx] = { ...next[idx], amount: last };
-      }
-      return next;
-    });
-  };
-
-  const resetToday = () => {
-    setHistory((prev) => prev.filter((d) => d.date !== today));
-  };
+    if (todayAmount > 0) {
+      setFlash(true);
+      const t = setTimeout(() => setFlash(false), 400);
+      return () => clearTimeout(t);
+    }
+  }, [todayAmount]);
 
   const handleCustom = (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,13 +45,8 @@ export default function WaterCounter() {
   // Build a list of "taps" for the day to show what was logged
   const todaysLogs = useMemo(() => {
     if (!hydrated) return [] as number[];
-    const current = history.find((d) => d.date === today);
-    if (!current) return [];
-    // We can't recover the per-tap breakdown from the cumulative
-    // amount, so just show the cumulative as a single log. But for
-    // a more visual log list, store the taps instead:
-    return [];
-  }, [history, today, hydrated]);
+    return []; // Per-tap breakdown isn't recoverable from cumulative sum.
+  }, [history, hydrated]);
 
   if (!hydrated) {
     return (
@@ -124,7 +73,7 @@ export default function WaterCounter() {
             <span className="text-2xl text-ink/50 font-body font-normal ml-1">L</span>
           </p>
           <p className="font-body text-sm text-ink/50 mt-1 mb-4">
-            of 2.5L goal · {fillPct}%
+            of {(dailyGoalMl / 1000).toFixed(1)}L goal · {fillPct}%
           </p>
           {/* progress bar */}
           <div className="h-2 bg-ink/10 overflow-hidden mb-4">

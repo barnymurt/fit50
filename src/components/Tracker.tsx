@@ -7,6 +7,7 @@ import HabitIcon, { HabitIconName } from './HabitIcon';
 import Marquee from './Marquee';
 import CellConfetti from './CellConfetti';
 import ConfirmDialog from './ConfirmDialog';
+import BuddyCard from './BuddyCard';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTrackerState, TrackerDay } from '@/hooks/useTrackerState';
 import { useStreakProtection } from '@/hooks/useStreakProtection';
@@ -46,7 +47,12 @@ function calculateStreak(days: TrackerDay[]): {
       longest = Math.max(longest, current);
       current = 0;
     } else if (day.status === 'today') {
-      // preserve current run, do not break yet
+      // Today: if all 7+ habits done, count it as part of the
+      // current streak (the user is "today's done"). Otherwise
+      // preserve the run — they still have time to finish the day.
+      if (day.completedCount >= 7) {
+        current++;
+      }
     }
   }
   longest = Math.max(longest, current);
@@ -153,9 +159,10 @@ interface ChipStripProps {
   days: TrackerDay[];
   startDate: string;
   currentDay: number;
+  onEditDay?: (dayNumber: number) => void;
 }
 
-function ChipStrip({ days, startDate }: ChipStripProps) {
+function ChipStrip({ days, startDate, onEditDay }: ChipStripProps) {
   return (
     <div className="overflow-x-auto -mx-6 px-6 md:-mx-10 md:px-10 pb-2">
       <div className="flex gap-1.5 min-w-fit">
@@ -165,23 +172,38 @@ function ChipStrip({ days, startDate }: ChipStripProps) {
           const isPast = day.status === 'past-incomplete';
           const isFuture = day.status === 'future';
           const dateKey = dayKeyFromStart(startDate, day.dayNumber);
+          // Past days (closed or incomplete) are clickable to let
+          // users backfill forgotten tasks. Today is not — use the
+          // grid below to mark today. Future days are locked.
+          const editable = isPast || isComplete;
           return (
-            <div
+            <button
               key={day.dayNumber}
-              className={`flex flex-col items-center justify-center w-10 h-10 rounded-md font-body text-caption tabular-nums flex-shrink-0 ${
+              type="button"
+              disabled={!editable}
+              onClick={() => editable && onEditDay?.(day.dayNumber)}
+              className={`flex flex-col items-center justify-center w-10 h-10 rounded-md font-body text-caption tabular-nums flex-shrink-0 transition-transform ${
                 isToday
                   ? 'bg-coral text-paper ring-2 ring-coral/40 ring-offset-2 ring-offset-paper'
                   : isComplete
                   ? 'bg-coral/15 text-coral border border-coral/40'
                   : isPast
-                  ? 'bg-ink/5 text-ink/60 border border-ink/15'
-                  : 'bg-transparent text-ink/30 border border-ink/10'
+                  ? 'bg-ink/5 text-ink/60 border border-ink/15 hover:scale-110 hover:bg-paper cursor-pointer'
+                  : 'bg-transparent text-ink/30 border border-ink/10 cursor-not-allowed'
               }`}
-              title={`Day ${day.dayNumber} — ${formatDateKeyShort(dateKey)} — ${day.completedCount}/9`}
-              aria-label={`Day ${day.dayNumber}, ${formatDateKeyShort(dateKey)}, ${day.completedCount} of 9 complete`}
+              title={
+                editable
+                  ? `Day ${day.dayNumber} — ${formatDateKeyShort(dateKey)} — ${day.completedCount}/9 (click to edit)`
+                  : `Day ${day.dayNumber} — ${formatDateKeyShort(dateKey)} — ${day.completedCount}/9`
+              }
+              aria-label={
+                editable
+                  ? `Day ${day.dayNumber}, ${formatDateKeyShort(dateKey)}, ${day.completedCount} of 9 complete. Click to edit.`
+                  : `Day ${day.dayNumber}, ${formatDateKeyShort(dateKey)}, ${day.completedCount} of 9 complete`
+              }
             >
               {isComplete ? '✓' : day.dayNumber}
-            </div>
+            </button>
           );
         })}
       </div>
@@ -199,6 +221,7 @@ export default function Tracker({ hideMarquee = false }: { hideMarquee?: boolean
   const [confettiKey, setConfettiKey] = useState(0);
   const [confettiIntensity, setConfettiIntensity] = useState<'small' | 'big'>('small');
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
+  const [editingDay, setEditingDay] = useState<number | null>(null);
 
   const streak = useMemo(
     () => calculateStreak(tracker.days),
@@ -225,6 +248,11 @@ export default function Tracker({ hideMarquee = false }: { hideMarquee?: boolean
         setConfettiKey((k) => k + 1);
       }
     }
+  };
+
+  const togglePastHabit = (habitId: string) => {
+    if (editingDay === null) return;
+    tracker.toggleHabitForDay(editingDay, habitId);
   };
 
   const handleUseStreakProtection = async () => {
@@ -375,6 +403,9 @@ export default function Tracker({ hideMarquee = false }: { hideMarquee?: boolean
           )}
         </div>
 
+        {/* Buddy card — shows for premium users with a paired buddy */}
+        <BuddyCard />
+
         {/* 50-day chip strip */}
         {tracker.startDate && (
           <div className="mb-10">
@@ -382,6 +413,7 @@ export default function Tracker({ hideMarquee = false }: { hideMarquee?: boolean
               days={tracker.days}
               startDate={tracker.startDate}
               currentDay={tracker.currentDay}
+              onEditDay={setEditingDay}
             />
           </div>
         )}
@@ -403,7 +435,7 @@ export default function Tracker({ hideMarquee = false }: { hideMarquee?: boolean
                 onClick={() => handleToggle(habit.id)}
                 className={`flex flex-col items-center p-3 md:p-4 border transition-colors ${
                   done
-                    ? 'bg-coral/10 border-coral/40'
+                    ? 'bg-teal border-teal'
                     : 'bg-cream/20 border-ink/15 hover:border-ink/40'
                 } ${pulsingHabit === habit.id ? 'animate-pulse' : ''}`}
               >
@@ -412,7 +444,7 @@ export default function Tracker({ hideMarquee = false }: { hideMarquee?: boolean
                   size={56}
                   className="md:!w-16 md:!h-auto mb-2"
                 />
-                <span className="font-body text-caption uppercase tracking-widest text-ink text-center leading-tight">
+                <span className={`font-body text-caption uppercase tracking-widest text-center leading-tight ${done ? 'text-paper' : 'text-ink'}`}>
                   {habit.name}
                 </span>
               </button>
@@ -445,6 +477,71 @@ export default function Tracker({ hideMarquee = false }: { hideMarquee?: boolean
         destructive
         onConfirm={performReset}
       />
+
+      {/* Edit-a-past-day modal — for backfilling forgotten habits */}
+      {editingDay !== null && tracker.startDate && (
+        <div
+          className="fixed inset-0 z-50 bg-ink/40 flex items-end md:items-center justify-center md:p-4"
+          onClick={() => setEditingDay(null)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="bg-paper w-full md:max-w-lg border border-ink/15 max-h-[90vh] overflow-y-auto pb-[max(1rem,env(safe-area-inset-bottom))]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-6 pt-6 pb-2">
+              <p className="font-body text-caption uppercase tracking-widest text-coral mb-2">
+                Backfill
+              </p>
+              <h3 className="font-display text-h2 text-ink leading-tight mb-1">
+                Day {editingDay}
+              </h3>
+              <p className="font-body text-sm text-ink/65 mb-4">
+                {formatDateKeyShort(dayKeyFromStart(tracker.startDate, editingDay))} · Tap the habits you actually did. Updating past days doesn't count against the streak.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
+                {habits.map((habit) => {
+                  const day = tracker.days.find((d) => d.dayNumber === editingDay);
+                  const done = !!day?.taps[habit.id];
+                  return (
+                    <button
+                      key={habit.id}
+                      type="button"
+                      onClick={() => togglePastHabit(habit.id)}
+                      className={`flex items-center gap-3 px-3 py-3 border text-left transition-colors ${
+                        done
+                          ? 'bg-teal border-teal text-paper'
+                          : 'bg-cream/20 border-ink/15 hover:border-ink/40'
+                      }`}
+                    >
+                      <HabitIcon
+                        name={habit.icon}
+                        size={32}
+                        className={done ? '!text-paper' : '!text-ink/60'}
+                      />
+                      <span
+                        className={`font-body text-sm ${
+                          done ? 'text-paper' : 'text-ink/80'
+                        }`}
+                      >
+                        {habit.name}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingDay(null)}
+                className="w-full bg-ink text-paper font-body text-caption uppercase tracking-widest px-4 py-3"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Section>
   );
 }

@@ -10,6 +10,8 @@ interface Profile {
   display_name: string | null;
   is_premium: boolean;
   challenge_started_at: string;
+  buddy_user_id?: string | null;
+  purchased_by_user_id?: string | null;
 }
 
 export type AuthError = {
@@ -50,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!supabase) return null;
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, email, display_name, is_premium, challenge_started_at')
+      .select('id, email, display_name, is_premium, challenge_started_at, buddy_user_id, purchased_by_user_id')
       .eq('id', userId)
       .single();
 
@@ -186,7 +188,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { error: { message: 'Password must be at least 8 characters.' } };
     }
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email: emailAddress,
       password,
     });
@@ -196,6 +198,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { error: { message: 'An account with this email already exists.', hint: 'Try signing in instead, or use the forgot password link.' } };
       }
       return { error: { message: error.message } };
+    }
+
+    // Fire the welcome email. Fire-and-forget — the user shouldn't
+    // wait on the email send. If the API call fails the email is
+    // just not sent; the user can still sign in and use the app.
+    if (data?.user?.id && typeof window !== 'undefined') {
+      fetch('/api/email/welcome', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: data.user.id }),
+      }).catch((err) => {
+        console.warn('welcome email failed:', err);
+      });
     }
 
     return { error: null };

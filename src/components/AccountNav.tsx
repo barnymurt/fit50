@@ -5,12 +5,18 @@ import { useEffect, useState } from 'react';
 interface NavSection {
   id: string;
   label: string;
+  href?: string;
+}
+
+function linkFor(s: NavSection): string {
+  return s.href ?? `#${s.id}`;
 }
 
 export default function AccountNav({ sections }: { sections: NavSection[] }) {
   const [activeId, setActiveId] = useState<string>(sections[0]?.id ?? '');
 
   useEffect(() => {
+    const anchorIds = sections.filter((s) => !s.href).map((s) => s.id);
     const observer = new IntersectionObserver(
       (entries) => {
         const visible = entries
@@ -20,8 +26,8 @@ export default function AccountNav({ sections }: { sections: NavSection[] }) {
       },
       { rootMargin: '-25% 0px -55% 0px', threshold: [0, 0.25, 0.5, 0.75, 1] }
     );
-    sections.forEach((s) => {
-      const el = document.getElementById(s.id);
+    anchorIds.forEach((id) => {
+      const el = document.getElementById(id);
       if (el) observer.observe(el);
     });
     return () => observer.disconnect();
@@ -41,7 +47,7 @@ export default function AccountNav({ sections }: { sections: NavSection[] }) {
               return (
                 <li key={s.id}>
                   <a
-                    href={`#${s.id}`}
+                    href={linkFor(s)}
                     className={`inline-block px-3 py-1 font-body text-caption uppercase tracking-widest transition-colors ${
                       isActive ? 'text-coral' : 'text-ink/60 hover:text-ink'
                     }`}
@@ -69,7 +75,7 @@ export default function AccountNav({ sections }: { sections: NavSection[] }) {
             return (
               <li key={s.id}>
                 <a
-                  href={`#${s.id}`}
+                  href={linkFor(s)}
                   className={`block px-2 py-1 font-body text-caption uppercase tracking-widest transition-colors border-l-2 ${
                     isActive
                       ? 'text-coral border-coral'

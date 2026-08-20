@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Marquee from './Marquee';
 import { useAuth } from '@/contexts/AuthContext';
+import BuddyPurchasePicker from './BuddyPurchasePicker';
 
 export interface SixFeaturesItem {
   title: string;
@@ -36,7 +37,7 @@ export const SIX_FEATURES: SixFeaturesItem[] = [
   {
     title: 'Kanban board',
     description:
-      'Plan the 50 days across To do / In progress / Done.',
+      'Plan the 50 days across To do · In progress · Done.',
   },
 ];
 
@@ -48,6 +49,7 @@ export default function SixFeatures({
   const { user, profile, loading } = useAuth();
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showBuddyForm, setShowBuddyForm] = useState(false);
 
   const handleCheckout = async () => {
     setCheckoutLoading(true);
@@ -75,7 +77,7 @@ export default function SixFeatures({
       className="relative pt-40 md:pt-56 pb-section overflow-hidden"
       style={{ backgroundColor: '#4A9B9B' }}
     >
-      <div className="absolute top-0 left-0 right-0 h-32 md:h-52 overflow-hidden pointer-events-none z-0 flex items-center">
+      <div className="absolute top-0 left-0 right-0 h-32 md:md:h-52 overflow-hidden pointer-events-none z-0 flex items-center">
         <Marquee
           text="Buy us a Caneca - Keep the tools forever"
           separator="✦"
@@ -132,7 +134,7 @@ export default function SixFeatures({
           </div>
         </div>
 
-        {/* CTA */}
+        {/* CTA — two ways to start (or already in) */}
         {isPremium ? (
           <div className="text-center max-w-2xl mx-auto border border-paper/25 bg-paper/5 p-8">
             <p className="font-body text-caption uppercase tracking-widest text-coral mb-3">
@@ -142,28 +144,76 @@ export default function SixFeatures({
               All helpful tools are active.
             </h3>
             <p className="font-body text-base text-paper/75 mb-6">
-              Thank you for the caneca.
+                Thank you for the caneca. Shout a mate to keep you both honest.
             </p>
-            <Link
-              href="/account"
-              className="inline-flex items-center justify-center bg-paper text-ink font-body text-sm px-10 py-4 uppercase tracking-wider hover:bg-cream/80 transition-colors"
-            >
-              Open your account
-            </Link>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Link
+                href="/account#buddy-section"
+                className="inline-flex items-center justify-center bg-paper text-ink font-body text-sm px-8 py-4 uppercase tracking-wider hover:bg-cream/80 transition-colors"
+              >
+                Shout a mate
+              </Link>
+              <Link
+                href="/account"
+                className="inline-flex items-center justify-center border border-paper/30 text-paper font-body text-sm px-8 py-4 uppercase tracking-wider hover:bg-paper/10 transition-colors"
+              >
+                Open my account
+              </Link>
+            </div>
           </div>
         ) : (
-          <div className="text-center max-w-2xl mx-auto">
-            {error && (
-              <p className="font-body text-sm text-coral mb-4">{error}</p>
+          <div className="max-w-3xl mx-auto">
+            <p className="font-body text-caption uppercase tracking-widest text-paper/65 text-center mb-4">
+              Two ways to start
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-paper border border-paper/20 p-6 text-left">
+                <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-2">
+                  Flying Solo.
+                </p>
+                <p className="font-display text-h2 text-ink leading-none mb-1">€5.99</p>
+                <p className="font-body text-sm text-ink/60 mb-4">
+                  One player. Fifty days. Just you against the calendar.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleCheckout}
+                  disabled={checkoutLoading}
+                  className="w-full bg-coral text-paper font-body text-caption uppercase tracking-widest px-6 py-3 hover:bg-coral/85 transition-colors disabled:opacity-50"
+                >
+                  {checkoutLoading ? 'Opening…' : 'Mines a Caneca'}
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowBuddyForm((v) => !v)}
+                className="bg-paper border-2 border-coral p-6 text-left block w-full"
+              >
+                <p className="font-body text-caption uppercase tracking-widest text-coral mb-2">
+                  Buddy Up.
+                </p>
+                <p className="font-body text-sm text-ink/60 mb-4">
+                  Mates finish this at nearly twice the rate of solo starters.
+                </p>
+                <p className="font-display text-h2 text-coral leading-none mb-1">€9.99</p>
+                <span className="block w-full text-center bg-coral text-paper font-body text-caption uppercase tracking-widest px-6 py-3">
+                  {showBuddyForm ? 'Hide form' : 'Mines a double.'}
+                </span>
+              </button>
+            </div>
+            {showBuddyForm && (
+              <div className="mt-6">
+                <BuddyPurchasePicker
+                  variant="wide"
+                  headline="Start together."
+                  subheadline="Finish together. Or just be in it for the craic! Mates finish this at nearly twice the rate of solo starters."
+                />
+              </div>
             )}
-            <button
-              onClick={handleCheckout}
-              disabled={checkoutLoading}
-              className="inline-flex items-center justify-center bg-coral text-paper font-body text-sm px-12 py-5 uppercase tracking-wider hover:bg-coral/85 transition-colors disabled:opacity-50"
-            >
-              {checkoutLoading ? 'Opening checkout…' : 'Unlock for €5.99'}
-            </button>
-            <p className="font-body text-caption uppercase tracking-widest text-paper/65 mt-4">
+            {error && (
+              <p className="font-body text-sm text-coral mt-4 text-center">{error}</p>
+            )}
+            <p className="font-body text-caption uppercase tracking-widest text-paper/65 mt-4 text-center">
               The price of a caneca · secure checkout via Stripe
             </p>
           </div>

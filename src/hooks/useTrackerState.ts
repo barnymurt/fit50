@@ -7,6 +7,7 @@ import {
   CHALLENGE_DAYS,
   dateKeyLocal,
   dayIndexFromStart,
+  dayKeyFromStart,
 } from '@/lib/dates';
 import {
   TRACKER_KEY,
@@ -232,7 +233,7 @@ export function useTrackerState() {
   useEffect(() => {
     if (!loaded || !startDate) return;
 
-    const interval = setInterval(async () => {
+    const checkRollover = async () => {
       const todayKey = localDateKey();
       if (todayKeyRef.current === todayKey) return;
       const previousKey = todayKeyRef.current ?? todayKey;
@@ -241,10 +242,6 @@ export function useTrackerState() {
       const yesterdayNumber =
         dayIndexFromStart(startDate, previousDateOf(previousKey));
       const yesterdayTaps = data.pendingTaps;
-
-      if (Object.keys(yesterdayTaps).length === 0 && data.closedDays[yesterdayNumber] === undefined) {
-        // Nothing to flush
-      }
 
       setData((prev) => {
         const next: TrackerDataV2 = {
@@ -274,9 +271,27 @@ export function useTrackerState() {
           console.error('daily_state cleanup failed:', err);
         }
       }
-    }, TICKER_INTERVAL_MS);
+    };
 
-    return () => clearInterval(interval);
+    // Check on interval AND on tab focus. Browsers throttle
+    // setInterval to once-per-minute when a tab is in the background,
+    // so a user who leaves the tracker open overnight can return
+    // to yesterday's tasks still selected. The visibilitychange
+    // listener catches that case immediately.
+    const interval = setInterval(checkRollover, 30_000);
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        checkRollover();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('focus', onVisibility);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('focus', onVisibility);
+    };
   }, [loaded, startDate, data.pendingTaps, data.closedDays, persistAnon, persistAuthInsertDailyTotals, user, supabase]);
 
   // ---------- Derived values ----------
@@ -383,6 +398,50 @@ export function useTrackerState() {
     [persistAnon, startDate, user, supabase]
   );
 
+  const toggleHabitForDay = useCallback(
+    (dayNumber: number, habitId: string) => {
+      if (!startDate) return;
+      const dateKey = dayKeyFromStart(startDate, dayNumber);
+      setData((prev) => {
+        const existing = prev.closedDays[dayNumber] || {};
+        const isOn = existing[habitId] === true;
+        const nextTaps: Record<string, boolean> = { ...existing };
+        if (isOn) delete nextTaps[habitId];
+        else nextTaps[habitId] = true;
+        const updated: TrackerDataV2 = {
+          ...prev,
+          closedDays: {
+            ...prev.closedDays,
+            [dayNumber]: nextTaps,
+          },
+        };
+        persistAnon(updated);
+        if (user && supabase) {
+          // Upsert the backfilled tap as the canonical record for that
+          // date. The regular rollover flush writes to daily_totals; for
+          // backfills we use daily_state directly (which the previous-day
+          // flush cleans up only if the user reopens that day).
+          (supabase.from('daily_state') as any)
+            .upsert(
+              {
+                user_id: user.id,
+                date_key: dateKey,
+                habit_id: habitId,
+                tapped: !isOn,
+                updated_at: new Date().toISOString(),
+              },
+              { onConflict: 'user_id,date_key,habit_id' }
+            )
+            .then(({ error }: { error: unknown }) => {
+              if (error) console.error('daily_state backfill failed:', error);
+            });
+        }
+        return updated;
+      });
+    },
+    [persistAnon, startDate, user, supabase]
+  );
+
   const useStreakProtectionForWeek = useCallback(async () => {
     if (!startDate || !user) return false;
     const weekKey = weekKeyForDate(new Date());
@@ -466,6 +525,7 @@ export function useTrackerState() {
     hasStarted: !!startDate,
     updateStartDate,
     toggleHabit,
+    toggleHabitForDay,
     useStreakProtectionForWeek,
     reset,
   };

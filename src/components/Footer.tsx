@@ -10,6 +10,8 @@ const FOOTER_LINKS = [
   { href: '/#tracker', label: 'Tracker' },
   { href: '/#faq', label: 'FAQ' },
   { href: '/#sign-up', label: 'Keep the tools' },
+  { href: '/privacy', label: 'Privacy' },
+  { href: '/redeem', label: 'Redeem code' },
 ];
 
 export default function Footer() {
