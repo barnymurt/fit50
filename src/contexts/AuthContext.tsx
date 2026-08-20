@@ -52,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!supabase) return null;
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, email, display_name, is_premium, challenge_started_at')
+      .select('id, email, display_name, is_premium, challenge_started_at, buddy_user_id, purchased_by_user_id')
       .eq('id', userId)
       .single();
 
