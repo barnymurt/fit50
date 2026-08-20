@@ -152,8 +152,10 @@ async function main() {
   // 4. Seed tracker_progress for the buyer so the MyMotivator card has
   //    day / streak data. We backdate challenge_started_at 6 days ago
   //    and put completed rows on days 1–5 plus a couple on day 6.
-  console.log('4. Seeding tracker_progress for buyer…');
-  const dayRows = [
+  console.log('4. Seeding tracker_progress for both accounts…');
+  // Buyer (B): 6 full days, all 9 habits — gives Barnz a streak of 5
+  //            and a full 9-cell grid on day 6.
+  const buyerDays = [
     { day: 1, completed: true },
     { day: 2, completed: true },
     { day: 3, completed: true },
@@ -161,23 +163,41 @@ async function main() {
     { day: 5, completed: true },
     { day: 6, completed: true },
   ];
-  const rows = [];
-  for (const d of dayRows) {
-    for (const habitId of HABIT_IDS) {
-      rows.push({
-        user_id: buyerId,
-        day: d.day,
-        habit_id: habitId,
-        completed: true,
-        completed_at: new Date(Date.now() - (6 - d.day) * 86_400_000).toISOString(),
-      });
+  // Buddy (Barnz): 3 full days — gives B a Day 3 reading.
+  const buddyDays = [
+    { day: 1, completed: true },
+    { day: 2, completed: true },
+    { day: 3, completed: true },
+  ];
+  const buildRows = (userId, days, daysAgoStart) => {
+    const out = [];
+    for (const d of days) {
+      for (const habitId of HABIT_IDS) {
+        out.push({
+          user_id: userId,
+          day: d.day,
+          habit_id: habitId,
+          completed: true,
+          completed_at: new Date(
+            Date.now() - (daysAgoStart - d.day) * 86_400_000
+          ).toISOString(),
+        });
+      }
     }
-  }
+    return out;
+  };
+  const seedRows = [
+    ...buildRows(buyerId, buyerDays, 6),
+    ...buildRows(buddyId, buddyDays, 3),
+  ];
   const seed = await admin
     .from('tracker_progress')
-    .upsert(rows, { onConflict: 'user_id,day,habit_id' });
+    .upsert(seedRows, { onConflict: 'user_id,day,habit_id' });
   if (seed.error) throw seed.error;
-  console.log(`  ✓ Seeded ${rows.length} tracker_progress rows across 6 days`);
+  console.log(
+    `  ✓ Seeded ${seedRows.length} tracker_progress rows ` +
+    `(B: ${buyerDays.length} days, Barnz: ${buddyDays.length} days)`
+  );
   console.log();
 
   // 5. buddy_purchases audit row (pending or activated — doesn't affect

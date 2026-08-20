@@ -176,62 +176,64 @@ export default function MyMotivator() {
   const remaining = Math.max(0, 50 - dayN);
 
   return (
-    <div className="border border-ink/10 bg-cream/30 p-4 md:p-5 mb-6">
-      <div className="flex items-baseline justify-between mb-3">
-        <div>
-          <p className="font-body text-caption uppercase tracking-widest text-ink/50">
-            A small shout-out
-          </p>
-          <p className="font-display text-base text-ink mt-1">
-            {snap.buyer_name}
-          </p>
+    <div className="max-w-7xl mx-auto px-6 md:px-10 mb-6">
+      <div className="border border-ink/10 bg-cream/30 p-4 md:p-5">
+        <div className="flex items-baseline justify-between mb-3">
+          <div>
+            <p className="font-body text-caption uppercase tracking-widest text-ink/50">
+              A small shout-out
+            </p>
+            <p className="font-display text-base text-ink mt-1">
+              {snap.buyer_name}
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="font-display text-h3 text-ink leading-none tabular-nums">
+              Day {dayN}<span className="text-ink/40 text-sm font-normal"> / 50</span>
+            </p>
+            <p className="font-body text-caption uppercase tracking-widest text-ink/50 mt-1">
+              {snap.streak === 0
+                ? 'Show them what you got'
+                : snap.streak === 1
+                ? '1 day in a row'
+                : `${snap.streak} days in a row`}
+            </p>
+          </div>
         </div>
-        <div className="text-right">
-          <p className="font-display text-h3 text-ink leading-none tabular-nums">
-            Day {dayN}<span className="text-ink/40 text-sm font-normal"> / 50</span>
-          </p>
-          <p className="font-body text-caption uppercase tracking-widest text-ink/50 mt-1">
-            {snap.streak === 0
-              ? 'Show them what you got'
-              : snap.streak === 1
-              ? '1 day in a row'
-              : `${snap.streak} days in a row`}
-          </p>
+
+        {/* Nine-cell strip of today's habits — no labels on the small
+            cells, just coloured to show done / not-done. Hovering on a
+            cell shows the habit name in a tooltip. We never expose the
+            buyer's individual habit log, food log, water log, weight,
+            or macros here — just the line. */}
+        <div
+          className="grid grid-cols-9 gap-1.5"
+          role="img"
+          aria-label={`${snap.buyer_name} is on day ${dayN} of 50, ${snap.done_today.length} of 9 habits done today`}
+        >
+          {snap.habit_ids.map((id) => {
+            const done = doneSet.has(id);
+            return (
+              <div
+                key={id}
+                title={`${HABIT_LABEL[id] || id}${done ? ' · done' : ''}`}
+                className={`aspect-square rounded-sm ${
+                  done
+                    ? 'bg-teal'
+                    : 'border border-ink/15 bg-paper/40'
+                }`}
+                aria-label={HABIT_LABEL[id] || id}
+              />
+            );
+          })}
         </div>
-      </div>
 
-      {/* Nine-cell strip of today's habits — no labels on the small
-          cells, just coloured to show done / not-done. Hovering on a
-          cell shows the habit name in a tooltip. We never expose the
-          buyer's individual habit log, food log, water log, weight,
-          or macros here — just the line. */}
-      <div
-        className="grid grid-cols-9 gap-1.5"
-        role="img"
-        aria-label={`${snap.buyer_name} is on day ${dayN} of 50, ${snap.done_today.length} of 9 habits done today`}
-      >
-        {snap.habit_ids.map((id) => {
-          const done = doneSet.has(id);
-          return (
-            <div
-              key={id}
-              title={`${HABIT_LABEL[id] || id}${done ? ' · done' : ''}`}
-              className={`aspect-square rounded-sm ${
-                done
-                  ? 'bg-teal'
-                  : 'border border-ink/15 bg-paper/40'
-              }`}
-              aria-label={HABIT_LABEL[id] || id}
-            />
-          );
-        })}
+        <p className="font-body text-caption uppercase tracking-widest text-ink/50 mt-3">
+          {snap.done_today.length} of 9 today
+          {' · '}
+          {remaining} days left
+        </p>
       </div>
-
-      <p className="font-body text-caption uppercase tracking-widest text-ink/50 mt-3">
-        {snap.done_today.length} of 9 today
-        {' · '}
-        {remaining} days left
-      </p>
     </div>
   );
 }
