@@ -5,21 +5,21 @@ import { useAuth } from '@/contexts/AuthContext';
 import { createClient } from '@/lib/supabase';
 import HabitIcon, { HabitIconName } from '@/components/HabitIcon';
 
-interface BuyerSnapshot {
-  buyer_name: string;
-  // Buyer's current day in the 50-day challenge.
+interface MateSnapshot {
+  // Display name of the other half of the pair (the buyer if signed in
+  // as the buddy, the buddy if signed in as the buyer).
+  mate_name: string;
+  // Their current day in the 50-day challenge.
   current_day: number;
-  // Buyer's current streak (consecutive days with all 9 habits).
+  // Their streak — consecutive past days with at least one completed habit.
   streak: number;
-  // Today's habit ids the buyer has marked done. We use this to
-  // render a 9-cell strip of "done" / "pending" markers — no food,
-  // water, weight, macros, no drill-down. Just the line.
+  // Their habits done today. Used to render the 9-cell strip — no food,
+  // water, weight, macros. Just the line.
   done_today: string[];
-  // Id list for the 9 challenges, so we can render the
-  // always-the-same 9-cell strip in a fixed order.
+  // Fixed 9-cell order so the strip is the same layout every render.
   habit_ids: string[];
-  // The buyer's is_premium flag — visible for context.
-  buyer_is_premium: boolean;
+  // Their premium flag — not surfaced, but kept for parity.
+  is_premium: boolean;
 }
 
 const HABIT_ORDER = [
@@ -46,25 +46,26 @@ const HABIT_LABEL: Record<string, string> = {
   'chill-out': 'Chill Out',
 };
 
-function todayDateKey(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-
 export default function MyMotivator() {
   const { user, profile } = useAuth();
-  const [snap, setSnap] = useState<BuyerSnapshot | null>(null);
+  const [snap, setSnap] = useState<MateSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // The "other half" of the pair. Either:
+  //   - profile.purchased_by_user_id (buddy view → buyer's id), or
+  //   - profile.buddy_user_id (buyer view → buddy's id).
+  // These are normally mutually exclusive — a user is either the
+  // gifter or the giftee, not both.
+  const mateId = profile?.purchased_by_user_id ?? profile?.buddy_user_id ?? null;
 
   const fetchRef = useRef<() => Promise<void>>(async () => {});
 
   useEffect(() => {
-    if (!user || !profile?.purchased_by_user_id) {
+    if (!user || !mateId) {
       setSnap(null);
       setLoading(false);
       return;
     }
-    const buyerId = profile.purchased_by_user_id;
     const supabase = createClient();
     if (!supabase) return;
 
@@ -73,33 +74,30 @@ export default function MyMotivator() {
 
     const doFetch = async () => {
       try {
-        // 1. Buyer's profile — name and challenge start.
+        // 1. Mate's profile — name and challenge start.
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: bp } = await (supabase.from('profiles') as any)
+        const { data: mp } = await (supabase.from('profiles') as any)
           .select('display_name, is_premium, challenge_started_at')
-          .eq('id', buyerId)
+          .eq('id', mateId)
           .maybeSingle();
 
-        // 2. Buyer's start day + today's habit progress.
+        // 2. Mate's tracker progress.
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { data: tps } = await (supabase.from('tracker_progress') as any)
           .select('day, habit_id, completed')
-          .eq('user_id', buyerId)
+          .eq('user_id', mateId)
           .order('day', { ascending: false })
           .limit(60);
 
         if (cancelled) return;
 
-        const startIso = bp?.challenge_started_at as string | null;
+        const startIso = mp?.challenge_started_at as string | null;
         const startMs = startIso ? new Date(startIso).getTime() : null;
         const elapsedDays = startMs
           ? Math.floor((Date.now() - startMs) / 86_400_000) + 1
           : 0;
         const currentDay = Math.max(1, Math.min(50, elapsedDays));
 
-        // Pull today's habit list out of tracker_progress for the
-        // current day (the latest one that has any rows). If
-        // current_day is the latest, look at that.
         const allRows = (tps || []) as Array<{
           day: number;
           habit_id: string;
@@ -112,10 +110,9 @@ export default function MyMotivator() {
           allRows.filter((r) => r.completed).map((r) => r.day)
         );
 
-        // Streak: walk backwards from currentDay, counting consecutive
-        // days with at least one completed habit. Only count days that
-        // are 'past' relative to today (so the current day doesn't
-        // count toward streak if not yet finished).
+        // Streak: walk backwards from currentDay - 1, counting consecutive
+        // days with at least one completed habit. Current day doesn't
+        // count toward streak if not yet finished.
         let streak = 0;
         for (let d = currentDay - 1; d >= 1; d--) {
           if (completedDays.has(d)) streak++;
@@ -123,12 +120,12 @@ export default function MyMotivator() {
         }
 
         setSnap({
-          buyer_name: (bp?.display_name as string) || 'Your mate',
+          mate_name: (mp?.display_name as string) || 'Your mate',
           current_day: currentDay,
           streak,
           done_today: todayDone,
           habit_ids: HABIT_ORDER,
-          buyer_is_premium: !!bp?.is_premium,
+          is_premium: !!mp?.is_premium,
         });
       } catch {
         if (!cancelled) setSnap(null);
@@ -142,8 +139,7 @@ export default function MyMotivator() {
     doFetch();
 
     // Re-fetch on visibility change and once a minute so the
-    // day-rollover (currentDay = floor((now - start) / day) + 1)
-    // updates the card. Also re-fetch on focus for the same reason.
+    // day-rollover updates the card. Also re-fetch on focus.
     const onVisible = () => {
       if (document.visibilityState === 'visible') doFetch();
     };
@@ -157,16 +153,18 @@ export default function MyMotivator() {
       document.removeEventListener('visibilitychange', onVisible);
       window.removeEventListener('focus', onVisible);
     };
-  }, [user, profile?.purchased_by_user_id]);
+  }, [user, mateId]);
 
-  if (!user || !profile?.purchased_by_user_id) return null;
+  if (!user || !mateId) return null;
   if (loading && !snap) {
     return (
-      <div className="border border-ink/10 bg-cream/30 p-4 mb-6">
-        <p className="font-body text-caption uppercase tracking-widest text-ink/50">
-          A small shout-out
-        </p>
-        <p className="font-body text-sm text-ink/40 mt-1">Loading…</p>
+      <div className="max-w-7xl mx-auto px-6 md:px-10 mb-6">
+        <div className="border border-ink/10 bg-cream/30 p-4 md:p-5">
+          <p className="font-body text-caption uppercase tracking-widest text-ink/50">
+            Keep &apos;em honest and keep &apos;em motivated
+          </p>
+          <p className="font-body text-sm text-ink/40 mt-1">Loading…</p>
+        </div>
       </div>
     );
   }
@@ -182,10 +180,10 @@ export default function MyMotivator() {
         <div className="flex items-baseline justify-between mb-3">
           <div>
             <p className="font-body text-caption uppercase tracking-widest text-ink/50">
-              A small shout-out
+              Keep &apos;em honest and keep &apos;em motivated
             </p>
             <p className="font-display text-base text-ink mt-1">
-              {snap.buyer_name}
+              {snap.mate_name}
             </p>
           </div>
           <div className="text-right">
@@ -202,15 +200,14 @@ export default function MyMotivator() {
           </div>
         </div>
 
-        {/* Nine-cell strip of today's habits — no labels on the small
-            cells, just coloured to show done / not-done. Hovering on a
-            cell shows the habit name in a tooltip. We never expose the
-            buyer's individual habit log, food log, water log, weight,
-            or macros here — just the line. */}
+        {/* Nine-cell strip — icons fill the squares. Done = full-colour
+            icon on teal. Not done = muted + grayscale icon on paper.
+            We never expose the mate's food log, water log, weight, or
+            macros here — just the line. */}
         <div
           className="grid grid-cols-9 gap-1.5"
           role="img"
-          aria-label={`${snap.buyer_name} is on day ${dayN} of 50, ${snap.done_today.length} of 9 habits done today`}
+          aria-label={`${snap.mate_name} is on day ${dayN} of 50, ${snap.done_today.length} of 9 habits done today`}
         >
           {snap.habit_ids.map((id) => {
             const done = doneSet.has(id);
@@ -218,7 +215,7 @@ export default function MyMotivator() {
               <div
                 key={id}
                 title={`${HABIT_LABEL[id] || id}${done ? ' · done' : ''}`}
-                className={`aspect-square rounded-sm flex items-center justify-center ${
+                className={`aspect-square rounded-sm flex items-center justify-center p-1.5 ${
                   done
                     ? 'bg-teal'
                     : 'border border-ink/15 bg-paper/40'
@@ -227,8 +224,8 @@ export default function MyMotivator() {
               >
                 <HabitIcon
                   name={id as HabitIconName}
-                  size={28}
-                  className={done ? 'opacity-100' : 'opacity-25 grayscale'}
+                  size={64}
+                  className={`w-full h-full ${done ? 'opacity-100' : 'opacity-30 grayscale'}`}
                 />
               </div>
             );
