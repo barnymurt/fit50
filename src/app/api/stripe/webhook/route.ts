@@ -41,13 +41,16 @@ async function ensureProfileExists(
   userId: string,
   email: string
 ) {
+  // Don't set challenge_started_at here — let the schema default
+  // (NULL after migration 0014) apply. If a row already exists, the
+  // ignoreDuplicates flag preserves whatever challenge_started_at it
+  // already has.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (supabase.from('profiles') as any).upsert(
     {
       id: userId,
       email,
       is_premium: false,
-      challenge_started_at: new Date().toISOString().slice(0, 10),
     },
     { onConflict: 'id', ignoreDuplicates: true }
   );
@@ -165,7 +168,6 @@ async function handleBuddyPurchase(
         display_name: purchaserName,
         is_premium: true,
         premium_purchased_at: new Date().toISOString(),
-        challenge_started_at: new Date().toISOString().slice(0, 10),
         activation_status: 'pending_activation',
         activation_token: purchaserActivationToken,
         activation_expires_at: new Date(
@@ -265,7 +267,6 @@ async function handleBuddyPurchase(
           display_name: buddyName,
           is_premium: true,
           premium_purchased_at: new Date().toISOString(),
-          challenge_started_at: new Date().toISOString().slice(0, 10),
           activation_status: 'pending_activation',
           activation_token: token,
           activation_expires_at: expiresAt,

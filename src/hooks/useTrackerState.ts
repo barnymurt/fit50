@@ -221,10 +221,14 @@ export function useTrackerState() {
       }
 
       // ---- Auth: merge local + server ----
+      // Server is the source of truth for which account this is.
+      // localStorage is a fast-render cache for THIS account only.
+      // If the server says the user hasn't started a challenge, we
+      // ignore any orphan localStorage data (could be from a
+      // previous account on the same browser, or a guest session
+      // before signup).
       const localLoaded = loadTrackerV2(new Date());
-      const localStart = localLoaded?.startDate ?? null;
       const localPending = localLoaded?.pendingTaps ?? {};
-      const localClosed = localLoaded?.closedDays ?? {};
       const localStreakKeys = localLoaded?.streakUsedWeekKeys ?? [];
       const localPendingDateKey = localLoaded?.pendingTapsDateKey ?? null;
       const localWater = localLoaded?.waterByDate ?? {};
@@ -291,7 +295,7 @@ export function useTrackerState() {
         }
       }
 
-      const start = serverStart ?? localStart ?? null;
+      const start = serverStart ?? null;
 
       // Recover stale daily_state rows: attribute them to the day
       // number they belong to, merge into closedDays, upsert into
@@ -347,30 +351,38 @@ export function useTrackerState() {
         }
       }
 
+      // If the server says this user hasn't started a challenge, ignore
+      // orphan localStorage data (from a previous account or guest
+      // session on the same browser). Everything below is gated on
+      // `start !== null` so a fresh account always renders the Start
+      // splash with no leftover tiles.
+      const hasStart = start !== null;
+
       // For today specifically, merge any localStorage taps that
       // happened to be cached but not yet uploaded (rare offline case).
       const localCurrentDay =
-        start ? dayIndexFromStart(start, new Date()) : null;
+        hasStart ? dayIndexFromStart(start, new Date()) : null;
       if (localCurrentDay !== null && localPendingDateKey === todayKey && Object.keys(localPending).length > 0) {
         mergedClosed[localCurrentDay] = {
           ...(mergedClosed[localCurrentDay] || {}),
           ...localPending,
         };
       }
-      // Otherwise drop stale localPending entirely — we don't trust it.
 
       // For today's UI taps, prefer server (today's daily_state). Fall
-      // back to localPending only if it carries the matching date key.
+      // back to localPending only if it carries the matching date key
+      // AND we have a challenge in progress.
       const mergedPending: Record<string, boolean> =
-        localPendingDateKey === todayKey
+        hasStart && localPendingDateKey === todayKey
           ? { ...localPending, ...serverTaps }
           : { ...serverTaps };
 
       // If localStorage had pending taps for a stale date that the
       // server didn't flush yet (tab closed at midnight), archive them
       // now: flush to daily_totals, delete daily_state, merge into
-      // closedDays, clear localStorage.
-      if (localPendingDateKey && localPendingDateKey !== todayKey && Object.keys(localPending).length > 0 && start) {
+      // closedDays, clear localStorage. Only relevant for users who
+      // are actually in a challenge.
+      if (hasStart && localPendingDateKey && localPendingDateKey !== todayKey && Object.keys(localPending).length > 0) {
         const staleDayNumber = dayIndexFromStart(start, previousDateOf(localPendingDateKey));
         try {
           await persistAuthInsertDailyTotals(staleDayNumber, localPending, new Date().toISOString());

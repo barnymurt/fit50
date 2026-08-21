@@ -51,7 +51,7 @@ export default function FeedYourBrain({ withTimer = false }: FeedYourBrainProps)
             <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-3">
               Feed Your Brain
             </p>
-            <Heading>Read 5. Or ship a project.</Heading>
+            <Heading>Read 5. Or start a passion project.</Heading>
             <p className="font-body text-base text-ink/70 mt-3 max-w-xl">
               Tell us what you&apos;re reading or listening to. We&apos;ll log
               it for the certificate and remind you what book you picked up
@@ -118,10 +118,6 @@ export default function FeedYourBrain({ withTimer = false }: FeedYourBrainProps)
               {savedFlash ? 'Saved ✓' : currentBook ? 'Update' : 'Save'}
             </button>
           </div>
-          <p className="font-body text-caption uppercase tracking-widest text-ink/40 mt-3">
-            Saved to today&apos;s date. Edit any time — the certificate
-            shows distinct titles across the 50 days.
-          </p>
         </div>
 
         {/* Saved books list */}
