@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Food, getStandardServing } from './types';
 import {
   KNOWN_CATEGORIES,
+  KNOWN_SUBCATEGORIES,
   SortKey,
   fetchFoodsByIds,
   searchFoodsRemote,
@@ -21,6 +22,7 @@ const PAGE_SIZE = 50;
 export default function FoodSearch({ favorites, onPickFood, recentlyLoggedFoods }: Props) {
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('all');
+  const [subcategory, setSubcategory] = useState('all');
   const [sort, setSort] = useState<SortKey>('name');
   const [open, setOpen] = useState(true);
   const [results, setResults] = useState<Food[]>([]);
@@ -28,6 +30,16 @@ export default function FoodSearch({ favorites, onPickFood, recentlyLoggedFoods 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
+
+  // Reset subcategory when the category changes — a category may
+  // not have subcategories at all, or the subcategory list might
+  // not match.
+  useEffect(() => {
+    setSubcategory('all');
+  }, [category]);
+
+  // Subcategory options for the currently selected category (or empty).
+  const subcategoryOptions = KNOWN_SUBCATEGORIES[category] ?? [];
 
   // Debounce the query so we don't fire one Supabase call per keystroke.
   const debouncedQuery = useDebounced(query, 250);
@@ -44,6 +56,7 @@ export default function FoodSearch({ favorites, onPickFood, recentlyLoggedFoods 
     searchFoodsRemote({
       query: debouncedQuery,
       category,
+      subcategory,
       sort: trimmed ? 'relevance' : sort,
       limit: PAGE_SIZE,
       offset: 0,
@@ -64,7 +77,7 @@ export default function FoodSearch({ favorites, onPickFood, recentlyLoggedFoods 
     return () => {
       cancelled = true;
     };
-  }, [debouncedQuery, category, sort, trimmed]);
+  }, [debouncedQuery, category, subcategory, sort, trimmed]);
 
   const loadMore = async () => {
     const nextPage = page + 1;
@@ -73,6 +86,7 @@ export default function FoodSearch({ favorites, onPickFood, recentlyLoggedFoods 
       const { foods } = await searchFoodsRemote({
         query: debouncedQuery,
         category,
+        subcategory,
         sort: trimmed ? 'relevance' : sort,
         limit: PAGE_SIZE,
         offset: nextPage * PAGE_SIZE,
@@ -152,6 +166,21 @@ export default function FoodSearch({ favorites, onPickFood, recentlyLoggedFoods 
               </option>
             ))}
           </select>
+          {subcategoryOptions.length > 0 && (
+            <select
+              value={subcategory}
+              onChange={(e) => setSubcategory(e.target.value)}
+              aria-label="Subcategory"
+              className="px-3 py-2 bg-paper border border-ink/20 font-body text-caption uppercase tracking-widest text-ink/70 focus:border-ink outline-none"
+            >
+              <option value="all">All subcategories</option>
+              {subcategoryOptions.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          )}
           {!trimmed && (
             <select
               value={sort}

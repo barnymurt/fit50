@@ -16,6 +16,7 @@ export type SortKey =
 interface SearchOptions {
   query: string;
   category?: string | 'all';
+  subcategory?: string | 'all';
   preparation?: string | 'all';
   type?: string | 'all';
   favorites?: Set<string>;
@@ -70,6 +71,7 @@ export async function searchFoodsRemote(
   const {
     query,
     category = 'all',
+    subcategory = 'all',
     preparation = 'all',
     type = 'all',
     sort = 'relevance',
@@ -94,6 +96,7 @@ export async function searchFoodsRemote(
     });
   }
   if (category !== 'all') q = q.eq('category', category);
+  if (subcategory !== 'all') q = q.eq('subcategory', subcategory);
   if (preparation !== 'all') q = q.eq('preparation', preparation);
   if (type !== 'all') q = q.eq('type', type);
 
@@ -212,3 +215,20 @@ export const KNOWN_CATEGORIES: string[] = [
   'Beverages',
   'Protein Foods',
 ];
+
+/**
+ * Subcategory options per main category. "Non-alcoholic" is the
+ * curated NA beverage tag — anything matching `subcategory=Non-alcoholic`
+ * in the Beverages category is a 0% drink. OFF's pnns_groups_2 values
+ * are also accepted via the wildcard select below.
+ */
+export const KNOWN_SUBCATEGORIES: Record<string, string[]> = {
+  Beverages: [
+    'Non-alcoholic',
+    'Non-sugared beverages',
+    'Sweetened beverages',
+    'Artificially sweetened beverages',
+    'Alcoholic beverages',
+    'Fruit juices',
+  ],
+};
