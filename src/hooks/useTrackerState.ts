@@ -232,6 +232,7 @@ export function useTrackerState() {
       let serverStart: string | null = null;
       let serverTaps: Record<string, boolean> = {};
       let serverClosed: Record<number, Record<string, boolean>> = {};
+      const staleStateDatesToFlush: string[] = [];
       if (supabase) {
         try {
           const { data: profile } = await supabase
@@ -244,18 +245,25 @@ export function useTrackerState() {
           console.error('profile fetch failed:', err);
         }
 
+        // Fetch ALL daily_state rows for this user. Today's rows
+        // become serverTaps; rows for past dates are stale leftovers
+        // from rollovers that never fired (tab closed at midnight),
+        // and we recover them into closedDays + daily_totals below.
         try {
           const { data: stateRows, error } = await supabase
             .from('daily_state')
-            .select('habit_id, tapped')
-            .eq('user_id', user.id)
-            .eq('date_key', todayKey);
+            .select('date_key, habit_id, tapped')
+            .eq('user_id', user.id);
           if (error) {
             console.error('daily_state fetch failed:', error);
           } else {
-            (stateRows || []).forEach((r: { habit_id: string; tapped: boolean }) => {
-              serverTaps[r.habit_id] = r.tapped;
-            });
+            for (const r of stateRows || []) {
+              if (r.date_key === todayKey) {
+                serverTaps[r.habit_id] = r.tapped;
+              } else if (r.date_key < todayKey) {
+                staleStateDatesToFlush.push(r.date_key);
+              }
+            }
           }
         } catch (err) {
           console.error('daily_state fetch threw:', err);
@@ -285,9 +293,60 @@ export function useTrackerState() {
 
       const start = serverStart ?? localStart ?? null;
 
-      // closedDays: server is the source of truth for history.
-      // Local is only used as a fast-render cache that we overwrite.
+      // Recover stale daily_state rows: attribute them to the day
+      // number they belong to, merge into closedDays, upsert into
+      // daily_totals, then delete the stale rows so the next boot
+      // doesn't double-count.
       const mergedClosed: Record<number, Record<string, boolean>> = { ...serverClosed };
+      if (start && supabase && staleStateDatesToFlush.length > 0) {
+        try {
+          const { data: stateRows } = await supabase
+            .from('daily_state')
+            .select('date_key, habit_id, tapped')
+            .eq('user_id', user.id)
+            .in('date_key', staleStateDatesToFlush);
+          const rowsByDate: Record<string, Array<{ habit_id: string; tapped: boolean }>> = {};
+          for (const r of stateRows || []) {
+            if (!rowsByDate[r.date_key]) rowsByDate[r.date_key] = [];
+            rowsByDate[r.date_key].push({ habit_id: r.habit_id, tapped: r.tapped });
+          }
+          const dailyTotalsRows: Array<{
+            user_id: string;
+            day_number: number;
+            habit_id: string;
+            completed: boolean;
+            archived_at: string;
+          }> = [];
+          const archivedAt = new Date().toISOString();
+          for (const [dateKey, rows] of Object.entries(rowsByDate)) {
+            const dayNumber = dayIndexFromStart(start, previousDateOf(dateKey));
+            if (dayNumber < 1 || dayNumber > 50) continue;
+            mergedClosed[dayNumber] = { ...(mergedClosed[dayNumber] || {}) };
+            for (const r of rows) {
+              mergedClosed[dayNumber][r.habit_id] = r.tapped;
+              dailyTotalsRows.push({
+                user_id: user.id,
+                day_number: dayNumber,
+                habit_id: r.habit_id,
+                completed: r.tapped,
+                archived_at: archivedAt,
+              });
+            }
+          }
+          if (dailyTotalsRows.length > 0) {
+            await (supabase.from('daily_totals') as any).upsert(dailyTotalsRows, {
+              onConflict: 'user_id,day_number,habit_id',
+            });
+          }
+          await (supabase.from('daily_state') as any)
+            .delete()
+            .eq('user_id', user.id)
+            .in('date_key', staleStateDatesToFlush);
+        } catch (err) {
+          console.error('stale daily_state recovery failed:', err);
+        }
+      }
+
       // For today specifically, merge any localStorage taps that
       // happened to be cached but not yet uploaded (rare offline case).
       const localCurrentDay =
