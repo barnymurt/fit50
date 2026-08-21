@@ -27,6 +27,8 @@ import { saveJson } from '@/lib/storage';
 import { useMacroProfile, timeSince } from '@/hooks/useMacroProfile';
 import { getRememberMe, setRememberMe } from '@/lib/supabase';
 import MyMotivator from '@/components/MyMotivator';
+import CollapsibleSection from '@/components/CollapsibleSection';
+import { useAccountLayout, DEFAULT_ORDER } from '@/hooks/useAccountLayout';
 
 const HABIT_LABELS: Record<string, string> = {
   'chill-out': 'Chill Out',
@@ -52,6 +54,7 @@ export default function AccountPage() {
   const todayTaps = tracker.todayTaps;
   const { isPremium } = usePremium();
   const { totalUsed, hasProtectionForWeek, redeemProtection } = useStreakProtection();
+  const layout = useAccountLayout();
   const [authMode, setAuthMode] = useState<'signin' | 'signup' | 'forgot'>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -319,10 +322,11 @@ export default function AccountPage() {
       <AccountNav
         sections={[
           { id: 'tracker', label: 'Tracker' },
+          { id: 'my-motivator', label: 'Motivator' },
+          { id: 'buddy', label: 'Buddy' },
           { id: 'feed-your-brain', label: 'Feed Brain' },
           { id: 'workouts', label: 'Workouts' },
           { id: 'macro-calc', label: 'Macro calc' },
-          { id: 'buddy-section', label: 'Buddy' },
           ...(profile?.is_premium
             ? [
                 { id: 'hydration', label: 'Hydration' },
@@ -334,153 +338,232 @@ export default function AccountPage() {
         ]}
       />
 
-      {/* ============ The tracker ============ */}
-      <Tracker hideMarquee />
-
-      {/* ============ My motivator (buddy view: tiny shout-out) ============ */}
-      <MyMotivator />
-
-      {/* ============ Buddy (free + premium) — directly below tracker ============ */}
-      <Section
-        id="buddy-section"
-        className="relative pt-12 md:pt-16 pb-section"
-        tone="paper"
-        contained
-      >
-        <div className="max-w-5xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mb-8">
-            <div className="md:col-span-7">
-              <p className="font-body text-caption uppercase tracking-widest text-coral mb-3">
-                Buddy
-              </p>
-              <Heading>Shout ya mate</Heading>
-              <p className="font-body text-base text-ink/70 mt-3 mb-8 max-w-xl">
-                The finish line is so much sweeter with mates. Tag in a
-                mate and You&apos;ll see each other&apos;s streaks on the
-                tracker — one more reason to keep showing up.
-              </p>
+      {/* ============ Premium-only layout toolbar ============ */}
+      {profile?.is_premium && (
+        <div className="bg-cream/40 border-b border-ink/10">
+          <div className="max-w-7xl mx-auto px-6 md:px-10 py-3 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <span className="font-body text-caption uppercase tracking-widest text-ink/50">
+                Layout
+              </span>
+              <span className="font-body text-caption text-ink/60 hidden sm:inline">
+                {layout.editing
+                  ? 'Reorder sections with the ▲▼ buttons on the left.'
+                  : 'Drag sections up or down to put the tools you use most where you want them.'}
+              </span>
             </div>
-          </div>
-          <BuddyPurchasePicker variant="wide" mode="add_buddy" />
-        </div>
-      </Section>
-
-      {/* ============ Feed Your Brain (free + premium) — sits between buddy and workouts ============ */}
-      <FeedYourBrain withTimer />
-
-      {/* ============ Workouts (free + premium) ============ */}
-      <AccountWorkouts />
-
-      {/* ============ Macro calculator (free + premium) ============ */}
-      <Section
-        id="macro-calc"
-        className="relative pt-12 md:pt-16 pb-section"
-        style={{ backgroundColor: '#4A9B9B' }}
-        contained
-      >
-        <div className="max-w-5xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mb-8">
-            <div className="md:col-span-5">
-              <p className="font-body text-caption uppercase text-paper/70 mb-3">
-                Macro calculator
-              </p>
-              <h2 className="font-display text-display-2 text-paper leading-[0.95]">
-                Know your numbers.
-              </h2>
-              <p className="font-body text-base text-paper/85 mt-4 max-w-md">
-                BMR, TDEE, protein, carbs, fat, water. Built for the 50-day challenge.
-              </p>
-            </div>
-            <div className="md:col-span-6 md:col-start-7 flex items-end">
-              <p className="font-body text-base text-paper/70">
-                Enter your stats, get your daily targets. Adjust for your goal.
-              </p>
-            </div>
-          </div>
-
-          <MacroCalculatorInline />
-        </div>
-      </Section>
-
-      {/* ============ Premium tools ============ */}
-      {profile?.is_premium ? (
-        <>
-          {/* Hydration — premium only */}
-          <Section
-            id="hydration"
-            className="relative pt-12 md:pt-16 pb-section"
-            tone="paper"
-            contained
-          >
-            <div className="max-w-5xl mx-auto">
-              <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-3">
-                Hydration
-              </p>
-              <Heading>2.5 litres a day.</Heading>
-              <p className="font-body text-base text-ink/70 mt-3 mb-8 max-w-2xl">
-                Tap a preset or enter a custom amount. Saved to your account daily.
-              </p>
-              <WaterCounter />
-            </div>
-          </Section>
-
-          {/* Food database */}
-          <Section
-            id="food-database"
-            className="relative pt-12 md:pt-16 pb-section"
-            tone="paper"
-            contained
-          >
-            <div className="max-w-5xl mx-auto">
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mb-8">
-                <div className="md:col-span-7">
-                  <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-3">
-                    Foods
-                  </p>
-                  <Heading>Track what you eat.</Heading>
-                  <p className="font-body text-base text-ink/70 mt-3 max-w-xl">
-                    Search a database of common foods, pick a portion, tag a meal. Totals fill up against your macro targets as you log.
-                  </p>
-                </div>
-              </div>
-
-              <PremiumGate
-                feature="food log"
-                description="Search over 5,000 foods from an international taste palette, log portions, tag meals, totals roll up against your daily macro targets in seconds. Premium unlocks the food database and the macro math."
+            <div className="flex items-center gap-2 shrink-0">
+              {layout.editing && (
+                <button
+                  type="button"
+                  onClick={layout.reset}
+                  className="font-body text-caption uppercase tracking-widest text-ink/50 hover:text-ink underline underline-offset-4"
+                >
+                  Reset order
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => layout.setEditing((v) => !v)}
+                aria-pressed={layout.editing}
+                className={`font-body text-caption uppercase tracking-widest px-4 py-2 border ${
+                  layout.editing
+                    ? 'bg-ink text-paper border-ink hover:bg-ink/85'
+                    : 'bg-paper text-ink border-ink/30 hover:bg-cream/40'
+                } transition-colors`}
               >
-                <FoodDatabase targets={targets} />
-              </PremiumGate>
+                {layout.editing ? 'Done' : 'Reorder sections'}
+              </button>
             </div>
-          </Section>
+          </div>
+        </div>
+      )}
 
-          {/* To-do list + Board */}
-          <Section className="relative pt-12 md:pt-16 pb-section" tone="paper" contained>
-            <div className="max-w-5xl mx-auto">
-              <div id="todo">
-                <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-3">
-                  The to-do list
-                </p>
-                <Heading>Capture first. Sort later.</Heading>
-                <p className="font-body text-base text-ink/70 mt-3 mb-8">
-                  Things you don&apos;t want to lose. Drop them here, drag them to the board when you&apos;re ready.
-                </p>
-                <TodoList />
-              </div>
+      {/* ============ Collapsible + reorderable middle sections ============ */}
+      {layout.order
+        .filter((id) => {
+          // Premium-only sections stay hidden (not just unrendered)
+          // for free users so the layout doesn't waste a render slot.
+          if (!profile?.is_premium) {
+            return !['hydration', 'food-database', 'todo', 'board'].includes(id);
+          }
+          return true;
+        })
+        .map((id) => {
+          const collapsed = layout.isCollapsed(id);
+          const idx = layout.indexOf(id);
+          const showMoveControls = profile?.is_premium && layout.editing;
+          const wrapper = (content: React.ReactNode) => (
+            <CollapsibleSection
+              key={id}
+              id={id}
+              title={SECTION_TITLES[id] ?? id}
+              collapsed={collapsed}
+              onToggle={() => layout.toggleCollapse(id)}
+              onMoveUp={showMoveControls ? () => layout.move(id, 'up') : undefined}
+              onMoveDown={showMoveControls ? () => layout.move(id, 'down') : undefined}
+              canMoveUp={idx > 0}
+              canMoveDown={idx < layout.order.length - 1}
+            >
+              {content}
+            </CollapsibleSection>
+          );
+          switch (id) {
+            case 'tracker':
+              return wrapper(<Tracker hideMarquee />);
+            case 'my-motivator':
+              return wrapper(<MyMotivator />);
+            case 'buddy':
+              return wrapper(
+                <Section
+                  className="relative pt-12 md:pt-16 pb-section"
+                  tone="paper"
+                  contained
+                >
+                  <div className="max-w-5xl mx-auto">
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mb-8">
+                      <div className="md:col-span-7">
+                        <p className="font-body text-caption uppercase tracking-widest text-coral mb-3">
+                          Buddy
+                        </p>
+                        <Heading>Shout ya mate</Heading>
+                        <p className="font-body text-base text-ink/70 mt-3 mb-8 max-w-xl">
+                          The finish line is so much sweeter with mates. Tag in a
+                          mate and You&apos;ll see each other&apos;s streaks on the
+                          tracker — one more reason to keep showing up.
+                        </p>
+                      </div>
+                    </div>
+                    <BuddyPurchasePicker variant="wide" mode="add_buddy" />
+                  </div>
+                </Section>
+              );
+            case 'feed-your-brain':
+              return wrapper(<FeedYourBrain withTimer />);
+            case 'workouts':
+              return wrapper(<AccountWorkouts />);
+            case 'macro-calc':
+              return wrapper(
+                <Section
+                  className="relative pt-12 md:pt-16 pb-section"
+                  style={{ backgroundColor: '#4A9B9B' }}
+                  contained
+                >
+                  <div className="max-w-5xl mx-auto">
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mb-8">
+                      <div className="md:col-span-5">
+                        <p className="font-body text-caption uppercase text-paper/70 mb-3">
+                          Macro calculator
+                        </p>
+                        <h2 className="font-display text-display-2 text-paper leading-[0.95]">
+                          Know your numbers.
+                        </h2>
+                        <p className="font-body text-base text-paper/85 mt-4 max-w-md">
+                          BMR, TDEE, protein, carbs, fat, water. Built for the 50-day challenge.
+                        </p>
+                      </div>
+                      <div className="md:col-span-6 md:col-start-7 flex items-end">
+                        <p className="font-body text-base text-paper/70">
+                          Enter your stats, get your daily targets. Adjust for your goal.
+                        </p>
+                      </div>
+                    </div>
+                    <MacroCalculatorInline />
+                  </div>
+                </Section>
+              );
+            case 'hydration':
+              return wrapper(
+                <Section
+                  className="relative pt-12 md:pt-16 pb-section"
+                  tone="paper"
+                  contained
+                >
+                  <div className="max-w-5xl mx-auto">
+                    <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-3">
+                      Hydration
+                    </p>
+                    <Heading>2.5 litres a day.</Heading>
+                    <p className="font-body text-base text-ink/70 mt-3 mb-8 max-w-2xl">
+                      Tap a preset or enter a custom amount. Saved to your account daily.
+                    </p>
+                    <WaterCounter />
+                  </div>
+                </Section>
+              );
+            case 'food-database':
+              return wrapper(
+                <Section
+                  className="relative pt-12 md:pt-16 pb-section"
+                  tone="paper"
+                  contained
+                >
+                  <div className="max-w-5xl mx-auto">
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mb-8">
+                      <div className="md:col-span-7">
+                        <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-3">
+                          Foods
+                        </p>
+                        <Heading>Track what you eat.</Heading>
+                        <p className="font-body text-base text-ink/70 mt-3 max-w-xl">
+                          Search a database of common foods, pick a portion, tag a meal. Totals fill up against your macro targets as you log.
+                        </p>
+                      </div>
+                    </div>
+                    <PremiumGate
+                      feature="food log"
+                      description="Search over 5,000 foods from an international taste palette, log portions, tag meals, totals roll up against your daily macro targets in seconds. Premium unlocks the food database and the macro math."
+                    >
+                      <FoodDatabase targets={targets} />
+                    </PremiumGate>
+                  </div>
+                </Section>
+              );
+            case 'todo':
+              return wrapper(
+                <Section
+                  className="relative pt-12 md:pt-16 pb-section"
+                  tone="paper"
+                  contained
+                >
+                  <div className="max-w-5xl mx-auto">
+                    <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-3">
+                      The to-do list
+                    </p>
+                    <Heading>Capture first. Sort later.</Heading>
+                    <p className="font-body text-base text-ink/70 mt-3 mb-8">
+                      Things you don&apos;t want to lose. Drop them here, drag them to the board when you&apos;re ready.
+                    </p>
+                    <TodoList />
+                  </div>
+                </Section>
+              );
+            case 'board':
+              return wrapper(
+                <Section
+                  className="relative pt-12 md:pt-16 pb-section"
+                  tone="paper"
+                  contained
+                >
+                  <div className="max-w-5xl mx-auto">
+                    <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-3">
+                      The board
+                    </p>
+                    <Heading>To do · In progress · Done.</Heading>
+                    <p className="font-body text-base text-ink/70 mt-3 mb-8">
+                      Plan the 50 days. Add tasks, move them when you finish. Drag between columns, double-click a column name to rename, or add a new one.
+                    </p>
+                    <Board />
+                  </div>
+                </Section>
+              );
+            default:
+              return null;
+          }
+        })}
 
-              <div id="board" className="mt-12">
-                <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-3">
-                  The board
-                </p>
-                <Heading>To do · In progress · Done.</Heading>
-                <p className="font-body text-base text-ink/70 mt-3 mb-8">
-                  Plan the 50 days. Add tasks, move them when you finish. Drag between columns, double-click a column name to rename, or add a new one.
-                </p>
-                <Board />
-              </div>
-            </div>
-          </Section>
-        </>
-      ) : (
+      {/* ============ Bottom call-to-action (free users) ============ */}
+      {!profile?.is_premium && (
         <Section
           className="relative pt-12 md:pt-16 pb-section"
           tone="ink"
@@ -509,6 +592,19 @@ export default function AccountPage() {
     </>
   );
 }
+
+const SECTION_TITLES: Record<string, string> = {
+  'tracker': 'The tracker',
+  'my-motivator': 'My motivator',
+  'buddy': 'Buddy',
+  'feed-your-brain': 'Feed your brain',
+  'workouts': 'Workouts',
+  'macro-calc': 'Macro calculator',
+  'hydration': 'Hydration',
+  'food-database': 'Food database',
+  'todo': 'To-do list',
+  'board': 'Board',
+};
 
 // ---------- Inline macro calculator ----------
 function MacroCalculatorInline() {
