@@ -3,13 +3,18 @@
 /**
  * Collapsible section wrapper for /account.
  *
- * Collapse: always available. Header strip has a Collapse / Expand
- * toggle that hides the body when folded. State lives in
- * useAccountLayout.
+ * Collapse: the down-chevron button toggles the body. State lives
+ * in useAccountLayout.
  *
- * Reorder: premium-only. The header is a drag handle — press and
- * drag up or down to swap the section with its neighbour. While
- * dragging, a coral line appears at the drop position.
+ * Reorder (premium only): the header is the drag handle. A "≡"
+ * grip icon on the left telegraphs the affordance. While dragging
+ * the page auto-scrolls when the pointer approaches the top or
+ * bottom edge of the viewport. A coral drop line appears at the
+ * target slot.
+ *
+ * Layout: both controls (≡ drag handle + v collapse) sit on the
+ * LEFT side of the header so the fixed right-side AccountNav on
+ * desktop doesn't cover them.
  */
 
 interface CollapsibleSectionProps {
@@ -17,14 +22,9 @@ interface CollapsibleSectionProps {
   title: string;
   collapsed: boolean;
   onToggle: () => void;
-  // Premium-only. When set, the header becomes draggable.
   draggable?: boolean;
-  // Whether this section is currently the one being dragged.
-  // Parent flips this based on dragstart / dragend.
   isDragging?: boolean;
-  // Drop indicator position. Parent updates this on dragover.
   isDragHover?: 'before' | 'after' | null;
-  // Callbacks the parent uses to track drag state.
   onDragStart?: () => void;
   onDragOver?: (side: 'before' | 'after') => void;
   onDragLeave?: () => void;
@@ -63,6 +63,20 @@ export default function CollapsibleSection({
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     const side = e.clientY < rect.top + rect.height / 2 ? 'before' : 'after';
     onDragOver?.(side);
+    // Auto-scroll: when the pointer is near the top or bottom edge
+    // of the viewport, scroll the page in that direction so the
+    // user can drag a section into view from off-screen.
+    const edgePx = 60;
+    const speed = 12;
+    const y = e.clientY;
+    const vh = window.innerHeight;
+    const sy = window.scrollY;
+    const max = document.documentElement.scrollHeight - vh;
+    if (y < edgePx && sy > 0) {
+      window.scrollTo({ top: Math.max(0, sy - speed), behavior: 'instant' as ScrollBehavior });
+    } else if (y > vh - edgePx && sy < max) {
+      window.scrollTo({ top: Math.min(max, sy + speed), behavior: 'instant' as ScrollBehavior });
+    }
   };
 
   const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
@@ -115,53 +129,46 @@ export default function CollapsibleSection({
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         onDragEnd={handleDragEnd}
-        className={`flex items-center justify-between gap-3 px-5 md:px-10 py-3 ${
+        className={`flex items-center gap-2 px-5 md:px-10 py-3 ${
           collapsed ? '' : 'border-b border-ink/10'
         } ${draggable ? 'cursor-grab active:cursor-grabbing select-none' : ''}`}
         title={draggable ? `Drag to reorder ${title}` : undefined}
       >
-        <div className="flex items-center gap-3 min-w-0">
-          {draggable && (
-            <span
-              aria-hidden="true"
-              className="font-body text-ink/40 text-base leading-none select-none"
-            >
-              ≡
-            </span>
-          )}
+        {/* Controls — both on the LEFT so the fixed right-side
+            AccountNav on desktop doesn't cover them. */}
+        {draggable && (
           <span
             aria-hidden="true"
-            className={`font-body text-ink/50 transition-transform duration-200 ${
-              collapsed ? '' : 'rotate-90'
-            }`}
+            data-drag-handle="true"
+            className="font-body text-ink/50 text-lg leading-none select-none px-1"
           >
-            ›
+            ≡
           </span>
-          <p className="font-body text-caption uppercase tracking-widest text-ink/60 truncate">
-            {title}
-          </p>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          {draggable && (
-            <span className="font-body text-caption uppercase tracking-widest text-ink/30 hidden md:inline">
-              Drag to reorder
-            </span>
-          )}
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggle();
-            }}
-            onMouseDown={(e) => e.stopPropagation()}
-            onDragStart={(e) => e.preventDefault()}
-            aria-expanded={!collapsed}
-            aria-controls={`${id}-content`}
-            className="font-body text-caption uppercase tracking-widest text-ink/50 hover:text-coral transition-colors"
-          >
-            {collapsed ? 'Expand' : 'Collapse'}
-          </button>
-        </div>
+        )}
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-expanded={!collapsed}
+          aria-controls={`${id}-content`}
+          aria-label={collapsed ? `Expand ${title}` : `Collapse ${title}`}
+          className={`font-body text-ink/60 hover:text-coral transition-transform duration-200 select-none ${
+            collapsed ? '' : 'rotate-90'
+          }`}
+          // Keep the collapse button out of the drag flow: a tap on
+          // it should never be mis-read as a drag.
+          onMouseDown={(e) => e.stopPropagation()}
+          onDragStart={(e) => e.preventDefault()}
+        >
+          v
+        </button>
+        <p className="font-body text-caption uppercase tracking-widest text-ink/60 truncate ml-1">
+          {title}
+        </p>
+        {draggable && (
+          <span className="font-body text-caption uppercase tracking-widest text-ink/30 hidden md:inline ml-auto">
+            Drag to reorder
+          </span>
+        )}
       </div>
 
       {/* Collapsible body. Always in the DOM so the layout is stable. */}
