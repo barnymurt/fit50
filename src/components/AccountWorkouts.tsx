@@ -250,10 +250,11 @@ async function saveWorkoutRemote(
 
 function TickBox({ filled, size = 28 }: { filled: boolean; size?: number }) {
   // Outlined box. Empty = grey outline + faint grey tick (hints the
-  // slot is tappable). Filled = coral outline + coral fill + white
+  // slot is tappable). Filled = teal outline + teal fill + paper
   // tick. Tap toggles the underlying sets count.
-  const stroke = filled ? '#E88B5A' : 'rgba(26,26,26,0.30)';
-  const fill = filled ? '#E88B5A' : 'transparent';
+  const teal = '#4A9B9B';
+  const stroke = filled ? teal : 'rgba(26,26,26,0.30)';
+  const fill = filled ? teal : 'transparent';
   const tickColor = filled ? '#FAF6EE' : 'rgba(26,26,26,0.25)';
   return (
     <div
@@ -444,22 +445,22 @@ export default function AccountWorkouts() {
                       : 'border-ink/15 hover:bg-cream/30'
                   }`}
                 >
-                  <div className="flex items-center gap-3">
+                  {/* Desktop: single row with ticks inline next to the
+                      name. Mobile: stacked, ticks on a second row. */}
+                  <div className="flex items-center gap-3 flex-wrap md:flex-nowrap">
                     <span className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums w-6 shrink-0">
                       {ex.slot}
                     </span>
                     <button
                       onClick={() => setActiveIdx(i)}
-                      className="font-body text-base text-ink flex-1 truncate text-left hover:text-coral transition-colors"
+                      className="font-body text-base text-ink md:flex-1 md:min-w-0 truncate text-left hover:text-coral transition-colors"
                     >
                       {ex.name}
                     </button>
                     <span className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums shrink-0 hidden sm:inline">
                       {ex.reps}
                     </span>
-                  </div>
-                  <div className="flex items-center justify-between mt-3 sm:mt-2">
-                    <span className="flex gap-1 shrink-0">
+                    <span className="flex gap-1 shrink-0 order-last md:order-none md:ml-2">
                       {Array.from({ length: TOTAL_SETS }).map((_, j) => (
                         <button
                           key={j}
@@ -478,7 +479,7 @@ export default function AccountWorkouts() {
                         </button>
                       ))}
                     </span>
-                    <span className={`font-body text-caption uppercase tracking-widest tabular-nums shrink-0 w-10 text-right ${complete ? 'text-teal' : 'text-ink/40'}`}>
+                    <span className={`font-body text-caption uppercase tracking-widest tabular-nums shrink-0 ml-auto md:ml-0 ${complete ? 'text-teal' : 'text-ink/40'}`}>
                       {done}/{TOTAL_SETS}
                     </span>
                   </div>
