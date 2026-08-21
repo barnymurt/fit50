@@ -442,6 +442,11 @@ function normalizeName(raw) {
   // Drop any name with non-ASCII characters (Russian, French, etc.).
   if (!ASCII_NAME.test(s)) return '';
 
+  // OFF sometimes uses a leading "-" as a list bullet ("- Pommes
+  // Noisettes", "- Bonbons Fraises"). Reject so we don't end up
+  // with names like "Pommes Noisettes - 1000gr" minus the dash.
+  if (/^-/.test(s)) return '';
+
   // Strip parentheticals and bracket content — usually prep state or
   // packaging: "Chicken Breast (Frozen)", "Almonds [Bulk]".
   s = s.replace(/\s*\([^)]*\)/g, '');
