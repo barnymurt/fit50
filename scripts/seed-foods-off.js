@@ -374,20 +374,114 @@ function inRange(n, [lo, hi]) {
   return n >= lo && n <= hi;
 }
 
-function normalizeName(s) {
-  return s
-    .replace(/\s+/g, ' ')
-    .replace(/[\u0000-\u001F\u007F]/g, '')
-    .trim();
+// Only allow printable ASCII + a small set of common Latin
+// punctuation. Drops Cyrillic, CJK, Arabic, accented Latin, etc.
+// The original 5K foods list is English-only, so non-ASCII
+// names get rejected.
+const ASCII_NAME = /^[\x20-\x7E]+$/;
+
+// Cap how long a name can be. OFF rows over ~80 chars are usually
+// product descriptions (e.g. "Organic Premium Extra Virgin Olive
+// Oil Cold-Pressed From Hand-Picked Estate-Grown Olives…"), not
+// the ingredient-style names the curated list uses.
+const MAX_NAME_LEN = 80;
+
+// Distinctive non-English words that we never want in the corpus.
+// These are high-confidence (rarely appear in English food names)
+// and catch the German/French/Italian ASCII-only entries that the
+// printable-ASCII check above lets through. Lowercased.
+const NON_ENGLISH_WORDS = new Set([
+  // German
+  'aus', 'mit', 'und', 'der', 'die', 'das', 'vom', 'bei',
+  'mehrkomponent', 'mehrkomponeneten', 'schoko', 'haselnuss',
+  'banane', 'pralinen', 'praline',
+  // French
+  'aux', 'avec', 'sans', 'pour', 'dans', 'sur', 'par',
+  'madeleines', 'madeleine', 'financiers', 'financier',
+  'fondants', 'fondant', 'panach', 'mostaza',
+  // Italian
+  'con', 'senza', 'per', 'della', 'delle', 'degli',
+  // Spanish
+  'sin', 'del', 'los', 'las', 'una',
+]);
+
+function toTitleCase(s) {
+  // Lowercase everything, then capitalise the first letter of each
+  // word. Keep hyphenated words capitalised too ("Extra-Virgin").
+  return s.replace(/\b[a-zA-Z][a-zA-Z'\-]*/g, (w) => {
+    return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
+  });
+}
+
+function escapeRegex(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function stripBrandFromName(name, brand) {
+  if (!brand) return name;
+  const tokens = brand
+    .split(/[,;]/)
+    .map((b) => b.trim())
+    .filter((b) => b.length >= 3);
+  if (tokens.length === 0) return name;
+  let s = name;
+  for (const t of tokens) {
+    // Strip brand as a standalone word at the start or end of the
+    // name. Word-boundary so "Bob" doesn't strip the "bo" in "Boeuf".
+    const reStart = new RegExp(`^${escapeRegex(t)}\\s+`, 'i');
+    const reEnd = new RegExp(`\\s+${escapeRegex(t)}$`, 'i');
+    s = s.replace(reStart, '').replace(reEnd, '');
+  }
+  return s.replace(/\s+/g, ' ').trim();
+}
+
+function normalizeName(raw) {
+  if (!raw) return '';
+  let s = raw.trim();
+
+  // Drop any name with non-ASCII characters (Russian, French, etc.).
+  if (!ASCII_NAME.test(s)) return '';
+
+  // Strip parentheticals and bracket content — usually prep state or
+  // packaging: "Chicken Breast (Frozen)", "Almonds [Bulk]".
+  s = s.replace(/\s*\([^)]*\)/g, '');
+  s = s.replace(/\s*\[[^\]]*\]/g, '');
+
+  // Strip size/quantity suffixes: "Chicken Breast 500g",
+  // "Granola 12 oz".
+  s = s.replace(
+    /\s+\d+(\.\d+)?\s*(g|kg|oz|lb|ml|l|cl|pack|pcs?|ct|count)\b\.?$/i,
+    ''
+  );
+
+  // Collapse spaces and trim again.
+  s = s.replace(/\s+/g, ' ').trim();
+
+  // Reject ultra-long names that survived — usually product blurbs.
+  if (s.length > MAX_NAME_LEN) return '';
+
+  // Reject names that became empty after stripping.
+  if (s.length === 0) return '';
+
+  // Reject if any token is a distinctive non-English word.
+  const lowerTokens = s.toLowerCase().split(/\s+/);
+  for (const t of lowerTokens) {
+    if (NON_ENGLISH_WORDS.has(t)) return '';
+  }
+
+  // Title case so the casing matches the curated list ("Chicken
+  // Breast" not "chicken breast" or "CHICKEN BREAST").
+  return toTitleCase(s);
 }
 
 function buildAliases(name, brand) {
   const aliases = new Set();
   const lowerName = name.toLowerCase();
-  // First significant word as alias (e.g., "Chicken" for "Chicken Breast Raw")
+  // First significant word as alias (e.g., "Chicken" for "Chicken Breast").
   const first = lowerName.split(' ')[0];
   if (first && first.length > 2) aliases.add(first);
-  // First brand token
+  // First brand token, lowercased, kept as an alias for free-text
+  // search ("bobs" → finds "Bob's Red Mill" products).
   if (brand) {
     const firstBrand = brand
       .split(/[,;]/)[0]
@@ -446,7 +540,7 @@ async function main() {
   let rowsIn = 0;
   let rowsOut = 0;
   let buffer = [];
-  let dropped = { noMacros: 0, badRange: 0, noName: 0, noCategory: 0 };
+  let dropped = { noMacros: 0, badRange: 0, noName: 0, noCategory: 0, nonAscii: 0 };
   const t0 = Date.now();
 
   async function flush() {
@@ -484,6 +578,13 @@ async function main() {
       continue;
     }
 
+    // Quick ASCII check up-front so we can attribute the drop
+    // separately from noName.
+    if (!ASCII_NAME.test(rawName.trim())) {
+      dropped.nonAscii++;
+      continue;
+    }
+
     if (
       energyKj === null ||
       protein === null ||
@@ -512,7 +613,10 @@ async function main() {
       continue;
     }
 
-    const name = normalizeName(rawName);
+    // Strip brand tokens first (raw input), then run structural
+    // cleanup + Title Case in normalizeName.
+    const deBranded = stripBrandFromName(rawName, brand);
+    const name = normalizeName(deBranded);
     if (!name) {
       dropped.noName++;
       continue;
