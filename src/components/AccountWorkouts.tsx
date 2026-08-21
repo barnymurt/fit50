@@ -249,19 +249,24 @@ async function saveWorkoutRemote(
 }
 
 function TickBox({ filled, size = 28 }: { filled: boolean; size?: number }) {
+  // Outlined box. Empty = grey outline + faint grey tick (hints the
+  // slot is tappable). Filled = coral outline + coral fill + white
+  // tick. Tap toggles the underlying sets count.
+  const stroke = filled ? '#E88B5A' : 'rgba(26,26,26,0.30)';
+  const fill = filled ? '#E88B5A' : 'transparent';
+  const tickColor = filled ? '#FAF6EE' : 'rgba(26,26,26,0.25)';
   return (
     <div
       style={{
         width: size,
         height: size,
-        border: '2px solid',
-        borderColor: filled ? '#10B981' : 'currentColor',
-        backgroundColor: filled ? '#10B981' : 'transparent',
+        border: `2px solid ${stroke}`,
+        backgroundColor: fill,
         borderRadius: '4px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        color: filled ? '#ffffff' : 'transparent',
+        transition: 'background-color 150ms, border-color 150ms',
       }}
     >
       <svg
@@ -269,7 +274,7 @@ function TickBox({ filled, size = 28 }: { filled: boolean; size?: number }) {
         height={Math.round(size * 0.6)}
         viewBox="0 0 24 24"
         fill="none"
-        stroke="currentColor"
+        stroke={tickColor}
         strokeWidth="3"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -324,9 +329,21 @@ export default function AccountWorkouts() {
   const totalCompleted = exercises.reduce((sum, ex) => sum + (sets[ex.name] || 0), 0);
   const allDone = exercises.every((ex) => (sets[ex.name] || 0) >= TOTAL_SETS);
 
-  const cycleSet = (name: string) => {
+  const cycleSet = (name: string, index?: number) => {
     setSets((prev) => {
       const current = prev[name] || 0;
+      // Tap on a specific set: filled if index < current (untick down
+      // to this position), empty if index >= current (tick up to
+      // here). Sets must be ticked in order, so a tap at index 2
+      // with current=0 marks sets 0,1,2 as ticked (count=3).
+      if (typeof index === 'number') {
+        if (index < current) {
+          return { ...prev, [name]: index };
+        }
+        return { ...prev, [name]: index + 1 };
+      }
+      // Tap on the exercise title (no index): cycle 0 → 1 → … →
+      // TOTAL_SETS → 0. Kept for the big "Log set" button.
       const next = current >= TOTAL_SETS ? 0 : current + 1;
       return { ...prev, [name]: next };
     });
@@ -448,9 +465,13 @@ export default function AccountWorkouts() {
                           key={j}
                           onClick={(e) => {
                             e.stopPropagation();
-                            cycleSet(ex.name);
+                            cycleSet(ex.name, j);
                           }}
-                          aria-label={`Set ${j + 1} ${j < done ? 'completed, tap to undo' : 'tap to log'}`}
+                          aria-label={
+                            j < done
+                              ? `Set ${j + 1} ticked — tap to untick`
+                              : `Set ${j + 1} empty — tap to tick`
+                          }
                           className="min-w-[36px] min-h-[36px] flex items-center justify-center"
                         >
                           <TickBox filled={j < done} size={26} />

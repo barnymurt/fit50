@@ -54,7 +54,7 @@ export default function AccountPage() {
   const todayTaps = tracker.todayTaps;
   const { isPremium } = usePremium();
   const { totalUsed, hasProtectionForWeek, redeemProtection } = useStreakProtection();
-  const layout = useAccountLayout();
+  const layout = useAccountLayout(user?.id ?? null);
   const [authMode, setAuthMode] = useState<'signin' | 'signup' | 'forgot'>('signin');
   // Drag-and-drop state for premium reorder. The dragging id and
   // the currently hovered section live here so all CollapsibleSection

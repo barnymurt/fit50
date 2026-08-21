@@ -5,21 +5,24 @@ import { useCallback, useEffect, useState } from 'react';
 /**
  * Layout state for /account. Two pieces:
  *
- *   1. `order` — the render order of the middle sections. Premium-only
- *      feature: the user drags a section header to reorder. Persists
- *      to localStorage.
+ *   1. `order` -- the render order of the middle sections. Premium-only
+ *      feature: the user drags a section header to reorder.
  *
- *   2. `collapsed` — per-section collapse state. Any signed-in user
- *      can collapse a section to keep the page manageable. Persists
- *      to localStorage alongside `order`.
+ *   2. `collapsed` -- per-section collapse state.
  *
- * Reorder happens directly on the section header — click and drag up
- * or down. There's no separate "edit mode" toggle because the drag
- * affordance itself is the indicator that this is interactive.
+ * Persistence: keys are scoped by user id so two users sharing the
+ * same browser keep their own layout. `null` user (signed out) keeps
+ * a separate shared key so we don't crash. On signout the page clears
+ * the hook's loaded state so the next signed-in user doesn't briefly
+ * see the previous user's order.
  */
 
-const ORDER_KEY = 'fit50-account-section-order';
-const COLLAPSED_KEY = 'fit50-account-section-collapsed';
+const ORDER_KEY = (uid: string | null) =>
+  uid ? `fit50-account-section-order-${uid}` : 'fit50-account-section-order';
+const COLLAPSED_KEY = (uid: string | null) =>
+  uid
+    ? `fit50-account-section-collapsed-${uid}`
+    : 'fit50-account-section-collapsed';
 
 export const DEFAULT_ORDER: string[] = [
   'tracker',
@@ -34,10 +37,10 @@ export const DEFAULT_ORDER: string[] = [
   'board',
 ];
 
-function loadOrder(): string[] {
+function loadOrder(uid: string | null): string[] {
   if (typeof window === 'undefined') return DEFAULT_ORDER;
   try {
-    const raw = window.localStorage.getItem(ORDER_KEY);
+    const raw = window.localStorage.getItem(ORDER_KEY(uid));
     if (!raw) return DEFAULT_ORDER;
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return DEFAULT_ORDER;
@@ -55,10 +58,10 @@ function loadOrder(): string[] {
   }
 }
 
-function loadCollapsed(): Record<string, boolean> {
+function loadCollapsed(uid: string | null): Record<string, boolean> {
   if (typeof window === 'undefined') return {};
   try {
-    const raw = window.localStorage.getItem(COLLAPSED_KEY);
+    const raw = window.localStorage.getItem(COLLAPSED_KEY(uid));
     if (!raw) return {};
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== 'object') return {};
@@ -68,43 +71,53 @@ function loadCollapsed(): Record<string, boolean> {
   }
 }
 
-function saveOrder(order: string[]): void {
+function saveOrder(order: string[], uid: string | null): void {
   if (typeof window === 'undefined') return;
   try {
-    window.localStorage.setItem(ORDER_KEY, JSON.stringify(order));
+    window.localStorage.setItem(ORDER_KEY(uid), JSON.stringify(order));
   } catch {
     // ignore (private mode, quota, etc.)
   }
 }
 
-function saveCollapsed(collapsed: Record<string, boolean>): void {
+function saveCollapsed(
+  collapsed: Record<string, boolean>,
+  uid: string | null
+): void {
   if (typeof window === 'undefined') return;
   try {
-    window.localStorage.setItem(COLLAPSED_KEY, JSON.stringify(collapsed));
+    window.localStorage.setItem(COLLAPSED_KEY(uid), JSON.stringify(collapsed));
   } catch {
     // ignore
   }
 }
 
-export function useAccountLayout() {
+/**
+ * @param userId  The signed-in user's id. Pass `null` for the
+ *                signed-out state -- the layout still works, it just
+ *                doesn't survive a sign-in/out cycle for that
+ *                browser session.
+ */
+export function useAccountLayout(userId: string | null) {
   const [order, setOrder] = useState<string[]>(DEFAULT_ORDER);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
 
+  // Hydrate when the hook mounts AND whenever the active user id
+  // changes -- so signing in as a different user loads their own
+  // layout, not the previous one.
   useEffect(() => {
-    setOrder(loadOrder());
-    setCollapsed(loadCollapsed());
-  }, []);
+    setOrder(loadOrder(userId));
+    setCollapsed(loadCollapsed(userId));
+  }, [userId]);
 
   useEffect(() => {
-    saveOrder(order);
-  }, [order]);
+    saveOrder(order, userId);
+  }, [order, userId]);
 
   useEffect(() => {
-    saveCollapsed(collapsed);
-  }, [collapsed]);
+    saveCollapsed(collapsed, userId);
+  }, [collapsed, userId]);
 
-  // Move the section at `from` to position `to`. No-op for invalid
-  // indices so a stray drop event can't corrupt the order.
   const moveSection = useCallback((from: number, to: number) => {
     setOrder((prev) => {
       if (from < 0 || from >= prev.length) return prev;
