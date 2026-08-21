@@ -791,6 +791,48 @@ function MacroCalculatorInline() {
             <Row label="Fat" grams={results.fatG} kcal={results.fatG * 9} total={results.calories} />
             <Row label="Water" grams={results.waterL} suffix="L" />
           </div>
+
+          {/* Daily-activity burn estimates. Same shape as
+              ResultsBlock on the main macrocalc page so the two
+              surfaces stay consistent. */}
+          <div className="border-t border-ink/10 pt-5 mt-2">
+            <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-3">
+              Daily activity burn (estimate)
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="border border-ink/10 px-4 py-3 bg-cream/30">
+                <p className="font-body text-caption uppercase tracking-widest text-ink/60">
+                  One workout line
+                </p>
+                <p className="font-display text-2xl text-ink leading-none mt-1 tabular-nums">
+                  {results.workoutKcal.toLocaleString()}
+                  <span className="text-sm text-ink/50 font-body font-normal ml-1.5">
+                    kcal
+                  </span>
+                </p>
+                <p className="font-body text-caption text-ink/40 mt-1">
+                  ~10 min, body-weight resistance
+                </p>
+              </div>
+              <div className="border border-ink/10 px-4 py-3 bg-cream/30">
+                <p className="font-body text-caption uppercase tracking-widest text-ink/60">
+                  10,000 steps
+                </p>
+                <p className="font-display text-2xl text-ink leading-none mt-1 tabular-nums">
+                  {results.steps10kKcal.toLocaleString()}
+                  <span className="text-sm text-ink/50 font-body font-normal ml-1.5">
+                    kcal
+                  </span>
+                </p>
+                <p className="font-body text-caption text-ink/40 mt-1">
+                  ~7 km, brisk walking
+                </p>
+              </div>
+            </div>
+            <p className="font-body text-sm text-ink/60 mt-3">
+              ~{(results.workoutKcal + results.steps10kKcal).toLocaleString()} kcal burned by the daily routine on top of your maintenance.
+            </p>
+          </div>
         </>
       )}
     </div>
