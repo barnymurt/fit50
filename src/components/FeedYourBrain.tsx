@@ -53,9 +53,9 @@ export default function FeedYourBrain({ withTimer = false }: FeedYourBrainProps)
             </p>
             <Heading>Read 5. Or start a passion project.</Heading>
             <p className="font-body text-base text-ink/70 mt-3 max-w-xl">
-              Tell us what you&apos;re reading or listening to. We&apos;ll log
-              it for the certificate and remind you what book you picked up
-              when you come back to it.
+              Log what you&apos;re reading or listening to. When it comes to
+              day 50 we&apos;ll remind you what book you picked up. Let&apos;s
+              build a Fit50 library together.
             </p>
           </div>
         </div>
