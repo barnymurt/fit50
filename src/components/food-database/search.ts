@@ -90,10 +90,22 @@ export async function searchFoodsRemote(
 
   const trimmed = query.trim();
   if (trimmed.length > 0) {
-    q = q.textSearch('search_text', trimmed, {
-      type: 'websearch',
-      config: 'simple',
-    });
+    // Build a tsquery with PREFIX MATCHING on each token so partial
+    // words like "cinn" still hit "cinnamon". websearch_to_tsquery
+    // does word matching only — we need to construct the tsquery
+    // ourselves using the prefix operator `:*` and AND (`&`).
+    //
+    // We strip non-alphanumerics so a stray "&" or apostrophe can't
+    // blow up the tsquery parser. Each surviving token gets `:*`.
+    const tsQuery = trimmed
+      .split(/\s+/)
+      .map((w) => w.replace(/[^a-zA-Z0-9]/g, ''))
+      .filter((w) => w.length > 0)
+      .map((w) => `${w}:*`)
+      .join(' & ');
+    if (tsQuery.length > 0) {
+      q = q.textSearch('search_text', tsQuery, { config: 'simple' });
+    }
   }
   if (category !== 'all') q = q.eq('category', category);
   if (subcategory !== 'all') q = q.eq('subcategory', subcategory);

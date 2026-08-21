@@ -1244,6 +1244,32 @@ const BEVERAGES = [
   { name: 'Wirebird Brewing Speak Softly 0.0', brand: 'Wirebird Brewing', size: '355ml', kcal: 16, protein: 0.5, carbs: 3, fat: 0, fiber: 0 },
   { name: 'SOBĒ Brewing 0.0 IPA', brand: 'SOBĒ', size: '355ml', kcal: 16, protein: 0.5, carbs: 3, fat: 0, fiber: 0 },
 
+  // -------- PORTUGUESE BEERS (Sagres + Super Bock) --------
+  // Sagres — both alcoholic and 0% versions.
+  { name: 'Sagres', brand: 'Sagres', size: '330ml', kcal: 43, protein: 0.5, carbs: 3.5, fat: 0, fiber: 0, alcoholic: true },
+  { name: 'Sagres Preta', brand: 'Sagres', size: '330ml', kcal: 45, protein: 0.6, carbs: 3.8, fat: 0, fiber: 0, alcoholic: true },
+  { name: 'Sagres Bohemia', brand: 'Sagres', size: '330ml', kcal: 50, protein: 0.6, carbs: 4.5, fat: 0, fiber: 0, alcoholic: true },
+  { name: 'Sagres Mini', brand: 'Sagres', size: '200ml', kcal: 26, protein: 0.3, carbs: 2.1, fat: 0, fiber: 0, alcoholic: true },
+  { name: 'Sagres (Can 330ml)', brand: 'Sagres', size: '330ml', kcal: 43, protein: 0.5, carbs: 3.5, fat: 0, fiber: 0, alcoholic: true },
+  { name: 'Sagres (Bottle 250ml)', brand: 'Sagres', size: '250ml', kcal: 33, protein: 0.4, carbs: 2.6, fat: 0, fiber: 0, alcoholic: true },
+  { name: 'Sagres (Bottle 500ml)', brand: 'Sagres', size: '500ml', kcal: 65, protein: 0.7, carbs: 5.3, fat: 0, fiber: 0, alcoholic: true },
+  { name: 'Sagres 0.0', brand: 'Sagres', size: '330ml', kcal: 22, protein: 0.4, carbs: 4.8, fat: 0, fiber: 0, alcoholic: false },
+  { name: 'Sagres 0.0 (Bottle 250ml)', brand: 'Sagres', size: '250ml', kcal: 22, protein: 0.4, carbs: 4.8, fat: 0, fiber: 0, alcoholic: false },
+  { name: 'Sagres 0.0 (Can 330ml)', brand: 'Sagres', size: '330ml', kcal: 22, protein: 0.4, carbs: 4.8, fat: 0, fiber: 0, alcoholic: false },
+
+  // Super Bock — both alcoholic and 0% versions.
+  { name: 'Super Bock', brand: 'Super Bock', size: '330ml', kcal: 41, protein: 0.4, carbs: 3.2, fat: 0, fiber: 0, alcoholic: true },
+  { name: 'Super Bock Stout', brand: 'Super Bock', size: '330ml', kcal: 50, protein: 0.6, carbs: 4.5, fat: 0, fiber: 0, alcoholic: true },
+  { name: 'Super Bock 1927', brand: 'Super Bock', size: '330ml', kcal: 50, protein: 0.6, carbs: 4.5, fat: 0, fiber: 0, alcoholic: true },
+  { name: 'Super Bock Mini', brand: 'Super Bock', size: '200ml', kcal: 25, protein: 0.2, carbs: 2, fat: 0, fiber: 0, alcoholic: true },
+  { name: 'Super Bock (Can 330ml)', brand: 'Super Bock', size: '330ml', kcal: 41, protein: 0.4, carbs: 3.2, fat: 0, fiber: 0, alcoholic: true },
+  { name: 'Super Bock (Bottle 250ml)', brand: 'Super Bock', size: '250ml', kcal: 31, protein: 0.3, carbs: 2.4, fat: 0, fiber: 0, alcoholic: true },
+  { name: 'Super Bock (Bottle 500ml)', brand: 'Super Bock', size: '500ml', kcal: 62, protein: 0.6, carbs: 4.8, fat: 0, fiber: 0, alcoholic: true },
+  { name: 'Super Bock 0.0', brand: 'Super Bock', size: '330ml', kcal: 19, protein: 0.3, carbs: 4.2, fat: 0, fiber: 0, alcoholic: false },
+  { name: 'Super Bock 0.0 (Bottle 250ml)', brand: 'Super Bock', size: '250ml', kcal: 19, protein: 0.3, carbs: 4.2, fat: 0, fiber: 0, alcoholic: false },
+  { name: 'Super Bock 0.0 (Can 330ml)', brand: 'Super Bock', size: '330ml', kcal: 19, protein: 0.3, carbs: 4.2, fat: 0, fiber: 0, alcoholic: false },
+  { name: 'Super Bock Sem Álcool', brand: 'Super Bock', size: '330ml', kcal: 19, protein: 0.3, carbs: 4.2, fat: 0, fiber: 0, alcoholic: false },
+
   // -------- 0% ALCOHOL WINE --------
   { name: 'Fre Alcohol-Removed Chardonnay', brand: 'Fre', size: '750ml', kcal: 12, protein: 0, carbs: 3, fat: 0, fiber: 0 },
   { name: 'Fre Alcohol-Removed Cabernet Sauvignon', brand: 'Fre', size: '750ml', kcal: 12, protein: 0, carbs: 3, fat: 0, fiber: 0 },
@@ -1427,14 +1453,23 @@ async function main() {
   }
 
   for (const b of BEVERAGES) {
-    const id = `cur-na-${slugify(`${b.brand}-${b.name}-${b.size}`)}`;
+    // alcoholic: false → 'Non-alcoholic' subcategory + state, gets
+    //              the non-alcoholic aliases.
+    // alcoholic: true → 'Alcoholic beverages' subcategory, no NA aliases.
+    // alcoholic: undefined → treated as non-alcoholic (back-compat for
+    //                    entries added before this flag existed).
+    const isAlc = b.alcoholic === true;
+    const id = `${isAlc ? 'cur-beer' : 'cur-na'}-${slugify(`${b.brand}-${b.name}-${b.size}`)}`;
+    const aliases = isAlc
+      ? [b.brand]
+      : [b.brand, 'non-alcoholic', 'alcohol-free', 'zero proof'];
     rows.push({
       id,
       name: b.name,
       category: 'Beverages',
-      subcategory: 'Non-alcoholic',
+      subcategory: isAlc ? 'Alcoholic beverages' : 'Non-alcoholic',
       preparation: null,
-      state: 'Non-alcoholic',
+      state: isAlc ? null : 'Non-alcoholic',
       type: 'beverage',
       kcal: b.kcal,
       protein: b.protein,
@@ -1444,11 +1479,11 @@ async function main() {
       serving_basis: '100ml',
       standard_serving_grams: null,
       standard_serving_label: `${b.size} · ${b.brand}`,
-      aliases: [b.brand, 'non-alcoholic', 'alcohol-free', 'zero proof'],
+      aliases,
     });
   }
 
-  console.log(`Inserting ${rows.length} curated foods (basic + air-fried + pasta + 0% beverages)…`);
+  console.log(`Inserting ${rows.length} curated foods (basic + air-fried + pasta + 0% / alcoholic beverages)…`);
 
   // Batch in groups of 200 to keep payload reasonable.
   const BATCH = 200;
