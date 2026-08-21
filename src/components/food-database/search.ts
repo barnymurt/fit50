@@ -22,15 +22,18 @@ interface SearchOptions {
   sort?: SortKey;
   sortDir?: 'asc' | 'desc';
   limit?: number;
+  offset?: number;
 }
+
+const FOOD_COLS =
+  'id, name, category, subcategory, preparation, state, type, kcal, protein, carbs, fat, fiber, serving_basis, standard_serving_grams, standard_serving_label, aliases';
 
 function rowToFood(row: Record<string, unknown>): Food {
   return {
     id: row.id as string,
     name: row.name as string,
-    // The legacy JSON has categories that aren't in the strict
-    // FoodCategory union (e.g. "Pizza", "Grains & Pasta"). The DB
-    // matches the JSON, so we cast through unknown.
+    // Legacy JSON has categories that aren't in the strict union; the
+    // DB matches the JSON, so cast through unknown.
     category: row.category as Food['category'],
     subcategory: (row.subcategory as string | null) ?? undefined,
     preparation: (row.preparation as string | null) ?? undefined,
@@ -52,92 +55,17 @@ function rowToFood(row: Record<string, unknown>): Food {
   };
 }
 
-// Hook returns the food list for a given search. The DB is the primary
-// source of truth, but a JSON fallback kicks in if the DB is empty
-// (the foods table hasn't been populated yet) or if the Supabase
-// query fails. This way the food log is usable even before running
-// the foods migration script.
-export function useFoodData() {
-  const [foods, setFoods] = useState<Food[]>([]);
-  const [loaded, setLoaded] = useState(false);
+// ---------------------------------------------------------------------------
+// Server-side search — the only path used by the UI at scale. Hits the
+// `foods` table's GIN-indexed `search_text` tsvector and respects
+// category / sort filters. Pagination is `.range(from, to)`.
+// ---------------------------------------------------------------------------
 
-  useEffect(() => {
-    let cancelled = false;
-    loadAllFoods()
-      .then((list) => {
-        if (cancelled) return;
-        setFoods(list);
-        setLoaded(true);
-      })
-      .catch(async () => {
-        try {
-          const fallback = await loadJsonFallback();
-          if (cancelled) return;
-          setFoods(fallback);
-          cachedFoods = fallback;
-        } catch {
-          // give up
-        }
-        setLoaded(true);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  return { foods, loaded };
-}
-
-let cachedFoods: Food[] | null = null;
-
-async function loadAllFoods(): Promise<Food[]> {
-  if (cachedFoods) return cachedFoods;
-  const supabase = createClient();
-  if (!supabase) {
-    return loadJsonFallback();
-  }
-
-  try {
-    const { data, error } = await supabase
-      .from('foods')
-      .select('id, name, category, subcategory, preparation, state, type, kcal, protein, carbs, fat, fiber, serving_basis, standard_serving_grams, standard_serving_label, aliases')
-      .order('name', { ascending: true });
-
-    if (error) {
-      console.error('Foods load failed:', error);
-      return loadJsonFallback();
-    }
-    if (!data || data.length === 0) {
-      // Migration not run yet. Fall back to the bundled JSON so the
-      // food log still works. When the user later populates the DB,
-      // a refresh picks it up.
-      return loadJsonFallback();
-    }
-    const list = (data as Record<string, unknown>[]).map(rowToFood);
-    cachedFoods = list;
-    return list;
-  } catch (err) {
-    console.error('Foods load exception:', err);
-    return loadJsonFallback();
-  }
-}
-
-let cachedJsonFallback: Food[] | null = null;
-async function loadJsonFallback(): Promise<Food[]> {
-  if (cachedJsonFallback) return cachedJsonFallback;
-  const mod = await import('./food-data.json');
-  const data = mod.default as unknown as { version?: number; foods: Food[] };
-  cachedJsonFallback = data.foods;
-  return data.foods;
-}
-
-// Server-friendly loader: fetch a single page of search results from
-// Supabase. Used by the food search UI when the user is typing.
 export async function searchFoodsRemote(
   options: SearchOptions
-): Promise<Food[]> {
+): Promise<{ foods: Food[]; count: number | null }> {
   const supabase = createClient();
-  if (!supabase) return [];
+  if (!supabase) return { foods: [], count: null };
 
   const {
     query,
@@ -146,14 +74,24 @@ export async function searchFoodsRemote(
     type = 'all',
     sort = 'relevance',
     sortDir = 'asc',
-    limit = 80,
+    limit = 50,
+    offset = 0,
   } = options;
 
-  let q = supabase.from('foods').select('id, name, category, subcategory, preparation, state, type, kcal, protein, carbs, fat, fiber, serving_basis, standard_serving_grams, standard_serving_label, aliases', { count: 'exact' });
+  // Ask for an exact count only on the first page of a query. Skipping
+  // it on subsequent pages halves the payload — the UI shows
+  // "50+" once we have a full page.
+  const wantCount = offset === 0;
+  let q = supabase
+    .from('foods')
+    .select(FOOD_COLS, { count: wantCount ? 'exact' : undefined });
 
   const trimmed = query.trim();
   if (trimmed.length > 0) {
-    q = q.textSearch('search_text', trimmed, { type: 'websearch', config: 'simple' });
+    q = q.textSearch('search_text', trimmed, {
+      type: 'websearch',
+      config: 'simple',
+    });
   }
   if (category !== 'all') q = q.eq('category', category);
   if (preparation !== 'all') q = q.eq('preparation', preparation);
@@ -161,7 +99,8 @@ export async function searchFoodsRemote(
 
   if (sort !== 'relevance' || trimmed.length === 0) {
     const dir = sortDir === 'asc' ? true : false;
-    const col = sort === 'kcal' ? 'kcal'
+    const col =
+      sort === 'kcal' ? 'kcal'
       : sort === 'protein' ? 'protein'
       : sort === 'carbs' ? 'carbs'
       : sort === 'fat' ? 'fat'
@@ -169,113 +108,107 @@ export async function searchFoodsRemote(
       : 'name';
     q = q.order(col, { ascending: dir });
   } else {
-    // Websearch returns results ranked by ts_rank internally
+    // Websearch ts_rank order; fall back to name for stable cursor.
     q = q.order('name', { ascending: true });
   }
 
-  q = q.limit(limit);
+  q = q.range(offset, offset + limit - 1);
 
-  const { data, error } = await q;
+  const { data, error, count } = await q;
   if (error) {
     console.error('Food search failed:', error);
+    return { foods: [], count: null };
+  }
+  return {
+    foods: (data ?? []).map(rowToFood),
+    count: count ?? null,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Targeted lookups — used for "recently logged" and the favourites
+// chips. With the corpus at ~135K rows we can't keep a Map of all
+// foods in the browser; instead we fetch the specific rows by id.
+// ---------------------------------------------------------------------------
+
+export async function fetchFoodsByIds(ids: string[]): Promise<Food[]> {
+  if (ids.length === 0) return [];
+  const supabase = createClient();
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from('foods')
+    .select(FOOD_COLS)
+    .in('id', ids);
+  if (error) {
+    console.error('fetchFoodsByIds failed:', error);
     return [];
   }
   return (data ?? []).map(rowToFood);
 }
 
-// In-memory variant used for client-side memo sorting when no remote
-// query is needed (e.g. "show all in this category, sorted by name").
-export function searchFoods(
-  foods: Food[],
-  options: SearchOptions
-): Food[] {
-  const {
-    query,
-    category = 'all',
-    preparation = 'all',
-    type = 'all',
-    favorites,
-    sort = 'relevance',
-    sortDir = 'asc',
-  } = options;
+// Cache of id→Food for the lifetime of the page. Tiny (only the
+// foods the user has logged or favourited), so this is fine.
+const foodByIdCache = new Map<string, Food>();
 
-  const tokens = tokenize(query);
-
-  let filtered = foods.filter((f) => {
-    if (category !== 'all' && f.category !== category) return false;
-    if (preparation !== 'all' && f.preparation !== preparation) return false;
-    if (type !== 'all' && f.type !== type) return false;
-    return true;
-  });
-
-  if (tokens.length > 0) {
-    const scored = filtered
-      .map((f) => ({ f, s: scoreFood(f, tokens) }))
-      .filter((x) => x.s >= 0)
-      .sort((a, b) => b.s - a.s);
-    filtered = scored.map((x) => x.f);
-  } else if (sort === 'relevance' && favorites) {
-    const favs: Food[] = [];
-    const rest: Food[] = [];
-    for (const f of filtered) {
-      (favorites.has(f.id) ? favs : rest).push(f);
-    }
-    filtered = [...favs, ...rest];
-  }
-
-  if (sort !== 'relevance' || tokens.length === 0) {
-    const dir = sortDir === 'asc' ? 1 : -1;
-    filtered = [...filtered].sort((a, b) => {
-      const av = (a as unknown as Record<string, number>)[sort] ?? 0;
-      const bv = (b as unknown as Record<string, number>)[sort] ?? 0;
-      if (typeof av === 'string') return String(av).localeCompare(String(bv)) * dir;
-      return (av - bv) * dir;
-    });
-  }
-
-  return filtered;
+export async function fetchFoodById(id: string): Promise<Food | null> {
+  const cached = foodByIdCache.get(id);
+  if (cached) return cached;
+  const list = await fetchFoodsByIds([id]);
+  const food = list[0] ?? null;
+  if (food) foodByIdCache.set(id, food);
+  return food;
 }
 
-function tokenize(q: string): string[] {
-  return q
-    .toLowerCase()
-    .split(/\s+/)
-    .map((s) => s.trim())
-    .filter(Boolean);
+export function clearFoodCache(): void {
+  foodByIdCache.clear();
 }
 
-function scoreFood(food: Food, tokens: string[]): number {
-  if (tokens.length === 0) return 0;
-  const lower = (v: unknown) => (typeof v === 'string' ? v : '').toLowerCase();
-  const name = lower(food.name);
-  const category = lower(food.category);
-  const subcategory = lower(food.subcategory);
-  const preparation = lower(food.preparation);
-  const state = lower(food.state);
-  const aliases = (food.aliases || []).map(lower);
+// ---------------------------------------------------------------------------
+// Lightweight debounce hook used by FoodSearch. We don't load the full
+// corpus — that was the freeze path. Each input change kicks off a
+// single Supabase query, debounced to 250 ms.
+// ---------------------------------------------------------------------------
 
-  let score = 0;
-  for (const t of tokens) {
-    if (name === t) score += 100;
-    else if (name.startsWith(t)) score += 50;
-    else if (name.includes(t)) score += 20;
-    else if (aliases.some((a) => a === t)) score += 15;
-    else if (aliases.some((a) => a.includes(t))) score += 8;
-    else if (category.includes(t)) score += 5;
-    else if (subcategory.includes(t)) score += 4;
-    else if (preparation.includes(t)) score += 3;
-    else if (state.includes(t)) score += 2;
-    else return -1;
-  }
-  return score;
+export function useDebounced<T>(value: T, delayMs: number): T {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const t = window.setTimeout(() => setDebounced(value), delayMs);
+    return () => window.clearTimeout(t);
+  }, [value, delayMs]);
+  return debounced;
 }
 
-export function getCategories(foods: Food[]): string[] {
-  return Array.from(new Set(foods.map((f) => f.category))).sort();
-}
+// ---------------------------------------------------------------------------
+// Categories — at search time we render the category dropdown from a
+// small static list so the dropdown is instant and free. The OFF
+// category enum is fixed; if a row has a category outside the set we
+// either remap during seeding or the dropdown simply won't include it.
+// ---------------------------------------------------------------------------
 
-export function getPreparations(foods: Food[]): string[] {
-  return Array.from(
-    new Set(foods.map((f) => f.preparation).filter(Boolean) as string[])
-  ).sort();
-}
+export const KNOWN_CATEGORIES: string[] = [
+  'Meat & Poultry',
+  'Fish & Seafood',
+  'Eggs',
+  'Dairy',
+  'Milk & Milk Alternatives',
+  'Grains',
+  'Bread & Bakery',
+  'Pasta & Noodles',
+  'Rice & Rice Dishes',
+  'Legumes & Beans',
+  'Vegetables',
+  'Fruits',
+  'Nuts & Seeds',
+  'Oils & Fats',
+  'Condiments & Sauces',
+  'Snacks',
+  'Sweets & Desserts',
+  'Breakfast Foods',
+  'Ready Meals',
+  'Soups',
+  'Salads',
+  'Sandwiches & Wraps',
+  'Pizza & Fast Food',
+  'Beverages',
+  'Protein Foods',
+];
