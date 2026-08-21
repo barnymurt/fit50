@@ -435,16 +435,72 @@ function stripBrandFromName(name, brand) {
   return s.replace(/\s+/g, ' ').trim();
 }
 
+// OFF stores some special characters as SGML entities — "&Quot;"
+// for ", "&Deg;" for °, "&amp;" for &, numeric forms like "&#34;".
+// Decode them BEFORE the ASCII check so a literal "°" doesn't
+// fail the printable-ASCII filter (U+00B0 is outside 0x20-0x7E).
+function decodeHtmlEntities(s) {
+  return s
+    .replace(/&quot;/gi, '"')
+    .replace(/&apos;/gi, "'")
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&deg;/gi, '\u00B0')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&#(\d+);/g, (_, n) => {
+      const code = parseInt(n, 10);
+      return Number.isFinite(code) ? String.fromCharCode(code) : '';
+    });
+}
+
 function normalizeName(raw) {
   if (!raw) return '';
-  let s = raw.trim();
+  let s = decodeHtmlEntities(raw.trim());
 
   // Drop any name with non-ASCII characters (Russian, French, etc.).
+  // After decodeHtmlEntities, ° etc. would still fail this — but no
+  // common English food name actually needs them, so we keep the
+  // strict ASCII filter.
   if (!ASCII_NAME.test(s)) return '';
 
-  // OFF sometimes uses a leading "-" as a list bullet ("- Pommes
-  // Noisettes", "- Bonbons Fraises"). Reject so we don't end up
-  // with names like "Pommes Noisettes - 1000gr" minus the dash.
+  // Strip leading junk. OFF sometimes prefixes names with a list
+  // bullet ("- Pommes Noisettes"), a quote / comma / ampersand
+  // separator ("\" Honey With Tahini\""), or a size / quantity
+  // ("1 Bifteck", "0,5L Jus De Carotte", "1 / 2 Haricots", "500ml
+  // Bicarbonate"). The size info isn't useful in the title — the
+  // user picks a serving when they log the food. Strip prefixes;
+  // if nothing useful remains, reject the row.
+  let prev;
+  do {
+    prev = s;
+    s = s
+      // "1 Bifteck", "50ml Bicarb", "0,5l Jus", "0% Sucre", "0,0% Cerise"
+      .replace(
+        /^\s*\d+(?:[.,]\d+)?\s*(?:%|°|deg(?:rees?)?)?\s*(?:g|kg|oz|lb|ml|l|cl)\b\.?\s*/i,
+        ''
+      )
+      // "1 / 2 Haricots", "1/2 Pulpe"
+      .replace(/^\s*\d+\s*\/\s*\d+\s+/, '')
+      // Generic leading number(s): "123 ", "1,234 "
+      .replace(/^\s*\d[\d.,]*\s+/, '')
+      // Leading punctuation / quote / symbol: ", ", "! - ", "& ",
+      // "* ", "/ ", "+ ", "'", "\""
+      .replace(/^[\s,!*/&+"'`]+/, '')
+      // Trailing punctuation
+      .replace(/[\s,;]+$/, '');
+  } while (s !== prev);
+  s = s.replace(/\s+/g, ' ').trim();
+
+  if (s.length === 0) return '';
+
+  // Reject if first char isn't an English letter (catches the
+  // residual junk that survived the strip — e.g. names that were
+  // purely size text or were wrapped in junk-only chars).
+  if (!/^[A-Za-z]/.test(s)) return '';
+
+  // OFF sometimes uses a leading "-" as a list bullet — already
+  // handled by the punctuation strip, but be explicit.
   if (/^-/.test(s)) return '';
 
   // Strip parentheticals and bracket content — usually prep state or
@@ -456,17 +512,14 @@ function normalizeName(raw) {
   // "Granola 12 oz".
   s = s.replace(
     /\s+\d+(\.\d+)?\s*(g|kg|oz|lb|ml|l|cl|pack|pcs?|ct|count)\b\.?$/i,
-    ''
-  );
+    '');
 
   // Collapse spaces and trim again.
   s = s.replace(/\s+/g, ' ').trim();
+  if (s.length === 0) return '';
 
   // Reject ultra-long names that survived — usually product blurbs.
   if (s.length > MAX_NAME_LEN) return '';
-
-  // Reject names that became empty after stripping.
-  if (s.length === 0) return '';
 
   // Reject if any token is a distinctive non-English word.
   const lowerTokens = s.toLowerCase().split(/\s+/);
