@@ -62,16 +62,15 @@ export function dayKeyFromStart(
 }
 
 /**
- * Given a `YYYY-MM-DD` date key, return the day BEFORE it as a
- * `Date` set to local-tz midnight. Used by the rollover reconcile
- * to figure out which day the stale pending taps belonged to.
+ * Parse a `YYYY-MM-DD` date key into a `Date` set to local-tz
+ * midnight. Used to look up the day number for a given calendar
+ * date without the day-offset bugs that come from passing the
+ * string directly to `new Date()` (which parses as UTC).
  */
-export function previousDateOf(dateKey: string): Date {
+export function parseDateKey(dateKey: string): Date {
   const [y, m, d] = dateKey.split('-').map(Number);
   if (!y || !m || !d) return new Date();
-  const dt = new Date(y, m - 1, d);
-  dt.setDate(dt.getDate() - 1);
-  return dt;
+  return new Date(y, m - 1, d);
 }
 
 /**

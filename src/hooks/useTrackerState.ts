@@ -8,7 +8,7 @@ import {
   dateKeyLocal,
   dayIndexFromStart,
   dayKeyFromStart,
-  previousDateOf,
+  parseDateKey,
 } from '@/lib/dates';
 import {
   TRACKER_KEY,
@@ -75,7 +75,7 @@ function reconcileStalePendingTaps(
   }
 
   const staleDate = data.pendingTapsDateKey;
-  const dayNumber = dayIndexFromStart(startDate, previousDateOf(staleDate));
+  const dayNumber = dayIndexFromStart(startDate, parseDateKey(staleDate));
 
   const existing = data.closedDays[dayNumber] || {};
   const archived: Record<string, boolean> = { ...existing, ...data.pendingTaps };
@@ -323,7 +323,7 @@ export function useTrackerState() {
           }> = [];
           const archivedAt = new Date().toISOString();
           for (const [dateKey, rows] of Object.entries(rowsByDate)) {
-            const dayNumber = dayIndexFromStart(start, previousDateOf(dateKey));
+            const dayNumber = dayIndexFromStart(start, parseDateKey(dateKey));
             if (dayNumber < 1 || dayNumber > 50) continue;
             mergedClosed[dayNumber] = { ...(mergedClosed[dayNumber] || {}) };
             for (const r of rows) {
@@ -383,7 +383,7 @@ export function useTrackerState() {
       // closedDays, clear localStorage. Only relevant for users who
       // are actually in a challenge.
       if (hasStart && localPendingDateKey && localPendingDateKey !== todayKey && Object.keys(localPending).length > 0) {
-        const staleDayNumber = dayIndexFromStart(start, previousDateOf(localPendingDateKey));
+        const staleDayNumber = dayIndexFromStart(start, parseDateKey(localPendingDateKey));
         try {
           await persistAuthInsertDailyTotals(staleDayNumber, localPending, new Date().toISOString());
         } catch (err) {
@@ -455,7 +455,7 @@ export function useTrackerState() {
       todayKeyRef.current = todayKey;
 
       const yesterdayNumber =
-        dayIndexFromStart(startDate, previousDateOf(previousKey));
+        dayIndexFromStart(startDate, parseDateKey(previousKey));
       const yesterdayTaps = data.pendingTaps;
 
       setData((prev) => {
