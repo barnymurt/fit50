@@ -70,154 +70,221 @@ const ALLOWED_CATEGORIES = new Set([
 // pnns_groups_1 (10 values) → our enum. Covers the broad strokes;
 // pnns_groups_2 is used to refine for the ambiguous ones.
 const PNNS1_MAP = {
-  'Beverages': 'Beverages',
+  Beverages: 'Beverages',
   'Cereals and potatoes': 'Grains',
-  'Fruits and vegetables': 'Vegetables', // pnns_groups_2 refines fruit vs veg
+  'Fruits and vegetables': 'Vegetables',
   'Composite foods': 'Ready Meals',
   'Sugary snacks': 'Sweets & Desserts',
   'Salty snacks': 'Snacks',
   'Fat and sauces': 'Condiments & Sauces',
   'Milk and dairy products': 'Dairy',
-  'Fish Meat Eggs': 'Meat & Poultry', // pnns_groups_2 refines
+  'Fish Meat Eggs': 'Meat & Poultry',
 };
 
 // pnns_groups_2 → our enum. Used to disambiguate broad pnns_groups_1
-// rows (Fish Meat Eggs, Fruits and vegetables) and for any row where
-// pnns_groups_1 is missing/unknown.
+// rows ( Fish Meat Eggs, Fruits and vegetables ) and for any row where
+// pnns_groups_1 is missing/unknown. Keys are lowercased at lookup
+// time so casing variants map correctly.
 const PNNS2_MAP = {
   // Beverages
-  'Fruit juices': 'Beverages',
-  'Non-sugared beverages': 'Beverages',
-  'Sweetened beverages': 'Beverages',
-  'Artificially sweetened beverages': 'Beverages',
-  'Alcoholic beverages': 'Beverages',
-  'Waters and flavored waters': 'Beverages',
+  'fruit juices': 'Beverages',
+  'non-sugared beverages': 'Beverages',
+  'sweetened beverages': 'Beverages',
+  'artificially sweetened beverages': 'Beverages',
+  'alcoholic beverages': 'Beverages',
+  'fruit nectars': 'Beverages',
+  'waters and flavored waters': 'Beverages',
   // Cereals & potatoes
-  'Bread': 'Bread & Bakery',
-  'Breakfast cereals': 'Breakfast Foods',
-  'Cereals': 'Grains',
-  'Potatoes': 'Vegetables',
-  'Pastries': 'Sweets & Desserts',
+  bread: 'Bread & Bakery',
+  'breakfast cereals': 'Breakfast Foods',
+  cereals: 'Grains',
+  potatoes: 'Vegetables',
+  pastries: 'Sweets & Desserts',
   // Fruits & veg
-  'Vegetables': 'Vegetables',
-  'Legumes': 'Legumes & Beans',
-  'Fruits': 'Fruits',
-  'Soups': 'Soups',
-  'Salty and fatty products': 'Snacks',
-  'Dried fruits': 'Fruits',
+  vegetables: 'Vegetables',
+  legumes: 'Legumes & Beans',
+  fruits: 'Fruits',
+  'dried fruits': 'Fruits',
+  soups: 'Soups',
+  'salty and fatty products': 'Snacks',
   // Composite
-  'One-dish meals': 'Ready Meals',
-  'Pizza pies and quiche': 'Pizza & Fast Food',
-  'Sandwich': 'Sandwiches & Wraps',
-  'Pizza': 'Pizza & Fast Food',
-  'Fish and seafood': 'Fish & Seafood',
-  'Meat': 'Meat & Poultry',
-  'Eggs': 'Eggs',
+  'one-dish meals': 'Ready Meals',
+  'pizza pies and quiche': 'Pizza & Fast Food',
+  pizza: 'Pizza & Fast Food',
+  sandwich: 'Sandwiches & Wraps',
+  'tripe dishes': 'Meat & Poultry',
+  'fish and seafood': 'Fish & Seafood',
+  meat: 'Meat & Poultry',
+  'processed meat': 'Meat & Poultry',
+  eggs: 'Eggs',
   // Sugary
-  'Biscuits and cakes': 'Sweets & Desserts',
-  'Sweets': 'Sweets & Desserts',
-  'Chocolate products': 'Sweets & Desserts',
-  'Ice cream': 'Sweets & Desserts',
-  'Fruit yogurts and similar desserts': 'Sweets & Desserts',
+  'biscuits and cakes': 'Sweets & Desserts',
+  sweets: 'Sweets & Desserts',
+  'chocolate products': 'Sweets & Desserts',
+  'ice cream': 'Sweets & Desserts',
+  'fruit yogurts and similar desserts': 'Sweets & Desserts',
+  'dairy desserts': 'Sweets & Desserts',
   // Salty snacks
-  'Appetizers': 'Snacks',
-  'Salty snacks': 'Snacks',
+  appetizers: 'Snacks',
+  'salty snacks': 'Snacks',
   // Fat and sauces
-  'Dressings and sauces': 'Condiments & Sauces',
-  'Fats': 'Oils & Fats',
-  'Cheese': 'Dairy',
+  'dressings and sauces': 'Condiments & Sauces',
+  fats: 'Oils & Fats',
+  cheese: 'Dairy',
   // Dairy
-  'Milk and yogurt': 'Dairy',
-  'Yogurts': 'Dairy',
-  'Milk': 'Milk & Milk Alternatives',
-  'Plant-based milk substitutes': 'Milk & Milk Alternatives',
+  'milk and yogurt': 'Dairy',
+  yogurts: 'Dairy',
+  milk: 'Milk & Milk Alternatives',
+  'plant-based milk substitutes': 'Milk & Milk Alternatives',
   // Fish Meat Eggs
-  'Processed meat': 'Meat & Poultry',
-  'Meat substitutes': 'Protein Foods',
-  'Surimi': 'Fish & Seafood',
-  'Fish': 'Fish & Seafood',
-  'Seafood': 'Fish & Seafood',
+  'meat substitutes': 'Protein Foods',
+  surimi: 'Fish & Seafood',
+  fish: 'Fish & Seafood',
+  seafood: 'Fish & Seafood',
   // Nuts
-  'Nuts': 'Nuts & Seeds',
+  nuts: 'Nuts & Seeds',
 };
 
-// Fallback: look at the first token of categories_en.
-const CATEGORIES_EN_FALLBACK = {
-  'fruits': 'Fruits',
+// categories_en first-token → our enum. Walked in order; the FIRST
+// matching token wins (so we prefer specific over generic parents).
+const CATEGORIES_EN_MAP = {
+  // Fruits & veg
+  fruits: 'Fruits',
   'dried fruits': 'Fruits',
-  'vegetables': 'Vegetables',
-  'salads': 'Salads',
-  'meats': 'Meat & Poultry',
-  'poultry': 'Meat & Poultry',
-  'beef': 'Meat & Poultry',
-  'pork': 'Meat & Poultry',
-  'chicken': 'Meat & Poultry',
-  'turkey': 'Meat & Poultry',
-  'fish': 'Fish & Seafood',
-  'seafood': 'Fish & Seafood',
-  'shellfish': 'Fish & Seafood',
-  'dairy': 'Dairy',
-  'milks': 'Milk & Milk Alternatives',
-  'yogurts': 'Dairy',
-  'cheeses': 'Dairy',
-  'butters': 'Dairy',
-  'eggs': 'Eggs',
-  'cereals': 'Grains',
-  'rices': 'Rice & Rice Dishes',
-  'pastas': 'Pasta & Noodles',
-  'noodles': 'Pasta & Noodles',
-  'breads': 'Bread & Bakery',
-  'baking': 'Bread & Bakery',
-  'sandwiches': 'Sandwiches & Wraps',
-  'wraps': 'Sandwiches & Wraps',
-  'pizzas': 'Pizza & Fast Food',
+  vegetables: 'Vegetables',
+  salads: 'Salads',
+  tabbouleh: 'Salads',
+  // Meats
+  meats: 'Meat & Poultry',
+  poultry: 'Meat & Poultry',
+  beef: 'Meat & Poultry',
+  pork: 'Meat & Poultry',
+  chicken: 'Meat & Poultry',
+  turkey: 'Meat & Poultry',
+  terrines: 'Meat & Poultry',
+  terrine: 'Meat & Poultry',
+  'fish and meat and eggs': 'Meat & Poultry',
+  // Fish
+  fish: 'Fish & Seafood',
+  seafood: 'Fish & Seafood',
+  shellfish: 'Fish & Seafood',
+  // Dairy
+  dairies: 'Dairy',
+  dairy: 'Dairy',
+  milks: 'Milk & Milk Alternatives',
+  yogurts: 'Dairy',
+  cheeses: 'Dairy',
+  butters: 'Dairy',
+  // Eggs
+  eggs: 'Eggs',
+  // Grains
+  cereals: 'Grains',
+  rices: 'Rice & Rice Dishes',
+  pastas: 'Pasta & Noodles',
+  noodles: 'Pasta & Noodles',
+  breads: 'Bread & Bakery',
+  baking: 'Bread & Bakery',
+  'pie dough': 'Bread & Bakery',
+  'pizza dough': 'Bread & Bakery',
+  // Sandwiches & fast food
+  sandwiches: 'Sandwiches & Wraps',
+  wraps: 'Sandwiches & Wraps',
+  pizzas: 'Pizza & Fast Food',
   'fast foods': 'Pizza & Fast Food',
-  'burgers': 'Pizza & Fast Food',
+  burgers: 'Pizza & Fast Food',
+  pies: 'Sweets & Desserts',
+  // Prepared
+  meals: 'Ready Meals',
   'prepared meals': 'Ready Meals',
   'ready meals': 'Ready Meals',
   'one-dish meals': 'Ready Meals',
-  'soups': 'Soups',
-  'snacks': 'Snacks',
-  'appetizers': 'Snacks',
-  'sweets': 'Sweets & Desserts',
-  'desserts': 'Sweets & Desserts',
-  'candies': 'Sweets & Desserts',
-  'chocolates': 'Sweets & Desserts',
-  'biscuits': 'Sweets & Desserts',
-  'cakes': 'Sweets & Desserts',
+  breakfasts: 'Breakfast Foods',
+  waffles: 'Sweets & Desserts',
+  'crêpes and galettes': 'Sweets & Desserts',
+  // Soups
+  soups: 'Soups',
+  // Snacks & sweets
+  snacks: 'Snacks',
+  'salty snacks': 'Snacks',
+  'sugary snacks': 'Sweets & Desserts',
+  appetizers: 'Snacks',
+  'chips and fries': 'Snacks',
+  sweets: 'Sweets & Desserts',
+  desserts: 'Sweets & Desserts',
+  candies: 'Sweets & Desserts',
+  chocolates: 'Sweets & Desserts',
+  biscuits: 'Sweets & Desserts',
+  cakes: 'Sweets & Desserts',
   'ice creams': 'Sweets & Desserts',
-  'sauces': 'Condiments & Sauces',
-  'condiments': 'Condiments & Sauces',
-  'dressings': 'Condiments & Sauces',
-  'mayonnaises': 'Condiments & Sauces',
-  'ketchups': 'Condiments & Sauces',
-  'spreads': 'Condiments & Sauces',
-  'fats': 'Oils & Fats',
-  'oils': 'Oils & Fats',
+  // Condiments & sauces
+  sauces: 'Condiments & Sauces',
+  condiments: 'Condiments & Sauces',
+  dressings: 'Condiments & Sauces',
+  mayonnaises: 'Condiments & Sauces',
+  ketchups: 'Condiments & Sauces',
+  spreads: 'Condiments & Sauces',
+  syrups: 'Condiments & Sauces',
+  sweeteners: 'Condiments & Sauces',
+  vinegars: 'Condiments & Sauces',
+  // Oils
+  fats: 'Oils & Fats',
+  oils: 'Oils & Fats',
   'olive oils': 'Oils & Fats',
-  'beverages': 'Beverages',
-  'sodas': 'Beverages',
-  'juices': 'Beverages',
-  'waters': 'Beverages',
-  'coffees': 'Beverages',
-  'teas': 'Beverages',
-  'wines': 'Beverages',
-  'beers': 'Beverages',
-  'spirits': 'Beverages',
-  'nuts': 'Nuts & Seeds',
-  'seeds': 'Nuts & Seeds',
-  'legumes': 'Legumes & Beans',
-  'beans': 'Legumes & Beans',
-  'breakfasts': 'Breakfast Foods',
-  'protein foods': 'Protein Foods',
+  // Beverages
+  beverages: 'Beverages',
+  sodas: 'Beverages',
+  juices: 'Beverages',
+  waters: 'Beverages',
+  coffees: 'Beverages',
+  teas: 'Beverages',
+  wines: 'Beverages',
+  beers: 'Beverages',
+  spirits: 'Beverages',
+  // Nuts & seeds
+  nuts: 'Nuts & Seeds',
+  seeds: 'Nuts & Seeds',
+  // Legumes
+  beans: 'Legumes & Beans',
+  // Other
+  'baby foods': 'Ready Meals',
+  'dietary supplements': 'Protein Foods',
 };
 
+// Top-level OFF categories that are generic parents (skip them and
+// fall through to the next token). Lowercased.
+const SKIP_CATEGORIES_EN = new Set([
+  'plant-based foods and beverages',
+  'groceries',
+  'fresh foods',
+  'canned foods',
+  'frozen foods',
+  'farming products',
+  'dried products',
+  'food additives',
+  'non food products',
+  'labeled products',
+  'products sold before year 2000',
+]);
+
 function mapCategory(pnns1, pnns2, catsEn) {
-  if (pnns2 && PNNS2_MAP[pnns2]) return PNNS2_MAP[pnns2];
-  if (pnns1 && PNNS1_MAP[pnns1]) return PNNS1_MAP[pnns1];
+  if (pnns2) {
+    const k = pnns2.toLowerCase().trim();
+    if (PNNS2_MAP[k]) return PNNS2_MAP[k];
+  }
+  if (pnns1) {
+    const k = pnns1.toLowerCase().trim();
+    if (PNNS1_MAP[pnns1]) return PNNS1_MAP[pnns1];
+    if (PNNS1_MAP[k]) return PNNS1_MAP[k];
+  }
   if (catsEn) {
-    const first = catsEn.split(',')[0].trim().toLowerCase();
-    if (CATEGORIES_EN_FALLBACK[first]) return CATEGORIES_EN_FALLBACK[first];
+    const tokens = catsEn
+      .split(',')
+      .map((t) => t.trim().toLowerCase())
+      .filter(Boolean);
+    for (const t of tokens) {
+      if (SKIP_CATEGORIES_EN.has(t)) continue;
+      if (CATEGORIES_EN_MAP[t]) return CATEGORIES_EN_MAP[t];
+    }
   }
   return null;
 }
