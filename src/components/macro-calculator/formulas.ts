@@ -36,6 +36,34 @@ const DIET_FAT_PCT: Record<Diet, number> = {
   higher: 0.3,
 };
 
+// ---------------------------------------------------------------------------
+// Daily-activity burn estimates. These are NOT part of the calorie budget
+// (the existing callout says don't eat back the burn) but the user wants
+// to see how much each FIT50 piece costs so they can understand the
+// numbers they're eating against. Estimates based on MET for body-weight
+// resistance work and brisk walking.
+//
+// MET source: 2024 Compendium of Physical Activities.
+//   Body-weight resistance, moderate effort: MET 5.0
+//   Walking 3.0 mph, level surface:        MET 3.5
+//
+// kcal = MET * weight_kg * hours
+// ---------------------------------------------------------------------------
+const WORKOUT_MET = 5.0;          // body-weight resistance, moderate
+const WORKOUT_MINUTES = 10;        // one FIT50 line is ~10 min
+const STEPS_MET = 3.5;             // walking ~3 mph
+const STEPS_KM_PER_10K = 7;        // avg stride: 10k steps ≈ 7 km
+const STEPS_KM_PER_HOUR = 5;        // ~3 mph
+
+function workoutKcal(weightKg: number): number {
+  return WORKOUT_MET * weightKg * (WORKOUT_MINUTES / 60);
+}
+
+function steps10kKcal(weightKg: number): number {
+  const hours = (STEPS_KM_PER_10K / STEPS_KM_PER_HOUR);
+  return STEPS_MET * weightKg * hours;
+}
+
 function heightToCm(h: HeightValue): number | null {
   if (h.unit === 'cm') return h.value;
   const feet = h.feet ?? 0;
@@ -101,6 +129,8 @@ export function calculateMacros(input: {
     carbsG: roundTo(carbsG, 5),
     fatG: roundTo(fatG, 5),
     waterL: roundTo(waterL, 1),
+    workoutKcal: roundTo(workoutKcal(weightKg), 0),
+    steps10kKcal: roundTo(steps10kKcal(weightKg), 0),
   };
 }
 

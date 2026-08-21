@@ -32,8 +32,9 @@ export function useMacroTargets(): {
           .maybeSingle();
         if (!error && data) {
           const fromServer: MacroResults = {
-            // BMR / TDEE aren't stored on macro_profile; the FoodDatabase
-            // doesn't read them, so zero-fill is fine for the cached shape.
+            // BMR / TDEE / burn estimates aren't stored on
+            // macro_profile; the FoodDatabase doesn't read them, so
+            // zero-fill is fine for the cached shape.
             bmr: 0,
             tdee: 0,
             calories: Number(data.results_kcal),
@@ -41,6 +42,8 @@ export function useMacroTargets(): {
             carbsG: Number(data.results_carbs),
             fatG: Number(data.results_fat),
             waterL: Number(data.results_water),
+            workoutKcal: 0,
+            steps10kKcal: 0,
           };
           setStored(fromServer);
           saveJson(STORAGE_KEY, fromServer);

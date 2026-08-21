@@ -650,6 +650,11 @@ function MacroCalculatorInline() {
         carbsG: savedProfile.results_carbs,
         fatG: savedProfile.results_fat,
         waterL: savedProfile.results_water,
+        // Placeholders for the new fields. Recalculation fills them
+        // in; we don't recompute from the saved kcal/protein/etc
+        // because that would require re-loading the input state.
+        workoutKcal: 0,
+        steps10kKcal: 0,
       });
     }
     setHydrated(true);
