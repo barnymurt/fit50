@@ -1,16 +1,15 @@
 'use client';
 
-import { useState } from 'react';
-
 /**
- * Collapsible section wrapper for /account. Renders a transparent
- * header strip with the section name + a collapse toggle, then the
- * section content below. The section's own tone / background is
- * preserved (we don't paint over it).
+ * Collapsible section wrapper for /account.
  *
- * Collapse state is owned by useAccountLayout. The reorder ribbon
- * on the left edge only mounts when the hook passes move callbacks,
- * i.e. premium + edit mode.
+ * Collapse: always available. Header strip has a Collapse / Expand
+ * toggle that hides the body when folded. State lives in
+ * useAccountLayout.
+ *
+ * Reorder: premium-only. The header is a drag handle — press and
+ * drag up or down to swap the section with its neighbour. While
+ * dragging, a coral line appears at the drop position.
  */
 
 interface CollapsibleSectionProps {
@@ -18,12 +17,19 @@ interface CollapsibleSectionProps {
   title: string;
   collapsed: boolean;
   onToggle: () => void;
-  // Edit-mode controls. The hook only passes these when is_premium
-  // is true AND editing is on, so they never appear for free users.
-  onMoveUp?: () => void;
-  onMoveDown?: () => void;
-  canMoveUp?: boolean;
-  canMoveDown?: boolean;
+  // Premium-only. When set, the header becomes draggable.
+  draggable?: boolean;
+  // Whether this section is currently the one being dragged.
+  // Parent flips this based on dragstart / dragend.
+  isDragging?: boolean;
+  // Drop indicator position. Parent updates this on dragover.
+  isDragHover?: 'before' | 'after' | null;
+  // Callbacks the parent uses to track drag state.
+  onDragStart?: () => void;
+  onDragOver?: (side: 'before' | 'after') => void;
+  onDragLeave?: () => void;
+  onDrop?: (side: 'before' | 'after') => void;
+  onDragEnd?: () => void;
   children: React.ReactNode;
 }
 
@@ -32,56 +38,97 @@ export default function CollapsibleSection({
   title,
   collapsed,
   onToggle,
-  onMoveUp,
-  onMoveDown,
-  canMoveUp,
-  canMoveDown,
+  draggable = false,
+  isDragging = false,
+  isDragHover = null,
+  onDragStart,
+  onDragOver,
+  onDragLeave,
+  onDrop,
+  onDragEnd,
   children,
 }: CollapsibleSectionProps) {
-  const showEditControls = !!onMoveUp && !!onMoveDown;
+  const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
+    if (!draggable) return;
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', id);
+    e.dataTransfer.setData('application/x-fit50-section', id);
+    onDragStart?.();
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    if (!draggable) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const side = e.clientY < rect.top + rect.height / 2 ? 'before' : 'after';
+    onDragOver?.(side);
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    // Only fire leave when the pointer actually exits the section's
+    // bounding rect. The browser fires dragleave for child elements
+    // too; checking relatedTarget prevents flicker.
+    const next = e.relatedTarget as Node | null;
+    if (next && (e.currentTarget as HTMLElement).contains(next)) return;
+    onDragLeave?.();
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    if (!draggable) return;
+    e.preventDefault();
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const side = e.clientY < rect.top + rect.height / 2 ? 'before' : 'after';
+    onDrop?.(side);
+  };
+
+  const handleDragEnd = () => {
+    onDragEnd?.();
+  };
 
   return (
-    <div id={id} className="relative">
-      {/* Reorder ribbon — only mounted when editing. Sits outside
-          the section flow at the left so it doesn't shift content
-          when it appears. */}
-      {showEditControls && (
+    <div
+      id={id}
+      className={`relative ${isDragging ? 'opacity-40' : ''} transition-opacity`}
+      data-section-id={id}
+      data-section-draggable={draggable ? 'true' : undefined}
+    >
+      {/* Drop indicator — coral bar at top or bottom of this section. */}
+      {draggable && isDragHover === 'before' && (
         <div
-          className="absolute left-0 top-3 -translate-x-full hidden md:flex flex-col gap-1 pr-2 z-10"
-          aria-label={`Reorder ${title}`}
-        >
-          <button
-            type="button"
-            onClick={onMoveUp}
-            disabled={!canMoveUp}
-            aria-label={`Move ${title} up`}
-            title={`Move ${title} up`}
-            className="w-7 h-7 flex items-center justify-center border border-ink/30 bg-paper text-ink/70 hover:bg-cream/40 hover:text-ink disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-xs"
-          >
-            ▲
-          </button>
-          <button
-            type="button"
-            onClick={onMoveDown}
-            disabled={!canMoveDown}
-            aria-label={`Move ${title} down`}
-            title={`Move ${title} down`}
-            className="w-7 h-7 flex items-center justify-center border border-ink/30 bg-paper text-ink/70 hover:bg-cream/40 hover:text-ink disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-xs"
-          >
-            ▼
-          </button>
-        </div>
+          aria-hidden="true"
+          className="absolute top-0 left-0 right-0 h-0.5 bg-coral pointer-events-none z-20"
+        />
+      )}
+      {draggable && isDragHover === 'after' && (
+        <div
+          aria-hidden="true"
+          className="absolute bottom-0 left-0 right-0 h-0.5 bg-coral pointer-events-none z-20"
+        />
       )}
 
-      {/* Always-visible header strip — transparent so the section's
-          own background tone shows through. The bottom border is
-          conditional on whether content is showing. */}
+      {/* Header strip — drag handle when reorder is allowed. */}
       <div
+        draggable={draggable || undefined}
+        onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        onDragEnd={handleDragEnd}
         className={`flex items-center justify-between gap-3 px-5 md:px-10 py-3 ${
           collapsed ? '' : 'border-b border-ink/10'
-        }`}
+        } ${draggable ? 'cursor-grab active:cursor-grabbing select-none' : ''}`}
+        title={draggable ? `Drag to reorder ${title}` : undefined}
       >
         <div className="flex items-center gap-3 min-w-0">
+          {draggable && (
+            <span
+              aria-hidden="true"
+              className="font-body text-ink/40 text-base leading-none select-none"
+            >
+              ≡
+            </span>
+          )}
           <span
             aria-hidden="true"
             className={`font-body text-ink/50 transition-transform duration-200 ${
@@ -94,23 +141,31 @@ export default function CollapsibleSection({
             {title}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={onToggle}
-          aria-expanded={!collapsed}
-          aria-controls={`${id}-content`}
-          className="font-body text-caption uppercase tracking-widest text-ink/50 hover:text-coral transition-colors shrink-0"
-        >
-          {collapsed ? 'Expand' : 'Collapse'}
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          {draggable && (
+            <span className="font-body text-caption uppercase tracking-widest text-ink/30 hidden md:inline">
+              Drag to reorder
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggle();
+            }}
+            onMouseDown={(e) => e.stopPropagation()}
+            onDragStart={(e) => e.preventDefault()}
+            aria-expanded={!collapsed}
+            aria-controls={`${id}-content`}
+            className="font-body text-caption uppercase tracking-widest text-ink/50 hover:text-coral transition-colors"
+          >
+            {collapsed ? 'Expand' : 'Collapse'}
+          </button>
+        </div>
       </div>
 
-      {/* Collapsible body. Always in the DOM so the layout is stable
-          when collapsed/expanded; just hidden. */}
-      <div
-        id={`${id}-content`}
-        hidden={collapsed}
-      >
+      {/* Collapsible body. Always in the DOM so the layout is stable. */}
+      <div id={`${id}-content`} hidden={collapsed}>
         {children}
       </div>
     </div>

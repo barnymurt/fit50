@@ -56,6 +56,11 @@ export default function AccountPage() {
   const { totalUsed, hasProtectionForWeek, redeemProtection } = useStreakProtection();
   const layout = useAccountLayout();
   const [authMode, setAuthMode] = useState<'signin' | 'signup' | 'forgot'>('signin');
+  // Drag-and-drop state for premium reorder. The dragging id and
+  // the currently hovered section live here so all CollapsibleSection
+  // children can read them and render the right indicator.
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dropHover, setDropHover] = useState<{ id: string; side: 'before' | 'after' } | null>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -338,47 +343,6 @@ export default function AccountPage() {
         ]}
       />
 
-      {/* ============ Premium-only layout toolbar ============ */}
-      {profile?.is_premium && (
-        <div className="bg-cream/40 border-b border-ink/10">
-          <div className="max-w-7xl mx-auto px-6 md:px-10 py-3 flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-3 min-w-0">
-              <span className="font-body text-caption uppercase tracking-widest text-ink/50">
-                Layout
-              </span>
-              <span className="font-body text-caption text-ink/60 hidden sm:inline">
-                {layout.editing
-                  ? 'Reorder sections with the ▲▼ buttons on the left.'
-                  : 'Drag sections up or down to put the tools you use most where you want them.'}
-              </span>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              {layout.editing && (
-                <button
-                  type="button"
-                  onClick={layout.reset}
-                  className="font-body text-caption uppercase tracking-widest text-ink/50 hover:text-ink underline underline-offset-4"
-                >
-                  Reset order
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => layout.setEditing((v) => !v)}
-                aria-pressed={layout.editing}
-                className={`font-body text-caption uppercase tracking-widest px-4 py-2 border ${
-                  layout.editing
-                    ? 'bg-ink text-paper border-ink hover:bg-ink/85'
-                    : 'bg-paper text-ink border-ink/30 hover:bg-cream/40'
-                } transition-colors`}
-              >
-                {layout.editing ? 'Done' : 'Reorder sections'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* ============ Collapsible + reorderable middle sections ============ */}
       {layout.order
         .filter((id) => {
@@ -392,7 +356,7 @@ export default function AccountPage() {
         .map((id) => {
           const collapsed = layout.isCollapsed(id);
           const idx = layout.indexOf(id);
-          const showMoveControls = profile?.is_premium && layout.editing;
+          const isPremium = !!profile?.is_premium;
           const wrapper = (content: React.ReactNode) => (
             <CollapsibleSection
               key={id}
@@ -400,10 +364,49 @@ export default function AccountPage() {
               title={SECTION_TITLES[id] ?? id}
               collapsed={collapsed}
               onToggle={() => layout.toggleCollapse(id)}
-              onMoveUp={showMoveControls ? () => layout.move(id, 'up') : undefined}
-              onMoveDown={showMoveControls ? () => layout.move(id, 'down') : undefined}
-              canMoveUp={idx > 0}
-              canMoveDown={idx < layout.order.length - 1}
+              draggable={isPremium}
+              isDragging={draggingId === id}
+              isDragHover={
+                draggingId && draggingId !== id && dropHover?.id === id
+                  ? dropHover.side
+                  : null
+              }
+              onDragStart={isPremium ? () => setDraggingId(id) : undefined}
+              onDragEnd={
+                isPremium
+                  ? () => {
+                      setDraggingId(null);
+                      setDropHover(null);
+                    }
+                  : undefined
+              }
+              onDragOver={
+                isPremium
+                  ? (side) => setDropHover({ id, side })
+                  : undefined
+              }
+              onDragLeave={
+                isPremium
+                  ? () => {
+                      if (dropHover?.id === id) setDropHover(null);
+                    }
+                  : undefined
+              }
+              onDrop={
+                isPremium
+                  ? (side) => {
+                      if (draggingId === null || draggingId === id) return;
+                      const fromIdx = layout.order.indexOf(draggingId);
+                      const targetIdx = layout.order.indexOf(id);
+                      if (fromIdx < 0 || targetIdx < 0) return;
+                      let toIdx = side === 'before' ? targetIdx : targetIdx + 1;
+                      if (toIdx > fromIdx) toIdx -= 1;
+                      layout.moveSection(fromIdx, toIdx);
+                      setDraggingId(null);
+                      setDropHover(null);
+                    }
+                  : undefined
+              }
             >
               {content}
             </CollapsibleSection>

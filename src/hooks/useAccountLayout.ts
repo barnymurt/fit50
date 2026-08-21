@@ -6,17 +6,16 @@ import { useCallback, useEffect, useState } from 'react';
  * Layout state for /account. Two pieces:
  *
  *   1. `order` — the render order of the middle sections. Premium-only
- *      feature: the "Edit layout" toggle on the page lets the user
- *      drag the sections up/down. Persists to localStorage.
+ *      feature: the user drags a section header to reorder. Persists
+ *      to localStorage.
  *
  *   2. `collapsed` — per-section collapse state. Any signed-in user
  *      can collapse a section to keep the page manageable. Persists
  *      to localStorage alongside `order`.
  *
- * The hook hydrates from localStorage on mount so SSR and the first
- * client render agree (avoiding the visible flicker you'd get if
- * the user had previously collapsed e.g. Buddy and Buddy rendered
- * for one frame before folding).
+ * Reorder happens directly on the section header — click and drag up
+ * or down. There's no separate "edit mode" toggle because the drag
+ * affordance itself is the indicator that this is interactive.
  */
 
 const ORDER_KEY = 'fit50-account-section-order';
@@ -42,9 +41,6 @@ function loadOrder(): string[] {
     if (!raw) return DEFAULT_ORDER;
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return DEFAULT_ORDER;
-    // Keep any stored ids that are still in DEFAULT_ORDER, drop the
-    // rest, then append any default ids the stored list is missing
-    // (e.g. a new section we shipped after their last visit).
     const known = new Set(DEFAULT_ORDER);
     const merged: string[] = [];
     for (const id of parsed) {
@@ -93,7 +89,6 @@ function saveCollapsed(collapsed: Record<string, boolean>): void {
 export function useAccountLayout() {
   const [order, setOrder] = useState<string[]>(DEFAULT_ORDER);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
-  const [editing, setEditing] = useState(false);
 
   useEffect(() => {
     setOrder(loadOrder());
@@ -108,14 +103,16 @@ export function useAccountLayout() {
     saveCollapsed(collapsed);
   }, [collapsed]);
 
-  const move = useCallback((id: string, direction: 'up' | 'down') => {
+  // Move the section at `from` to position `to`. No-op for invalid
+  // indices so a stray drop event can't corrupt the order.
+  const moveSection = useCallback((from: number, to: number) => {
     setOrder((prev) => {
-      const idx = prev.indexOf(id);
-      if (idx === -1) return prev;
-      const swap = direction === 'up' ? idx - 1 : idx + 1;
-      if (swap < 0 || swap >= prev.length) return prev;
+      if (from < 0 || from >= prev.length) return prev;
+      if (to < 0 || to >= prev.length) return prev;
+      if (from === to) return prev;
       const next = [...prev];
-      [next[idx], next[swap]] = [next[swap], next[idx]];
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
       return next;
     });
   }, []);
@@ -148,14 +145,12 @@ export function useAccountLayout() {
 
   return {
     order,
-    editing,
-    setEditing,
-    move,
+    moveSection,
     reset,
-    indexOf,
     toggleCollapse,
     collapseAll,
     expandAll,
+    indexOf,
     isCollapsed,
   };
 }
