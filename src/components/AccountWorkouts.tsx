@@ -378,6 +378,15 @@ export default function AccountWorkouts() {
           )}
         </p>
 
+        {/* Download the workout PDF — free for signed-in users */}
+        <a
+          href="/downloads/fit50-bodyweight-four.pdf"
+          download="FIT50_Bodyweight_Four.pdf"
+          className="inline-flex items-center gap-2 mb-6 font-body text-caption uppercase tracking-widest text-coral hover:text-coral/85 transition-colors"
+        >
+          Download the Bodyweight Four →
+        </a>
+
         {/* Line selector */}
         <div className="grid grid-cols-4 gap-2 mb-6">
           {LINES.map((l) => {

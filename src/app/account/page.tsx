@@ -6,7 +6,6 @@ import Link from 'next/link';
 import Section from '@/components/Section';
 import Heading from '@/components/Heading';
 import Title from '@/components/Title';
-import Timer from '@/components/Timer';
 import { Board, TodoList, useBoardState } from '@/components/ProjectBoard';
 import CalculatorForm from '@/components/macro-calculator/CalculatorForm';
 import { useAuth } from '@/contexts/AuthContext';
@@ -22,6 +21,7 @@ import AccountNav from '@/components/AccountNav';
 import FoodDatabase from '@/components/food-database/FoodDatabase';
 import AccountWorkouts from '@/components/AccountWorkouts';
 import BuddyPurchasePicker from '@/components/BuddyPurchasePicker';
+import FeedYourBrain from '@/components/FeedYourBrain';
 import { useMacroTargets } from '@/hooks/useMacroTargets';
 import { saveJson } from '@/lib/storage';
 import { useMacroProfile, timeSince } from '@/hooks/useMacroProfile';
@@ -319,13 +319,13 @@ export default function AccountPage() {
       <AccountNav
         sections={[
           { id: 'tracker', label: 'Tracker' },
-          ...(profile?.is_premium ? [{ id: 'timer', label: 'Timer' }] : []),
+          { id: 'feed-your-brain', label: 'Feed Brain' },
           { id: 'workouts', label: 'Workouts' },
-          { id: 'hydration', label: 'Hydration' },
           { id: 'macro-calc', label: 'Macro calc' },
           { id: 'buddy-section', label: 'Buddy' },
           ...(profile?.is_premium
             ? [
+                { id: 'hydration', label: 'Hydration' },
                 { id: 'food-database', label: 'Foods' },
                 { id: 'todo', label: 'To-do' },
                 { id: 'board', label: 'Board' },
@@ -365,90 +365,11 @@ export default function AccountPage() {
         </div>
       </Section>
 
-      {/* ============ Timer (premium) — sits between buddy and workouts ============ */}
-      {profile?.is_premium && (
-        <Section
-          id="timer"
-          className="relative pt-12 md:pt-16 pb-section"
-          tone="paper"
-          contained
-        >
-          <div className="max-w-5xl mx-auto">
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mb-8">
-              <div className="md:col-span-5">
-                <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-3">
-                  The timer
-                </p>
-                <Heading>Feed Your Brain.</Heading>
-                <p className="font-body text-base text-ink/70 mt-3 mb-8">
-                  30 mins a day on a book or personal project. Start the timer, get to work.
-                </p>
-              </div>
-              <div className="md:col-span-6 md:col-start-7 flex items-end">
-                <p className="font-body text-base text-ink/70">
-                  Set any custom time down to seconds. Pre-set at 30 mins for the Feed Your Brain rule.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex justify-center">
-              <Timer
-                defaultMinutes={30}
-                purposes={[
-                  {
-                    key: 'project',
-                    durationMinutes: 30,
-                    buttonLabel: 'Project time',
-                    heading: 'Feed Your Brain.',
-                    lede: "Read a book or work on a project for 30 minutes. Walk out of the 50 days with something you can hold, open, or point at.",
-                  },
-                  {
-                    key: 'meditate',
-                    durationMinutes: 10,
-                    buttonLabel: 'Meditate',
-                    heading: 'Open Mind.',
-                    lede: "Sit, breathe, notice for 10 minutes. Start at 5 if 10 feels hard — the minutes get easier faster than you think.",
-                  },
-                  {
-                    key: 'workout',
-                    durationMinutes: 1,
-                    buttonLabel: 'Workout loop',
-                    heading: 'Move Your Body.',
-                    lede: "One minute of core or cardio between sets — motion creates emotion.",
-                  },
-                ]}
-              />
-            </div>
-          </div>
-        </Section>
-      )}
+      {/* ============ Feed Your Brain (free + premium) — sits between buddy and workouts ============ */}
+      <FeedYourBrain withTimer />
 
       {/* ============ Workouts (free + premium) ============ */}
       <AccountWorkouts />
-
-      {/* ============ Water counter ============ */}
-      <Section
-        id="hydration"
-        className="relative pt-0 md:pt-2 pb-section"
-        tone="paper"
-        contained
-      >
-        <div className="max-w-5xl mx-auto">
-          <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-3">
-            Hydration
-          </p>
-          <Heading>2.5 litres a day.</Heading>
-          <p className="font-body text-base text-ink/70 mt-3 mb-8 max-w-2xl">
-            Tap a preset or enter a custom amount. Saved to your account daily.
-          </p>
-          <PremiumGate
-            feature="water tracker"
-            description="Track every glass against your 2.5L target. Synced across devices, daily reset, per-day history. Hold yourself accountable without writing it on a Post-it."
-          >
-            <WaterCounter />
-          </PremiumGate>
-        </div>
-      </Section>
 
       {/* ============ Macro calculator (free + premium) ============ */}
       <Section
@@ -484,6 +405,25 @@ export default function AccountPage() {
       {/* ============ Premium tools ============ */}
       {profile?.is_premium ? (
         <>
+          {/* Hydration — premium only */}
+          <Section
+            id="hydration"
+            className="relative pt-12 md:pt-16 pb-section"
+            tone="paper"
+            contained
+          >
+            <div className="max-w-5xl mx-auto">
+              <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-3">
+                Hydration
+              </p>
+              <Heading>2.5 litres a day.</Heading>
+              <p className="font-body text-base text-ink/70 mt-3 mb-8 max-w-2xl">
+                Tap a preset or enter a custom amount. Saved to your account daily.
+              </p>
+              <WaterCounter />
+            </div>
+          </Section>
+
           {/* Food database */}
           <Section
             id="food-database"

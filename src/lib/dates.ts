@@ -62,6 +62,19 @@ export function dayKeyFromStart(
 }
 
 /**
+ * Given a `YYYY-MM-DD` date key, return the day BEFORE it as a
+ * `Date` set to local-tz midnight. Used by the rollover reconcile
+ * to figure out which day the stale pending taps belonged to.
+ */
+export function previousDateOf(dateKey: string): Date {
+  const [y, m, d] = dateKey.split('-').map(Number);
+  if (!y || !m || !d) return new Date();
+  const dt = new Date(y, m - 1, d);
+  dt.setDate(dt.getDate() - 1);
+  return dt;
+}
+
+/**
  * Format a `YYYY-MM-DD` as a short human label. Returns e.g. "Mon 18 Aug".
  */
 export function formatDateKeyShort(dateKey: string): string {

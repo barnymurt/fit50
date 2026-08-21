@@ -17,6 +17,16 @@ export const MACRO_DAY_KEY = 'fit50-macro-day-v2';
 export interface TrackerDataV2 {
   schemaVersion: 2;
   startDate: string | null;
+  /**
+   * `pendingTaps` belong to this local-tz date (`YYYY-MM-DD`). When the
+   * user boots the app on a later day without the rollover effect
+   * having fired (because the tab was closed at midnight), we compare
+   * this key against today and archive any non-today taps into
+   * `closedDays` for the day they actually belong to. Without this,
+   * yesterday's tiles appeared selected on the new day until the
+   * user toggled them off or the next rollover interval fired.
+   */
+  pendingTapsDateKey: string | null;
   pendingTaps: Record<string, boolean>;
   closedDays: Record<number, Record<string, boolean>>;
   streakUsedWeekKeys: string[];
@@ -40,13 +50,31 @@ export function loadJson<T>(key: string, fallback: T): T {
     const parsed = JSON.parse(raw);
     if (parsed && typeof parsed === 'object' && '__v' in parsed) {
       if (parsed.__v === SCHEMA_VERSION) {
-        return (parsed.data as T) ?? fallback;
+        const data = (parsed.data as T) ?? fallback;
+        return backfillTrackerV2MissingFields(data, fallback);
       }
     }
     return fallback;
   } catch {
     return fallback;
   }
+}
+
+/**
+ * Old v2 blobs (pre-pendingTapsDateKey) load with the new field
+ * missing. Default to null rather than guess the date — be
+ * conservative: leave pendingTaps as-is, the rollover reconcile in
+ * useTrackerState will pick up the correct day on first write.
+ */
+function backfillTrackerV2MissingFields<T>(data: T, fallback: T): T {
+  if (!data || typeof data !== 'object') return data;
+  const d = data as Record<string, unknown>;
+  if (typeof d.schemaVersion === 'number' && d.schemaVersion === 2) {
+    if (!('pendingTapsDateKey' in d)) {
+      return { ...d, pendingTapsDateKey: null } as T;
+    }
+  }
+  return data;
 }
 
 export function saveJson<T>(key: string, data: T): void {
@@ -123,6 +151,7 @@ export function migrateV1ToV2(now: Date = new Date()): TrackerDataV2 | null {
   return {
     schemaVersion: 2,
     startDate: start.toISOString(),
+    pendingTapsDateKey: null,
     pendingTaps: {},
     closedDays,
     streakUsedWeekKeys: [],
@@ -134,6 +163,7 @@ export function emptyTrackerV2(): TrackerDataV2 {
   return {
     schemaVersion: 2,
     startDate: null,
+    pendingTapsDateKey: null,
     pendingTaps: {},
     closedDays: {},
     streakUsedWeekKeys: [],
