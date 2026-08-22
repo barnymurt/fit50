@@ -12,7 +12,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTrackerState, TrackerDay } from '@/hooks/useTrackerState';
 import { useStreakProtection } from '@/hooks/useStreakProtection';
 import { usePremium } from '@/hooks/usePremium';
-import { dateKeyLocal, formatDateKeyShort, dayKeyFromStart } from '@/lib/dates';
+import { dateKeyLocal, formatDateKeyShort, dayKeyFromStart, CHALLENGE_DAYS } from '@/lib/dates';
+import Link from 'next/link';
 
 interface Habit {
   id: string;
@@ -151,6 +152,17 @@ function StartSplash({ hasSession, onStart }: StartSplashProps) {
           ? 'Your start date syncs to your account across devices.'
           : 'Starting as a guest. Your progress is saved on this device.'}
       </p>
+
+      <p className="font-body text-caption uppercase tracking-widest text-ink/50 mt-8">
+        Or prep your kitchen first
+      </p>
+      <a
+        href="/downloads/fit50-fridge-checklist.pdf"
+        download="FIT50_Fridge_Checklist.pdf"
+        className="inline-flex items-center gap-2 mt-2 font-body text-caption uppercase tracking-widest text-coral hover:text-coral/85 transition-colors"
+      >
+        Download the fridge checklist →
+      </a>
     </div>
   );
 }
@@ -338,6 +350,37 @@ export default function Tracker({ hideMarquee = false }: { hideMarquee?: boolean
       )}
 
       <div className="relative z-10 max-w-7xl mx-auto px-6 md:px-10">
+        {/* Certificate banner — only when challenge is finished and the user is signed in */}
+        {user && tracker.currentDay >= CHALLENGE_DAYS && (
+          <div className={`mb-8 border ${isPremium ? 'bg-coral/10 border-coral/40' : 'bg-ink text-paper border-ink'}`}>
+            <div className="p-5 md:p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="flex-1">
+                <p className={`font-body text-caption uppercase tracking-widest mb-1 ${isPremium ? 'text-coral' : 'text-coral'}`}>
+                  50 of 50 · {formatDateKeyShort(todayKey)}
+                </p>
+                <p className={`font-display text-h2 leading-tight ${isPremium ? 'text-ink' : 'text-paper'}`}>
+                  {isPremium ? 'Your certificate is ready.' : 'Claim your certificate.'}
+                </p>
+                <p className={`font-body text-sm mt-2 ${isPremium ? 'text-ink/70' : 'text-paper/80'}`}>
+                  {isPremium
+                    ? 'Every book, every workout, every zero-proof day — locked in.'
+                    : 'Premium finishers get a printable certificate with every stat. €5.99, yours forever.'}
+                </p>
+              </div>
+              <Link
+                href={isPremium ? '/certificate' : '/upgrade'}
+                className={`inline-flex items-center justify-center font-body text-caption uppercase tracking-widest px-6 py-3 shrink-0 transition-colors ${
+                  isPremium
+                    ? 'bg-coral text-paper hover:bg-coral/85'
+                    : 'bg-coral text-paper hover:bg-coral/85'
+                }`}
+              >
+                {isPremium ? 'View certificate →' : 'Unlock — €5.99 →'}
+              </Link>
+            </div>
+          </div>
+        )}
+
         {/* Header */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6 mb-8">
           <div className="md:col-span-8">

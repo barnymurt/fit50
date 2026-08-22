@@ -1,10 +1,10 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Food, FoodLogEntry, MacroTargets } from './types';
 import { useFoodLog } from '@/hooks/useFoodLog';
 import { useFoodFavorites } from '@/hooks/useFoodFavorites';
-import { useFoodData } from './search';
+import { fetchFoodsByIds } from './search';
 import DailyTotalsBar from './DailyTotalsBar';
 import FoodSearch from './FoodSearch';
 import FoodDetail from './FoodDetail';
@@ -14,20 +14,35 @@ interface Props {
 }
 
 export default function FoodDatabase({ targets }: Props) {
-  const { foods, loaded: dataLoaded } = useFoodData();
   const { todayEntries, todayTotals, addEntry, removeEntry, recent, loaded: logLoaded } =
     useFoodLog();
   const { favoriteIds, isFavorite, toggle } = useFoodFavorites();
   const [picked, setPicked] = useState<Food | null>(null);
+  const [recentFoods, setRecentFoods] = useState<Food[]>([]);
 
-  const recentFoods: Food[] = useMemo(() => {
-    if (!dataLoaded) return [];
-    const byId = new Map(foods.map((f) => [f.id, f]));
-    return recent
-      .map((e) => byId.get(e.food_id))
-      .filter((f): f is Food => !!f)
-      .slice(0, 6);
-  }, [recent, foods, dataLoaded]);
+  // Resolve "recently logged" ids → Food rows via a targeted lookup.
+  // We never load the full ~135K corpus into the browser.
+  useEffect(() => {
+    const ids = Array.from(new Set(recent.map((e) => e.food_id))).slice(0, 6);
+    if (ids.length === 0) {
+      setRecentFoods([]);
+      return;
+    }
+    let cancelled = false;
+    fetchFoodsByIds(ids).then((list) => {
+      if (cancelled) return;
+      // Preserve the order of `recent` so the most recent logged food
+      // appears first.
+      const byId = new Map(list.map((f) => [f.id, f]));
+      const ordered = ids
+        .map((id) => byId.get(id))
+        .filter((f): f is Food => !!f);
+      setRecentFoods(ordered);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [recent]);
 
   const isOverBudget =
     !!targets &&

@@ -249,19 +249,25 @@ async function saveWorkoutRemote(
 }
 
 function TickBox({ filled, size = 28 }: { filled: boolean; size?: number }) {
+  // Outlined box. Empty = grey outline + faint grey tick (hints the
+  // slot is tappable). Filled = teal outline + teal fill + paper
+  // tick. Tap toggles the underlying sets count.
+  const teal = '#4A9B9B';
+  const stroke = filled ? teal : 'rgba(26,26,26,0.30)';
+  const fill = filled ? teal : 'transparent';
+  const tickColor = filled ? '#FAF6EE' : 'rgba(26,26,26,0.25)';
   return (
     <div
       style={{
         width: size,
         height: size,
-        border: '2px solid',
-        borderColor: filled ? '#10B981' : 'currentColor',
-        backgroundColor: filled ? '#10B981' : 'transparent',
+        border: `2px solid ${stroke}`,
+        backgroundColor: fill,
         borderRadius: '4px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        color: filled ? '#ffffff' : 'transparent',
+        transition: 'background-color 150ms, border-color 150ms',
       }}
     >
       <svg
@@ -269,7 +275,7 @@ function TickBox({ filled, size = 28 }: { filled: boolean; size?: number }) {
         height={Math.round(size * 0.6)}
         viewBox="0 0 24 24"
         fill="none"
-        stroke="currentColor"
+        stroke={tickColor}
         strokeWidth="3"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -320,13 +326,68 @@ export default function AccountWorkouts() {
     }
   }, [date, line, sets, user, supabase]);
 
+  // Midnight rollover. Without this, a user who leaves the tab open
+  // across midnight keeps seeing yesterday's ticked boxes because
+  // `date` was set once on mount. We check every 30s + on tab focus
+  // / visibility change. On a date change we save the current
+  // state under the OLD date (so yesterday's workout isn't lost in
+  // the void) and reset the local state for the new day. The
+  // existing save effect above will then upsert the new day's
+  // empty sets to the server.
+  useEffect(() => {
+    if (!date) return;
+    const checkRollover = async () => {
+      const k = todayKey();
+      if (k === date) return;
+      // Save current state under the OLD date before we move on, so
+      // yesterday's progress is preserved on the server / in
+      // localStorage.
+      if (user && supabase) {
+        await saveWorkoutRemote(supabase, user.id, date, { line, sets });
+      } else {
+        saveWorkoutLocal(date, { line, sets });
+      }
+      setDate(k);
+      // Reset local state. The mount-effect will then load
+      // whatever's in workout_log for the new date (almost always
+      // empty for a fresh day, but a previously-saved session
+      // would survive).
+      setLine('A');
+      setSets({});
+      setActiveIdx(null);
+    };
+    const interval = setInterval(checkRollover, 30_000);
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') checkRollover();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('focus', onVisible);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('focus', onVisible);
+    };
+  }, [date, line, sets, user, supabase]);
+
   const exercises = workoutLines[line].exercises;
   const totalCompleted = exercises.reduce((sum, ex) => sum + (sets[ex.name] || 0), 0);
   const allDone = exercises.every((ex) => (sets[ex.name] || 0) >= TOTAL_SETS);
 
-  const cycleSet = (name: string) => {
+  const cycleSet = (name: string, index?: number) => {
     setSets((prev) => {
       const current = prev[name] || 0;
+      // Tap on a specific set: filled if index < current (untick down
+      // to this position), empty if index >= current (tick up to
+      // here). Sets must be ticked in order, so a tap at index 2
+      // with current=0 marks sets 0,1,2 as ticked (count=3).
+      if (typeof index === 'number') {
+        if (index < current) {
+          return { ...prev, [name]: index };
+        }
+        return { ...prev, [name]: index + 1 };
+      }
+      // Tap on the exercise title (no index): cycle 0 → 1 → … →
+      // TOTAL_SETS → 0. Kept for the big "Log set" button.
       const next = current >= TOTAL_SETS ? 0 : current + 1;
       return { ...prev, [name]: next };
     });
@@ -378,6 +439,15 @@ export default function AccountWorkouts() {
           )}
         </p>
 
+        {/* Download the workout PDF — free for signed-in users */}
+        <a
+          href="/downloads/fit50-bodyweight-four.pdf"
+          download="FIT50_Bodyweight_Four.pdf"
+          className="inline-flex items-center gap-2 mb-6 font-body text-caption uppercase tracking-widest text-coral hover:text-coral/85 transition-colors"
+        >
+          Download the Bodyweight Four →
+        </a>
+
         {/* Line selector */}
         <div className="grid grid-cols-4 gap-2 mb-6">
           {LINES.map((l) => {
@@ -418,37 +488,41 @@ export default function AccountWorkouts() {
                       : 'border-ink/15 hover:bg-cream/30'
                   }`}
                 >
-                  <div className="flex items-center gap-3">
+                  {/* Desktop: single row with ticks inline next to the
+                      name. Mobile: stacked, ticks on a second row. */}
+                  <div className="flex items-center gap-3 flex-wrap md:flex-nowrap">
                     <span className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums w-6 shrink-0">
                       {ex.slot}
                     </span>
                     <button
                       onClick={() => setActiveIdx(i)}
-                      className="font-body text-base text-ink flex-1 truncate text-left hover:text-coral transition-colors"
+                      className="font-body text-base text-ink md:flex-1 md:min-w-0 truncate text-left hover:text-coral transition-colors"
                     >
                       {ex.name}
                     </button>
                     <span className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums shrink-0 hidden sm:inline">
                       {ex.reps}
                     </span>
-                  </div>
-                  <div className="flex items-center justify-between mt-3 sm:mt-2">
-                    <span className="flex gap-1 shrink-0">
+                    <span className="flex gap-1 shrink-0 order-last md:order-none md:ml-2">
                       {Array.from({ length: TOTAL_SETS }).map((_, j) => (
                         <button
                           key={j}
                           onClick={(e) => {
                             e.stopPropagation();
-                            cycleSet(ex.name);
+                            cycleSet(ex.name, j);
                           }}
-                          aria-label={`Set ${j + 1} ${j < done ? 'completed, tap to undo' : 'tap to log'}`}
+                          aria-label={
+                            j < done
+                              ? `Set ${j + 1} ticked — tap to untick`
+                              : `Set ${j + 1} empty — tap to tick`
+                          }
                           className="min-w-[36px] min-h-[36px] flex items-center justify-center"
                         >
                           <TickBox filled={j < done} size={26} />
                         </button>
                       ))}
                     </span>
-                    <span className={`font-body text-caption uppercase tracking-widest tabular-nums shrink-0 w-10 text-right ${complete ? 'text-teal' : 'text-ink/40'}`}>
+                    <span className={`font-body text-caption uppercase tracking-widest tabular-nums shrink-0 ml-auto md:ml-0 ${complete ? 'text-teal' : 'text-ink/40'}`}>
                       {done}/{TOTAL_SETS}
                     </span>
                   </div>

@@ -41,6 +41,12 @@ export interface MacroResults {
   carbsG: number;
   fatG: number;
   waterL: number;
+  // Estimates of kcal burned by the daily FIT50 routine. NOT part of
+  // the calorie budget — these exist so the user can see how much
+  // activity they're eating against. The existing callout says
+  // "don't eat back the burn".
+  workoutKcal: number;
+  steps10kKcal: number;
 }
 
 export const DEFAULT_STATE: CalculatorState = {

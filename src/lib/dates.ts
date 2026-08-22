@@ -62,6 +62,18 @@ export function dayKeyFromStart(
 }
 
 /**
+ * Parse a `YYYY-MM-DD` date key into a `Date` set to local-tz
+ * midnight. Used to look up the day number for a given calendar
+ * date without the day-offset bugs that come from passing the
+ * string directly to `new Date()` (which parses as UTC).
+ */
+export function parseDateKey(dateKey: string): Date {
+  const [y, m, d] = dateKey.split('-').map(Number);
+  if (!y || !m || !d) return new Date();
+  return new Date(y, m - 1, d);
+}
+
+/**
  * Format a `YYYY-MM-DD` as a short human label. Returns e.g. "Mon 18 Aug".
  */
 export function formatDateKeyShort(dateKey: string): string {

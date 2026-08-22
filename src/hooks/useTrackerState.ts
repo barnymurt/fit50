@@ -8,6 +8,7 @@ import {
   dateKeyLocal,
   dayIndexFromStart,
   dayKeyFromStart,
+  parseDateKey,
 } from '@/lib/dates';
 import {
   TRACKER_KEY,
@@ -50,6 +51,47 @@ function weekKeyForDate(date: Date): string {
 }
 
 /**
+ * Reconcile any pending taps whose `pendingTapsDateKey` doesn't
+ * match `todayKey`. Those taps belong to an earlier day (typically
+ * yesterday) — archive them to `closedDays[dayNumber]` for that day
+ * and clear them. Returns the next TrackerDataV2 and the day number
+ * the stale taps were archived under (or null if nothing stale).
+ *
+ * This is what fixes the bug where reopening the app on a new day
+ * showed yesterday's tiles as still selected.
+ */
+function reconcileStalePendingTaps(
+  data: TrackerDataV2,
+  startDate: string,
+  todayKey: string
+): { next: TrackerDataV2; archivedDayNumber: number | null } {
+  if (!data.pendingTapsDateKey) return { next: data, archivedDayNumber: null };
+  if (data.pendingTapsDateKey === todayKey) return { next: data, archivedDayNumber: null };
+  if (Object.keys(data.pendingTaps).length === 0) {
+    return {
+      next: { ...data, pendingTapsDateKey: null, pendingTaps: {} },
+      archivedDayNumber: null,
+    };
+  }
+
+  const staleDate = data.pendingTapsDateKey;
+  const dayNumber = dayIndexFromStart(startDate, parseDateKey(staleDate));
+
+  const existing = data.closedDays[dayNumber] || {};
+  const archived: Record<string, boolean> = { ...existing, ...data.pendingTaps };
+
+  return {
+    next: {
+      ...data,
+      pendingTapsDateKey: null,
+      pendingTaps: {},
+      closedDays: { ...data.closedDays, [dayNumber]: archived },
+    },
+    archivedDayNumber: dayNumber,
+  };
+}
+
+/**
  * Single source of truth for the Tracker. Replaces the old
  * `useSyncTracker`. Day number is derived from `startDate` every 60s,
  * not stored as state, so it cannot drift.
@@ -57,6 +99,17 @@ function weekKeyForDate(date: Date): string {
  * Anon: localStorage only (`fit50-tracker-v2`). Auth: Supabase
  * `daily_state` (live taps) + `daily_totals` (archive) + `profiles.
  * challenge_started_at` (the anchor date).
+ *
+ * Two things this hook gets right that earlier ones didn't:
+ *
+ * 1. `pendingTapsDateKey` is stamped on every write so a stale
+ *    pendingTaps blob (left over from a tab that was closed at
+ *    midnight) gets archived to `closedDays` for the day it
+ *    belonged to on the next boot, not shown as today's selections.
+ *
+ * 2. For auth users, `closedDays` is hydrated from Supabase
+ *    `daily_totals` so a brand-new device sees the full history,
+ *    not just whatever localStorage happened to cache.
  */
 export function useTrackerState() {
   const { user, loading: authLoading } = useAuth();
@@ -110,9 +163,28 @@ export function useTrackerState() {
       }));
       if (rows.length === 0) return;
       try {
-        await (supabase.from('daily_totals') as any).insert(rows);
+        // Upsert so re-archiving the same day (e.g. user backfilled
+        // after the rollover fired) doesn't 409.
+        await (supabase.from('daily_totals') as any).upsert(rows, {
+          onConflict: 'user_id,day_number,habit_id',
+        });
       } catch (err) {
-        console.error('daily_totals insert failed:', err);
+        console.error('daily_totals upsert failed:', err);
+      }
+    },
+    [user, supabase]
+  );
+
+  const persistAuthDeleteDailyState = useCallback(
+    async (dateKey: string) => {
+      if (!user || !supabase) return;
+      try {
+        await (supabase.from('daily_state') as any)
+          .delete()
+          .eq('user_id', user.id)
+          .eq('date_key', dateKey);
+      } catch (err) {
+        console.error('daily_state cleanup failed:', err);
       }
     },
     [user, supabase]
@@ -125,25 +197,46 @@ export function useTrackerState() {
     let cancelled = false;
 
     const boot = async () => {
+      const todayKey = localDateKey();
+
       if (!user) {
-        const loaded = loadTrackerV2(new Date());
-        const next = loaded ?? emptyTrackerV2();
+        const loadedAnon = loadTrackerV2(new Date());
+        const base = loadedAnon ?? emptyTrackerV2();
+
+        // Reconcile: if pendingTapsDateKey is stale, archive before
+        // showing any UI.
+        let next: TrackerDataV2 = base;
+        if (base.startDate && base.pendingTapsDateKey && base.pendingTapsDateKey !== todayKey) {
+          const reconciled = reconcileStalePendingTaps(base, base.startDate, todayKey);
+          next = reconciled.next;
+          saveTrackerV2(next);
+        }
+
         if (cancelled) return;
         setData(next);
         setStartDate(next.startDate);
-        todayKeyRef.current = localDateKey();
+        todayKeyRef.current = todayKey;
         setLoaded(true);
         return;
       }
 
+      // ---- Auth: merge local + server ----
+      // Server is the source of truth for which account this is.
+      // localStorage is a fast-render cache for THIS account only.
+      // If the server says the user hasn't started a challenge, we
+      // ignore any orphan localStorage data (could be from a
+      // previous account on the same browser, or a guest session
+      // before signup).
       const localLoaded = loadTrackerV2(new Date());
-      const localStart = localLoaded?.startDate ?? null;
       const localPending = localLoaded?.pendingTaps ?? {};
-      const localClosed = localLoaded?.closedDays ?? {};
       const localStreakKeys = localLoaded?.streakUsedWeekKeys ?? [];
+      const localPendingDateKey = localLoaded?.pendingTapsDateKey ?? null;
+      const localWater = localLoaded?.waterByDate ?? {};
 
       let serverStart: string | null = null;
       let serverTaps: Record<string, boolean> = {};
+      let serverClosed: Record<number, Record<string, boolean>> = {};
+      const staleStateDatesToFlush: string[] = [];
       if (supabase) {
         try {
           const { data: profile } = await supabase
@@ -156,57 +249,179 @@ export function useTrackerState() {
           console.error('profile fetch failed:', err);
         }
 
-        const todayKey = localDateKey();
+        // Fetch ALL daily_state rows for this user. Today's rows
+        // become serverTaps; rows for past dates are stale leftovers
+        // from rollovers that never fired (tab closed at midnight),
+        // and we recover them into closedDays + daily_totals below.
         try {
           const { data: stateRows, error } = await supabase
             .from('daily_state')
-            .select('habit_id, tapped')
-            .eq('user_id', user.id)
-            .eq('date_key', todayKey);
+            .select('date_key, habit_id, tapped')
+            .eq('user_id', user.id);
           if (error) {
             console.error('daily_state fetch failed:', error);
           } else {
-            (stateRows || []).forEach((r: { habit_id: string; tapped: boolean }) => {
-              serverTaps[r.habit_id] = r.tapped;
-            });
+            for (const r of stateRows || []) {
+              if (r.date_key === todayKey) {
+                serverTaps[r.habit_id] = r.tapped;
+              } else if (r.date_key < todayKey) {
+                staleStateDatesToFlush.push(r.date_key);
+              }
+            }
           }
         } catch (err) {
           console.error('daily_state fetch threw:', err);
         }
+
+        // Hydrate the full day history from daily_totals. Without this,
+        // an auth user signing in on a fresh device sees 0 completed
+        // days and a 0-day streak even though their history is right
+        // there in Supabase.
+        try {
+          const { data: totalRows, error } = await supabase
+            .from('daily_totals')
+            .select('day_number, habit_id, completed')
+            .eq('user_id', user.id);
+          if (error) {
+            console.error('daily_totals fetch failed:', error);
+          } else {
+            (totalRows || []).forEach((r: { day_number: number; habit_id: string; completed: boolean }) => {
+              if (!serverClosed[r.day_number]) serverClosed[r.day_number] = {};
+              serverClosed[r.day_number][r.habit_id] = r.completed;
+            });
+          }
+        } catch (err) {
+          console.error('daily_totals fetch threw:', err);
+        }
       }
 
-      const start = serverStart ?? localStart ?? null;
-      const mergedPending = { ...localPending, ...serverTaps };
-      const mergedClosed = localClosed;
+      const start = serverStart ?? null;
 
-      if (cancelled) return;
-      setData({
+      // Recover stale daily_state rows: attribute them to the day
+      // number they belong to, merge into closedDays, upsert into
+      // daily_totals, then delete the stale rows so the next boot
+      // doesn't double-count.
+      const mergedClosed: Record<number, Record<string, boolean>> = { ...serverClosed };
+      if (start && supabase && staleStateDatesToFlush.length > 0) {
+        try {
+          const { data: stateRows } = await supabase
+            .from('daily_state')
+            .select('date_key, habit_id, tapped')
+            .eq('user_id', user.id)
+            .in('date_key', staleStateDatesToFlush);
+          const rowsByDate: Record<string, Array<{ habit_id: string; tapped: boolean }>> = {};
+          for (const r of stateRows || []) {
+            if (!rowsByDate[r.date_key]) rowsByDate[r.date_key] = [];
+            rowsByDate[r.date_key].push({ habit_id: r.habit_id, tapped: r.tapped });
+          }
+          const dailyTotalsRows: Array<{
+            user_id: string;
+            day_number: number;
+            habit_id: string;
+            completed: boolean;
+            archived_at: string;
+          }> = [];
+          const archivedAt = new Date().toISOString();
+          for (const [dateKey, rows] of Object.entries(rowsByDate)) {
+            const dayNumber = dayIndexFromStart(start, parseDateKey(dateKey));
+            if (dayNumber < 1 || dayNumber > 50) continue;
+            mergedClosed[dayNumber] = { ...(mergedClosed[dayNumber] || {}) };
+            for (const r of rows) {
+              mergedClosed[dayNumber][r.habit_id] = r.tapped;
+              dailyTotalsRows.push({
+                user_id: user.id,
+                day_number: dayNumber,
+                habit_id: r.habit_id,
+                completed: r.tapped,
+                archived_at: archivedAt,
+              });
+            }
+          }
+          if (dailyTotalsRows.length > 0) {
+            await (supabase.from('daily_totals') as any).upsert(dailyTotalsRows, {
+              onConflict: 'user_id,day_number,habit_id',
+            });
+          }
+          await (supabase.from('daily_state') as any)
+            .delete()
+            .eq('user_id', user.id)
+            .in('date_key', staleStateDatesToFlush);
+        } catch (err) {
+          console.error('stale daily_state recovery failed:', err);
+        }
+      }
+
+      // If the server says this user hasn't started a challenge, ignore
+      // orphan localStorage data (from a previous account or guest
+      // session on the same browser). Everything below is gated on
+      // `start !== null` so a fresh account always renders the Start
+      // splash with no leftover tiles.
+      const hasStart = start !== null;
+
+      // For today specifically, merge any localStorage taps that
+      // happened to be cached but not yet uploaded (rare offline case).
+      const localCurrentDay =
+        hasStart ? dayIndexFromStart(start, new Date()) : null;
+      if (localCurrentDay !== null && localPendingDateKey === todayKey && Object.keys(localPending).length > 0) {
+        mergedClosed[localCurrentDay] = {
+          ...(mergedClosed[localCurrentDay] || {}),
+          ...localPending,
+        };
+      }
+
+      // For today's UI taps, prefer server (today's daily_state). Fall
+      // back to localPending only if it carries the matching date key
+      // AND we have a challenge in progress.
+      const mergedPending: Record<string, boolean> =
+        hasStart && localPendingDateKey === todayKey
+          ? { ...localPending, ...serverTaps }
+          : { ...serverTaps };
+
+      // If localStorage had pending taps for a stale date that the
+      // server didn't flush yet (tab closed at midnight), archive them
+      // now: flush to daily_totals, delete daily_state, merge into
+      // closedDays, clear localStorage. Only relevant for users who
+      // are actually in a challenge.
+      if (hasStart && localPendingDateKey && localPendingDateKey !== todayKey && Object.keys(localPending).length > 0) {
+        const staleDayNumber = dayIndexFromStart(start, parseDateKey(localPendingDateKey));
+        try {
+          await persistAuthInsertDailyTotals(staleDayNumber, localPending, new Date().toISOString());
+        } catch (err) {
+          console.error('stale daily_totals flush failed:', err);
+        }
+        try {
+          await persistAuthDeleteDailyState(localPendingDateKey);
+        } catch (err) {
+          console.error('stale daily_state delete failed:', err);
+        }
+        mergedClosed[staleDayNumber] = {
+          ...(mergedClosed[staleDayNumber] || {}),
+          ...localPending,
+        };
+      }
+
+      const hydrated: TrackerDataV2 = {
         schemaVersion: 2,
         startDate: start,
+        pendingTapsDateKey: todayKey,
         pendingTaps: mergedPending,
         closedDays: mergedClosed,
         streakUsedWeekKeys: localStreakKeys,
-        waterByDate: localLoaded?.waterByDate ?? {},
-      });
-      setStartDate(start);
-      todayKeyRef.current = localDateKey();
-
-      const authed = {
-        schemaVersion: 2 as const,
-        startDate: start,
-        pendingTaps: mergedPending,
-        closedDays: mergedClosed,
-        streakUsedWeekKeys: localStreakKeys,
-        waterByDate: localLoaded?.waterByDate ?? {},
+        waterByDate: localWater,
       };
-      saveTrackerV2(authed);
+
+      if (cancelled) return;
+      setData(hydrated);
+      setStartDate(start);
+      todayKeyRef.current = todayKey;
+      saveTrackerV2(hydrated);
 
       if (start && supabase) {
         try {
           await (supabase.from('daily_state') as any).upsert(
             Object.entries(mergedPending).map(([habit_id, tapped]) => ({
               user_id: user.id,
-              date_key: localDateKey(),
+              date_key: todayKey,
               habit_id,
               tapped,
             })),
@@ -223,7 +438,7 @@ export function useTrackerState() {
     return () => {
       cancelled = true;
     };
-  }, [user, authLoading, supabase]);
+  }, [user, authLoading, supabase, persistAuthInsertDailyTotals, persistAuthDeleteDailyState]);
 
   // ---------- Day-rollover ticker ----------
   // Every 60s, re-derive the current date. If it changed, flush
@@ -240,16 +455,20 @@ export function useTrackerState() {
       todayKeyRef.current = todayKey;
 
       const yesterdayNumber =
-        dayIndexFromStart(startDate, previousDateOf(previousKey));
+        dayIndexFromStart(startDate, parseDateKey(previousKey));
       const yesterdayTaps = data.pendingTaps;
 
       setData((prev) => {
         const next: TrackerDataV2 = {
           ...prev,
+          pendingTapsDateKey: todayKey,
           pendingTaps: {},
           closedDays: {
             ...prev.closedDays,
-            [yesterdayNumber]: yesterdayTaps,
+            [yesterdayNumber]: {
+              ...(prev.closedDays[yesterdayNumber] || {}),
+              ...yesterdayTaps,
+            },
           },
         };
         persistAnon(next);
@@ -278,6 +497,10 @@ export function useTrackerState() {
     // so a user who leaves the tracker open overnight can return
     // to yesterday's tasks still selected. The visibilitychange
     // listener catches that case immediately.
+    //
+    // We also run checkRollover once on mount so any stale state
+    // that survived the boot path is caught without waiting 30s.
+    checkRollover();
     const interval = setInterval(checkRollover, 30_000);
     const onVisibility = () => {
       if (document.visibilityState === 'visible') {
@@ -331,7 +554,7 @@ export function useTrackerState() {
       else status = 'past-incomplete';
       out.push({
         dayNumber: i,
-        dateKey: localDateKey() === todayKeyRef.current ? '' : '',
+        dateKey: dayKeyFromStart(startDate, i),
         taps,
         completedCount,
         status,
@@ -345,7 +568,13 @@ export function useTrackerState() {
   const updateStartDate = useCallback(
     (next: string | null) => {
       setData((prev) => {
-        const updated: TrackerDataV2 = { ...prev, startDate: next };
+        const updated: TrackerDataV2 = {
+          ...prev,
+          startDate: next,
+          pendingTapsDateKey: next ? localDateKey() : null,
+          pendingTaps: {},
+          closedDays: {},
+        };
         persistAnon(updated);
         return updated;
       });
@@ -374,7 +603,11 @@ export function useTrackerState() {
         } else {
           nextPending[habitId] = true;
         }
-        const updated: TrackerDataV2 = { ...prev, pendingTaps: nextPending };
+        const updated: TrackerDataV2 = {
+          ...prev,
+          pendingTapsDateKey: todayKeyValue,
+          pendingTaps: nextPending,
+        };
         persistAnon(updated);
         if (user && supabase) {
           (supabase.from('daily_state') as any)
@@ -435,6 +668,22 @@ export function useTrackerState() {
             .then(({ error }: { error: unknown }) => {
               if (error) console.error('daily_state backfill failed:', error);
             });
+          // Mirror into daily_totals so the certificate / chip strip
+          // counts backfills consistently.
+          (supabase.from('daily_totals') as any)
+            .upsert(
+              {
+                user_id: user.id,
+                day_number: dayNumber,
+                habit_id: habitId,
+                completed: !isOn,
+                archived_at: new Date().toISOString(),
+              },
+              { onConflict: 'user_id,day_number,habit_id' }
+            )
+            .then(({ error }: { error: unknown }) => {
+              if (error) console.error('daily_totals backfill failed:', error);
+            });
         }
         return updated;
       });
@@ -456,11 +705,11 @@ export function useTrackerState() {
     });
     if (supabase) {
       try {
-        await (supabase.from('streak_protections') as any).insert({
+        await (supabase.from('streak_protections') as any).upsert({
           user_id: user.id,
           week_start_date: weekKey,
           redeemed_day: currentDay,
-        });
+        }, { onConflict: 'user_id,week_start_date' });
       } catch (err) {
         console.error('streak_protections insert failed:', err);
       }
@@ -484,6 +733,7 @@ export function useTrackerState() {
         'water_log',
         'streak_protections',
         'food_log',
+        'book_log',
       ];
       const results = await Promise.all(
         tables.map(async (table) => {
@@ -529,14 +779,6 @@ export function useTrackerState() {
     useStreakProtectionForWeek,
     reset,
   };
-}
-
-function previousDateOf(dateKey: string): Date {
-  const [y, m, d] = dateKey.split('-').map(Number);
-  if (!y || !m || !d) return new Date();
-  const dt = new Date(y, m - 1, d);
-  dt.setDate(dt.getDate() - 1);
-  return dt;
 }
 
 export { TRACKER_KEY, TRACKER_KEY_V1 };

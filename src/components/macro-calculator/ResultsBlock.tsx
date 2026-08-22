@@ -60,6 +60,9 @@ export default function ResultsBlock({ results }: ResultsBlockProps) {
           {KCAL_UNIT}
         </span>
       </p>
+      <p className="font-body text-caption uppercase tracking-widest text-ink/50 -mt-1">
+        {COPY.bakedIn}
+      </p>
 
       <div className="mt-8">
         <MacroRow
@@ -98,9 +101,28 @@ export default function ResultsBlock({ results }: ResultsBlockProps) {
         </p>
       )}
 
-      <p className="font-display text-xl text-ink leading-snug mt-8 max-w-md">
-        {COPY.callout}
-      </p>
+      {/* Daily-activity burn — one number, no per-line breakdown.
+          This is the same burn that's baked into the calorie total
+          above, shown so the user can see what their daily routine
+          costs. Don't add it back to the budget. */}
+      <div className="mt-10 border-t border-ink/10 pt-5">
+        <p className="font-body text-caption uppercase tracking-widest text-ink/60 mb-3">
+          Daily activity burn (estimate)
+        </p>
+        <p className="font-display text-3xl text-ink leading-none tabular-nums">
+          ~{Math.round(results.workoutKcal + results.steps10kKcal).toLocaleString()}
+          <span className="text-base text-ink/60 font-body font-normal ml-2 align-middle">
+            {KCAL_UNIT}
+          </span>
+        </p>
+        <p className="font-body text-base text-ink mt-3 font-bold">
+          Already baked into the total above.
+        </p>
+        <p className="font-body text-sm text-ink mt-1 font-bold">
+          {COPY.callout}
+        </p>
+      </div>
     </div>
   );
 }
+
