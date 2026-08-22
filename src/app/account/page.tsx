@@ -803,19 +803,19 @@ function MacroCalculatorInline() {
               calorie total above; this just makes the cost of
               their routine visible. Don't eat it back. */}
           <div className="border-t border-ink/10 pt-5 mt-2">
-            <p className="font-body text-caption uppercase tracking-widest text-paper/60 mb-3">
+            <p className="font-body text-caption uppercase tracking-widest text-ink/70 mb-3">
               Daily activity burn (estimate)
             </p>
-            <p className="font-display text-3xl text-paper leading-none tabular-nums">
+            <p className="font-display text-3xl text-ink leading-none tabular-nums">
               ~{Math.round(results.workoutKcal + results.steps10kKcal).toLocaleString()}
-              <span className="text-base text-paper/60 font-body font-normal ml-2 align-middle">
+              <span className="text-base text-ink/70 font-body font-normal ml-2 align-middle">
                 kcal
               </span>
             </p>
-            <p className="font-body text-base text-paper font-bold mt-3">
+            <p className="font-body text-base text-ink font-bold mt-3">
               Already baked into the total above.
             </p>
-            <p className="font-body text-sm text-paper font-bold mt-1">
+            <p className="font-body text-sm text-ink font-bold mt-1">
               Don&apos;t eat back the burn.
             </p>
           </div>
