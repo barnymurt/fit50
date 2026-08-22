@@ -812,10 +812,10 @@ function MacroCalculatorInline() {
                 kcal
               </span>
             </p>
-            <p className="font-body text-base text-paper font-medium mt-3">
+            <p className="font-body text-base text-paper font-bold mt-3">
               Already baked into the total above.
             </p>
-            <p className="font-body text-sm text-paper/80 mt-1">
+            <p className="font-body text-sm text-paper font-bold mt-1">
               Don&apos;t eat back the burn.
             </p>
           </div>

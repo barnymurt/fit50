@@ -115,10 +115,10 @@ export default function ResultsBlock({ results }: ResultsBlockProps) {
             {KCAL_UNIT}
           </span>
         </p>
-        <p className="font-body text-base text-ink mt-3 font-medium">
+        <p className="font-body text-base text-ink mt-3 font-bold">
           Already baked into the total above.
         </p>
-        <p className="font-body text-sm text-ink/70 mt-1">
+        <p className="font-body text-sm text-ink mt-1 font-bold">
           {COPY.callout}
         </p>
       </div>
