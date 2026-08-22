@@ -12,7 +12,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTrackerState } from '@/hooks/useTrackerState';
 import { useStreakProtection } from '@/hooks/useStreakProtection';
 import { usePremium } from '@/hooks/usePremium';
-import { calculateMacros } from '@/components/macro-calculator/formulas';
+import { calculateMacros, estimateWorkoutKcal, estimateSteps10kKcal } from '@/components/macro-calculator/formulas';
 import type { Goal, Diet, Activity, Sex, HeightUnit, WeightUnit } from '@/components/macro-calculator/types';
 import WaterCounter from '@/components/WaterCounter';
 import Tracker from '@/components/Tracker';
@@ -642,6 +642,11 @@ function MacroCalculatorInline() {
     setGoal(savedProfile.goal);
     setDiet(savedProfile.diet);
     if (!results) {
+      // Burn estimates depend only on weight — recompute from the
+      // saved profile so the "Daily activity burn" section shows
+      // real numbers immediately, not zeros.
+      const wk = estimateWorkoutKcal(Number(savedProfile.weight_kg) || 0);
+      const sk = estimateSteps10kKcal(Number(savedProfile.weight_kg) || 0);
       setResults({
         bmr: 0,
         tdee: 0,
@@ -650,11 +655,8 @@ function MacroCalculatorInline() {
         carbsG: savedProfile.results_carbs,
         fatG: savedProfile.results_fat,
         waterL: savedProfile.results_water,
-        // Placeholders for the new fields. Recalculation fills them
-        // in; we don't recompute from the saved kcal/protein/etc
-        // because that would require re-loading the input state.
-        workoutKcal: 0,
-        steps10kKcal: 0,
+        workoutKcal: wk,
+        steps10kKcal: sk,
       });
     }
     setHydrated(true);
@@ -784,6 +786,9 @@ function MacroCalculatorInline() {
               {results.calories.toLocaleString()}
               <span className="text-lg text-ink/50 font-body font-normal ml-3">kcal</span>
             </p>
+            <p className="font-body text-caption uppercase tracking-widest text-ink/50 -mt-1">
+              Includes your daily workout + 10,000 steps
+            </p>
           </div>
           <div className="border-t border-ink/10">
             <Row label="Protein" grams={results.proteinG} kcal={results.proteinG * 4} total={results.calories} />
@@ -792,45 +797,23 @@ function MacroCalculatorInline() {
             <Row label="Water" grams={results.waterL} suffix="L" />
           </div>
 
-          {/* Daily-activity burn estimates. Same shape as
-              ResultsBlock on the main macrocalc page so the two
-              surfaces stay consistent. */}
+          {/* Daily-activity burn — one combined number, no
+              per-line breakdown. Same value the user sees in the
+              standalone /macrocalc page. Already baked into the
+              calorie total above; this just makes the cost of
+              their routine visible. Don't eat it back. */}
           <div className="border-t border-ink/10 pt-5 mt-2">
             <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-3">
               Daily activity burn (estimate)
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="border border-ink/10 px-4 py-3 bg-cream/30">
-                <p className="font-body text-caption uppercase tracking-widest text-ink/60">
-                  One workout line
-                </p>
-                <p className="font-display text-2xl text-ink leading-none mt-1 tabular-nums">
-                  {results.workoutKcal.toLocaleString()}
-                  <span className="text-sm text-ink/50 font-body font-normal ml-1.5">
-                    kcal
-                  </span>
-                </p>
-                <p className="font-body text-caption text-ink/40 mt-1">
-                  ~10 min, body-weight resistance
-                </p>
-              </div>
-              <div className="border border-ink/10 px-4 py-3 bg-cream/30">
-                <p className="font-body text-caption uppercase tracking-widest text-ink/60">
-                  10,000 steps
-                </p>
-                <p className="font-display text-2xl text-ink leading-none mt-1 tabular-nums">
-                  {results.steps10kKcal.toLocaleString()}
-                  <span className="text-sm text-ink/50 font-body font-normal ml-1.5">
-                    kcal
-                  </span>
-                </p>
-                <p className="font-body text-caption text-ink/40 mt-1">
-                  ~7 km, brisk walking
-                </p>
-              </div>
-            </div>
-            <p className="font-body text-sm text-ink/60 mt-3">
-              ~{(results.workoutKcal + results.steps10kKcal).toLocaleString()} kcal burned by the daily routine on top of your maintenance.
+            <p className="font-display text-3xl text-paper leading-none tabular-nums">
+              ~{(results.workoutKcal + results.steps10kKcal).toLocaleString()}
+              <span className="text-base text-paper/70 font-body font-normal ml-2 align-middle">
+                kcal
+              </span>
+            </p>
+            <p className="font-body text-sm text-paper/80 mt-2">
+              Already baked into the total above. Don&apos;t eat back the burn.
             </p>
           </div>
         </>

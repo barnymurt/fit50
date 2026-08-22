@@ -38,6 +38,11 @@ export const COPY = {
     water: 'Water',
   },
   waterMeta: 'FIT50 min: 2.5 L',
+  // Shown immediately under the calorie total. Makes the
+  // "baked in" fact visible at the moment the user looks at the
+  // number, so the existing callout below doesn't have to do the
+  // whole job.
+  bakedIn: 'Includes your daily workout + 10,000 steps',
   callout: 'Your FIT50 workout and 10,000 steps are already baked in. Don\u2019t eat back the burn.',
   disclaimer: 'Estimates only. Not medical advice.',
   closingLine: 'Ready to track it?',

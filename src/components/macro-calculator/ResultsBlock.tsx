@@ -60,6 +60,9 @@ export default function ResultsBlock({ results }: ResultsBlockProps) {
           {KCAL_UNIT}
         </span>
       </p>
+      <p className="font-body text-caption uppercase tracking-widest text-ink/50 -mt-1">
+        {COPY.bakedIn}
+      </p>
 
       <div className="mt-8">
         <MacroRow
@@ -98,57 +101,25 @@ export default function ResultsBlock({ results }: ResultsBlockProps) {
         </p>
       )}
 
-      {/* Daily-activity burn estimates. NOT counted against the calorie
-          budget above — these are what the user is "eating against"
-          each day. Existing copy already says don't eat back the
-          burn. */}
+      {/* Daily-activity burn — one number, no per-line breakdown.
+          This is the same burn that's baked into the calorie total
+          above, shown so the user can see what their daily routine
+          costs. Don't add it back to the budget. */}
       <div className="mt-10 border-t border-ink/10 pt-5">
         <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-3">
           Daily activity burn (estimate)
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <BurnStat
-            label="One workout line"
-            kcal={results.workoutKcal}
-            hint="~10 min, body-weight resistance"
-          />
-          <BurnStat
-            label="10,000 steps"
-            kcal={results.steps10kKcal}
-            hint="~7 km, brisk walking"
-          />
-        </div>
-        <p className="font-body text-sm text-ink/50 mt-3">
-          ~{(results.workoutKcal + results.steps10kKcal).toLocaleString()} {KCAL_UNIT} burned by the daily routine on top of your maintenance.
+        <p className="font-display text-3xl text-ink leading-none tabular-nums">
+          ~{(results.workoutKcal + results.steps10kKcal).toLocaleString()}
+          <span className="text-base text-ink/50 font-body font-normal ml-2 align-middle">
+            {KCAL_UNIT}
+          </span>
+        </p>
+        <p className="font-body text-sm text-ink/60 mt-2">
+          {COPY.callout}
         </p>
       </div>
-
-      <p className="font-display text-xl text-ink leading-snug mt-8 max-w-md">
-        {COPY.callout}
-      </p>
     </div>
   );
 }
 
-interface BurnStatProps {
-  label: string;
-  kcal: number;
-  hint: string;
-}
-
-function BurnStat({ label, kcal, hint }: BurnStatProps) {
-  return (
-    <div className="border border-ink/10 px-4 py-3 bg-cream/20">
-      <p className="font-body text-caption uppercase tracking-widest text-ink/60">
-        {label}
-      </p>
-      <p className="font-display text-2xl text-ink leading-none mt-1 tabular-nums">
-        {kcal.toLocaleString()}
-        <span className="text-sm text-ink/50 font-body font-normal ml-1.5">
-          {KCAL_UNIT}
-        </span>
-      </p>
-      <p className="font-body text-caption text-ink/40 mt-1">{hint}</p>
-    </div>
-  );
-}

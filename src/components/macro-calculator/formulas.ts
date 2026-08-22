@@ -1,5 +1,12 @@
 // FIT50 Macro Calculator — locked formulas
 // All math from Implementation Spec §9.
+//
+// IMPORTANT: the daily-activity burn (workout + 10K steps) is
+// already baked into the TDEE via ACTIVITY_MULTIPLIER. The
+// `workoutKcal` / `steps10kKcal` fields below are ESTIMATES of
+// that baked-in activity for the user to see what their daily
+// routine costs — they are NOT added on top of the calorie
+// budget. Adding them would double-count.
 
 import type {
   Activity,
