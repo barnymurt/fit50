@@ -106,16 +106,19 @@ export default function ResultsBlock({ results }: ResultsBlockProps) {
           above, shown so the user can see what their daily routine
           costs. Don't add it back to the budget. */}
       <div className="mt-10 border-t border-ink/10 pt-5">
-        <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-3">
+        <p className="font-body text-caption uppercase tracking-widest text-ink/60 mb-3">
           Daily activity burn (estimate)
         </p>
         <p className="font-display text-3xl text-ink leading-none tabular-nums">
-          ~{(results.workoutKcal + results.steps10kKcal).toLocaleString()}
-          <span className="text-base text-ink/50 font-body font-normal ml-2 align-middle">
+          ~{Math.round(results.workoutKcal + results.steps10kKcal).toLocaleString()}
+          <span className="text-base text-ink/60 font-body font-normal ml-2 align-middle">
             {KCAL_UNIT}
           </span>
         </p>
-        <p className="font-body text-sm text-ink/60 mt-2">
+        <p className="font-body text-base text-ink mt-3 font-medium">
+          Already baked into the total above.
+        </p>
+        <p className="font-body text-sm text-ink/70 mt-1">
           {COPY.callout}
         </p>
       </div>
