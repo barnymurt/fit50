@@ -497,6 +497,10 @@ export function useTrackerState() {
     // so a user who leaves the tracker open overnight can return
     // to yesterday's tasks still selected. The visibilitychange
     // listener catches that case immediately.
+    //
+    // We also run checkRollover once on mount so any stale state
+    // that survived the boot path is caught without waiting 30s.
+    checkRollover();
     const interval = setInterval(checkRollover, 30_000);
     const onVisibility = () => {
       if (document.visibilityState === 'visible') {

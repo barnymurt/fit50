@@ -326,6 +326,49 @@ export default function AccountWorkouts() {
     }
   }, [date, line, sets, user, supabase]);
 
+  // Midnight rollover. Without this, a user who leaves the tab open
+  // across midnight keeps seeing yesterday's ticked boxes because
+  // `date` was set once on mount. We check every 30s + on tab focus
+  // / visibility change. On a date change we save the current
+  // state under the OLD date (so yesterday's workout isn't lost in
+  // the void) and reset the local state for the new day. The
+  // existing save effect above will then upsert the new day's
+  // empty sets to the server.
+  useEffect(() => {
+    if (!date) return;
+    const checkRollover = async () => {
+      const k = todayKey();
+      if (k === date) return;
+      // Save current state under the OLD date before we move on, so
+      // yesterday's progress is preserved on the server / in
+      // localStorage.
+      if (user && supabase) {
+        await saveWorkoutRemote(supabase, user.id, date, { line, sets });
+      } else {
+        saveWorkoutLocal(date, { line, sets });
+      }
+      setDate(k);
+      // Reset local state. The mount-effect will then load
+      // whatever's in workout_log for the new date (almost always
+      // empty for a fresh day, but a previously-saved session
+      // would survive).
+      setLine('A');
+      setSets({});
+      setActiveIdx(null);
+    };
+    const interval = setInterval(checkRollover, 30_000);
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') checkRollover();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('focus', onVisible);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('focus', onVisible);
+    };
+  }, [date, line, sets, user, supabase]);
+
   const exercises = workoutLines[line].exercises;
   const totalCompleted = exercises.reduce((sum, ex) => sum + (sets[ex.name] || 0), 0);
   const allDone = exercises.every((ex) => (sets[ex.name] || 0) >= TOTAL_SETS);
