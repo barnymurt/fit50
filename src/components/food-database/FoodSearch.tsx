@@ -23,7 +23,7 @@ export default function FoodSearch({ favorites, onPickFood, recentlyLoggedFoods 
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('all');
   const [subcategory, setSubcategory] = useState('all');
-  const [sort, setSort] = useState<SortKey>('name');
+  const [sort, setSort] = useState<SortKey>('favourites');
   const [open, setOpen] = useState(true);
   const [results, setResults] = useState<Food[]>([]);
   const [totalCount, setTotalCount] = useState<number | null>(null);
@@ -45,6 +45,21 @@ export default function FoodSearch({ favorites, onPickFood, recentlyLoggedFoods 
   const debouncedQuery = useDebounced(query, 250);
   const trimmed = debouncedQuery.trim();
 
+// Client-side re-sort: when 'favourites' is selected, pin the
+// user's favourites to the top of the results, keep the rest in
+// the same order the server returned them. The SQL ORDER BY falls
+// back to 'name' (see search.ts), so this just partitions the
+// existing results.
+function applyFavouritesSort(foods: Food[], favourites: Set<string>): Food[] {
+  if (favourites.size === 0) return foods;
+  const favs: Food[] = [];
+  const rest: Food[] = [];
+  for (const f of foods) {
+    (favourites.has(f.id) ? favs : rest).push(f);
+  }
+  return [...favs, ...rest];
+}
+
   // Server-side search — the only path used. Memoising on the
   // debounced query + filters prevents the request firing when
   // transient keystrokes change.
@@ -63,7 +78,11 @@ export default function FoodSearch({ favorites, onPickFood, recentlyLoggedFoods 
     })
       .then(({ foods, count }) => {
         if (cancelled) return;
-        setResults(foods);
+        const ordered =
+          sort === 'favourites' && !trimmed
+            ? applyFavouritesSort(foods, favorites)
+            : foods;
+        setResults(ordered);
         setTotalCount(count);
       })
       .catch((err) => {
@@ -77,7 +96,7 @@ export default function FoodSearch({ favorites, onPickFood, recentlyLoggedFoods 
     return () => {
       cancelled = true;
     };
-  }, [debouncedQuery, category, subcategory, sort, trimmed]);
+  }, [debouncedQuery, category, subcategory, sort, trimmed, favorites]);
 
   const loadMore = async () => {
     const nextPage = page + 1;
@@ -91,7 +110,12 @@ export default function FoodSearch({ favorites, onPickFood, recentlyLoggedFoods 
         limit: PAGE_SIZE,
         offset: nextPage * PAGE_SIZE,
       });
-      setResults((prev) => [...prev, ...foods]);
+      const merged = [...results, ...foods];
+      const ordered =
+        sort === 'favourites' && !trimmed
+          ? applyFavouritesSort(merged, favorites)
+          : merged;
+      setResults(ordered);
       setPage(nextPage);
     } catch (err) {
       console.error(err);
@@ -188,6 +212,7 @@ export default function FoodSearch({ favorites, onPickFood, recentlyLoggedFoods 
               aria-label="Sort"
               className="px-3 py-2 bg-paper border border-ink/20 font-body text-caption uppercase tracking-widest text-ink/70 focus:border-ink outline-none"
             >
+              <option value="favourites">Favourites first</option>
               <option value="name">A → Z</option>
               <option value="kcal">Calories ↑</option>
               <option value="protein">Protein ↑</option>

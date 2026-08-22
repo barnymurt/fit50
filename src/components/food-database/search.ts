@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase';
 export type SortKey =
   | 'relevance'
   | 'name'
+  | 'favourites'
   | 'kcal'
   | 'protein'
   | 'carbs'
@@ -114,6 +115,8 @@ export async function searchFoodsRemote(
 
   if (sort !== 'relevance' || trimmed.length === 0) {
     const dir = sortDir === 'asc' ? true : false;
+    // 'favourites' is a client-side re-sort (server doesn't know the
+    // user's favourite set) so fall back to name for the SQL ORDER BY.
     const col =
       sort === 'kcal' ? 'kcal'
       : sort === 'protein' ? 'protein'
