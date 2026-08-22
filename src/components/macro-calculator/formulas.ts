@@ -59,9 +59,20 @@ function workoutKcal(weightKg: number): number {
   return WORKOUT_MET * weightKg * (WORKOUT_MINUTES / 60);
 }
 
+// Exported so the saved-profile hydration path in /account can
+// fill these in from `macro_profile.weight_kg` without a full
+// recalculation.
+export function estimateWorkoutKcal(weightKg: number): number {
+  return workoutKcal(weightKg);
+}
+
 function steps10kKcal(weightKg: number): number {
   const hours = (STEPS_KM_PER_10K / STEPS_KM_PER_HOUR);
   return STEPS_MET * weightKg * hours;
+}
+
+export function estimateSteps10kKcal(weightKg: number): number {
+  return steps10kKcal(weightKg);
 }
 
 function heightToCm(h: HeightValue): number | null {
@@ -135,6 +146,10 @@ export function calculateMacros(input: {
 }
 
 function roundTo(n: number, nearest: number): number {
+  // Guard against divide-by-zero — without this, roundTo(x, 0)
+  // returns NaN (Math.round(Infinity) * 0). A 0 nearest means "no
+  // rounding" so just return n.
+  if (!nearest) return n;
   return Math.round(n / nearest) * nearest;
 }
 
