@@ -294,6 +294,13 @@ export default function AccountWorkouts() {
   const [line, setLine] = useState<Line>('A');
   const [sets, setSets] = useState<Record<string, number>>({});
   const [activeIdx, setActiveIdx] = useState<number | null>(null);
+  // `hasLoaded` guards the save + rollover effects so they don't
+  // run with the default state during the brief window between
+  // mount and the load completion. Otherwise the save effect
+  // fires once on mount with `sets: {}` and overwrites the
+  // existing localStorage entry before the load has a chance to
+  // read it — silently nuking the user's progress.
+  const [hasLoaded, setHasLoaded] = useState(false);
 
   useEffect(() => {
     const k = todayKey();
@@ -305,21 +312,23 @@ export default function AccountWorkouts() {
           setLine(remote.line);
           setSets(remote.sets);
           saveWorkoutLocal(k, remote);
-          return;
+        } else {
+          const local = loadWorkoutLocal(k);
+          setLine(local.line);
+          setSets(local.sets);
         }
-        const local = loadWorkoutLocal(k);
-        setLine(local.line);
-        setSets(local.sets);
+        setHasLoaded(true);
       });
     } else {
       const local = loadWorkoutLocal(k);
       setLine(local.line);
       setSets(local.sets);
+      setHasLoaded(true);
     }
   }, [user, supabase]);
 
   useEffect(() => {
-    if (!date) return;
+    if (!date || !hasLoaded) return;
     saveWorkoutLocal(date, { line, sets });
     if (user && supabase) {
       saveWorkoutRemote(supabase, user.id, date, { line, sets });

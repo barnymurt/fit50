@@ -11,6 +11,11 @@ import {
   useDebounced,
 } from './search';
 import { useStaples } from '@/hooks/useStaples';
+import {
+  useLocalFoods,
+  filterLocalFoods,
+  mergeFoodResults,
+} from '@/hooks/useLocalFoods';
 
 interface Props {
   favorites: Set<string>;

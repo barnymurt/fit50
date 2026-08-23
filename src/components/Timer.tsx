@@ -50,10 +50,69 @@ export default function Timer({
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const onCompleteRef = useRef(onComplete);
   const audioCtxRef = useRef<AudioContext | null>(null);
+  // Wake Lock: keeps the screen on while the timer runs so the OS
+  // doesn't suspend our setInterval and mute the alarm. The browser
+  // auto-releases the lock when the tab is hidden, so we re-acquire
+  // on visibilitychange.
+  const wakeLockRef = useRef<WakeLockSentinel | null>(null);
+
+  const requestWakeLock = useCallback(async (): Promise<WakeLockSentinel | null> => {
+    try {
+      const wl = (navigator as Navigator & { wakeLock?: { request: (type: 'screen') => Promise<WakeLockSentinel> } }).wakeLock;
+      if (wl) {
+        return await wl.request('screen');
+      }
+    } catch (err) {
+      // The browser can refuse the lock (low battery, user denied,
+      // insecure context). Not fatal — the timestamp math below
+      // still works without it; we just lose the screen-on guarantee.
+      console.error('Timer: Wake Lock request failed', err);
+    }
+    return null;
+  }, []);
+
+  const releaseWakeLock = useCallback(() => {
+    const lock = wakeLockRef.current;
+    if (lock) {
+      lock.release().catch(() => {
+        // already released
+      });
+      wakeLockRef.current = null;
+    }
+  }, []);
 
   useEffect(() => {
     onCompleteRef.current = onComplete;
   }, [onComplete]);
+
+  // Release the Wake Lock on unmount.
+  useEffect(() => {
+    return () => {
+      releaseWakeLock();
+    };
+  }, [releaseWakeLock]);
+
+  // Re-acquire the Wake Lock when the tab regains visibility.
+  // Browsers auto-release when the document is hidden; we re-grab
+  // so the screen stays on if the user is in the middle of a
+  // session and switches apps briefly.
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (
+        document.visibilityState === 'visible' &&
+        isRunning &&
+        !wakeLockRef.current
+      ) {
+        requestWakeLock().then((lock) => {
+          if (lock) wakeLockRef.current = lock;
+        });
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
+  }, [isRunning, requestWakeLock]);
 
   const ensureAudio = useCallback(() => {
     if (typeof window === 'undefined') return null;
@@ -163,16 +222,26 @@ export default function Timer({
     setCompleted(false);
     startedAtRef.current = Date.now() - (totalSeconds - remainingSeconds) * 1000;
     setIsRunning(true);
-  }, [ensureAudio, remainingSeconds, totalSeconds]);
+    // Acquire the Wake Lock on user gesture so the screen stays on
+    // for the duration of the timer. Re-acquired automatically on
+    // visibilitychange if the browser auto-released it.
+    requestWakeLock().then((lock) => {
+      if (lock) wakeLockRef.current = lock;
+    });
+  }, [ensureAudio, remainingSeconds, totalSeconds, requestWakeLock]);
 
-  const handlePause = useCallback(() => setIsRunning(false), []);
+  const handlePause = useCallback(() => {
+    setIsRunning(false);
+    releaseWakeLock();
+  }, [releaseWakeLock]);
 
   const handleReset = useCallback(() => {
     setIsRunning(false);
     setCompleted(false);
     startedAtRef.current = null;
     setRemainingSeconds(totalSeconds);
-  }, [totalSeconds]);
+    releaseWakeLock();
+  }, [totalSeconds, releaseWakeLock]);
 
   const handleSetDuration = useCallback((minutes: number, seconds: number = 0) => {
     setIsRunning(false);

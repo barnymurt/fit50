@@ -4,18 +4,16 @@ import { useEffect, useState } from 'react';
 import Section from './Section';
 import Heading from './Heading';
 import HabitIcon from './HabitIcon';
-import Timer from './Timer';
 import { useBookLog, BookFormat } from '@/hooks/useBookLog';
-import { usePremium } from '@/hooks/usePremium';
 
 interface FeedYourBrainProps {
-  /** Free users see book input + list only. Premium users also get the Timer block. */
+  // Kept for API stability; the Timer was extracted to its own
+  // WorkoutTimer section. Ignored.
   withTimer?: boolean;
 }
 
-export default function FeedYourBrain({ withTimer = false }: FeedYourBrainProps) {
+export default function FeedYourBrain(_props: FeedYourBrainProps = {}) {
   const { currentBook, booksByTitle, hydrated, setCurrentBook, removeBook } = useBookLog();
-  const { isPremium } = usePremium();
 
   const [draft, setDraft] = useState('');
   const [format, setFormat] = useState<BookFormat>('read');
@@ -35,8 +33,6 @@ export default function FeedYourBrain({ withTimer = false }: FeedYourBrainProps)
     setSavedFlash(true);
     window.setTimeout(() => setSavedFlash(false), 1500);
   };
-
-  const showTimer = withTimer && isPremium;
 
   return (
     <Section
@@ -168,49 +164,6 @@ export default function FeedYourBrain({ withTimer = false }: FeedYourBrainProps)
             </ul>
           )}
         </div>
-
-        {/* Premium-only Timer block */}
-        {showTimer && (
-          <div className="mt-12">
-            <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-3">
-              The timer
-            </p>
-            <Heading>30 minutes a day.</Heading>
-            <p className="font-body text-base text-ink/70 mt-3 mb-8 max-w-2xl">
-              Start the timer, get to work. Use it for the book or the
-              project — either way, you walk out of the 50 days with
-              something you can hold, open, or point at.
-            </p>
-            <div className="flex justify-center">
-              <Timer
-                defaultMinutes={30}
-                purposes={[
-                  {
-                    key: 'project',
-                    durationMinutes: 30,
-                    buttonLabel: 'Project time',
-                    heading: 'Feed Your Brain.',
-                    lede: "Read a book or work on a project for 30 minutes. Walk out of the 50 days with something you can hold, open, or point at.",
-                  },
-                  {
-                    key: 'meditate',
-                    durationMinutes: 10,
-                    buttonLabel: 'Meditate',
-                    heading: 'Open Mind.',
-                    lede: "Sit, breathe, notice for 10 minutes. Start at 5 if 10 feels hard — the minutes get easier faster than you think.",
-                  },
-                  {
-                    key: 'workout',
-                    durationMinutes: 1,
-                    buttonLabel: 'Workout loop',
-                    heading: 'Move Your Body.',
-                    lede: "One minute of core or cardio between sets — motion creates emotion.",
-                  },
-                ]}
-              />
-            </div>
-          </div>
-        )}
       </div>
     </Section>
   );

@@ -22,6 +22,7 @@ import FoodDatabase from '@/components/food-database/FoodDatabase';
 import AccountWorkouts from '@/components/AccountWorkouts';
 import BuddyPurchasePicker from '@/components/BuddyPurchasePicker';
 import FeedYourBrain from '@/components/FeedYourBrain';
+import WorkoutTimer from '@/components/WorkoutTimer';
 import { useMacroTargets } from '@/hooks/useMacroTargets';
 import { saveJson } from '@/lib/storage';
 import { useMacroProfile, timeSince } from '@/hooks/useMacroProfile';
@@ -330,6 +331,9 @@ export default function AccountPage() {
           { id: 'my-motivator', label: 'Motivator' },
           { id: 'buddy', label: 'Buddy' },
           { id: 'feed-your-brain', label: 'Feed Brain' },
+          ...(profile?.is_premium
+            ? [{ id: 'timer', label: 'Timer' }]
+            : []),
           { id: 'workouts', label: 'Workouts' },
           { id: 'macro-calc', label: 'Macro calc' },
           ...(profile?.is_premium
@@ -349,7 +353,7 @@ export default function AccountPage() {
           // Premium-only sections stay hidden (not just unrendered)
           // for free users so the layout doesn't waste a render slot.
           if (!profile?.is_premium) {
-            return !['hydration', 'food-database', 'todo', 'board'].includes(id);
+            return !['hydration', 'food-database', 'todo', 'board', 'timer'].includes(id);
           }
           return true;
         })
@@ -442,7 +446,9 @@ export default function AccountPage() {
                 </Section>
               );
             case 'feed-your-brain':
-              return wrapper(<FeedYourBrain withTimer />);
+              return wrapper(<FeedYourBrain />);
+            case 'timer':
+              return wrapper(<WorkoutTimer />);
             case 'workouts':
               return wrapper(<AccountWorkouts />);
             case 'macro-calc':
@@ -601,6 +607,7 @@ const SECTION_TITLES: Record<string, string> = {
   'my-motivator': 'My motivator',
   'buddy': 'Buddy',
   'feed-your-brain': 'Feed your brain',
+  'timer': 'The timer',
   'workouts': 'Workouts',
   'macro-calc': 'Macro calculator',
   'hydration': 'Hydration',
