@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Food } from './types';
+import { Food, Region, REGION_TAGS } from './types';
 import { createClient } from '@/lib/supabase';
 
 export type SortKey =
@@ -25,6 +25,67 @@ interface SearchOptions {
   sortDir?: 'asc' | 'desc';
   limit?: number;
   offset?: number;
+  /** Region filter for the OFF corpus. Empty / undefined = no
+   *  filter (shows all countries). Set to a Region to filter by
+   *  that region. */
+  region?: Region | null;
+}
+
+// British/Irish vs American (and a few European) name variants. When
+// the user types one, we expand the search to include the others so
+// a UK user looking for "yoghurt" finds the same rows that an Irish
+// entry might call "yogurt", and vice versa.
+const ALIASES: Record<string, string[]> = {
+  yogurt: ['yogurt', 'yoghurt', 'yogourt'],
+  yoghurt: ['yogurt', 'yoghurt', 'yogourt'],
+  yogourt: ['yogurt', 'yoghurt'],
+  coriander: ['coriander', 'cilantro'],
+  cilantro: ['coriander', 'cilantro'],
+  aubergine: ['aubergine', 'eggplant'],
+  eggplant: ['aubergine', 'eggplant'],
+  courgette: ['courgette', 'zucchini'],
+  zucchini: ['courgette', 'zucchini'],
+  rocket: ['rocket', 'arugula'],
+  arugula: ['rocket', 'arugula'],
+  capsicum: ['capsicum', 'bell pepper', 'pepper'],
+  'bell pepper': ['capsicum', 'pepper'],
+  'spring onion': ['spring onion', 'scallion', 'green onion'],
+  scallion: ['scallion', 'spring onion', 'green onion'],
+  biscuit: ['biscuit', 'cookie'],
+  cookie: ['cookie', 'biscuit'],
+  crisp: ['crisp', 'chip'],
+  chips: ['chips', 'crisp'],
+  fries: ['fries', 'chips'],
+  mince: ['mince', 'ground beef'],
+  'ground beef': ['ground beef', 'mince'],
+  sorbet: ['sorbet', 'sherbet'],
+  sherbet: ['sherbet', 'sorbet'],
+  // Pulses
+  chickpea: ['chickpea', 'garbanzo'],
+  garbanzo: ['garbanzo', 'chickpea'],
+  // Pulses / beans
+  'baked bean': ['baked bean', 'baked beans'],
+};
+
+/**
+ * Build a websearch-style tsquery that expands each token to its
+ * aliases. Multi-word queries AND the expanded groups; within each
+ * group we OR the variants. So "yogurt" -> "(yogurt:* | yoghurt:* |
+ * yogourt:*)" and "chicken yogurt" -> "chicken:* & (yogurt:* |
+ * yoghurt:* | yogourt:*)".
+ */
+function buildAliasExpandedTsQuery(input: string): string {
+  const tokens = input
+    .split(/\s+/)
+    .map((w) => w.replace(/[^a-zA-Z0-9]/g, '').toLowerCase())
+    .filter((w) => w.length > 0);
+  if (tokens.length === 0) return '';
+  const groups = tokens.map((t) => {
+    const variants = ALIASES[t] ?? [t];
+    const prefixed = variants.map((v) => `${v}:*`);
+    return prefixed.length > 1 ? `(${prefixed.join(' | ')})` : prefixed[0];
+  });
+  return groups.join(' & ');
 }
 
 const FOOD_COLS =
@@ -46,7 +107,7 @@ function rowToFood(row: Record<string, unknown>): Food {
     carbs: row.carbs as number,
     fat: row.fat as number,
     fiber: row.fiber as number,
-    servingBasis: (row.serving_basis as '100g') ?? '100g',
+    servingBasis: (row.serving_basis as '100g' | '100ml') ?? '100g',
     standardServingGrams:
       typeof row.standard_serving_grams === 'number'
         ? (row.standard_serving_grams as number)
@@ -65,7 +126,7 @@ function rowToFood(row: Record<string, unknown>): Food {
 
 export async function searchFoodsRemote(
   options: SearchOptions
-): Promise<{ foods: Food[]; count: number | null }> {
+): Promise<{ foods: Food[]; count: number | null; aliases?: string[] }> {
   const supabase = createClient();
   if (!supabase) return { foods: [], count: null };
 
@@ -79,6 +140,7 @@ export async function searchFoodsRemote(
     sortDir = 'asc',
     limit = 50,
     offset = 0,
+    region = null,
   } = options;
 
   // Ask for an exact count only on the first page of a query. Skipping
@@ -90,6 +152,23 @@ export async function searchFoodsRemote(
     .select(FOOD_COLS, { count: wantCount ? 'exact' : undefined });
 
   const trimmed = query.trim();
+
+  // Region filter: limit to rows that have at least one of the
+  // region's countries in their countries_tags array. "Worldwide"
+  // (empty tag list) means no region filter. "Europe (other)"
+  // includes UK+IE so UK staples still show when the user picks
+  // the broader Europe bucket.
+  if (region && region !== 'worldwide') {
+    const tags = REGION_TAGS[region];
+    if (tags.length > 0) {
+      q = q.overlaps('countries_tags', tags);
+    }
+  }
+
+  // Track which aliases we expanded so the UI can show a "Also
+  // searched: yoghurt, yogourt" hint under the input.
+  let expandedAliases: string[] = [];
+
   if (trimmed.length > 0) {
     // Build a tsquery with PREFIX MATCHING on each token so partial
     // words like "cinn" still hit "cinnamon". websearch_to_tsquery
@@ -98,14 +177,31 @@ export async function searchFoodsRemote(
     //
     // We strip non-alphanumerics so a stray "&" or apostrophe can't
     // blow up the tsquery parser. Each surviving token gets `:*`.
-    const tsQuery = trimmed
+    //
+    // Aliases: each token is expanded to its known UK/IE/US
+    // variants (yogurt -> [yogurt, yoghurt, yogourt]). The expanded
+    // group is OR'd; multi-word queries AND the groups. The first
+    // token's full alias list is returned so the UI can hint the
+    // user that aliases fired.
+    const rawTokens = trimmed
       .split(/\s+/)
-      .map((w) => w.replace(/[^a-zA-Z0-9]/g, ''))
-      .filter((w) => w.length > 0)
-      .map((w) => `${w}:*`)
-      .join(' & ');
+      .map((w) => w.replace(/[^a-zA-Z0-9]/g, '').toLowerCase())
+      .filter((w) => w.length > 0);
+    const groups = rawTokens.map((t) => {
+      const variants = ALIASES[t] ?? [t];
+      const prefixed = variants.map((v) => `${v}:*`);
+      return prefixed.length > 1 ? `(${prefixed.join(' | ')})` : prefixed[0];
+    });
+    const tsQuery = groups.join(' & ');
     if (tsQuery.length > 0) {
       q = q.textSearch('search_text', tsQuery, { config: 'simple' });
+    }
+    // Capture the first token's expanded alias list for the UI hint.
+    if (rawTokens.length > 0) {
+      const first = rawTokens[0];
+      if (ALIASES[first] && ALIASES[first].length > 1) {
+        expandedAliases = ALIASES[first].filter((v) => v !== first);
+      }
     }
   }
   if (category !== 'all') q = q.eq('category', category);
@@ -140,6 +236,7 @@ export async function searchFoodsRemote(
   return {
     foods: (data ?? []).map(rowToFood),
     count: count ?? null,
+    aliases: expandedAliases.length > 0 ? expandedAliases : undefined,
   };
 }
 

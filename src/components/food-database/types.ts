@@ -27,6 +27,54 @@ export type FoodCategory =
   | 'Beverages'
   | 'Protein Foods';
 
+export type Region = 'uk-ie' | 'us' | 'europe' | 'worldwide';
+
+export const REGION_LABELS: Record<Region, string> = {
+  'uk-ie': 'UK & Ireland',
+  us: 'United States',
+  europe: 'Europe (other)',
+  worldwide: 'Worldwide',
+};
+
+// OFF's countries_tags array entries we filter on for each region.
+export const REGION_TAGS: Record<Region, string[]> = {
+  'uk-ie': ['en:united-kingdom', 'en:ireland'],
+  us: ['en:united-states'],
+  europe: [
+    'en:united-kingdom',
+    'en:ireland',
+    'en:france',
+    'en:germany',
+    'en:spain',
+    'en:italy',
+    'en:netherlands',
+    'en:belgium',
+    'en:portugal',
+    'en:denmark',
+    'en:sweden',
+    'en:norway',
+    'en:finland',
+    'en:switzerland',
+    'en:austria',
+  ],
+  worldwide: [],
+};
+
+export interface Staple {
+  id: string;
+  name: string;
+  category: FoodCategory;
+  regions: Region[];
+  kcal: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  fiber: number;
+  servingBasis: '100g' | '100ml';
+  standardServingLabel?: string;
+  aliases: string[];
+}
+
 export type FoodType = 'ingredient' | 'prepared' | 'beverage' | 'snack' | 'dessert';
 
 export interface Food {
@@ -43,7 +91,7 @@ export interface Food {
   carbs: number;
   fat: number;
   fiber: number;
-  servingBasis: '100g';
+  servingBasis: '100g' | '100ml';
   // optional per-item override for the typical portion people eat
   standardServingGrams?: number;
   standardServingLabel?: string;

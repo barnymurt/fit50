@@ -1,0 +1,324 @@
+#!/usr/bin/env node
+/* eslint-disable no-console */
+/**
+ * Seed the foods_staples table. Curated common foods that always
+ * surface at the top of the food search panel.
+ *
+ *   node scripts/seed-staples.js
+ *
+ * Idempotent: uses upsert on the id PK. Re-running updates the
+ * row in place.
+ */
+
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!SUPABASE_URL || !KEY) {
+  console.error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
+  process.exit(1);
+}
+
+// Common foods, region-scoped. Each row has kcal/protein/carbs/
+// fat/fiber per 100g (or per 100ml for beverages).
+const STAPLES = [
+  // -------- PROTEINS --------
+  { id: 'st-chicken-breast-raw', name: 'Chicken breast, raw', category: 'Meat & Poultry',
+    regions: ['uk-ie', 'us', 'worldwide'],
+    kcal: 120, protein: 22.5, carbs: 0, fat: 2.6, fiber: 0, serving_basis: '100g' },
+  { id: 'st-chicken-thigh-skinless-raw', name: 'Chicken thigh, skinless, raw', category: 'Meat & Poultry',
+    regions: ['uk-ie', 'us', 'worldwide'],
+    kcal: 119, protein: 19.7, carbs: 0, fat: 3.7, fiber: 0, serving_basis: '100g' },
+  { id: 'st-ground-beef-raw', name: 'Ground beef, 10% fat, raw', category: 'Meat & Poultry',
+    regions: ['uk-ie', 'us', 'worldwide'],
+    kcal: 176, protein: 20, carbs: 0, fat: 10, fiber: 0, serving_basis: '100g',
+    aliases: ['mince', 'minced beef'] },
+  { id: 'st-pork-loin-raw', name: 'Pork loin, raw', category: 'Meat & Poultry',
+    regions: ['uk-ie', 'us', 'worldwide'],
+    kcal: 198, protein: 21.4, carbs: 0, fat: 12, fiber: 0, serving_basis: '100g' },
+  { id: 'st-bacon-raw', name: 'Bacon, raw', category: 'Meat & Poultry',
+    regions: ['uk-ie', 'us', 'worldwide'],
+    kcal: 417, protein: 13, carbs: 1.4, fat: 39, fiber: 0, serving_basis: '100g',
+    aliases: ['streaky bacon', 'back bacon'] },
+  { id: 'st-salmon-raw', name: 'Salmon, raw', category: 'Fish & Seafood',
+    regions: ['uk-ie', 'us', 'worldwide'],
+    kcal: 208, protein: 20, carbs: 0, fat: 13, fiber: 0, serving_basis: '100g' },
+  { id: 'st-tuna-canned', name: 'Tuna, canned in water', category: 'Fish & Seafood',
+    regions: ['uk-ie', 'us', 'worldwide'],
+    kcal: 116, protein: 26, carbs: 0, fat: 1, fiber: 0, serving_basis: '100g' },
+  { id: 'st-eggs-whole', name: 'Egg, whole, raw', category: 'Eggs',
+    regions: ['uk-ie', 'us', 'worldwide'],
+    kcal: 155, protein: 13, carbs: 1.1, fat: 11, fiber: 0, serving_basis: '100g' },
+  { id: 'st-tofu-firm', name: 'Tofu, firm', category: 'Protein Foods',
+    regions: ['uk-ie', 'us', 'worldwide'],
+    kcal: 144, protein: 17, carbs: 3, fat: 9, fiber: 2, serving_basis: '100g' },
+  { id: 'st-greek-yogurt', name: 'Greek yogurt, 0% fat', category: 'Dairy',
+    regions: ['uk-ie', 'us', 'worldwide'],
+    kcal: 59, protein: 10, carbs: 3.6, fat: 0.4, fiber: 0, serving_basis: '100g',
+    aliases: ['greek yoghurt'] },
+  { id: 'st-cottage-cheese', name: 'Cottage cheese', category: 'Dairy',
+    regions: ['uk-ie', 'us', 'worldwide'],
+    kcal: 98, protein: 11, carbs: 3.4, fat: 4.3, fiber: 0, serving_basis: '100g' },
+
+  // -------- CARBS --------
+  { id: 'st-white-rice-cooked', name: 'White rice, cooked', category: 'Grains',
+    regions: ['uk-ie', 'us', 'worldwide'],
+    kcal: 130, protein: 2.7, carbs: 28, fat: 0.3, fiber: 0.4, serving_basis: '100g' },
+  { id: 'st-brown-rice-cooked', name: 'Brown rice, cooked', category: 'Grains',
+    regions: ['uk-ie', 'us', 'worldwide'],
+    kcal: 123, protein: 2.7, carbs: 25.6, fat: 1, fiber: 1.6, serving_basis: '100g' },
+  { id: 'st-oats-rolled-cooked', name: 'Oats, rolled, cooked', category: 'Grains',
+    regions: ['uk-ie', 'us', 'worldwide'],
+    kcal: 71, protein: 2.5, carbs: 12, fat: 1.5, fiber: 1.7, serving_basis: '100g',
+    aliases: ['oatmeal', 'porridge oats'] },
+  { id: 'st-pasta-cooked', name: 'Pasta, cooked', category: 'Pasta & Noodles',
+    regions: ['uk-ie', 'us', 'worldwide'],
+    kcal: 158, protein: 5.8, carbs: 30.9, fat: 0.9, fiber: 1.8, serving_basis: '100g' },
+  { id: 'st-bread-white', name: 'White bread, sliced', category: 'Bread & Bakery',
+    regions: ['uk-ie', 'us', 'worldwide'],
+    kcal: 265, protein: 9, carbs: 49, fat: 3.2, fiber: 2.7, serving_basis: '100g' },
+  { id: 'st-bread-wholemeal', name: 'Wholemeal bread, sliced', category: 'Bread & Bakery',
+    regions: ['uk-ie', 'us', 'worldwide'],
+    kcal: 247, protein: 13, carbs: 41, fat: 3.4, fiber: 7, serving_basis: '100g',
+    aliases: ['whole wheat bread', 'brown bread'] },
+  { id: 'st-sweet-potato-cooked', name: 'Sweet potato, cooked', category: 'Vegetables',
+    regions: ['uk-ie', 'us', 'worldwide'],
+    kcal: 90, protein: 2, carbs: 20.7, fat: 0.2, fiber: 3.3, serving_basis: '100g' },
+  { id: 'st-potato-cooked', name: 'Potato, boiled', category: 'Vegetables',
+    regions: ['uk-ie', 'us', 'worldwide'],
+    kcal: 87, protein: 1.9, carbs: 20.1, fat: 0.1, fiber: 1.8, serving_basis: '100g' },
+  { id: 'st-quinoa-cooked', name: 'Quinoa, cooked', category: 'Grains',
+    regions: ['uk-ie', 'us', 'worldwide'],
+    kcal: 120, protein: 4.4, carbs: 21.3, fat: 1.9, fiber: 2.8, serving_basis: '100g' },
+  { id: 'st-couscous-cooked', name: 'Couscous, cooked', category: 'Pasta & Noodles',
+    regions: ['uk-ie', 'europe', 'worldwide'],
+    kcal: 112, protein: 3.8, carbs: 23.2, fat: 0.2, fiber: 1.4, serving_basis: '100g' },
+
+  // -------- FATS --------
+  { id: 'st-olive-oil', name: 'Olive oil, extra virgin', category: 'Oils & Fats',
+    regions: ['uk-ie', 'us', 'europe', 'worldwide'],
+    kcal: 884, protein: 0, carbs: 0, fat: 100, fiber: 0, serving_basis: '100ml' },
+  { id: 'st-butter', name: 'Butter, salted', category: 'Oils & Fats',
+    regions: ['uk-ie', 'us', 'europe', 'worldwide'],
+    kcal: 717, protein: 0.9, carbs: 0.1, fat: 81, fiber: 0, serving_basis: '100g' },
+  { id: 'st-avocado', name: 'Avocado', category: 'Fruits',
+    regions: ['uk-ie', 'us', 'worldwide'],
+    kcal: 160, protein: 2, carbs: 8.5, fat: 14.7, fiber: 6.7, serving_basis: '100g' },
+  { id: 'st-almonds', name: 'Almonds, raw', category: 'Nuts & Seeds',
+    regions: ['uk-ie', 'us', 'worldwide'],
+    kcal: 579, protein: 21, carbs: 21.6, fat: 49.9, fiber: 12.5, serving_basis: '100g' },
+  { id: 'st-peanut-butter', name: 'Peanut butter, smooth', category: 'Nuts & Seeds',
+    regions: ['uk-ie', 'us', 'worldwide'],
+    kcal: 588, protein: 25, carbs: 20, fat: 50, fiber: 6, serving_basis: '100g' },
+  { id: 'st-cheddar', name: 'Cheddar cheese', category: 'Dairy',
+    regions: ['uk-ie', 'us', 'europe', 'worldwide'],
+    kcal: 403, protein: 25, carbs: 1.3, fat: 33, fiber: 0, serving_basis: '100g' },
+  { id: 'st-mozzarella', name: 'Mozzarella', category: 'Dairy',
+    regions: ['uk-ie', 'us', 'europe', 'worldwide'],
+    kcal: 280, protein: 28, carbs: 3.1, fat: 17, fiber: 0, serving_basis: '100g' },
+  { id: 'st-feta', name: 'Feta cheese', category: 'Dairy',
+    regions: ['europe', 'worldwide'],
+    kcal: 264, protein: 14, carbs: 4, fat: 21, fiber: 0, serving_basis: '100g' },
+
+  // -------- VEG --------
+  { id: 'st-broccoli', name: 'Broccoli, raw', category: 'Vegetables',
+    regions: ['uk-ie', 'us', 'worldwide'],
+    kcal: 34, protein: 2.8, carbs: 6.6, fat: 0.4, fiber: 2.6, serving_basis: '100g' },
+  { id: 'st-spinach', name: 'Spinach, raw', category: 'Vegetables',
+    regions: ['uk-ie', 'us', 'worldwide'],
+    kcal: 23, protein: 2.9, carbs: 3.6, fat: 0.4, fiber: 2.2, serving_basis: '100g' },
+  { id: 'st-tomato', name: 'Tomato, raw', category: 'Vegetables',
+    regions: ['uk-ie', 'us', 'europe', 'worldwide'],
+    kcal: 18, protein: 0.9, carbs: 3.9, fat: 0.2, fiber: 1.2, serving_basis: '100g' },
+  { id: 'st-onion', name: 'Onion, raw', category: 'Vegetables',
+    regions: ['uk-ie', 'us', 'worldwide'],
+    kcal: 40, protein: 1.1, carbs: 9.3, fat: 0.1, fiber: 1.7, serving_basis: '100g' },
+  { id: 'st-carrot', name: 'Carrot, raw', category: 'Vegetables',
+    regions: ['uk-ie', 'us', 'worldwide'],
+    kcal: 41, protein: 0.9, carbs: 9.6, fat: 0.2, fiber: 2.8, serving_basis: '100g' },
+  { id: 'st-bell-pepper', name: 'Bell pepper, raw', category: 'Vegetables',
+    regions: ['uk-ie', 'us', 'worldwide'],
+    kcal: 31, protein: 1, carbs: 6, fat: 0.3, fiber: 2.1, serving_basis: '100g',
+    aliases: ['capsicum', 'sweet pepper'] },
+  { id: 'st-cucumber', name: 'Cucumber, raw', category: 'Vegetables',
+    regions: ['uk-ie', 'us', 'worldwide'],
+    kcal: 15, protein: 0.7, carbs: 3.6, fat: 0.1, fiber: 0.5, serving_basis: '100g' },
+  { id: 'st-lettuce', name: 'Lettuce, raw', category: 'Vegetables',
+    regions: ['uk-ie', 'us', 'worldwide'],
+    kcal: 15, protein: 1.4, carbs: 2.9, fat: 0.2, fiber: 1.3, serving_basis: '100g' },
+  { id: 'st-zucchini', name: 'Zucchini, raw', category: 'Vegetables',
+    regions: ['uk-ie', 'us', 'worldwide'],
+    kcal: 17, protein: 1.2, carbs: 3.1, fat: 0.3, fiber: 1, serving_basis: '100g',
+    aliases: ['courgette'] },
+  { id: 'st-mushroom', name: 'Mushroom, white, raw', category: 'Vegetables',
+    regions: ['uk-ie', 'us', 'europe', 'worldwide'],
+    kcal: 22, protein: 3.1, carbs: 3.3, fat: 0.3, fiber: 1, serving_basis: '100g' },
+  { id: 'st-aubergine', name: 'Aubergine, raw', category: 'Vegetables',
+    regions: ['uk-ie', 'europe', 'worldwide'],
+    kcal: 25, protein: 1, carbs: 5.9, fat: 0.2, fiber: 3, serving_basis: '100g',
+    aliases: ['eggplant'] },
+  { id: 'st-tomato-tin', name: 'Tinned tomatoes, chopped', category: 'Vegetables',
+    regions: ['uk-ie', 'europe', 'worldwide'],
+    kcal: 22, protein: 1.1, carbs: 4, fat: 0.3, fiber: 1, serving_basis: '100g',
+    aliases: ['canned tomatoes'] },
+  { id: 'st-baked-beans', name: 'Baked beans, in tomato sauce', category: 'Legumes & Beans',
+    regions: ['uk-ie', 'us', 'worldwide'],
+    kcal: 95, protein: 4.8, carbs: 14, fat: 0.4, fiber: 3.7, serving_basis: '100g' },
+
+  // -------- FRUITS --------
+  { id: 'st-banana', name: 'Banana', category: 'Fruits',
+    regions: ['uk-ie', 'us', 'worldwide'],
+    kcal: 89, protein: 1.1, carbs: 22.8, fat: 0.3, fiber: 2.6, serving_basis: '100g' },
+  { id: 'st-apple', name: 'Apple', category: 'Fruits',
+    regions: ['uk-ie', 'us', 'worldwide'],
+    kcal: 52, protein: 0.3, carbs: 13.8, fat: 0.2, fiber: 2.4, serving_basis: '100g' },
+  { id: 'st-orange', name: 'Orange', category: 'Fruits',
+    regions: ['uk-ie', 'us', 'worldwide'],
+    kcal: 47, protein: 0.9, carbs: 11.8, fat: 0.1, fiber: 2.4, serving_basis: '100g' },
+  { id: 'st-blueberries', name: 'Blueberries', category: 'Fruits',
+    regions: ['uk-ie', 'us', 'worldwide'],
+    kcal: 57, protein: 0.7, carbs: 14.5, fat: 0.3, fiber: 2.4, serving_basis: '100g' },
+  { id: 'st-raspberries', name: 'Raspberries', category: 'Fruits',
+    regions: ['uk-ie', 'us', 'worldwide'],
+    kcal: 52, protein: 1.2, carbs: 11.9, fat: 0.7, fiber: 6.5, serving_basis: '100g' },
+  { id: 'st-strawberries', name: 'Strawberries', category: 'Fruits',
+    regions: ['uk-ie', 'us', 'worldwide'],
+    kcal: 32, protein: 0.7, carbs: 7.7, fat: 0.3, fiber: 2, serving_basis: '100g' },
+  { id: 'st-grapes', name: 'Grapes', category: 'Fruits',
+    regions: ['uk-ie', 'us', 'europe', 'worldwide'],
+    kcal: 67, protein: 0.6, carbs: 17, fat: 0.4, fiber: 0.9, serving_basis: '100g' },
+  { id: 'st-mango', name: 'Mango', category: 'Fruits',
+    regions: ['uk-ie', 'us', 'worldwide'],
+    kcal: 60, protein: 0.8, carbs: 15, fat: 0.4, fiber: 1.6, serving_basis: '100g' },
+  { id: 'st-strawberry', name: 'Strawberry', category: 'Fruits',
+    regions: ['uk-ie', 'us', 'europe', 'worldwide'],
+    kcal: 32, protein: 0.7, carbs: 7.7, fat: 0.3, fiber: 2, serving_basis: '100g' },
+
+  // -------- DAIRY / DRINKS --------
+  { id: 'st-milk-whole', name: 'Whole milk', category: 'Milk & Milk Alternatives',
+    regions: ['uk-ie', 'us', 'europe', 'worldwide'],
+    kcal: 61, protein: 3.2, carbs: 4.8, fat: 3.3, fiber: 0, serving_basis: '100ml' },
+  { id: 'st-milk-semi-skimmed', name: 'Semi-skimmed milk', category: 'Milk & Milk Alternatives',
+    regions: ['uk-ie', 'europe', 'worldwide'],
+    kcal: 46, protein: 3.4, carbs: 4.8, fat: 1.8, fiber: 0, serving_basis: '100ml',
+    aliases: ['low fat milk', '1% milk', '2% milk'] },
+  { id: 'st-oat-milk', name: 'Oat milk, unsweetened', category: 'Milk & Milk Alternatives',
+    regions: ['uk-ie', 'europe', 'worldwide'],
+    kcal: 45, protein: 0.8, carbs: 6.5, fat: 1.5, fiber: 0.8, serving_basis: '100ml' },
+  { id: 'st-almond-milk', name: 'Almond milk, unsweetened', category: 'Milk & Milk Alternatives',
+    regions: ['uk-ie', 'us', 'europe', 'worldwide'],
+    kcal: 13, protein: 0.4, carbs: 0.6, fat: 1.1, fiber: 0.2, serving_basis: '100ml' },
+
+  // -------- PANTRY --------
+  { id: 'st-honey', name: 'Honey', category: 'Sweets & Desserts',
+    regions: ['uk-ie', 'us', 'europe', 'worldwide'],
+    kcal: 304, protein: 0.3, carbs: 82.4, fat: 0, fiber: 0.2, serving_basis: '100g' },
+  { id: 'st-peanut-butter-crunchy', name: 'Peanut butter, crunchy', category: 'Nuts & Seeds',
+    regions: ['uk-ie', 'us', 'worldwide'],
+    kcal: 588, protein: 25, carbs: 20, fat: 50, fiber: 6, serving_basis: '100g' },
+  { id: 'st-tomato-puree', name: 'Tomato puree', category: 'Condiments & Sauces',
+    regions: ['uk-ie', 'europe', 'worldwide'],
+    kcal: 38, protein: 1.6, carbs: 7.2, fat: 0.2, fiber: 1.5, serving_basis: '100g',
+    aliases: ['tomato paste'] },
+  { id: 'st-soya-sauce', name: 'Soy sauce', category: 'Condiments & Sauces',
+    regions: ['uk-ie', 'us', 'europe', 'worldwide'],
+    kcal: 53, protein: 8.1, carbs: 4.9, fat: 0.6, fiber: 0.8, serving_basis: '100ml',
+    aliases: ['soy sauce'] },
+
+  // -------- UK-SPECIFIC --------
+  { id: 'st-baked-beans-heinz', name: 'Baked beans (Heinz), in tomato sauce', category: 'Legumes & Beans',
+    regions: ['uk-ie', 'worldwide'],
+    kcal: 78, protein: 4.7, carbs: 12.5, fat: 0.4, fiber: 3.5, serving_basis: '100g' },
+  { id: 'st-tea-bag', name: 'Black tea, brewed', category: 'Beverages',
+    regions: ['uk-ie', 'europe', 'worldwide'],
+    kcal: 1, protein: 0, carbs: 0.3, fat: 0, fiber: 0, serving_basis: '100ml' },
+  { id: 'st-weetabix', name: 'Weetabix, dry', category: 'Breakfast Foods',
+    regions: ['uk-ie', 'worldwide'],
+    kcal: 362, protein: 12, carbs: 75, fat: 2.5, fiber: 10, serving_basis: '100g',
+    aliases: ['wheat biscuits'] },
+  { id: 'st-marmite', name: 'Marmite, yeast extract', category: 'Condiments & Sauces',
+    regions: ['uk-ie', 'worldwide'],
+    kcal: 250, protein: 25, carbs: 28, fat: 0.5, fiber: 0, serving_basis: '100g' },
+  { id: 'st-yorkshire-tea-cake', name: 'Tea (Yorkshire tea, brewed)', category: 'Beverages',
+    regions: ['uk-ie', 'worldwide'],
+    kcal: 1, protein: 0, carbs: 0.3, fat: 0, fiber: 0, serving_basis: '100ml',
+    aliases: ['builders tea'] },
+  { id: 'st-hp-sauce', name: 'HP sauce, brown', category: 'Condiments & Sauces',
+    regions: ['uk-ie', 'europe', 'worldwide'],
+    kcal: 110, protein: 1, carbs: 23, fat: 0, fiber: 0.3, serving_basis: '100g',
+    aliases: ['brown sauce'] },
+  { id: 'st-malted-bread', name: 'Malted bread, sliced', category: 'Bread & Bakery',
+    regions: ['uk-ie', 'worldwide'],
+    kcal: 260, protein: 9, carbs: 49, fat: 2, fiber: 5, serving_basis: '100g' },
+
+  // -------- US-SPECIFIC --------
+  { id: 'st-peanut-butter-jif', name: 'Peanut butter (Jif), creamy', category: 'Nuts & Seeds',
+    regions: ['us', 'worldwide'],
+    kcal: 588, protein: 22, carbs: 22, fat: 50, fiber: 5, serving_basis: '100g' },
+  { id: 'st-ranch-dressing', name: 'Ranch dressing', category: 'Condiments & Sauces',
+    regions: ['us', 'worldwide'],
+    kcal: 484, protein: 0.8, carbs: 5.5, fat: 51, fiber: 0, serving_basis: '100g' },
+
+  // -------- SNACKS / BREAKFAST --------
+  { id: 'st-honey-nut-cheerios', name: 'Honey Nut Cheerios', category: 'Breakfast Foods',
+    regions: ['us', 'worldwide'],
+    kcal: 379, protein: 8, carbs: 80, fat: 4, fiber: 7, serving_basis: '100g' },
+  { id: 'st-banana-bread', name: 'Banana bread', category: 'Snacks',
+    regions: ['uk-ie', 'us', 'worldwide'],
+    kcal: 326, protein: 5, carbs: 50, fat: 11, fiber: 1.5, serving_basis: '100g' },
+  { id: 'st-popcorn-air-popped', name: 'Popcorn, air-popped', category: 'Snacks',
+    regions: ['uk-ie', 'us', 'worldwide'],
+    kcal: 387, protein: 13, carbs: 78, fat: 4, fiber: 15, serving_basis: '100g' },
+  { id: 'st-dark-chocolate-70', name: 'Dark chocolate, 70% cocoa', category: 'Sweets & Desserts',
+    regions: ['uk-ie', 'us', 'europe', 'worldwide'],
+    kcal: 598, protein: 7.8, carbs: 45.9, fat: 42.6, fiber: 10.9, serving_basis: '100g' },
+  { id: 'st-hummus', name: 'Hummus', category: 'Legumes & Beans',
+    regions: ['uk-ie', 'europe', 'worldwide'],
+    kcal: 166, protein: 8, carbs: 14, fat: 10, fiber: 6, serving_basis: '100g' },
+];
+
+// Re-shape for the upsert payload.
+const ROWS = STAPLES.map((s) => ({
+  id: s.id,
+  name: s.name,
+  category: s.category,
+  regions: s.regions,
+  kcal: s.kcal,
+  protein: s.protein,
+  carbs: s.carbs,
+  fat: s.fat,
+  fiber: s.fiber,
+  serving_basis: s.serving_basis,
+  standard_serving_label: s.standard_serving_label ?? null,
+  aliases: s.aliases ?? [],
+}));
+
+async function main() {
+  console.log(`Upserting ${ROWS.length} staple foods into foods_staples...`);
+
+  // POST with Prefer: resolution=merge-duplicates so the PK upserts.
+  const BATCH = 100;
+  for (let i = 0; i < ROWS.length; i += BATCH) {
+    const slice = ROWS.slice(i, i + BATCH);
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/foods_staples`, {
+      method: 'POST',
+      headers: {
+        apikey: KEY,
+        Authorization: `Bearer ${KEY}`,
+        'Content-Type': 'application/json',
+        Prefer: 'resolution=merge-duplicates',
+      },
+      body: JSON.stringify(slice),
+    });
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(`upsert failed: ${res.status} ${body}`);
+    }
+    console.log(`  …${Math.min(i + BATCH, ROWS.length)} / ${ROWS.length}`);
+  }
+  console.log('Done.');
+}
+
+main().catch((err) => {
+  console.error('Fatal:', err);
+  process.exit(1);
+});
