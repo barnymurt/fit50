@@ -79,9 +79,9 @@ as $$
             else 0.0
           end
         + case
-            when coalesce(f.tier, 2) = 1 and (p_region is null or p_region = 'worldwide' or p_region = any(f.regions)) then 0.6
-            when coalesce(f.tier, 2) = 2 and (p_region is null or p_region = 'worldwide' or p_region = any(f.regions)) then 0.3
-            when coalesce(f.tier, 2) = 3 and (p_region is null or p_region = 'worldwide' or p_region = any(f.regions)) then 0.0
+            when coalesce(f.tier, 2) = 1 and (p_region is null or p_region in ('worldwide', 'all') or p_region = any(f.regions)) then 0.6
+            when coalesce(f.tier, 2) = 2 and (p_region is null or p_region in ('worldwide', 'all') or p_region = any(f.regions)) then 0.3
+            when coalesce(f.tier, 2) = 3 and (p_region is null or p_region in ('worldwide', 'all') or p_region = any(f.regions)) then 0.0
             else 0.0
           end
         + case

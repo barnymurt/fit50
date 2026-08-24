@@ -138,9 +138,9 @@ as $$
             else 0.0
           end
         + case
-            when f.tier = 1 and (p_region is null or p_region = 'worldwide' or p_region = any(f.regions)) then 0.6
-            when f.tier = 2 and (p_region is null or p_region = 'worldwide' or p_region = any(f.regions)) then 0.3
-            when f.tier = 3 and (p_region is null or p_region = 'worldwide' or p_region = any(f.regions)) then 0.0
+            when f.tier = 1 and (p_region is null or p_region in ('worldwide', 'all') or p_region = any(f.regions)) then 0.6
+            when f.tier = 2 and (p_region is null or p_region in ('worldwide', 'all') or p_region = any(f.regions)) then 0.3
+            when f.tier = 3 and (p_region is null or p_region in ('worldwide', 'all') or p_region = any(f.regions)) then 0.0
             else 0.0
           end
         + case

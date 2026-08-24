@@ -36,12 +36,13 @@ export default function FoodSearch({ favorites, onPickFood, recentlyLoggedFoods 
   const [category, setCategory] = useState('all');
   const [subcategory, setSubcategory] = useState('all');
   // Region defaults to UK & Ireland on first load. Persists to
-  // localStorage so the user only picks once.
+  // localStorage so the user only picks once. "All regions" is
+  // available too — same as "Worldwide" but the clearer label.
   const [region, setRegion] = useState<Region>(() => {
     if (typeof window === 'undefined') return 'uk-ie';
     const stored = window.localStorage.getItem(REGION_KEY);
-    if (stored === 'uk-ie' || stored === 'us' || stored === 'europe' || stored === 'worldwide') {
-      return stored;
+    if (stored && (stored as Region) in REGION_LABELS) {
+      return stored as Region;
     }
     return 'uk-ie';
   });

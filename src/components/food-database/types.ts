@@ -27,9 +27,10 @@ export type FoodCategory =
   | 'Beverages'
   | 'Protein Foods';
 
-export type Region = 'uk-ie' | 'us' | 'europe' | 'worldwide';
+export type Region = 'all' | 'uk-ie' | 'us' | 'europe' | 'worldwide';
 
 export const REGION_LABELS: Record<Region, string> = {
+  all: 'All regions',
   'uk-ie': 'UK & Ireland',
   us: 'United States',
   europe: 'Europe (other)',
@@ -37,7 +38,11 @@ export const REGION_LABELS: Record<Region, string> = {
 };
 
 // OFF's countries_tags array entries we filter on for each region.
+// 'all' and 'worldwide' both mean "no region constraint" so the
+// user sees the whole corpus regardless of where the item is
+// tagged.
 export const REGION_TAGS: Record<Region, string[]> = {
+  all: [],
   'uk-ie': ['en:united-kingdom', 'en:ireland'],
   us: ['en:united-states'],
   europe: [

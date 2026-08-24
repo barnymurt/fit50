@@ -35,6 +35,18 @@ interface SearchOptions {
 // the user types one, we expand the search to include the others so
 // a UK user looking for "yoghurt" finds the same rows that an Irish
 // entry might call "yogurt", and vice versa.
+// 'all' is the user-facing label for the no-region filter; the
+// RPC also accepts 'worldwide' as a no-region sentinel.
+function regionMatchesFilter(
+  itemRegions: string[] | null,
+  filterRegion: string | null
+): boolean {
+  if (!filterRegion || filterRegion === 'all' || filterRegion === 'worldwide') {
+    return true;
+  }
+  if (!itemRegions || itemRegions.length === 0) return false;
+  return itemRegions.includes(filterRegion);
+}
 const ALIASES: Record<string, string[]> = {
   yogurt: ['yogurt', 'yoghurt', 'yogourt'],
   yoghurt: ['yogurt', 'yoghurt', 'yogourt'],
@@ -205,15 +217,14 @@ export async function searchFoodsRemote(
 
   const trimmed = query.trim();
 
-  // Region filter: limit to rows that have at least one of the
-  // region's countries in their countries_tags array. "Worldwide"
-  // (empty tag list) means no region filter. "Europe (other)"
-  // includes UK+IE so UK staples still show when the user picks
-  // the broader Europe bucket.
-  if (region && region !== 'worldwide') {
+  // Region filter: limit to rows whose `regions` array contains
+  // the selected region. 'all' and 'worldwide' both skip this filter
+  // — every row is eligible. 'all' is the user-facing default;
+  // 'worldwide' is kept for backwards-compat with the older API.
+  if (region && region !== 'all' && region !== 'worldwide') {
     const tags = REGION_TAGS[region];
     if (tags.length > 0) {
-      q = q.overlaps('countries_tags', tags);
+      q = q.overlaps('regions', tags);
     }
   }
 
