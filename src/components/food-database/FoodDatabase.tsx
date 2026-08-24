@@ -446,55 +446,75 @@ export default function FoodDatabase({ targets }: Props) {
             })}
           </ul>
 
-          {/* Save today's meal as a bundle. Visible when at least
-              two items were logged with a meal slot set. We pull the
-              distinct food_id list with the most recent portion. */}
-          {todayEntries.some((e) => e.meal) && (
-            <div className="px-6 py-3 border-t border-ink/10">
-              {!showSaveBundle ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowSaveBundle(true);
-                    setBundleName('');
-                  }}
-                  className="font-body text-caption uppercase tracking-widest text-coral hover:text-coral/85 transition-colors"
-                >
-                  + Save today's meal as a bundle
-                </button>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <input
-                    autoFocus
-                    value={bundleName}
-                    onChange={(e) => setBundleName(e.target.value)}
-                    placeholder="e.g. Breakfast"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleSaveBundle();
-                      if (e.key === 'Escape') setShowSaveBundle(false);
+          {/* Save today's items as a meal bundle. Shown as soon as
+              the user has 2+ entries today. The handler only bundles
+              items that have a meal slot assigned; if none of them do
+              it asks the user to set a meal slot first. */}
+          {(() => {
+            const withMeal = todayEntries.filter((e) => e.meal);
+            const enough = todayEntries.length >= 2;
+            if (!enough) return null;
+            return (
+              <div className="px-6 py-3 border-t border-ink/10 space-y-2">
+                {!showSaveBundle ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowSaveBundle(true);
+                      setBundleName('');
                     }}
-                    className="flex-1 px-3 py-2 bg-paper border-2 border-ink/30 text-ink font-body focus:border-coral outline-none"
-                    aria-label="Bundle name"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleSaveBundle}
-                    disabled={!bundleName.trim()}
-                    className="bg-ink text-paper font-body text-caption uppercase tracking-widest px-3 py-2 hover:bg-ink/85 transition-colors disabled:opacity-40"
+                    className="font-body text-caption uppercase tracking-widest text-coral hover:text-coral/85 transition-colors"
                   >
-                    Save bundle
+                    + Save today's items as a meal bundle
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowSaveBundle(false)}
-                    className="font-body text-caption uppercase text-ink/60 hover:text-ink px-2 py-2 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
+                ) : withMeal.length < 2 ? (
+                  <div className="space-y-2">
+                    <p className="font-body text-caption text-ink/60">
+                      Set a meal slot (breakfast / lunch / dinner / snack) on at
+                      least two of the items you logged today, then save the bundle.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setShowSaveBundle(false)}
+                      className="font-body text-caption uppercase text-ink/60 hover:text-ink transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <input
+                      autoFocus
+                      value={bundleName}
+                      onChange={(e) => setBundleName(e.target.value)}
+                      placeholder="e.g. Breakfast"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleSaveBundle();
+                        if (e.key === 'Escape') setShowSaveBundle(false);
+                      }}
+                      className="flex-1 px-3 py-2 bg-paper border-2 border-ink/30 text-ink font-body focus:border-coral outline-none"
+                      aria-label="Bundle name"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleSaveBundle}
+                      disabled={!bundleName.trim()}
+                      className="bg-ink text-paper font-body text-caption uppercase tracking-widest px-3 py-2 hover:bg-ink/85 transition-colors disabled:opacity-40"
+                    >
+                      Save bundle
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowSaveBundle(false)}
+                      className="font-body text-caption uppercase text-ink/60 hover:text-ink px-2 py-2 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </div>
       )}
 
