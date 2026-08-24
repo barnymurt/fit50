@@ -56,8 +56,7 @@ const ALIASES: Record<string, string[]> = {
   crisp: ['crisp', 'chip'],
   chips: ['chips', 'crisp'],
   fries: ['fries', 'chips'],
-  mince: ['mince', 'ground beef'],
-  'ground beef': ['ground beef', 'mince'],
+  'ground beef': ['ground beef', 'mince', 'ground meat'],
   sorbet: ['sorbet', 'sherbet'],
   sherbet: ['sherbet', 'sorbet'],
   // Pulses
@@ -65,6 +64,52 @@ const ALIASES: Record<string, string[]> = {
   garbanzo: ['garbanzo', 'chickpea'],
   // Pulses / beans
   'baked bean': ['baked bean', 'baked beans'],
+  // Common UK/US mismatches the user types but our corpus uses
+  // the other spelling. Expanded from the original set to cover
+  // most of the staples list. Each group keeps the first listed
+  // token as the canonical one for the search trigger.
+  bacon: ['bacon', 'streaky bacon', 'back bacon'],
+  prawns: ['prawns', 'shrimp', 'king prawns'],
+  shrimp: ['prawns', 'shrimp'],
+  turkey: ['turkey', 'turkey breast'],
+  pasta: ['pasta', 'noodles', 'spaghetti'],
+  noodles: ['noodles', 'pasta'],
+  baguette: ['baguette', 'french bread', 'stick'],
+  'french stick': ['baguette', 'french bread'],
+  digestive: ['digestive', 'digestive biscuit'],
+  sultana: ['sultana', 'golden raisin'],
+  'golden raisin': ['golden raisin', 'sultana'],
+  'red pepper': ['red pepper', 'bell pepper', 'capsicum'],
+  'green pepper': ['green pepper', 'bell pepper', 'capsicum'],
+  'yellow pepper': ['yellow pepper', 'bell pepper', 'capsicum'],
+  'coriander leaf': ['coriander leaf', 'cilantro', 'fresh coriander'],
+  'fresh coriander': ['coriander leaf', 'cilantro'],
+  scallions: ['scallion', 'spring onion', 'green onion'],
+  'spring onions': ['spring onion', 'scallion', 'green onion'],
+  zucchinis: ['zucchini', 'courgette'],
+  'whole wheat': ['whole wheat', 'wholemeal'],
+  wholemeal: ['wholemeal', 'whole wheat', 'brown bread'],
+  'brown bread': ['brown bread', 'wholemeal'],
+  'granary bread': ['granary bread', 'multigrain bread'],
+  'soured cream': ['soured cream', 'sour cream'],
+  'sour cream': ['sour cream', 'soured cream'],
+  'plain flour': ['plain flour', 'all-purpose flour'],
+  'all-purpose flour': ['all-purpose flour', 'plain flour'],
+  'caster sugar': ['caster sugar', 'superfine sugar'],
+  'superfine sugar': ['superfine sugar', 'caster sugar'],
+  'icing sugar': ['icing sugar', 'powdered sugar', 'confectioners sugar'],
+  'powdered sugar': ['powdered sugar', 'icing sugar'],
+  'confectioners sugar': ['confectioners sugar', 'powdered sugar'],
+  'double cream': ['double cream', 'heavy cream'],
+  'heavy cream': ['heavy cream', 'double cream'],
+  'single cream': ['single cream', 'light cream'],
+  'light cream': ['light cream', 'single cream'],
+  'golden syrup': ['golden syrup', 'light treacle'],
+  'treacle': ['treacle', 'molasses'],
+  'golden raisins': ['golden raisins', 'sultanas'],
+  'mangetout': ['mangetout', 'snow peas', 'sugar snap peas'],
+  'snow peas': ['snow peas', 'mangetout'],
+  'sugar snap peas': ['sugar snap peas', 'mangetout', 'snow peas'],
 };
 
 /**
@@ -89,7 +134,9 @@ function buildAliasExpandedTsQuery(input: string): string {
 }
 
 const FOOD_COLS =
-  'id, name, category, subcategory, preparation, state, type, kcal, protein, carbs, fat, fiber, serving_basis, standard_serving_grams, standard_serving_label, aliases';
+  'id, name, category, subcategory, preparation, state, type, kcal, protein, carbs, fat, fiber, serving_basis, standard_serving_grams, standard_serving_label, aliases, brand, regions, language, tier';
+
+const RANKED_COLS = `${FOOD_COLS}, score`;
 
 function rowToFood(row: Record<string, unknown>): Food {
   return {
@@ -238,6 +285,139 @@ export async function searchFoodsRemote(
     count: count ?? null,
     aliases: expandedAliases.length > 0 ? expandedAliases : undefined,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Ranked food search. Calls the `search_foods` RPC that does the
+// blended ts_rank + trigram similarity + tier/region/favourite/
+// recent boosts, with tier-3 hidden unless `showBranded` is true.
+// All the ranking lives in SQL; the client just renders what comes
+// back. Returns the top `limit` rows plus the `score` column so the
+// UI can show a "top match" badge if it wants to.
+// ---------------------------------------------------------------------------
+
+export interface RankedFood extends Food {
+  brand: string | null;
+  regions: string[] | null;
+  language: string | null;
+  tier: number | null;
+  score: number;
+}
+
+export interface RankedOptions {
+  query: string;
+  userId?: string | null;
+  region?: string | null;
+  language?: string;
+  category?: string | null;
+  subcategory?: string | null;
+  limit?: number;
+  showBranded?: boolean;
+}
+
+export async function searchFoodsRanked(
+  options: RankedOptions
+): Promise<{ foods: RankedFood[]; aliases: string[] }> {
+  const supabase = createClient();
+  if (!supabase) return { foods: [], aliases: [] };
+
+  const {
+    query,
+    userId = null,
+    region = null,
+    language = 'en',
+    category = null,
+    subcategory = null,
+    limit = 30,
+    showBranded = false,
+  } = options;
+
+  // Track which aliases fired so the UI can show the "Also searched"
+  // hint. We pick the first token's variants (excluding the token
+  // itself).
+  const trimmed = query.trim();
+  const firstToken = trimmed
+    .toLowerCase()
+    .split(/\s+/)[0]
+    ?.replace(/[^a-zA-Z0-9]/g, '') ?? '';
+  const aliases =
+    firstToken && ALIASES[firstToken]
+      ? ALIASES[firstToken].filter((v) => v !== firstToken)
+      : [];
+
+  const { data, error } = await supabase.rpc('search_foods', {
+    p_query: trimmed,
+    p_user_id: userId,
+    p_region: region,
+    p_language: language,
+    p_category: category,
+    p_subcategory: subcategory,
+    p_limit: limit,
+    p_show_branded: showBranded,
+  });
+
+  if (error) {
+    console.error('search_foods RPC failed:', error);
+    return { foods: [], aliases };
+  }
+  const rows = (data ?? []) as Array<Record<string, unknown>>;
+  const foods: RankedFood[] = rows.map((r) => {
+    const food = rowToFood(r);
+    return {
+      ...food,
+      brand: (r.brand as string | null) ?? null,
+      regions: (r.regions as string[] | null) ?? null,
+      language: (r.language as string | null) ?? null,
+      tier: (r.tier as number | null) ?? null,
+      score: Number(r.score ?? 0),
+    };
+  });
+  return { foods, aliases };
+}
+
+// ---------------------------------------------------------------------------
+// "Did you mean" suggestion strip. When the ranked search returns 0
+// rows we still want the user to feel like the corpus can answer
+// their question. Run a trigram-only query and return the top 5
+// closest matches by name similarity.
+// ---------------------------------------------------------------------------
+
+export async function searchFoodsSuggestions(
+  query: string,
+  limit: number = 5
+): Promise<RankedFood[]> {
+  const supabase = createClient();
+  if (!supabase) return [];
+  const trimmed = query.trim();
+  if (!trimmed) return [];
+  // Use the same RPC but with showBranded = true and a permissive
+  // setup so tier 3 also surfaces (helps with brand-name typos).
+  // The RPC already handles the trigram floor.
+  const { data, error } = await supabase.rpc('search_foods', {
+    p_query: trimmed,
+    p_user_id: null,
+    p_region: null,
+    p_language: 'en',
+    p_category: null,
+    p_subcategory: null,
+    p_limit: limit,
+    p_show_branded: true,
+  });
+  if (error) {
+    console.error('search_foods suggestions failed:', error);
+    return [];
+  }
+  return ((data ?? []) as Array<Record<string, unknown>>).map((r) => {
+    const food = rowToFood(r);
+    return {
+      ...food,
+      brand: (r.brand as string | null) ?? null,
+      regions: (r.regions as string[] | null) ?? null,
+      language: (r.language as string | null) ?? null,
+      tier: (r.tier as number | null) ?? null,
+      score: Number(r.score ?? 0),
+    };
+  });
 }
 
 // ---------------------------------------------------------------------------
