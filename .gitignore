@@ -40,3 +40,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local data dumps (12MB+ foods.json)
+foods.json
+foods_staples.json
