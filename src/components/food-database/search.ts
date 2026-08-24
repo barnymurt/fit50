@@ -59,6 +59,11 @@ const ALIASES: Record<string, string[]> = {
   'ground beef': ['ground beef', 'mince', 'ground meat'],
   sorbet: ['sorbet', 'sherbet'],
   sherbet: ['sherbet', 'sorbet'],
+  // Singular variants so "boiled egg" or "egg" alone expands to
+  // the full egg family. The plural "eggs" key already exists.
+  egg: ['eggs', 'boiled egg', 'fried egg', 'scrambled eggs', 'omelette', 'scrambled egg', 'poached egg', 'egg white', 'egg yolk', 'whole egg', 'boiled eggs', 'fried eggs', 'poached eggs'],
+  boiled: ['boiled egg', 'soft boiled egg', 'hard boiled egg', 'soft-boiled', 'hard-boiled'],
+  poached: ['poached egg', 'soft poached egg'],
   // Pulses
   chickpea: ['chickpea', 'garbanzo'],
   garbanzo: ['garbanzo', 'chickpea'],
