@@ -52,13 +52,21 @@ $$ language plpgsql;
 -- Force-update existing rows so the new columns flow into the
 -- tsvector (only updates the four we already have data for:
 -- brand defaults to null, regions defaults to a safe set, etc.).
--- Cheap: only refreshes ~40k rows. The trigger will only re-build
--- the tsvector for rows whose values actually changed, so this is
--- a no-op for the OFF seed (no brand populated).
+-- Refresh search_text for existing rows so the new brand column
+-- flows into the tsvector. Inlining the expression because
+-- foods_set_search_text is a TRIGGER function (not callable as a
+-- regular function). Cheap: ~40k rows, single to_tsvector per row.
+-- The OFF seed has no brand populated so this is mostly a no-op
+-- for existing data; the corpus loader fills brand / regions /
+-- language / tier properly when it runs.
 update public.foods
-   set search_text = foods_set_search_text().search_text
- where search_text is null
-    or true;  -- safe: re-runs on every row but the underlying to_tsvector is fast
+   set search_text =
+       setweight(to_tsvector('simple', coalesce(name, '')), 'A') ||
+       setweight(to_tsvector('simple', coalesce(array_to_string(aliases, ' '), '')), 'A') ||
+       setweight(to_tsvector('simple', coalesce(brand, '')), 'B') ||
+       setweight(to_tsvector('simple', coalesce(category, '')), 'B') ||
+       setweight(to_tsvector('simple', coalesce(subcategory, '')), 'C')
+ where true;
 
 -- Tier-aware ranked search. Browse mode (empty query) is curated-
 -- only by default; tier 3 hides unless the caller passes
