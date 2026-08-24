@@ -49,9 +49,6 @@ begin
 end;
 $$ language plpgsql;
 
--- Force-update existing rows so the new columns flow into the
--- tsvector (only updates the four we already have data for:
--- brand defaults to null, regions defaults to a safe set, etc.).
 -- Refresh search_text for existing rows so the new brand column
 -- flows into the tsvector. Inlining the expression because
 -- foods_set_search_text is a TRIGGER function (not callable as a
@@ -124,8 +121,6 @@ as $$
       f.brand, f.regions, f.language, f.tier,
       case
         when p_query is null or p_query = '' then
-          -- browse mode: only show staples + curated unless branded
-          -- is explicitly enabled
           case
             when f.tier = 1 then 1.0
             when f.tier = 2 then 0.5
