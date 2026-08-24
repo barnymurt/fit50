@@ -168,6 +168,73 @@ export function useMealBundles() {
     []
   );
 
+  // Update a bundle in place: rename it and/or replace its items.
+  // Replaces the items in one transaction by deleting the old ones
+  // and inserting the new set. We update the local state to match.
+  const updateBundle = useCallback(
+    async (
+      id: string,
+      name: string,
+      items: { food_id: string; portion_grams: number }[]
+    ): Promise<{ ok: boolean; error?: string }> => {
+      if (!user) return { ok: false, error: 'Not signed in.' };
+      const supabase = createClient();
+      if (!supabase) return { ok: false, error: 'Database is not configured.' };
+      if (!name.trim() || items.length === 0) {
+        return { ok: false, error: 'Bundle needs a name and at least one item.' };
+      }
+      const trimmed = name.trim();
+      const { error: nameErr } = await supabase
+        .from('meal_bundles')
+        .update({ name: trimmed })
+        .eq('id', id)
+        .eq('user_id', user.id);
+      if (nameErr) {
+        console.error('useMealBundles: rename failed', nameErr);
+        return { ok: false, error: nameErr.message };
+      }
+      // Replace the items set: delete existing, insert new.
+      const { error: delErr } = await supabase
+        .from('meal_bundle_items')
+        .delete()
+        .eq('bundle_id', id);
+      if (delErr) {
+        console.error('useMealBundles: items clear failed', delErr);
+        return { ok: false, error: delErr.message };
+      }
+      const itemRows = items.map((it, idx) => ({
+        bundle_id: id,
+        food_id: it.food_id,
+        portion_grams: it.portion_grams,
+        position: idx,
+      }));
+      const { error: insErr } = await supabase
+        .from('meal_bundle_items')
+        .insert(itemRows);
+      if (insErr) {
+        console.error('useMealBundles: items insert failed', insErr);
+        return { ok: false, error: insErr.message };
+      }
+      setBundles((prev) =>
+        prev.map((b) =>
+          b.id === id
+            ? {
+                ...b,
+                name: trimmed,
+                items: items.map((it, idx) => ({
+                  food_id: it.food_id,
+                  portion_grams: it.portion_grams,
+                  position: idx,
+                })),
+              }
+            : b
+        )
+      );
+      return { ok: true };
+    },
+    [user]
+  );
+
   // Delete a bundle.
   const deleteBundle = useCallback(
     async (id: string) => {
@@ -183,6 +250,7 @@ export function useMealBundles() {
     bundles,
     hydrated: bundlesLoaded,
     createBundle,
+    updateBundle,
     touchBundle,
     deleteBundle,
   };

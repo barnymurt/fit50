@@ -137,6 +137,35 @@ export function useFoodLog() {
     [user, supabase, refetch]
   );
 
+  // Patch a logged entry. Used for "change the meal slot after I
+  // logged this" and any future per-entry edits. Optimistic local
+  // update so the row reflects the new value immediately.
+  const updateEntry = useCallback(
+    async (
+      id: string,
+      patch: Partial<
+        Pick<FoodLogEntry, 'grams' | 'meal' | 'kcal' | 'protein' | 'carbs' | 'fat' | 'fiber'>
+      >
+    ): Promise<{ ok: boolean; error?: string }> => {
+      if (!user) return { ok: false, error: 'Not signed in.' };
+      if (!supabase) return { ok: false, error: 'Database is not configured.' };
+      const { error } = await supabase
+        .from('food_log')
+        .update(patch)
+        .eq('id', id)
+        .eq('user_id', user.id);
+      if (error) {
+        console.error('Failed to update food log entry:', error);
+        return { ok: false, error: error.message };
+      }
+      setEntries((prev) =>
+        prev.map((e) => (e.id === id ? { ...e, ...patch } : e))
+      );
+      return { ok: true };
+    },
+    [user, supabase]
+  );
+
   const todayEntries = useMemo(
     () => entries.filter((e) => e.day_key === today),
     [entries, today]
@@ -163,6 +192,7 @@ export function useFoodLog() {
     loaded,
     addEntry,
     removeEntry,
+    updateEntry,
     refetch,
   };
 }
