@@ -126,6 +126,31 @@ export default function Timer({
     return audioCtxRef.current;
   }, []);
 
+  // A one-shot MP3 that fires at the 10-second mark. Lazy-instantiated
+  // on first user gesture (handleStart) and reused per run. The
+  // browser unlocks <audio> autoplay after the first interaction, so
+  // creating it inside a user-driven handler is what makes the
+  // mid-timer play actually work without a fresh prompt.
+  const goatAudioRef = useRef<HTMLAudioElement | null>(null);
+  // Per-run latch so the goat only screams once per countdown.
+  const goatPlayedRef = useRef(false);
+  const playGoatScream = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    if (!goatAudioRef.current) {
+      const el = new Audio('/sounds/ten-seconds-left.mp3');
+      el.preload = 'auto';
+      el.volume = 0.9;
+      goatAudioRef.current = el;
+    }
+    const el = goatAudioRef.current;
+    el.currentTime = 0;
+    el.play().catch(() => {
+      // User hasn't interacted with the page yet, or the tab is
+      // backgrounded and the browser blocks autoplay. Silently swallow;
+      // the dial beeps will still fire.
+    });
+  }, []);
+
   const playDing = useCallback(() => {
     const ctx = ensureAudio();
     if (!ctx) return;
@@ -170,6 +195,10 @@ export default function Timer({
       const elapsedSec = Math.floor(elapsedMs / 1000);
       const remaining = Math.max(0, totalSeconds - elapsedSec);
       setRemainingSeconds(remaining);
+      if (remaining <= 10 && remaining > 0 && !goatPlayedRef.current) {
+        goatPlayedRef.current = true;
+        playGoatScream();
+      }
       if (remaining <= 0) {
         setIsRunning(false);
         setCompleted(true);
@@ -196,6 +225,10 @@ export default function Timer({
         const elapsedSec = Math.floor(elapsedMs / 1000);
         const remaining = Math.max(0, totalSeconds - elapsedSec);
         setRemainingSeconds(remaining);
+        if (remaining <= 10 && remaining > 0 && !goatPlayedRef.current) {
+          goatPlayedRef.current = true;
+          playGoatScream();
+        }
         if (remaining <= 0 && !completed) {
           setIsRunning(false);
           setCompleted(true);
@@ -220,6 +253,7 @@ export default function Timer({
   const handleStart = useCallback(() => {
     ensureAudio();
     setCompleted(false);
+    goatPlayedRef.current = false; // re-arm the goat for the new run
     startedAtRef.current = Date.now() - (totalSeconds - remainingSeconds) * 1000;
     setIsRunning(true);
     // Acquire the Wake Lock on user gesture so the screen stays on
@@ -238,6 +272,7 @@ export default function Timer({
   const handleReset = useCallback(() => {
     setIsRunning(false);
     setCompleted(false);
+    goatPlayedRef.current = false;
     startedAtRef.current = null;
     setRemainingSeconds(totalSeconds);
     releaseWakeLock();
@@ -246,6 +281,7 @@ export default function Timer({
   const handleSetDuration = useCallback((minutes: number, seconds: number = 0) => {
     setIsRunning(false);
     setCompleted(false);
+    goatPlayedRef.current = false;
     startedAtRef.current = null;
     const total = minutes * 60 + seconds;
     setTotalSeconds(total);
