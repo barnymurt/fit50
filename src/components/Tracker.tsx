@@ -154,10 +154,10 @@ function StartSplash({ hasSession, onStart }: StartSplashProps) {
       </p>
 
       <p className="font-body text-caption uppercase tracking-widest text-ink/50 mt-8">
-        Or prep your kitchen first
+        Or treat your fridge naughty
       </p>
       <a
-        href="/downloads/fit50-fridge-checklist.pdf"
+        href="/api/download/fridge-checklist"
         download="FIT50_Fridge_Checklist.pdf"
         className="inline-flex items-center gap-2 mt-2 font-body text-caption uppercase tracking-widest text-coral hover:text-coral/85 transition-colors"
       >

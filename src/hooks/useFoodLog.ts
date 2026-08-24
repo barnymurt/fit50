@@ -137,6 +137,50 @@ export function useFoodLog() {
     [user, supabase, refetch]
   );
 
+  // Patch a logged entry. Optimistic local update first so the
+  // dropdown reflects the change immediately, then Supabase write.
+  // Roll back on RLS / network errors so the user sees the
+  // failure (the UI shows a toast).
+  const updateEntry = useCallback(
+    async (
+      id: string,
+      patch: Partial<
+        Pick<FoodLogEntry, 'grams' | 'meal' | 'kcal' | 'protein' | 'carbs' | 'fat' | 'fiber'>
+      >
+    ): Promise<{ ok: boolean; error?: string }> => {
+      if (!user) return { ok: false, error: 'Not signed in.' };
+      if (!supabase) return { ok: false, error: 'Database is not configured.' };
+      // Optimistic local update first.
+      let previous: FoodLogEntry | undefined;
+      setEntries((prev) =>
+        prev.map((e) => {
+          if (e.id === id) {
+            previous = e;
+            return { ...e, ...patch };
+          }
+          return e;
+        })
+      );
+      const { error } = await supabase
+        .from('food_log')
+        .update(patch)
+        .eq('id', id)
+        .eq('user_id', user.id);
+      if (error) {
+        console.error('Failed to update food log entry:', error);
+        // Roll back optimistic change.
+        if (previous) {
+          setEntries((prev) =>
+            prev.map((e) => (e.id === id ? previous! : e))
+          );
+        }
+        return { ok: false, error: error.message };
+      }
+      return { ok: true };
+    },
+    [user, supabase]
+  );
+
   const todayEntries = useMemo(
     () => entries.filter((e) => e.day_key === today),
     [entries, today]
@@ -163,6 +207,7 @@ export function useFoodLog() {
     loaded,
     addEntry,
     removeEntry,
+    updateEntry,
     refetch,
   };
 }

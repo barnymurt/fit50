@@ -19,6 +19,8 @@ interface TimerProps {
   onComplete?: () => void;
 }
 
+const SOUND_KEY = 'fit50-timer-sound-enabled';
+
 export default function Timer({
   defaultMinutes = 30,
   label,
@@ -31,7 +33,20 @@ export default function Timer({
   const [remainingSeconds, setRemainingSeconds] = useState(initialTotal);
   const [isRunning, setIsRunning] = useState(false);
   const [completed, setCompleted] = useState(false);
+  // Sound on/off. Persists in localStorage so the user can mute
+  // once and not be jumped at every start. Default: on.
+  const [soundEnabled, setSoundEnabled] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
+    return window.localStorage.getItem(SOUND_KEY) !== '0';
+  });
 
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(SOUND_KEY, soundEnabled ? '1' : '0');
+    } catch {
+      // ignore
+    }
+  }, [soundEnabled]);
   // Timestamp-based timer so the screen going off (and the resulting
   // interval throttling) doesn't lose time. We store the wall-clock
   // start time and the original total duration; remaining = total -
@@ -51,9 +66,69 @@ export default function Timer({
   const onCompleteRef = useRef(onComplete);
   const audioCtxRef = useRef<AudioContext | null>(null);
 
+  // Wake Lock: keeps the screen on while the timer runs so the OS
+  // doesn't suspend our setInterval and mute the alarm. The browser
+  // auto-releases when the tab is hidden, so we re-acquire on
+  // visibilitychange.
+  const wakeLockRef = useRef<WakeLockSentinel | null>(null);
+
+  const requestWakeLock = useCallback(async (): Promise<WakeLockSentinel | null> => {
+    try {
+      const wl = (navigator as Navigator & { wakeLock?: { request: (type: 'screen') => Promise<WakeLockSentinel> } }).wakeLock;
+      if (wl) {
+        return await wl.request('screen');
+      }
+    } catch (err) {
+      // The browser can refuse the lock (low battery, user denied,
+      // insecure context). Not fatal — the timestamp math below
+      // still works without it; we just lose the screen-on guarantee.
+      console.error('Timer: Wake Lock request failed', err);
+    }
+    return null;
+  }, []);
+
+  const releaseWakeLock = useCallback(() => {
+    const lock = wakeLockRef.current;
+    if (lock) {
+      lock.release().catch(() => {
+        // already released
+      });
+      wakeLockRef.current = null;
+    }
+  }, []);
+
   useEffect(() => {
     onCompleteRef.current = onComplete;
   }, [onComplete]);
+
+  // Release the Wake Lock on unmount.
+  useEffect(() => {
+    return () => {
+      releaseWakeLock();
+    };
+  }, [releaseWakeLock]);
+
+  // Re-acquire the Wake Lock when the tab regains visibility.
+  // Browsers auto-release when the document is hidden; we re-grab
+  // so the screen stays on if the user is in the middle of a
+  // session and switches apps briefly.
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (
+        document.visibilityState === 'visible' &&
+        isRunning &&
+        !wakeLockRef.current
+      ) {
+        requestWakeLock().then((lock) => {
+          if (lock) wakeLockRef.current = lock;
+        });
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
+  }, [isRunning, requestWakeLock]);
 
   const ensureAudio = useCallback(() => {
     if (typeof window === 'undefined') return null;
@@ -67,7 +142,34 @@ export default function Timer({
     return audioCtxRef.current;
   }, []);
 
+  // A one-shot MP3 that fires at the 10-second mark. Lazy-instantiated
+  // on first user gesture (handleStart) and reused per run. The
+  // browser unlocks <audio> autoplay after the first interaction, so
+  // creating it inside a user-driven handler is what makes the
+  // mid-timer play actually work without a fresh prompt.
+  const goatAudioRef = useRef<HTMLAudioElement | null>(null);
+  // Per-run latch so the goat only screams once per countdown.
+  const goatPlayedRef = useRef(false);
+  const playGoatScream = useCallback(() => {
+    if (!soundEnabled) return;
+    if (typeof window === 'undefined') return;
+    if (!goatAudioRef.current) {
+      const el = new Audio('/sounds/ten-seconds-left.mp3');
+      el.preload = 'auto';
+      el.volume = 0.9;
+      goatAudioRef.current = el;
+    }
+    const el = goatAudioRef.current;
+    el.currentTime = 0;
+    el.play().catch(() => {
+      // User hasn't interacted with the page yet, or the tab is
+      // backgrounded and the browser blocks autoplay. Silently swallow;
+      // the dial beeps will still fire.
+    });
+  }, [soundEnabled]);
+
   const playDing = useCallback(() => {
+    if (!soundEnabled) return;
     const ctx = ensureAudio();
     if (!ctx) return;
     const now = ctx.currentTime;
@@ -91,7 +193,7 @@ export default function Timer({
       beep(burstStart + 0.3, 880, 0.22);
       beep(burstStart + 0.6, 880, 0.22);
     }
-  }, [ensureAudio]);
+  }, [ensureAudio, soundEnabled]);
 
   // Tick loop. Re-derives remaining time from the wall clock each
   // tick so any interval throttling (mobile screen off, background tab)
@@ -111,6 +213,10 @@ export default function Timer({
       const elapsedSec = Math.floor(elapsedMs / 1000);
       const remaining = Math.max(0, totalSeconds - elapsedSec);
       setRemainingSeconds(remaining);
+      if (remaining <= 10 && remaining > 0 && !goatPlayedRef.current) {
+        goatPlayedRef.current = true;
+        playGoatScream();
+      }
       if (remaining <= 0) {
         setIsRunning(false);
         setCompleted(true);
@@ -125,7 +231,7 @@ export default function Timer({
       if (intervalRef.current) clearInterval(intervalRef.current);
       intervalRef.current = null;
     };
-  }, [isRunning, totalSeconds, playDing]);
+  }, [isRunning, totalSeconds, playDing, playGoatScream]);
 
   // When the tab/window regains focus, recompute immediately so the
   // display snaps back to the right number even if the interval was
@@ -137,6 +243,10 @@ export default function Timer({
         const elapsedSec = Math.floor(elapsedMs / 1000);
         const remaining = Math.max(0, totalSeconds - elapsedSec);
         setRemainingSeconds(remaining);
+        if (remaining <= 10 && remaining > 0 && !goatPlayedRef.current) {
+          goatPlayedRef.current = true;
+          playGoatScream();
+        }
         if (remaining <= 0 && !completed) {
           setIsRunning(false);
           setCompleted(true);
@@ -151,7 +261,7 @@ export default function Timer({
       document.removeEventListener('visibilitychange', onVisibilityChange);
       window.removeEventListener('focus', onVisibilityChange);
     };
-  }, [isRunning, totalSeconds, completed, playDing]);
+  }, [isRunning, totalSeconds, completed, playDing, playGoatScream]);
 
   const hours = Math.floor(remainingSeconds / 3600);
   const minutes = Math.floor((remainingSeconds % 3600) / 60);
@@ -161,22 +271,35 @@ export default function Timer({
   const handleStart = useCallback(() => {
     ensureAudio();
     setCompleted(false);
+    goatPlayedRef.current = false; // re-arm the goat for the new run
     startedAtRef.current = Date.now() - (totalSeconds - remainingSeconds) * 1000;
     setIsRunning(true);
-  }, [ensureAudio, remainingSeconds, totalSeconds]);
+    // Acquire the Wake Lock on user gesture so the screen stays on
+    // for the duration of the timer. Re-acquired automatically on
+    // visibilitychange if the browser auto-released it.
+    requestWakeLock().then((lock) => {
+      if (lock) wakeLockRef.current = lock;
+    });
+  }, [ensureAudio, remainingSeconds, totalSeconds, requestWakeLock]);
 
-  const handlePause = useCallback(() => setIsRunning(false), []);
+  const handlePause = useCallback(() => {
+    setIsRunning(false);
+    releaseWakeLock();
+  }, [releaseWakeLock]);
 
   const handleReset = useCallback(() => {
     setIsRunning(false);
     setCompleted(false);
+    goatPlayedRef.current = false;
     startedAtRef.current = null;
     setRemainingSeconds(totalSeconds);
-  }, [totalSeconds]);
+    releaseWakeLock();
+  }, [totalSeconds, releaseWakeLock]);
 
   const handleSetDuration = useCallback((minutes: number, seconds: number = 0) => {
     setIsRunning(false);
     setCompleted(false);
+    goatPlayedRef.current = false;
     startedAtRef.current = null;
     const total = minutes * 60 + seconds;
     setTotalSeconds(total);
@@ -233,7 +356,7 @@ export default function Timer({
         />
       </div>
 
-      <div className="flex justify-center gap-3 mb-6">
+      <div className="flex justify-center items-center gap-3 mb-6">
         {!isRunning ? (
           <button
             type="button"
@@ -258,6 +381,20 @@ export default function Timer({
           className="border border-ink/30 text-ink font-body text-caption uppercase tracking-widest px-4 py-3 hover:bg-cream/30 transition-colors"
         >
           Reset
+        </button>
+        <button
+          type="button"
+          onClick={() => setSoundEnabled((v) => !v)}
+          aria-pressed={!soundEnabled}
+          aria-label={soundEnabled ? 'Mute workout alarms' : 'Unmute workout alarms'}
+          title={soundEnabled ? 'Mute workout alarms' : 'Unmute workout alarms'}
+          className={`border font-body text-caption uppercase tracking-widest px-3 py-3 transition-colors ${
+            soundEnabled
+              ? 'border-ink/30 text-ink hover:bg-cream/30'
+              : 'border-coral text-coral bg-coral/5'
+          }`}
+        >
+          {soundEnabled ? '🔊 Sound' : '🔇 Muted'}
         </button>
       </div>
 
