@@ -5,6 +5,7 @@ import { Food, Meal, scaleFood, getStandardServing } from './types';
 
 interface Props {
   food: Food;
+  initialGrams?: number | null;
   onAdd: (entry: {
     food_id: string;
     name: string;
@@ -33,12 +34,19 @@ const MEALS: { value: Meal; label: string }[] = [
   { value: 'snack', label: 'Snack' },
 ];
 
-export default function FoodDetail({ food, onAdd, onClose }: Props) {
+export default function FoodDetail({ food, initialGrams, onAdd, onClose }: Props) {
   const standard = getStandardServing(food);
-  const [grams, setGrams] = useState(standard.grams);
+  const [grams, setGrams] = useState(initialGrams ?? standard.grams);
   const [meal, setMeal] = useState<Meal | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Re-seed the grams input when the parent passes a new
+  // initialGrams (e.g. opens a different food, or the part of the
+  // page that previously knew the last-portion updates).
+  useEffect(() => {
+    if (initialGrams != null) setGrams(initialGrams);
+  }, [initialGrams, food.id]);
 
   const scaled = scaleFood(food, grams);
 
@@ -133,10 +141,10 @@ export default function FoodDetail({ food, onAdd, onClose }: Props) {
               <button
                 onClick={() => setGrams(standard.grams)}
                 className={`px-3 py-3 md:py-2 border font-body text-caption uppercase tracking-widest transition-colors ${
-                  grams === standard.grams
-                    ? 'border-coral bg-coral/10 text-coral'
-                    : 'border-ink/20 text-ink/70 hover:border-ink/40'
-                }`}
+                    grams === standard.grams
+                      ? 'border-coral bg-coral/10 text-coral'
+                      : 'border-ink/20 text-ink/70 hover:border-ink/40'
+                  }`}
                 title={standard.label}
               >
                 {standard.label}
