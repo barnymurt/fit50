@@ -44,3 +44,4 @@ next-env.d.ts
 # local data dumps (12MB+ foods.json)
 foods.json
 foods_staples.json
+food-data.json.dump

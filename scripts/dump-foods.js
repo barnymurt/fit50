@@ -31,6 +31,7 @@ function arg(name, fallback) {
 
 const OUT = arg('out', path.join(process.cwd(), 'foods.json'));
 const STAPLES_OUT = arg('staples-out', path.join(process.cwd(), 'foods_staples.json'));
+const LOCAL_OUT = arg('local-out', path.join(process.cwd(), 'food-data.json.dump'));
 const PAGE = 1000;
 
 const COLS =
@@ -86,6 +87,19 @@ async function main() {
   const staples = await fetchAll('foods_staples', '*');
   fs.writeFileSync(STAPLES_OUT, JSON.stringify(staples, null, 2));
   console.log(`  wrote ${staples.length} staples`);
+
+  // The local curated 5K list (UK/IE-style staples + the rest of
+  // the original hand-curated set). Lives in the repo as a
+  // static asset, not in Supabase. Copy it out so the user has
+  // a single place to grab all three tiers.
+  const localPath = path.join(
+    process.cwd(),
+    'src/components/food-database/food-data.json'
+  );
+  console.log(`Dumping local food-data.json -> ${LOCAL_OUT}`);
+  fs.copyFileSync(localPath, LOCAL_OUT);
+  const local = JSON.parse(fs.readFileSync(localPath, 'utf8'));
+  console.log(`  wrote ${local.foods.length} local foods`);
 }
 
 main().catch((err) => {
