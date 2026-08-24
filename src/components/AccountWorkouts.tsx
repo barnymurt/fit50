@@ -450,7 +450,7 @@ export default function AccountWorkouts() {
 
         {/* Download the workout PDF — free for signed-in users */}
         <a
-          href="/downloads/fit50-bodyweight-four.pdf"
+          href="/api/download/workout"
           download="FIT50_Bodyweight_Four.pdf"
           className="inline-flex items-center gap-2 mb-6 font-body text-caption uppercase tracking-widest text-coral hover:text-coral/85 transition-colors"
         >

@@ -1,7 +1,7 @@
 import type { EmailGateConfig } from './EmailGate';
 
 export const FRIDGE_CHECKLIST_CONFIG: EmailGateConfig = {
-  pdfUrl: '/downloads/fit50-fridge-checklist.pdf',
+  pdfSlug: 'fridge-checklist',
   pdfFilename: 'FIT50_Fridge_Checklist.pdf',
   previewImage: '/previews/fit50-fridge-checklist.png',
   form: {
@@ -28,7 +28,7 @@ export const FRIDGE_CHECKLIST_CONFIG: EmailGateConfig = {
 };
 
 export const BODYWEIGHT_FOUR_CONFIG: EmailGateConfig = {
-  pdfUrl: '/downloads/fit50-bodyweight-four.pdf',
+  pdfSlug: 'workout',
   pdfFilename: 'FIT50_Bodyweight_Four.pdf',
   previewImage: '/previews/fit50-bodyweight-four.png',
   form: {

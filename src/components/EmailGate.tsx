@@ -3,7 +3,7 @@
 import { useState } from 'react';
 
 export interface EmailGateConfig {
-  pdfUrl: string;
+  pdfSlug: 'fridge-checklist' | 'workout';
   pdfFilename: string;
   previewImage?: string;
   form: {
@@ -39,7 +39,7 @@ export default function EmailGate({ config }: EmailGateProps) {
 
   const triggerDownload = () => {
     const link = document.createElement('a');
-    link.href = config.pdfUrl;
+    link.href = `/api/download/${config.pdfSlug}`;
     link.download = config.pdfFilename;
     document.body.appendChild(link);
     link.click();
