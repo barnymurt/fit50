@@ -19,6 +19,8 @@ interface TimerProps {
   onComplete?: () => void;
 }
 
+const SOUND_KEY = 'fit50-timer-sound-enabled';
+
 export default function Timer({
   defaultMinutes = 30,
   label,
@@ -31,7 +33,20 @@ export default function Timer({
   const [remainingSeconds, setRemainingSeconds] = useState(initialTotal);
   const [isRunning, setIsRunning] = useState(false);
   const [completed, setCompleted] = useState(false);
+  // Sound on/off. Persists in localStorage so the user can mute
+  // once and not be jumped at every start. Default: on.
+  const [soundEnabled, setSoundEnabled] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
+    return window.localStorage.getItem(SOUND_KEY) !== '0';
+  });
 
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(SOUND_KEY, soundEnabled ? '1' : '0');
+    } catch {
+      // ignore
+    }
+  }, [soundEnabled]);
   // Timestamp-based timer so the screen going off (and the resulting
   // interval throttling) doesn't lose time. We store the wall-clock
   // start time and the original total duration; remaining = total -
@@ -50,10 +65,11 @@ export default function Timer({
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const onCompleteRef = useRef(onComplete);
   const audioCtxRef = useRef<AudioContext | null>(null);
+
   // Wake Lock: keeps the screen on while the timer runs so the OS
   // doesn't suspend our setInterval and mute the alarm. The browser
-  // auto-releases the lock when the tab is hidden, so we re-acquire
-  // on visibilitychange.
+  // auto-releases when the tab is hidden, so we re-acquire on
+  // visibilitychange.
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
 
   const requestWakeLock = useCallback(async (): Promise<WakeLockSentinel | null> => {
@@ -135,6 +151,7 @@ export default function Timer({
   // Per-run latch so the goat only screams once per countdown.
   const goatPlayedRef = useRef(false);
   const playGoatScream = useCallback(() => {
+    if (!soundEnabled) return;
     if (typeof window === 'undefined') return;
     if (!goatAudioRef.current) {
       const el = new Audio('/sounds/ten-seconds-left.mp3');
@@ -149,9 +166,10 @@ export default function Timer({
       // backgrounded and the browser blocks autoplay. Silently swallow;
       // the dial beeps will still fire.
     });
-  }, []);
+  }, [soundEnabled]);
 
   const playDing = useCallback(() => {
+    if (!soundEnabled) return;
     const ctx = ensureAudio();
     if (!ctx) return;
     const now = ctx.currentTime;
@@ -175,7 +193,7 @@ export default function Timer({
       beep(burstStart + 0.3, 880, 0.22);
       beep(burstStart + 0.6, 880, 0.22);
     }
-  }, [ensureAudio]);
+  }, [ensureAudio, soundEnabled]);
 
   // Tick loop. Re-derives remaining time from the wall clock each
   // tick so any interval throttling (mobile screen off, background tab)
@@ -213,7 +231,7 @@ export default function Timer({
       if (intervalRef.current) clearInterval(intervalRef.current);
       intervalRef.current = null;
     };
-  }, [isRunning, totalSeconds, playDing]);
+  }, [isRunning, totalSeconds, playDing, playGoatScream]);
 
   // When the tab/window regains focus, recompute immediately so the
   // display snaps back to the right number even if the interval was
@@ -243,7 +261,7 @@ export default function Timer({
       document.removeEventListener('visibilitychange', onVisibilityChange);
       window.removeEventListener('focus', onVisibilityChange);
     };
-  }, [isRunning, totalSeconds, completed, playDing]);
+  }, [isRunning, totalSeconds, completed, playDing, playGoatScream]);
 
   const hours = Math.floor(remainingSeconds / 3600);
   const minutes = Math.floor((remainingSeconds % 3600) / 60);
@@ -338,7 +356,7 @@ export default function Timer({
         />
       </div>
 
-      <div className="flex justify-center gap-3 mb-6">
+      <div className="flex justify-center items-center gap-3 mb-6">
         {!isRunning ? (
           <button
             type="button"
@@ -363,6 +381,20 @@ export default function Timer({
           className="border border-ink/30 text-ink font-body text-caption uppercase tracking-widest px-4 py-3 hover:bg-cream/30 transition-colors"
         >
           Reset
+        </button>
+        <button
+          type="button"
+          onClick={() => setSoundEnabled((v) => !v)}
+          aria-pressed={!soundEnabled}
+          aria-label={soundEnabled ? 'Mute workout alarms' : 'Unmute workout alarms'}
+          title={soundEnabled ? 'Mute workout alarms' : 'Unmute workout alarms'}
+          className={`border font-body text-caption uppercase tracking-widest px-3 py-3 transition-colors ${
+            soundEnabled
+              ? 'border-ink/30 text-ink hover:bg-cream/30'
+              : 'border-coral text-coral bg-coral/5'
+          }`}
+        >
+          {soundEnabled ? '🔊 Sound' : '🔇 Muted'}
         </button>
       </div>
 
