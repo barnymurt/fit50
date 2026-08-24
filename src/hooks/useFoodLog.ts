@@ -137,9 +137,10 @@ export function useFoodLog() {
     [user, supabase, refetch]
   );
 
-  // Patch a logged entry. Used for "change the meal slot after I
-  // logged this" and any future per-entry edits. Optimistic local
-  // update so the row reflects the new value immediately.
+  // Patch a logged entry. Optimistic local update first so the
+  // dropdown reflects the change immediately, then Supabase write.
+  // Roll back on RLS / network errors so the user sees the
+  // failure (the UI shows a toast).
   const updateEntry = useCallback(
     async (
       id: string,
@@ -149,6 +150,17 @@ export function useFoodLog() {
     ): Promise<{ ok: boolean; error?: string }> => {
       if (!user) return { ok: false, error: 'Not signed in.' };
       if (!supabase) return { ok: false, error: 'Database is not configured.' };
+      // Optimistic local update first.
+      let previous: FoodLogEntry | undefined;
+      setEntries((prev) =>
+        prev.map((e) => {
+          if (e.id === id) {
+            previous = e;
+            return { ...e, ...patch };
+          }
+          return e;
+        })
+      );
       const { error } = await supabase
         .from('food_log')
         .update(patch)
@@ -156,11 +168,14 @@ export function useFoodLog() {
         .eq('user_id', user.id);
       if (error) {
         console.error('Failed to update food log entry:', error);
+        // Roll back optimistic change.
+        if (previous) {
+          setEntries((prev) =>
+            prev.map((e) => (e.id === id ? previous! : e))
+          );
+        }
         return { ok: false, error: error.message };
       }
-      setEntries((prev) =>
-        prev.map((e) => (e.id === id ? { ...e, ...patch } : e))
-      );
       return { ok: true };
     },
     [user, supabase]
