@@ -405,9 +405,9 @@ export default function FoodDatabase({ targets }: Props) {
             {topContributors.map(({ entry }) => (
               <li
                 key={entry.id}
-                className="flex items-baseline justify-between gap-3"
+                className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1"
               >
-                <span className="font-body text-sm text-ink truncate">
+                <span className="font-body text-sm text-ink min-w-0 break-words">
                   {entry.name}
                 </span>
                 <span className="font-body text-caption uppercase tracking-widest text-coral tabular-nums shrink-0">
@@ -457,10 +457,10 @@ export default function FoodDatabase({ targets }: Props) {
               return (
                 <li
                   key={b.id}
-                  className="px-6 py-3 border-b border-ink/10 last:border-b-0 flex items-baseline justify-between gap-3"
+                  className="px-4 sm:px-6 py-3 border-b border-ink/10 last:border-b-0 flex flex-wrap items-center sm:items-baseline justify-between gap-x-3 gap-y-2"
                 >
-                  <div className="min-w-0 flex-1">
-                    <p className="font-body text-sm text-ink truncate">
+                  <div className="min-w-0 flex-1 basis-full sm:basis-auto">
+                    <p className="font-body text-sm text-ink break-words">
                       {b.name}
                     </p>
                     <p className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums">
@@ -469,7 +469,7 @@ export default function FoodDatabase({ targets }: Props) {
                       {' · logged '}{b.times_logged}×
                     </p>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex flex-wrap items-center gap-2">
                     <button
                       type="button"
                       onClick={async () => {
@@ -563,12 +563,12 @@ export default function FoodDatabase({ targets }: Props) {
               return (
                 <li
                   key={e.id}
-                  className={`px-6 py-3 border-b border-ink/10 last:border-b-0 flex items-baseline justify-between gap-4 ${
+                  className={`px-4 sm:px-6 py-3 border-b border-ink/10 last:border-b-0 flex flex-wrap items-center sm:items-baseline justify-between gap-x-4 gap-y-2 ${
                     isPickedForBuild ? 'bg-coral/5' : ''
                   }`}
                 >
-                  <div className="min-w-0 flex-1">
-                    <p className="font-body text-sm text-ink truncate">
+                  <div className="min-w-0 flex-1 basis-full sm:basis-auto">
+                    <p className="font-body text-sm text-ink break-words">
                       {e.name}
                     </p>
                     <p className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums">
@@ -616,7 +616,7 @@ export default function FoodDatabase({ targets }: Props) {
                       </div>
                     )}
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex flex-wrap items-center gap-2">
                     {/* Per-row meal-slot picker. Lets the user re-categorize
                         an entry that was logged without a slot. Click
                         cycles: none → breakfast → lunch → dinner → snack → none. */}
@@ -977,14 +977,14 @@ function BundleItemPicker({
       {q.trim().length >= 2 && results.length > 0 && (
         <ul className="border border-ink/10">
           {results.map((f) => (
-            <li
-              key={f.id}
-              className="px-3 py-2 border-b border-ink/10 last:border-b-0 flex items-center justify-between"
-            >
-              <span className="font-body text-sm text-ink truncate flex-1">
-                {f.name}{' '}
-                <span className="text-ink/40 text-caption">{f.id}</span>
-              </span>
+<li
+                key={f.id}
+                className="px-3 py-2 border-b border-ink/10 last:border-b-0 flex flex-wrap items-center justify-between gap-x-3 gap-y-1"
+              >
+                <span className="font-body text-sm text-ink break-words min-w-0 flex-1">
+                  {f.name}{' '}
+                  <span className="text-ink/40 text-caption">{f.id}</span>
+                </span>
               {existingIds.has(f.id) ? (
                 <span className="font-body text-caption uppercase tracking-widest text-ink/40">
                   added
