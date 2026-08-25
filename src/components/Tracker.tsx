@@ -13,6 +13,7 @@ import { useTrackerState, TrackerDay } from '@/hooks/useTrackerState';
 import { useStreakProtection } from '@/hooks/useStreakProtection';
 import { usePremium } from '@/hooks/usePremium';
 import { dateKeyLocal, formatDateKeyShort, dayKeyFromStart, CHALLENGE_DAYS } from '@/lib/dates';
+import { HABIT_IDS, HABIT_COUNT } from '@/lib/habits';
 import Link from 'next/link';
 
 interface Habit {
@@ -33,7 +34,15 @@ const habits: Habit[] = [
   { id: 'feed-brain', icon: 'feed-brain', name: 'Feed Your Brain' },
 ];
 
-const HABIT_IDS = habits.map((h) => h.id);
+if (HABIT_IDS.length !== habits.length) {
+  // Drift guard: the icons / display labels live here, the canonical
+  // id list (and therefore the "is the day complete?" threshold) lives
+  // in src/lib/habits.ts. If they fall out of sync we want a loud
+  // build/runtime error, not a silent 8-of-9 day.
+  throw new Error(
+    `HABIT_IDS (${HABIT_IDS.length}) and habits[] (${habits.length}) are out of sync`
+  );
+}
 
 function calculateStreak(days: TrackerDay[]): {
   current: number;
@@ -48,10 +57,12 @@ function calculateStreak(days: TrackerDay[]): {
       longest = Math.max(longest, current);
       current = 0;
     } else if (day.status === 'today') {
-      // Today: if all 7+ habits done, count it as part of the
-      // current streak (the user is "today's done"). Otherwise
-      // preserve the run — they still have time to finish the day.
-      if (day.completedCount >= 7) {
+      // Today: if every habit is done, count it as part of the
+      // current streak (the user has already finished today).
+      // Otherwise preserve the run — they still have time to
+      // finish the day. Uses HABIT_COUNT so the threshold tracks
+      // the canonical habit list, not a stale literal.
+      if (day.completedCount >= HABIT_COUNT) {
         current++;
       }
     }

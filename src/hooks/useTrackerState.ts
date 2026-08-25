@@ -19,6 +19,7 @@ import {
   saveTrackerV2,
   wipeAllTrackerData,
 } from '@/lib/storage';
+import { HABIT_COUNT } from '@/lib/habits';
 
 const TICKER_INTERVAL_MS = 60_000;
 
@@ -550,7 +551,7 @@ export function useTrackerState() {
       let status: TrackerDay['status'];
       if (isFuture) status = 'future';
       else if (isToday) status = 'today';
-      else if (completedCount >= 7) status = 'complete';
+      else if (completedCount >= HABIT_COUNT) status = 'complete';
       else status = 'past-incomplete';
       out.push({
         dayNumber: i,

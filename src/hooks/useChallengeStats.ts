@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase';
 import { useBookLog } from './useBookLog';
 import { dateKeyLocal, dayIndexFromStart, dayKeyFromStart, CHALLENGE_DAYS } from '@/lib/dates';
 import { TRACKER_RESET_EVENT } from './useTrackerState';
+import { HABIT_COUNT } from '@/lib/habits';
 
 const WORKOUT_EXERCISES_PER_LINE = 5;
 const WORKOUT_SETS_PER_EXERCISE = 5;
@@ -116,7 +117,7 @@ export function useChallengeStats(startDate: string | null): ChallengeStats {
       const coldShowerDays = countHabit('chill-out');
       const tenKStepDays = countHabit('step-it-up');
       const daysCompleted = Object.values(dayToHabits).filter(
-        (taps) => Object.values(taps).filter(Boolean).length >= 7
+        (taps) => Object.values(taps).filter(Boolean).length >= HABIT_COUNT
       ).length;
 
       let waterTotalMl = 0;
