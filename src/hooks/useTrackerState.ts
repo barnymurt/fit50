@@ -233,6 +233,8 @@ export function useTrackerState() {
       const localStreakKeys = localLoaded?.streakUsedWeekKeys ?? [];
       const localPendingDateKey = localLoaded?.pendingTapsDateKey ?? null;
       const localWater = localLoaded?.waterByDate ?? {};
+      const localClosedDays: Record<number, Record<string, boolean>> =
+        localLoaded?.closedDays ?? {};
 
       let serverStart: string | null = null;
       let serverTaps: Record<string, boolean> = {};
@@ -401,6 +403,32 @@ export function useTrackerState() {
         };
       }
 
+      // Merge past-day edits from localStorage on top of the server
+      // view. Without this, an edit whose daily_totals upsert was
+      // interrupted (fire-and-forget in toggleHabitForDay + tab closed
+      // mid-request, network blip, RLS 5xx, etc.) silently reverts on
+      // the next boot — localStorage had the truth, the server didn't,
+      // boot rebuilt state from the server alone, and saveTrackerV2
+      // then overwrote localStorage with the missing-edits version.
+      // localStorage lives in the same browser the user just edited
+      // in, so prefer it for any habit it explicitly records (true or
+      // false). Daily_totals fills in habits it doesn't mention.
+      if (hasStart) {
+        for (const [dayStr, taps] of Object.entries(localClosedDays)) {
+          const dayNumber = Number(dayStr);
+          if (
+            !Number.isInteger(dayNumber) ||
+            dayNumber < 1 ||
+            dayNumber > CHALLENGE_DAYS
+          ) continue;
+          if (!taps || typeof taps !== 'object') continue;
+          mergedClosed[dayNumber] = {
+            ...(mergedClosed[dayNumber] || {}),
+            ...taps,
+          };
+        }
+      }
+
       const hydrated: TrackerDataV2 = {
         schemaVersion: 2,
         startDate: start,
@@ -430,6 +458,49 @@ export function useTrackerState() {
           );
         } catch (err) {
           console.error('daily_state upsert after load failed:', err);
+        }
+
+        // Catch the server up to whatever past-day edits live in
+        // localStorage but haven't reached daily_totals yet. We push
+        // only entries with `true` (an explicit "I did this") because
+        // we can't distinguish "user unticked this" from "user never
+        // touched this" — both look like `false`/absent in the row.
+        // Unticking a past habit is rare; the common case (the user's
+        // reported bug) is backfilling missed tasks, which is all
+        // `true`.
+        const dailyTotalsSyncRows: Array<{
+          user_id: string;
+          day_number: number;
+          habit_id: string;
+          completed: boolean;
+          archived_at: string;
+        }> = [];
+        const syncArchivedAt = new Date().toISOString();
+        for (const [dayStr, taps] of Object.entries(localClosedDays)) {
+          const dayNumber = Number(dayStr);
+          if (dayNumber < 1 || dayNumber > CHALLENGE_DAYS) continue;
+          if (!taps || typeof taps !== 'object') continue;
+          for (const [habit_id, completed] of Object.entries(taps)) {
+            if (completed === true) {
+              dailyTotalsSyncRows.push({
+                user_id: user.id,
+                day_number: dayNumber,
+                habit_id,
+                completed: true,
+                archived_at: syncArchivedAt,
+              });
+            }
+          }
+        }
+        if (dailyTotalsSyncRows.length > 0) {
+          try {
+            await (supabase.from('daily_totals') as any).upsert(
+              dailyTotalsSyncRows,
+              { onConflict: 'user_id,day_number,habit_id' }
+            );
+          } catch (err) {
+            console.error('daily_totals catch-up upsert failed:', err);
+          }
         }
       }
       if (!cancelled) setLoaded(true);
