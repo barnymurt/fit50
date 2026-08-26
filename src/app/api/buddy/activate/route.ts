@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
   // 1. Find the profile by activation token.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: profile, error: profileError } = await (admin.from('profiles') as any)
-    .select('id, email, activation_status, activation_expires_at, purchased_by_user_id')
+    .select('id, email, activation_status, activation_expires_at')
     .eq('activation_token', token)
     .maybeSingle();
 
@@ -122,33 +122,58 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // 3. Activate the profile + pair the two accounts.
+  // 3. Look up the buyer's id from the matching pending purchase.
+  //    We can't read profiles.purchased_by_user_id because that
+  //    column was dropped in the 0022 migration. The purchase row
+  //    holds the link.
+  const gifteeEmail = (profile.email as string).toLowerCase();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: purchase } = await (admin.from('buddy_purchases') as any)
+    .select('purchaser_user_id')
+    .eq('buddy_email', gifteeEmail)
+    .eq('status', 'pending')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const buyerId = (purchase?.purchaser_user_id as string | null) ?? null;
+
+  // 4. Activate the profile.
   const now = new Date().toISOString();
+  const gifteeId = profile.id as string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await (admin.from('profiles') as any)
     .update({
       activation_status: 'active',
       activation_token: null,
       activation_expires_at: null,
-      buddy_user_id: profile.purchased_by_user_id,
     })
-    .eq('id', profile.id);
+    .eq('id', gifteeId);
 
-  if (profile.purchased_by_user_id) {
+  // 5. Create the pair rows. Idempotent on reactivation: if pair
+  //    rows already exist, the unique constraint fires and we
+  //    swallow the error.
+  if (buyerId) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (admin.from('profiles') as any)
-      .update({ buddy_user_id: profile.id })
-      .eq('id', profile.purchased_by_user_id);
+    await (admin.from('buddy_pairs') as any)
+      .insert([
+        { user_id: buyerId, buddy_user_id: gifteeId },
+        { user_id: gifteeId, buddy_user_id: buyerId },
+      ])
+      .then(({ error }: { error: { code?: string } | null }) => {
+        if (error && error.code !== '42P10') {
+          console.error('buddy_pairs insert failed:', error);
+        }
+      });
   }
 
-  // 4. Mark the buddy purchase as activated.
+  // 5. Mark the buddy purchase as activated.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await (admin.from('buddy_purchases') as any)
     .update({ status: 'activated', activated_at: now })
     .eq('buddy_email', (profile.email as string).toLowerCase())
     .eq('status', 'pending');
 
-  // 5. Generate a magic link so the browser is signed in immediately.
+  // 6. Generate a magic link so the browser is signed in immediately.
   const { data: link, error: linkError } = await admin.auth.admin.generateLink({
     type: 'magiclink',
     email: profile.email as string,

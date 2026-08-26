@@ -69,10 +69,14 @@ async function http(method, path, body) {
   }
 
   for (const b of BUNDLES) {
-    const { id } = await http('POST', '/meal_bundles', {
+    const inserted = await http('POST', '/meal_bundles', {
       user_id,
       name: b.name,
     });
+    const id = Array.isArray(inserted) ? inserted[0]?.id : inserted?.id;
+    if (!id) {
+      throw new Error(`meal_bundles insert did not return an id: ${JSON.stringify(inserted)}`);
+    }
     const itemRows = b.items.map((it, idx) => ({
       bundle_id: id,
       food_id: it.food_id,

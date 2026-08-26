@@ -10,8 +10,6 @@ interface Profile {
   display_name: string | null;
   is_premium: boolean;
   challenge_started_at: string;
-  buddy_user_id?: string | null;
-  purchased_by_user_id?: string | null;
 }
 
 export type AuthError = {
@@ -52,7 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!supabase) return null;
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, email, display_name, is_premium, challenge_started_at, buddy_user_id, purchased_by_user_id')
+      .select('id, email, display_name, is_premium, challenge_started_at')
       .eq('id', userId)
       .single();
 

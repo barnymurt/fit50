@@ -224,14 +224,25 @@ async function handleBuddyPurchase(
           is_premium: true,
           premium_purchased_at: new Date().toISOString(),
           activation_status: 'active',
-          purchased_by_user_id: purchaserUserId,
-          buddy_user_id: purchaserUserId,
         })
         .eq('id', buddyUserId);
+      // Pair both sides via the buddy_pairs table. Each side gets its
+      // own row so they can hide independently. Skip if a pair row
+      // already exists for either direction (idempotent on webhook
+      // retry).
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase.from('profiles') as any)
-        .update({ buddy_user_id: buddyUserId })
-        .eq('id', purchaserUserId);
+      await (supabase.from('buddy_pairs') as any)
+        .insert([
+          { user_id: purchaserUserId, buddy_user_id: buddyUserId },
+          { user_id: buddyUserId, buddy_user_id: purchaserUserId },
+        ])
+        .select()
+        .then(({ error }: { error: unknown }) => {
+          // 42P10 = unique_violation — already paired, fine.
+          if (error && (error as { code?: string }).code !== '42P10') {
+            console.error('buddy_pairs insert failed:', error);
+          }
+        });
       status = 'activated';
       console.log(`✓ Buddy (existing free user) auto-upgraded: ${buddyEmail}`);
     }
@@ -270,15 +281,13 @@ async function handleBuddyPurchase(
           activation_status: 'pending_activation',
           activation_token: token,
           activation_expires_at: expiresAt,
-          purchased_by_user_id: purchaserUserId,
         },
         { onConflict: 'id' }
       );
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (supabase.from('profiles') as any)
-      .update({ buddy_user_id: buddyUserId })
-      .eq('id', purchaserUserId);
+    // Pair rows are NOT created yet — wait for activation so the
+    // giftee's challenge_started_at is set before showing them in
+    // the buyer's MyMotivator.
 
     // Send the invite email.
     const url = activationUrl(origin, token);

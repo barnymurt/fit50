@@ -12,9 +12,13 @@ interface BuddyActivation {
 }
 
 // BuddyCard now only handles the "pending" state — a buyer has
-// purchased a buddy but the buddy hasn't activated yet. Once activated,
-// profile.buddy_user_id is set and MyMotivator takes over with the
-// full pair card (name + day + streak + 9-cell grid).
+// purchased a buddy but the buddy hasn't activated yet. Once
+// activated, a buddy_pairs row exists and MyMotivator takes over
+// with the full pair card (name + day + streak + 9-cell grid).
+//
+// Shows the most recent pending purchase only. With multiple pending
+// purchases (a buyer can buy several), only the latest shows here;
+// the rest are still tracked in /account/buddy for resend.
 export default function BuddyCard() {
   const { user, profile } = useAuth();
   const [pending, setPending] = useState<BuddyActivation | null>(null);
@@ -26,14 +30,6 @@ export default function BuddyCard() {
     }
     const supabase = createClient();
     if (!supabase) return;
-
-    // If the buddy is already activated, profile.buddy_user_id is set
-    // and MyMotivator handles the display. Bail out so we don't show
-    // a stale "pending" message.
-    if (profile.buddy_user_id) {
-      setPending({ pending: false });
-      return;
-    }
 
     supabase
       .from('buddy_purchases')

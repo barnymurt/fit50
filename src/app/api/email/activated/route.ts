@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: profile } = await (admin.from('profiles') as any)
-    .select('email, display_name, purchased_by_user_id')
+    .select('email, display_name')
     .eq('id', userId)
     .maybeSingle();
 
@@ -53,8 +53,18 @@ export async function POST(req: NextRequest) {
   }
 
   // Look up the purchaser so we can greet the buddy by name.
+  // After the 0022 migration the buyer→giftee link lives in
+  // buddy_pairs, not on profiles. The row where I'm the buddy and
+  // someone else is the user points to the buyer.
   let purchaserName = 'A friend';
-  const purchaserId = profile?.purchased_by_user_id as string | undefined;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: pair } = await (admin.from('buddy_pairs') as any)
+    .select('user_id')
+    .eq('buddy_user_id', userId)
+    .neq('user_id', userId)
+    .limit(1)
+    .maybeSingle();
+  const purchaserId = (pair?.user_id as string | undefined) ?? undefined;
   if (purchaserId) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: purchaser } = await (admin.from('profiles') as any)
