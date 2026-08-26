@@ -45,3 +45,7 @@ next-env.d.ts
 foods.json
 foods_staples.json
 food-data.json.dump
+
+# one-off operational scripts (audit/fix/probe per a single buyer)
+# kept on disk so the originals are available, but not tracked
+/scripts/one-off/
