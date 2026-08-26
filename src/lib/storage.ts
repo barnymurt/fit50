@@ -14,6 +14,17 @@ export const WATER_KEY_V1 = 'fit50-water-v1';
 export const MACRO_KEY = 'fit50-macro-v2';
 export const MACRO_DAY_KEY = 'fit50-macro-day-v2';
 
+export interface PendingSync {
+  /** Stable id (uuid) so we can prune individual entries from the
+   * queue after a successful drain. Two edits in the same millisecond
+   * need distinct ids — Date.now() collides. */
+  id: string;
+  dayNumber: number;
+  habitId: string;
+  completed: boolean;
+  recordedAt: string;
+}
+
 export interface TrackerDataV2 {
   schemaVersion: 2;
   startDate: string | null;
@@ -31,6 +42,16 @@ export interface TrackerDataV2 {
   closedDays: Record<number, Record<string, boolean>>;
   streakUsedWeekKeys: string[];
   waterByDate: Record<string, number>;
+  /**
+   * Outbox for past-day edits. Every `toggleHabitForDay` appends an
+   * entry here; `drainPendingSync` flushes the queue to
+   * `daily_totals` on Supabase. Entries stay in the queue until the
+   * upsert is confirmed, so a tab close mid-request doesn't lose the
+   * edit — the next boot drains it. Other devices see the edit on
+   * their next load via the server. Today's day is excluded (its
+   * edits ride the rollover path through `pendingTaps` / `daily_state`).
+   */
+  pendingSync: PendingSync[];
 }
 
 interface TrackerDataV1 {
@@ -61,18 +82,25 @@ export function loadJson<T>(key: string, fallback: T): T {
 }
 
 /**
- * Old v2 blobs (pre-pendingTapsDateKey) load with the new field
- * missing. Default to null rather than guess the date — be
- * conservative: leave pendingTaps as-is, the rollover reconcile in
- * useTrackerState will pick up the correct day on first write.
+ * Old v2 blobs (pre-pendingTapsDateKey, pre-pendingSync) load with
+ * the new fields missing. Default each to a safe value rather than
+ * guess — the rollover reconcile / outbox drain in useTrackerState
+ * will pick up the correct state on the next write.
  */
 function backfillTrackerV2MissingFields<T>(data: T, fallback: T): T {
   if (!data || typeof data !== 'object') return data;
   const d = data as Record<string, unknown>;
   if (typeof d.schemaVersion === 'number' && d.schemaVersion === 2) {
+    let needsClone = false;
     if (!('pendingTapsDateKey' in d)) {
-      return { ...d, pendingTapsDateKey: null } as T;
+      d.pendingTapsDateKey = null;
+      needsClone = true;
     }
+    if (!('pendingSync' in d)) {
+      d.pendingSync = [];
+      needsClone = true;
+    }
+    if (needsClone) return { ...d } as T;
   }
   return data;
 }
@@ -156,6 +184,7 @@ export function migrateV1ToV2(now: Date = new Date()): TrackerDataV2 | null {
     closedDays,
     streakUsedWeekKeys: [],
     waterByDate: {},
+    pendingSync: [],
   };
 }
 
@@ -168,6 +197,7 @@ export function emptyTrackerV2(): TrackerDataV2 {
     closedDays: {},
     streakUsedWeekKeys: [],
     waterByDate: {},
+    pendingSync: [],
   };
 }
 

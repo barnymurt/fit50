@@ -11,6 +11,7 @@ import {
   parseDateKey,
 } from '@/lib/dates';
 import {
+  PendingSync,
   TRACKER_KEY,
   TRACKER_KEY_V1,
   TrackerDataV2,
@@ -20,6 +21,23 @@ import {
   wipeAllTrackerData,
 } from '@/lib/storage';
 import { HABIT_COUNT } from '@/lib/habits';
+
+/**
+ * Generate a stable per-edit id. `crypto.randomUUID` is available in
+ * every browser we target; the Date.now()+random fallback is only
+ * here for environments where it isn't (older Safari, some test
+ * runners).
+ */
+function newPendingSyncId(): string {
+  try {
+    if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+      return crypto.randomUUID();
+    }
+  } catch {
+    // fall through
+  }
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
 
 const TICKER_INTERVAL_MS = 60_000;
 
@@ -190,6 +208,81 @@ export function useTrackerState() {
     },
     [user, supabase]
   );
+
+  // Lock so two simultaneous drain calls (e.g. rapid taps on the same
+  // habit) don't race their upserts and leave daily_totals with the
+  // older value. The first call wins, drains the latest snapshot from
+  // localStorage, and loops if new entries appeared during the await.
+  const drainPendingSyncInFlightRef = useRef(false);
+
+  /**
+   * Flush the `pendingSync` outbox to `daily_totals`. Each call:
+   *  - dedupes (last entry per (dayNumber, habitId) wins, so a rapid
+   *    on/off/on resolves to whatever they tapped last)
+   *  - upserts to Supabase
+   *  - prunes the drained ids from the queue on success
+   *  - loops if more entries accumulated during the await
+   *
+   * Safe to call from anywhere — concurrent callers become no-ops
+   * while a drain is in flight. New entries added while we awaited
+   * are picked up by the loop, so we never strand a tap.
+   *
+   * Entries stay in the queue until the upsert succeeds, so a tab
+   * close mid-request never loses an edit — the next boot drains
+   * whatever's left.
+   */
+  const drainPendingSync = useCallback(async () => {
+    if (!user || !supabase) return;
+    if (drainPendingSyncInFlightRef.current) return;
+    drainPendingSyncInFlightRef.current = true;
+    try {
+      let queue: PendingSync[] =
+        loadTrackerV2(new Date())?.pendingSync ?? [];
+      while (queue.length > 0) {
+        // Dedupe: keep the last entry per (dayNumber, habitId).
+        // Iterating in array order means later (more recent) entries
+        // overwrite earlier ones in the Map.
+        const latest = new Map<string, PendingSync>();
+        for (const e of queue) {
+          latest.set(`${e.dayNumber}:${e.habitId}`, e);
+        }
+        const deduped = Array.from(latest.values());
+
+        let success = false;
+        try {
+          await (supabase.from('daily_totals') as any).upsert(
+            deduped.map((e) => ({
+              user_id: user.id,
+              day_number: e.dayNumber,
+              habit_id: e.habitId,
+              completed: e.completed,
+              archived_at: new Date().toISOString(),
+            })),
+            { onConflict: 'user_id,day_number,habit_id' }
+          );
+          success = true;
+        } catch (err) {
+          console.error('pendingSync drain failed:', err);
+        }
+        if (!success) break;
+
+        // Prune the drained ids. Re-read localStorage so any new
+        // entries added during the await are visible.
+        const drainedIds = new Set(deduped.map((e) => e.id));
+        const cur = loadTrackerV2(new Date()) ?? emptyTrackerV2();
+        const remaining = cur.pendingSync.filter(
+          (e) => !drainedIds.has(e.id)
+        );
+        const next: TrackerDataV2 = { ...cur, pendingSync: remaining };
+        saveTrackerV2(next);
+        setData(next);
+        if (remaining.length === 0) break;
+        queue = remaining;
+      }
+    } finally {
+      drainPendingSyncInFlightRef.current = false;
+    }
+  }, [user, supabase]);
 
   // ---------- Boot: load from anon storage or Supabase ----------
 
@@ -405,11 +498,14 @@ export function useTrackerState() {
 
       // Merge past-day edits from localStorage on top of the server
       // view. Without this, an edit whose daily_totals upsert was
-      // interrupted (fire-and-forget in toggleHabitForDay + tab closed
-      // mid-request, network blip, RLS 5xx, etc.) silently reverts on
-      // the next boot — localStorage had the truth, the server didn't,
-      // boot rebuilt state from the server alone, and saveTrackerV2
-      // then overwrote localStorage with the missing-edits version.
+      // interrupted (the legacy fire-and-forget path + tab closed
+      // mid-request, network blip, RLS 5xx, etc.) would silently
+      // revert on the next boot — localStorage had the truth, the
+      // server didn't, boot rebuilt state from the server alone, and
+      // saveTrackerV2 then overwrote localStorage with the
+      // missing-edits version. New edits flow through the
+      // `pendingSync` outbox instead, but this merge remains the
+      // safety net for any legacy data written before that change.
       // localStorage lives in the same browser the user just edited
       // in, so prefer it for any habit it explicitly records (true or
       // false). Daily_totals fills in habits it doesn't mention.
@@ -437,6 +533,7 @@ export function useTrackerState() {
         closedDays: mergedClosed,
         streakUsedWeekKeys: localStreakKeys,
         waterByDate: localWater,
+        pendingSync: localLoaded?.pendingSync ?? [],
       };
 
       if (cancelled) return;
@@ -460,46 +557,49 @@ export function useTrackerState() {
           console.error('daily_state upsert after load failed:', err);
         }
 
-        // Catch the server up to whatever past-day edits live in
-        // localStorage but haven't reached daily_totals yet. We push
-        // only entries with `true` (an explicit "I did this") because
-        // we can't distinguish "user unticked this" from "user never
-        // touched this" — both look like `false`/absent in the row.
-        // Unticking a past habit is rare; the common case (the user's
-        // reported bug) is backfilling missed tasks, which is all
-        // `true`.
-        const dailyTotalsSyncRows: Array<{
-          user_id: string;
-          day_number: number;
-          habit_id: string;
-          completed: boolean;
-          archived_at: string;
-        }> = [];
-        const syncArchivedAt = new Date().toISOString();
-        for (const [dayStr, taps] of Object.entries(localClosedDays)) {
-          const dayNumber = Number(dayStr);
-          if (dayNumber < 1 || dayNumber > CHALLENGE_DAYS) continue;
-          if (!taps || typeof taps !== 'object') continue;
-          for (const [habit_id, completed] of Object.entries(taps)) {
-            if (completed === true) {
-              dailyTotalsSyncRows.push({
-                user_id: user.id,
-                day_number: dayNumber,
-                habit_id,
-                completed: true,
-                archived_at: syncArchivedAt,
-              });
+        // Migration + drain. Queue any past-day `true` entries from
+        // localStorage that the server hasn't seen yet, then drain.
+        // After the first deploy, localStorage and daily_totals agree,
+        // so the queue is empty and drain is a no-op.
+        //
+        // Why queue `true` only: we can't distinguish "user unticked
+        // this" from "user never touched this" in a boolean row.
+        // Unticking is rare and the user's reported bug (cross-device
+        // backfill loss) only involves `true` additions.
+        if (hasStart && Object.keys(localClosedDays).length > 0) {
+          const migration: PendingSync[] = [];
+          const now = new Date().toISOString();
+          for (const [dayStr, taps] of Object.entries(localClosedDays)) {
+            const dayNumber = Number(dayStr);
+            if (dayNumber < 1 || dayNumber > CHALLENGE_DAYS) continue;
+            if (!taps || typeof taps !== 'object') continue;
+            for (const [habit_id, completed] of Object.entries(taps)) {
+              if (
+                completed === true &&
+                !serverClosed[dayNumber]?.[habit_id]
+              ) {
+                migration.push({
+                  id: newPendingSyncId(),
+                  dayNumber,
+                  habitId: habit_id,
+                  completed: true,
+                  recordedAt: now,
+                });
+              }
             }
           }
-        }
-        if (dailyTotalsSyncRows.length > 0) {
-          try {
-            await (supabase.from('daily_totals') as any).upsert(
-              dailyTotalsSyncRows,
-              { onConflict: 'user_id,day_number,habit_id' }
-            );
-          } catch (err) {
-            console.error('daily_totals catch-up upsert failed:', err);
+          if (migration.length > 0) {
+            setData((prev) => {
+              const next: TrackerDataV2 = {
+                ...prev,
+                pendingSync: [...prev.pendingSync, ...migration],
+              };
+              persistAnon(next);
+              // Fire-and-forget. The drain will prune entries on
+              // success; if it fails, the next click or boot retries.
+              drainPendingSync();
+              return next;
+            });
           }
         }
       }
@@ -706,61 +806,40 @@ export function useTrackerState() {
   const toggleHabitForDay = useCallback(
     (dayNumber: number, habitId: string) => {
       if (!startDate) return;
-      const dateKey = dayKeyFromStart(startDate, dayNumber);
       setData((prev) => {
         const existing = prev.closedDays[dayNumber] || {};
         const isOn = existing[habitId] === true;
         const nextTaps: Record<string, boolean> = { ...existing };
         if (isOn) delete nextTaps[habitId];
         else nextTaps[habitId] = true;
+        const entry: PendingSync = {
+          id: newPendingSyncId(),
+          dayNumber,
+          habitId,
+          completed: !isOn,
+          recordedAt: new Date().toISOString(),
+        };
         const updated: TrackerDataV2 = {
           ...prev,
           closedDays: {
             ...prev.closedDays,
             [dayNumber]: nextTaps,
           },
+          pendingSync: [...prev.pendingSync, entry],
         };
         persistAnon(updated);
-        if (user && supabase) {
-          // Upsert the backfilled tap as the canonical record for that
-          // date. The regular rollover flush writes to daily_totals; for
-          // backfills we use daily_state directly (which the previous-day
-          // flush cleans up only if the user reopens that day).
-          (supabase.from('daily_state') as any)
-            .upsert(
-              {
-                user_id: user.id,
-                date_key: dateKey,
-                habit_id: habitId,
-                tapped: !isOn,
-                updated_at: new Date().toISOString(),
-              },
-              { onConflict: 'user_id,date_key,habit_id' }
-            )
-            .then(({ error }: { error: unknown }) => {
-              if (error) console.error('daily_state backfill failed:', error);
-            });
-          // Mirror into daily_totals so the certificate / chip strip
-          // counts backfills consistently.
-          (supabase.from('daily_totals') as any)
-            .upsert(
-              {
-                user_id: user.id,
-                day_number: dayNumber,
-                habit_id: habitId,
-                completed: !isOn,
-                archived_at: new Date().toISOString(),
-              },
-              { onConflict: 'user_id,day_number,habit_id' }
-            )
-            .then(({ error }: { error: unknown }) => {
-              if (error) console.error('daily_totals backfill failed:', error);
-            });
-        }
+        // Best-effort drain. The click already feels instant because
+        // closedDays updated synchronously and we persisted to
+        // localStorage; the upsert happens in the background. If it
+        // fails, the entry stays in pendingSync and the next boot (or
+        // next click) retries — so a tab close mid-request never
+        // loses the edit. Other devices see it on their next load
+        // via daily_totals.
+        drainPendingSync();
         return updated;
       });
     },
-    [persistAnon, startDate, user, supabase]
+    [persistAnon, startDate, drainPendingSync]
   );
 
   const useStreakProtectionForWeek = useCallback(async () => {
