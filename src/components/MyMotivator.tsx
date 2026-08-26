@@ -241,22 +241,27 @@ export default function MyMotivator() {
   }, []);
 
   // Hide handler — soft delete (sets hidden_at on the row the user
-  // owns). Server route keeps the RLS boundary intact.
+  // owns). We do the update directly via the browser supabase client:
+  // the `buddy_pairs` UPDATE policy is `auth.uid() = user_id`, so the
+  // database itself rejects any attempt to hide a row the caller
+  // doesn't own. A server route would add a layer of indirection that
+  // doesn't help (the app stores its session in localStorage, not
+  // cookies — the server has no way to see who's signed in).
   const handleHide = useCallback(
     async (pairId: string) => {
       if (hidingId) return;
+      if (!user) return;
       setHideError(null);
       setHidingId(pairId);
       try {
-        const res = await fetch('/api/buddy/hide', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ pair_id: pairId }),
-        });
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          throw new Error(data?.error || `HTTP ${res.status}`);
-        }
+        const supabase = createClient();
+        if (!supabase) throw new Error('Supabase is not configured.');
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { error } = await (supabase.from('buddy_pairs') as any)
+          .update({ hidden_at: new Date().toISOString() })
+          .eq('id', pairId)
+          .eq('user_id', user.id);
+        if (error) throw error;
         // Remove the card from the carousel optimistically.
         setCards((prev) => prev.filter((c) => c.pairId !== pairId));
         setSelectedPairId(null);
@@ -266,7 +271,7 @@ export default function MyMotivator() {
         setHidingId(null);
       }
     },
-    [hidingId]
+    [hidingId, user]
   );
 
   // Close modal on Escape.
