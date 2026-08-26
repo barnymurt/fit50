@@ -103,18 +103,25 @@ export async function POST(req: NextRequest) {
       premium_purchased_at: new Date().toISOString(),
       challenge_started_at: new Date().toISOString().slice(0, 10),
       activation_status: 'active',
-      purchased_by_user_id: purchaserUserId,
-      buddy_user_id: purchaserUserId,
     },
     { onConflict: 'id' }
   );
 
-  // Pair back to the original purchaser.
+  // Pair back to the original purchaser via buddy_pairs. Each side
+  // gets its own row so they can hide independently. Idempotent on
+  // re-redeem (unique constraint).
   if (purchaserUserId) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (admin.from('profiles') as any)
-      .update({ buddy_user_id: userId })
-      .eq('id', purchaserUserId);
+    await (admin.from('buddy_pairs') as any)
+      .insert([
+        { user_id: purchaserUserId, buddy_user_id: userId },
+        { user_id: userId, buddy_user_id: purchaserUserId },
+      ])
+      .then(({ error }: { error: { code?: string } | null }) => {
+        if (error && error.code !== '42P10') {
+          console.error('buddy_pairs insert failed:', error);
+        }
+      });
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
