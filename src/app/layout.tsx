@@ -26,7 +26,8 @@ const lilitaOne = Lilita_One({
 
 export const metadata: Metadata = {
   title: "FIT50 - The 50-Day Challenge",
-  description: "50 Days. 9 Daily Tasks. 1 Life-Changing Habit. Build unbreakable habits with the FIT50 fitness challenge.",
+  description:
+    "50 Days · 9 Habits · 1 Finished Thing. The Fit50 Challenge. Fifty days, nine disciplines, and something tangible waiting for you on the other side.",
 };
 
 export default function RootLayout({
