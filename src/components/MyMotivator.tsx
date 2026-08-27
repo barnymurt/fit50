@@ -374,7 +374,7 @@ export default function MyMotivator() {
     );
   }
 
-  if (cards.length === 0) return null;
+  if (cards.length === 0 && hiddenCards.length === 0) return null;
 
   return (
     <div className="max-w-7xl mx-auto px-6 md:px-10 mb-6">
