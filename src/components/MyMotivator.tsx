@@ -104,18 +104,24 @@ function pickDoneToday(
 export default function MyMotivator() {
   const { user } = useAuth();
   const [cards, setCards] = useState<BuddyCard[]>([]);
+  const [hiddenCards, setHiddenCards] = useState<BuddyCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPairId, setSelectedPairId] = useState<string | null>(null);
   const [hideError, setHideError] = useState<string | null>(null);
   const [hidingId, setHidingId] = useState<string | null>(null);
+  const [unhidingId, setUnhidingId] = useState<string | null>(null);
+  const [showHidden, setShowHidden] = useState(false);
+  const [unhideError, setUnhideError] = useState<string | null>(null);
   const carouselRef = useRef<HTMLDivElement | null>(null);
 
-  // Fetch every active (non-hidden) pair I own + the buddy's profile +
-  // daily_totals. Re-fetched on visibility change and every 60s so
-  // day-rollover refreshes the cards.
+  // Fetch every pair I own (active + hidden) + each buddy's profile
+  // + daily_totals. Active cards feed the carousel; hidden cards feed
+  // the "Hidden (N)" expand-and-restore list below. Re-fetched on
+  // visibility change and every 60s so day-rollover refreshes the cards.
   useEffect(() => {
     if (!user) {
       setCards([]);
+      setHiddenCards([]);
       setLoading(false);
       return;
     }
@@ -129,19 +135,23 @@ export default function MyMotivator() {
 
     const doFetch = async () => {
       try {
-        // 1. Active pairs for the current user.
+        // 1. All pairs I own — active and hidden. The hidden ones still
+        // need a profile/dailies fetch so we can show a meaningful row
+        // in the restore list ("Day X / 50 · Alice" instead of a blank
+        // "Buddy #abc123"). We split client-side below.
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { data: pairRows, error: pairsErr } = await (supabase
           .from('buddy_pairs') as any)
           .select('id, buddy_user_id, hidden_at')
           .eq('user_id', user.id)
-          .is('hidden_at', null);
+          .order('created_at', { ascending: false });
 
         if (pairsErr) throw pairsErr;
         const pairs = (pairRows || []) as BuddyPairRow[];
         if (pairs.length === 0) {
           if (!cancelled) {
             setCards([]);
+            setHiddenCards([]);
             setLoading(false);
           }
           return;
@@ -179,17 +189,21 @@ export default function MyMotivator() {
         if (cancelled) return;
 
         // Build cards. Preserve pair ordering from the SELECT (which
-        // we sort by created_at desc below) so the carousel order is
-        // stable across refreshes.
-        const built: BuddyCard[] = pairs
-          .map((p): BuddyCard | null => {
-            const profile = profiles.get(p.buddy_user_id);
-            if (!profile) return null;
-            const buddyRows = dailiesByBuddy.get(p.buddy_user_id) || [];
-            const currentDay = computeCurrentDay(profile.challenge_started_at);
-            const doneToday = pickDoneToday(buddyRows, currentDay);
-            const streak = computeStreak(buddyRows, currentDay);
-            return {
+        // we sort by created_at desc above) so the carousel order is
+        // stable across refreshes. Each entry carries its source pair
+        // index so we can split active vs hidden below even after
+        // null-profile rows are filtered out.
+        const builtIndexed: Array<{ card: BuddyCard; pairIdx: number }> = [];
+        for (let i = 0; i < pairs.length; i++) {
+          const p = pairs[i];
+          const profile = profiles.get(p.buddy_user_id);
+          if (!profile) continue;
+          const buddyRows = dailiesByBuddy.get(p.buddy_user_id) || [];
+          const currentDay = computeCurrentDay(profile.challenge_started_at);
+          const doneToday = pickDoneToday(buddyRows, currentDay);
+          const streak = computeStreak(buddyRows, currentDay);
+          builtIndexed.push({
+            card: {
               pairId: p.id,
               buddyId: p.buddy_user_id,
               name: profile.display_name || 'Your buddy',
@@ -198,18 +212,27 @@ export default function MyMotivator() {
               doneToday: Object.values(doneToday).filter(Boolean).length,
               habitIds: HABIT_ORDER,
               isPremium: !!profile.is_premium,
-            };
-          })
-          .filter((c): c is BuddyCard => c !== null);
+            },
+            pairIdx: i,
+          });
+        }
 
         if (!cancelled) {
-          setCards(built);
+          const active = builtIndexed
+            .filter((b) => !pairs[b.pairIdx].hidden_at)
+            .map((b) => b.card);
+          const hidden = builtIndexed
+            .filter((b) => !!pairs[b.pairIdx].hidden_at)
+            .map((b) => b.card);
+          setCards(active);
+          setHiddenCards(hidden);
           setLoading(false);
         }
       } catch (err) {
         console.error('MyMotivator fetch failed:', err);
         if (!cancelled) {
           setCards([]);
+          setHiddenCards([]);
           setLoading(false);
         }
       }
@@ -272,6 +295,41 @@ export default function MyMotivator() {
       }
     },
     [hidingId, user]
+  );
+
+  // Unhide handler — clears `hidden_at` so the pair comes back to
+  // the carousel. Same auth path as handleHide: browser supabase
+  // client + RLS, no server round-trip.
+  const handleUnhide = useCallback(
+    async (pairId: string) => {
+      if (unhidingId) return;
+      if (!user) return;
+      setUnhideError(null);
+      setUnhidingId(pairId);
+      try {
+        const supabase = createClient();
+        if (!supabase) throw new Error('Supabase is not configured.');
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { error } = await (supabase.from('buddy_pairs') as any)
+          .update({ hidden_at: null })
+          .eq('id', pairId)
+          .eq('user_id', user.id);
+        if (error) throw error;
+        // Move the card from hidden to active optimistically.
+        setHiddenCards((prev) => {
+          const restored = prev.find((c) => c.pairId === pairId);
+          if (restored) {
+            setCards((cur) => [...cur, restored]);
+          }
+          return prev.filter((c) => c.pairId !== pairId);
+        });
+      } catch (err) {
+        setUnhideError(err instanceof Error ? err.message : 'Could not unhide.');
+      } finally {
+        setUnhidingId(null);
+      }
+    },
+    [unhidingId, user]
   );
 
   // Close modal on Escape.
@@ -363,6 +421,58 @@ export default function MyMotivator() {
             ))}
           </div>
         </div>
+
+        {/* Hidden buddies — collapsed by default. Click the toggle to
+            reveal a list of soft-deleted pairs with one-tap restore. */}
+        {hiddenCards.length > 0 && (
+          <div className="mt-4 border-t border-ink/10 pt-4">
+            <button
+              type="button"
+              onClick={() => setShowHidden((v) => !v)}
+              aria-expanded={showHidden}
+              aria-controls="hidden-buddies-list"
+              className="font-body text-caption uppercase tracking-widest text-ink/50 hover:text-ink transition-colors"
+            >
+              {showHidden ? '▾' : '▸'} Hidden ({hiddenCards.length})
+            </button>
+            {showHidden && (
+              <div id="hidden-buddies-list" className="mt-3 space-y-2">
+                {unhideError && (
+                  <p className="font-body text-caption text-coral">
+                    {unhideError}
+                  </p>
+                )}
+                {hiddenCards.map((c) => {
+                  const dayN = Math.min(50, Math.max(1, c.currentDay));
+                  const busy = unhidingId === c.pairId;
+                  return (
+                    <div
+                      key={c.pairId}
+                      className="flex items-center justify-between gap-3 border border-ink/15 bg-paper px-4 py-3"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="font-body text-caption uppercase tracking-widest text-ink/40">
+                          Day {dayN} of 50
+                        </p>
+                        <p className="font-display text-base text-ink truncate">
+                          {c.name}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleUnhide(c.pairId)}
+                        disabled={busy}
+                        className="font-body text-caption uppercase tracking-widest text-coral hover:text-coral/85 border border-coral/40 px-3 py-2 transition-colors disabled:opacity-50 shrink-0"
+                      >
+                        {busy ? 'Restoring…' : 'Unhide'}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {selectedCard && (
