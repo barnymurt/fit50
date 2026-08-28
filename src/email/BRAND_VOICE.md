@@ -80,6 +80,26 @@ local timezone**. The dispatcher needs each user's timezone
 (`profiles.timezone` is the column to add — see
 `src/hooks/useTrackerState.ts` for the timezone pattern).
 
+## From + Reply-to
+
+- **From**: always `FIT50 <hello@fit50challenge.io>`. Don't add new
+  from-addresses without a real reason — each one needs DNS + Resend
+  domain verification, which is more setup than it's worth.
+- **Reply-to**: routed by email type so the help desk can filter
+  without setting up new from-addresses. Defined in
+  `_shared.tsx` → `EMAIL_REPLY_TO`:
+
+  | Type | Reply-to |
+  |---|---|
+  | `welcome` (welcome, first-tap nudge, day-3 check-in) | `welcome@fit50challenge.io` |
+  | `buddy` (buddy invite, started, finished, expired, resend) | `buddy@fit50challenge.io` |
+  | `outreach` (milestones, banana days) | `hello@fit50challenge.io` |
+  | `general` (catch-all for new types) | `hello@fit50challenge.io` |
+
+  Each renderer returns `replyTo` in its result; the dispatcher
+  forwards it to `sendEmail()`. Don't set the reply-to from the
+  caller — that's a per-renderer decision.
+
 ## Frequency cap
 
 Milestone + retention emails may stack on the same day if the user

@@ -15,11 +15,14 @@
 
 import {
   EMAIL_STYLES,
+  EmailType,
   ctaButton,
   emailShell,
   escapeHtml,
   mutedParagraph,
+  outreachFooterHtml,
   paragraph,
+  replyToFor,
   signature,
   emailSignature,
 } from './_shared';
@@ -29,6 +32,7 @@ interface Args {
   email: string;
   buddyName: string;
   trackerUrl: string;
+  unsubscribeUrl: string;
 }
 
 function nameOrLocal(args: Args): string {
@@ -43,6 +47,7 @@ export function renderBuddyStartedEmail(args: Args): {
   subject: string;
   html: string;
   text: string;
+  replyTo: string;
 } {
   const name = nameOrLocal(args);
   const buddy = args.buddyName;
@@ -81,8 +86,14 @@ ${emailSignature}`;
 
   return {
     subject,
-    html: emailShell({ subject, preheader, bodyHtml: body }),
+    html: emailShell({
+      subject,
+      preheader,
+      bodyHtml: body,
+      footerHtml: outreachFooterHtml({ unsubscribeUrl: args.unsubscribeUrl }),
+    }),
     text,
+    replyTo: replyToFor('buddy' as EmailType),
   };
 }
 
@@ -94,6 +105,7 @@ export function renderBuddyFinishedEmail(args: Args): {
   subject: string;
   html: string;
   text: string;
+  replyTo: string;
 } {
   const name = nameOrLocal(args);
   const buddy = args.buddyName;
@@ -137,7 +149,13 @@ ${emailSignature}`;
 
   return {
     subject,
-    html: emailShell({ subject, preheader, bodyHtml: body }),
+    html: emailShell({
+      subject,
+      preheader,
+      bodyHtml: body,
+      footerHtml: outreachFooterHtml({ unsubscribeUrl: args.unsubscribeUrl }),
+    }),
     text,
+    replyTo: replyToFor('buddy' as EmailType),
   };
 }

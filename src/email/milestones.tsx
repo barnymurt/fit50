@@ -14,11 +14,14 @@
 
 import {
   EMAIL_STYLES,
+  EmailType,
   ctaButton,
   emailShell,
   escapeHtml,
   mutedParagraph,
+  outreachFooterHtml,
   paragraph,
+  replyToFor,
   signature,
   emailSignature,
 } from './_shared';
@@ -28,6 +31,7 @@ interface Args {
   email: string;
   trackerUrl: string;
   certificateUrl?: string; // only day 50
+  unsubscribeUrl: string;
 }
 
 function nameOrLocal(args: Args): string {
@@ -42,6 +46,7 @@ export function renderDayOneStartedEmail(args: Args): {
   subject: string;
   html: string;
   text: string;
+  replyTo: string;
 } {
   const name = nameOrLocal(args);
   const subject = "You've started.";
@@ -73,8 +78,14 @@ ${emailSignature}`;
 
   return {
     subject,
-    html: emailShell({ subject, preheader, bodyHtml: body }),
+    html: emailShell({
+      subject,
+      preheader,
+      bodyHtml: body,
+      footerHtml: outreachFooterHtml({ unsubscribeUrl: args.unsubscribeUrl }),
+    }),
     text,
+    replyTo: replyToFor('outreach' as EmailType),
   };
 }
 
@@ -86,6 +97,7 @@ export function renderDaySevenEmail(args: Args): {
   subject: string;
   html: string;
   text: string;
+  replyTo: string;
 } {
   const name = nameOrLocal(args);
   const subject = 'First week.';
@@ -123,8 +135,14 @@ ${emailSignature}`;
 
   return {
     subject,
-    html: emailShell({ subject, preheader, bodyHtml: body }),
+    html: emailShell({
+      subject,
+      preheader,
+      bodyHtml: body,
+      footerHtml: outreachFooterHtml({ unsubscribeUrl: args.unsubscribeUrl }),
+    }),
     text,
+    replyTo: replyToFor('outreach' as EmailType),
   };
 }
 
@@ -136,6 +154,7 @@ export function renderDayTwentyFiveEmail(args: Args): {
   subject: string;
   html: string;
   text: string;
+  replyTo: string;
 } {
   const name = nameOrLocal(args);
   const subject = 'Halfway.';
@@ -171,8 +190,14 @@ ${emailSignature}`;
 
   return {
     subject,
-    html: emailShell({ subject, preheader, bodyHtml: body }),
+    html: emailShell({
+      subject,
+      preheader,
+      bodyHtml: body,
+      footerHtml: outreachFooterHtml({ unsubscribeUrl: args.unsubscribeUrl }),
+    }),
     text,
+    replyTo: replyToFor('outreach' as EmailType),
   };
 }
 
@@ -184,6 +209,7 @@ export function renderDayFortyEmail(args: Args): {
   subject: string;
   html: string;
   text: string;
+  replyTo: string;
 } {
   const name = nameOrLocal(args);
   const subject = 'Final stretch.';
@@ -216,8 +242,14 @@ ${emailSignature}`;
 
   return {
     subject,
-    html: emailShell({ subject, preheader, bodyHtml: body }),
+    html: emailShell({
+      subject,
+      preheader,
+      bodyHtml: body,
+      footerHtml: outreachFooterHtml({ unsubscribeUrl: args.unsubscribeUrl }),
+    }),
     text,
+    replyTo: replyToFor('outreach' as EmailType),
   };
 }
 
@@ -229,6 +261,7 @@ export function renderDayFortyNineEmail(args: Args): {
   subject: string;
   html: string;
   text: string;
+  replyTo: string;
 } {
   const name = nameOrLocal(args);
   const subject = 'Last day.';
@@ -264,8 +297,14 @@ ${emailSignature}`;
 
   return {
     subject,
-    html: emailShell({ subject, preheader, bodyHtml: body }),
+    html: emailShell({
+      subject,
+      preheader,
+      bodyHtml: body,
+      footerHtml: outreachFooterHtml({ unsubscribeUrl: args.unsubscribeUrl }),
+    }),
     text,
+    replyTo: replyToFor('outreach' as EmailType),
   };
 }
 
@@ -277,6 +316,7 @@ export function renderDayFiftyEmail(args: Args): {
   subject: string;
   html: string;
   text: string;
+  replyTo: string;
 } {
   const name = nameOrLocal(args);
   const subject = 'Day 50. You finished.';
@@ -325,7 +365,13 @@ ${emailSignature}`;
 
   return {
     subject,
-    html: emailShell({ subject, preheader, bodyHtml: body }),
+    html: emailShell({
+      subject,
+      preheader,
+      bodyHtml: body,
+      footerHtml: outreachFooterHtml({ unsubscribeUrl: args.unsubscribeUrl }),
+    }),
     text,
+    replyTo: replyToFor('outreach' as EmailType),
   };
 }

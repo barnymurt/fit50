@@ -16,11 +16,14 @@
 
 import {
   EMAIL_STYLES,
+  EmailType,
   ctaButton,
   emailShell,
   escapeHtml,
   mutedParagraph,
+  outreachFooterHtml,
   paragraph,
+  replyToFor,
   signature,
   emailSignature,
 } from './_shared';
@@ -34,6 +37,7 @@ interface Args {
   buddyName?: string | null;
   currentDay: number; // the day they're on when this fires
   hasProtectionForWeek?: boolean; // optional, for premium path
+  unsubscribeUrl: string;
 }
 
 function nameOrLocal(args: Args): string {
@@ -51,6 +55,7 @@ export function renderBananaDayPremiumEmail(args: Args): {
   subject: string;
   html: string;
   text: string;
+  replyTo: string;
 } {
   const name = nameOrLocal(args);
   const subject = '🍌 Banana day. Use the pass.';
@@ -93,8 +98,14 @@ ${emailSignature}`;
 
   return {
     subject,
-    html: emailShell({ subject, preheader, bodyHtml: body }),
+    html: emailShell({
+      subject,
+      preheader,
+      bodyHtml: body,
+      footerHtml: outreachFooterHtml({ unsubscribeUrl: args.unsubscribeUrl }),
+    }),
     text,
+    replyTo: replyToFor('outreach' as EmailType),
   };
 }
 
@@ -106,6 +117,7 @@ export function renderBananaDayFreeEmail(args: Args): {
   subject: string;
   html: string;
   text: string;
+  replyTo: string;
 } {
   const name = nameOrLocal(args);
   const subject = '🍌 Banana day. Tomorrow is yours.';
@@ -147,8 +159,14 @@ ${emailSignature}`;
 
   return {
     subject,
-    html: emailShell({ subject, preheader, bodyHtml: body }),
+    html: emailShell({
+      subject,
+      preheader,
+      bodyHtml: body,
+      footerHtml: outreachFooterHtml({ unsubscribeUrl: args.unsubscribeUrl }),
+    }),
     text,
+    replyTo: replyToFor('outreach' as EmailType),
   };
 }
 
@@ -160,6 +178,7 @@ export function renderThreeDayQuietEmail(args: Args): {
   subject: string;
   html: string;
   text: string;
+  replyTo: string;
 } {
   const name = nameOrLocal(args);
   const subject = `Day ${args.currentDay}. Still in?`;
@@ -203,8 +222,14 @@ ${emailSignature}`;
 
   return {
     subject,
-    html: emailShell({ subject, preheader, bodyHtml: body }),
+    html: emailShell({
+      subject,
+      preheader,
+      bodyHtml: body,
+      footerHtml: outreachFooterHtml({ unsubscribeUrl: args.unsubscribeUrl }),
+    }),
     text,
+    replyTo: replyToFor('outreach' as EmailType),
   };
 }
 
@@ -216,6 +241,7 @@ export function renderSevenDayQuietEmail(args: Args): {
   subject: string;
   html: string;
   text: string;
+  replyTo: string;
 } {
   const name = nameOrLocal(args);
   const subject = `We saved your seat. Day ${args.currentDay}.`;
@@ -253,8 +279,14 @@ ${emailSignature}`;
 
   return {
     subject,
-    html: emailShell({ subject, preheader, bodyHtml: body }),
+    html: emailShell({
+      subject,
+      preheader,
+      bodyHtml: body,
+      footerHtml: outreachFooterHtml({ unsubscribeUrl: args.unsubscribeUrl }),
+    }),
     text,
+    replyTo: replyToFor('outreach' as EmailType),
   };
 }
 
@@ -266,6 +298,7 @@ export function renderFourteenDayQuietEmail(args: Args): {
   subject: string;
   html: string;
   text: string;
+  replyTo: string;
 } {
   const name = nameOrLocal(args);
   const subject = 'Fresh start if you want one.';
@@ -303,7 +336,13 @@ ${emailSignature}`;
 
   return {
     subject,
-    html: emailShell({ subject, preheader, bodyHtml: body }),
+    html: emailShell({
+      subject,
+      preheader,
+      bodyHtml: body,
+      footerHtml: outreachFooterHtml({ unsubscribeUrl: args.unsubscribeUrl }),
+    }),
     text,
+    replyTo: replyToFor('outreach' as EmailType),
   };
 }

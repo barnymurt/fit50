@@ -14,11 +14,14 @@
 
 import {
   EMAIL_STYLES,
+  EmailType,
   ctaButton,
   emailShell,
   escapeHtml,
   mutedParagraph,
+  outreachFooterHtml,
   paragraph,
+  replyToFor,
   signature,
   emailSignature,
 } from './_shared';
@@ -27,6 +30,7 @@ interface Args {
   displayName: string | null;
   email: string;
   trackerUrl: string;
+  unsubscribeUrl: string;
 }
 
 function nameOrLocal(args: Args): string {
@@ -41,6 +45,7 @@ export function renderFirstTapNudgeEmail(args: Args): {
   subject: string;
   html: string;
   text: string;
+  replyTo: string;
 } {
   const name = nameOrLocal(args);
   const subject = "Day one. Don't miss day two.";
@@ -78,8 +83,14 @@ ${emailSignature}`;
 
   return {
     subject,
-    html: emailShell({ subject, preheader, bodyHtml: body }),
+    html: emailShell({
+      subject,
+      preheader,
+      bodyHtml: body,
+      footerHtml: outreachFooterHtml({ unsubscribeUrl: args.unsubscribeUrl }),
+    }),
     text,
+    replyTo: replyToFor('welcome' as EmailType),
   };
 }
 
@@ -91,6 +102,7 @@ export function renderDayThreeCheckInEmail(args: Args): {
   subject: string;
   html: string;
   text: string;
+  replyTo: string;
 } {
   const name = nameOrLocal(args);
   const subject = "Three days in. Here's the easiest one to add.";
@@ -146,7 +158,13 @@ ${emailSignature}`;
 
   return {
     subject,
-    html: emailShell({ subject, preheader, bodyHtml: body }),
+    html: emailShell({
+      subject,
+      preheader,
+      bodyHtml: body,
+      footerHtml: outreachFooterHtml({ unsubscribeUrl: args.unsubscribeUrl }),
+    }),
     text,
+    replyTo: replyToFor('welcome' as EmailType),
   };
 }
