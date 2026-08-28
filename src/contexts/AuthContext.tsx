@@ -10,6 +10,27 @@ interface Profile {
   display_name: string | null;
   is_premium: boolean;
   challenge_started_at: string;
+  // IANA timezone (e.g. "Europe/Dublin"). Captured at sign-in by
+  // `getBrowserTimezone()` so the email dispatcher can land
+  // outreach between 12:30 and 13:30 in the user's local window.
+  // Nullable for users who never signed in via the web client
+  // (server-created buddy accounts etc.).
+  timezone: string | null;
+}
+
+/**
+ * IANA timezone name for the current browser context. Empty string
+ * when called on the server. We deliberately don't fall back to a
+ * guessed UTC value — the dispatcher uses null vs string to decide
+ * whether to skip the lunchtime window or default to UTC.
+ */
+function getBrowserTimezone(): string {
+  if (typeof Intl === 'undefined') return '';
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+  } catch {
+    return '';
+  }
 }
 
 export type AuthError = {
@@ -50,7 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!supabase) return null;
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, email, display_name, is_premium, challenge_started_at')
+      .select('id, email, display_name, is_premium, challenge_started_at, timezone')
       .eq('id', userId)
       .single();
 
@@ -74,6 +95,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       setHasPasskey(false);
     }
+  };
+
+  // Fire-and-forget: keep the profile.timezone column fresh so the
+  // email dispatcher can land outreach between 12:30 and 13:30 in
+  // the user's current local window. Cheaper than a separate route
+  // and follows the user when they travel.
+  const refreshTimezone = (userId: string) => {
+    if (!supabase) return;
+    const tz = getBrowserTimezone();
+    if (!tz) return;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (supabase.from('profiles') as any)
+      .update({ timezone: tz })
+      .eq('id', userId)
+      .then(({ error }: { error: unknown }) => {
+        if (error) console.warn('Timezone update failed:', error);
+      });
   };
 
   const refreshProfile = async () => {
@@ -106,6 +144,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (p) setEmail(p.email);
         }
         await checkPasskey(currentSession.user.id);
+        refreshTimezone(currentSession.user.id);
       }
 
       if (mounted) setLoading(false);
@@ -123,6 +162,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setProfile(p);
           if (p) setEmail(p.email);
           await checkPasskey(newSession.user.id);
+          refreshTimezone(newSession.user.id);
         } else {
           setProfile(null);
           setHasPasskey(false);

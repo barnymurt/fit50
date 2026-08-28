@@ -111,6 +111,7 @@ export async function POST(req: NextRequest) {
     subject: emailContent.subject,
     html: emailContent.html,
     text: emailContent.text,
+    replyTo: emailContent.replyTo,
     tags: [{ name: 'kind', value: 'buddy-invite-resend' }],
   });
 

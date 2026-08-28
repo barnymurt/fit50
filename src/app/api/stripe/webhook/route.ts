@@ -304,6 +304,7 @@ async function handleBuddyPurchase(
       subject: emailContent.subject,
       html: emailContent.html,
       text: emailContent.text,
+      replyTo: emailContent.replyTo,
       tags: [{ name: 'kind', value: 'buddy-invite' }],
     });
 
@@ -332,6 +333,7 @@ async function handleBuddyPurchase(
       subject: 'Your buddy pair is live — set your password',
       html: emailContent.html,
       text: emailContent.text,
+      replyTo: emailContent.replyTo,
       tags: [{ name: 'kind', value: 'purchaser-welcome' }],
     });
     if (!buyerMail.ok) {

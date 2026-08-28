@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "eslint",
     "setup:supabase": "node scripts/setup-supabase.js",
-    "verify:supabase": "node scripts/verify-supabase.js"
+    "verify:supabase": "node scripts/verify-supabase.js",
+    "email:render": "tsx scripts/render-email.tsx",
+    "email:send-test": "tsx scripts/send-test-emails.tsx"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",
@@ -29,6 +31,7 @@
     "eslint-config-next": "14.2.21",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.0",
+    "tsx": "^4.23.12",
     "typescript": "^5"
   }
 }

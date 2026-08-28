@@ -92,6 +92,7 @@ export async function POST(req: NextRequest) {
     subject: rendered.subject,
     html: rendered.html,
     text: rendered.text,
+    replyTo: rendered.replyTo,
     tags: [{ name: 'kind', value: 'activated' }],
   });
 
