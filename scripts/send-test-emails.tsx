@@ -4,17 +4,19 @@
 // EMAIL_TEST_TO and prefixes the subject with "[→original-recipient]").
 //
 // Usage:
-//   EMAIL_TEST_TO=you@example.com RESEND_API_KEY=re_xxx \
-//     npx tsx scripts/send-test-emails.tsx
+//   EMAIL_TEST_TO=you@example.com npm run email:send-test
 //
-// With no RESEND_API_KEY, sends are logged to stdout instead of
-// actually emailed (the lib/email.ts dev fallback). Useful for
-// sanity-checking the dispatch logic without spamming Resend.
+// Reads RESEND_API_KEY and EMAIL_TEST_TO from the environment. Also
+// loads them from .env.local if not set, so the script works
+// without you exporting anything. With no RESEND_API_KEY, sends
+// are logged to stdout instead of actually emailed (the lib/email.ts
+// dev fallback). Useful for sanity-checking the dispatch logic
+// without spamming Resend.
 //
 // To send just one template:
-//   EMAIL_TEST_TO=you@example.com \
-//     npx tsx scripts/send-test-emails.tsx renderWelcomeEmail
+//   npm run email:send-test -- renderWelcomeEmail
 
+import { readFileSync } from 'node:fs';
 import { sendEmail } from '../src/lib/email';
 import * as onboarding from '../src/email/onboarding';
 import * as milestones from '../src/email/milestones';
@@ -22,6 +24,34 @@ import * as bananaDays from '../src/email/banana-days';
 import * as buddy from '../src/email/buddy';
 import * as welcome from '../src/email/welcome';
 import * as buddyInvite from '../src/email/buddy-invite';
+
+// Load any missing RESEND_API_KEY / EMAIL_TEST_TO from .env.local
+// so you don't have to export them every time. Doesn't override
+// what's already in the environment.
+function loadEnvLocal(): void {
+  if (process.env.RESEND_API_KEY && process.env.EMAIL_TEST_TO) return;
+  try {
+    const raw = readFileSync('.env.local', 'utf8');
+    for (const line of raw.split(/\r?\n/)) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) continue;
+      const eq = trimmed.indexOf('=');
+      if (eq < 0) continue;
+      const key = trimmed.slice(0, eq).trim();
+      let val = trimmed.slice(eq + 1).trim();
+      // Strip optional surrounding quotes.
+      if (
+        (val.startsWith('"') && val.endsWith('"')) ||
+        (val.startsWith("'") && val.endsWith("'"))
+      ) {
+        val = val.slice(1, -1);
+      }
+      if (!process.env[key]) process.env[key] = val;
+    }
+  } catch {
+    // .env.local is optional — silently ignore if missing.
+  }
+}
 
 interface Rendered {
   subject: string;
@@ -186,6 +216,7 @@ const ARGS: Record<string, unknown> = {
 };
 
 async function main(): Promise<void> {
+  loadEnvLocal();
   const filter = process.argv[2];
   const names = Object.keys(RENDERERS).filter(
     (n) => !filter || n === filter
