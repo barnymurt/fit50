@@ -85,11 +85,12 @@ export type FoodType = 'ingredient' | 'prepared' | 'beverage' | 'snack' | 'desse
 export interface Food {
   id: string;
   name: string;
-  category: FoodCategory;
+  brand?: string | null;
+  category: FoodCategory | string;
   subcategory?: string;
   preparation?: string;
   state?: string;
-  type: FoodType;
+  type: FoodType | string;
   // per 100 g
   kcal: number;
   protein: number;
@@ -101,6 +102,15 @@ export interface Food {
   standardServingGrams?: number;
   standardServingLabel?: string;
   aliases?: string[];
+  // True when this Food came from user_custom_foods (the per-user
+  // table). Adds the "My food" badge in the search panel and
+  // routes saves/logs through the per-user flows. Public foods
+  // always have isCustom = false (default).
+  isCustom?: boolean;
+  // Mirror of user_custom_foods.submission_status so the UI can
+  // surface "pending review" / "published" badges. Only set when
+  // isCustom = true.
+  customSubmissionStatus?: 'private' | 'pending_review' | 'published' | 'rejected';
 }
 
 export type Meal = 'breakfast' | 'lunch' | 'dinner' | 'snack';
@@ -215,6 +225,14 @@ export const CATEGORY_DEFAULT_SERVING: Record<FoodCategory, { grams: number; lab
   'Pizza & Fast Food': { grams: 100, label: '1 slice' },
   'Beverages': { grams: 250, label: '1 cup' },
   'Protein Foods': { grams: 30, label: '1 scoop' },
+};
+
+// Custom-food fallback when the user's category isn't in the typed
+// list. Returns the same shape as CATEGORY_DEFAULT_SERVING so the
+// rest of the UI doesn't need to special-case it.
+export const CUSTOM_FOOD_DEFAULT_SERVING = {
+  grams: 100,
+  label: '1 serving',
 };
 
 // Per-item overrides for items where the typical portion diverges from the category default.
@@ -394,5 +412,8 @@ export function getStandardServing(food: Food): { grams: number; label: string }
     const re = new RegExp(`\\b${key}\\b`, 'i');
     if (re.test(nameLower)) return value;
   }
-  return CATEGORY_DEFAULT_SERVING[food.category] ?? { grams: 100, label: '1 serving' };
+  return (
+    CATEGORY_DEFAULT_SERVING[food.category as FoodCategory] ??
+    CUSTOM_FOOD_DEFAULT_SERVING
+  );
 }
