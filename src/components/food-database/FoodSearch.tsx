@@ -19,7 +19,7 @@ import {
   mergeFoodResults,
 } from '@/hooks/useLocalFoods';
 import { useAuth } from '@/contexts/AuthContext';
-import { createClient } from '@/lib/supabase';
+import { useCustomFoods } from '@/hooks/useCustomFoods';
 import AddCustomFoodModal from './AddCustomFoodModal';
 
 interface Props {
@@ -86,42 +86,11 @@ export default function FoodSearch({ favorites, onPickFood, recentlyLoggedFoods 
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
 
-  // Per-user custom foods. Fetched once when the user signs in,
-  // filtered client-side by the current query, and merged into
-  // results with a small "My food" pill so the user can tell them
-  // apart from public foods.
-  const [customFoods, setCustomFoods] = useState<Food[]>([]);
+  // Per-user custom foods. Shared with MyCustomFoodsPanel via the
+  // useCustomFoods hook — that panel can edit/delete while this one
+  // just reads `foods` to merge into the search results.
+  const { foods: customFoods, create: createCustomFood } = useCustomFoods();
   const [customOpen, setCustomOpen] = useState(false);
-
-  // Pull the user's custom foods on sign-in. We could re-fetch on
-  // each search but the list is small and rarely changes — fetching
-  // once keeps search fast and avoids per-keystroke Supabase calls.
-  useEffect(() => {
-    if (!user) {
-      setCustomFoods([]);
-      return;
-    }
-    const supabase = createClient();
-    if (!supabase) return;
-    let cancelled = false;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (supabase.from('user_custom_foods') as any)
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(500)
-      .then(({ data, error }: { data: unknown; error: unknown }) => {
-        if (cancelled) return;
-        if (error) {
-          console.error('custom foods fetch failed:', error);
-          return;
-        }
-        const rows = (data ?? []) as Array<Record<string, unknown>>;
-        setCustomFoods(rows.map(customRowToFood));
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [user]);
 
   // Reset subcategory when the category changes — a category may
   // not have subcategories at all, or the subcategory list might
@@ -568,50 +537,42 @@ function applyFavouritesSort(foods: Food[], favourites: Set<string>): Food[] {
       <AddCustomFoodModal
         open={customOpen}
         onClose={() => setCustomOpen(false)}
-        onCreated={(food) => {
-          // Insert at the front so the new food shows up immediately
-          // even if the search hasn't re-fetched yet.
-          setCustomFoods((prev) =>
-              prev.some((p) => p.id === food.id) ? prev : [food, ...prev]
-            );
+        onCreate={async (input) => {
+          // The hook inserts into its own state on success and
+          // returns the row. The modal projects the row to the
+          // shared Food shape via onCreated; we close on resolve.
+          const row = await createCustomFood(input);
+          if (!row) throw new Error('Create returned no row.');
+          return {
+            id: row.id,
+            name: row.name,
+            brand: row.brand ?? null,
+            category: row.category ?? 'Other',
+            subcategory: row.subcategory ?? undefined,
+            type: row.type ?? 'ingredient',
+            kcal: Number(row.kcal ?? 0),
+            protein: Number(row.protein ?? 0),
+            carbs: Number(row.carbs ?? 0),
+            fat: Number(row.fat ?? 0),
+            fiber: Number(row.fiber ?? 0),
+            servingBasis: '100g',
+            standardServingGrams:
+              row.standard_serving_grams != null
+                ? Number(row.standard_serving_grams)
+                : undefined,
+            standardServingLabel: row.standard_serving_label ?? undefined,
+            aliases: Array.isArray(row.aliases) ? row.aliases : [],
+            isCustom: true,
+            customSubmissionStatus: row.submission_status,
+          };
+        }}
+        onCreated={() => {
+          // Hook already updated state. No further action needed —
+          // the search panel re-derives on the next render.
         }}
       />
     </div>
   );
-}
-
-// Map a user_custom_foods row into the shared Food shape so it
-// flows through onPickFood → food log / favourites / meal bundles
-// with no extra translation.
-function customRowToFood(row: Record<string, unknown>): Food {
-  return {
-    id: row.id as string,
-    name: row.name as string,
-    category: (row.category as string) || 'Other',
-    subcategory: (row.subcategory as string | null) ?? undefined,
-    type: (row.type as string) || 'ingredient',
-    kcal: Number(row.kcal ?? 0),
-    protein: Number(row.protein ?? 0),
-    carbs: Number(row.carbs ?? 0),
-    fat: Number(row.fat ?? 0),
-    fiber: Number(row.fiber ?? 0),
-    servingBasis: '100g',
-    standardServingGrams:
-      row.standard_serving_grams != null
-        ? Number(row.standard_serving_grams)
-        : undefined,
-    standardServingLabel:
-      (row.standard_serving_label as string | null) ?? undefined,
-    aliases:
-      Array.isArray(row.aliases) ? (row.aliases as string[]) : [],
-    isCustom: true,
-    customSubmissionStatus: row.submission_status as
-      | 'private'
-      | 'pending_review'
-      | 'published'
-      | 'rejected'
-      | undefined,
-  };
 }
 
 // Promote a custom Food to RankedFood so it sits in the same list

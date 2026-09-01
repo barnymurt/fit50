@@ -10,6 +10,9 @@ import { fetchFoodsByIds } from './search';
 import DailyTotalsBar from './DailyTotalsBar';
 import FoodSearch from './FoodSearch';
 import FoodDetail from './FoodDetail';
+import MyCustomFoodsPanel from './MyCustomFoodsPanel';
+
+type FoodTab = 'search' | 'myfoods';
 
 interface Props {
   targets: MacroTargets | null;
@@ -44,6 +47,10 @@ export default function FoodDatabase({ targets }: Props) {
   const [picked, setPicked] = useState<Food | null>(null);
   const [pendingGrams, setPendingGrams] = useState<number | null>(null);
   const [recentFoods, setRecentFoods] = useState<Food[]>([]);
+  // Tab in the food panel — public search vs the user's own custom
+  // foods. Persists per session so a quick switch to "my foods"
+  // doesn't bounce back to the search.
+  const [tab, setTab] = useState<FoodTab>('search');
 
   // "Build a meal" mode. When the user clicks the CTA we reveal
   // checkboxes next to every log-today row. They pick which items
@@ -419,11 +426,42 @@ export default function FoodDatabase({ targets }: Props) {
         </div>
       )}
 
-      <FoodSearch
-        favorites={favoriteIds}
-        onPickFood={handlePickFood}
-        recentlyLoggedFoods={recentFoods}
-      />
+      <div className="flex items-center gap-1 border-b border-ink/10 mb-4">
+        <button
+          type="button"
+          onClick={() => setTab('search')}
+          aria-pressed={tab === 'search'}
+          className={`px-4 py-2 font-body text-caption uppercase tracking-widest border-b-2 transition-colors ${
+            tab === 'search'
+              ? 'border-coral text-ink'
+              : 'border-transparent text-ink/50 hover:text-ink'
+          }`}
+        >
+          Search
+        </button>
+        <button
+          type="button"
+          onClick={() => setTab('myfoods')}
+          aria-pressed={tab === 'myfoods'}
+          className={`px-4 py-2 font-body text-caption uppercase tracking-widest border-b-2 transition-colors ${
+            tab === 'myfoods'
+              ? 'border-coral text-ink'
+              : 'border-transparent text-ink/50 hover:text-ink'
+          }`}
+        >
+          My foods
+        </button>
+      </div>
+
+      {tab === 'search' ? (
+        <FoodSearch
+          favorites={favoriteIds}
+          onPickFood={handlePickFood}
+          recentlyLoggedFoods={recentFoods}
+        />
+      ) : (
+        <MyCustomFoodsPanel onPickFood={handlePickFood} />
+      )}
 
       {/* Saved meal bundles. Each row is one tap to re-log the
           whole combo at the saved portions. */}

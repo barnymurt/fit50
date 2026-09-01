@@ -17,10 +17,31 @@ import { Food } from './types';
 // 'manual'. A future follow-up can wire the OpenAI call to extract
 // macros from a free-text description; the API supports it today.
 
+interface CreateInput {
+  name: string;
+  brand?: string | null;
+  category?: string;
+  subcategory?: string | null;
+  kcal?: number | string;
+  protein?: number | string;
+  carbs?: number | string;
+  fat?: number | string;
+  fiber?: number | string;
+  standard_serving_grams?: number | string;
+  standard_serving_label?: string | null;
+  aliases?: string[];
+  submit_to_community?: boolean;
+  source?: 'manual' | 'llm';
+}
+
 interface Props {
   open: boolean;
   onClose: () => void;
-  onCreated: (food: Food) => void;
+  /** Called after a successful create so the parent can react
+   *  (insert into its own state, close the modal, etc.). */
+  onCreated?: (food: Food) => void;
+  /** Performs the actual create. Returns the saved Food (or throws). */
+  onCreate: (input: CreateInput) => Promise<Food>;
   defaultCategory?: string;
 }
 
@@ -88,6 +109,7 @@ const CATEGORY_OPTIONS = [
 export default function AddCustomFoodModal({
   open,
   onClose,
+  onCreate,
   onCreated,
   defaultCategory = 'Other',
 }: Props) {
@@ -132,32 +154,23 @@ export default function AddCustomFoodModal({
 
     setSubmitting(true);
     try {
-      const res = await fetch('/api/foods/custom', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: form.name,
-          brand: form.brand || null,
-          category: form.category || 'Other',
-          subcategory: form.subcategory || null,
-          kcal: form.kcal,
-          protein: form.protein,
-          carbs: form.carbs,
-          fat: form.fat,
-          fiber: form.fiber,
-          standard_serving_grams: form.standardServingGrams,
-          standard_serving_label: form.standardServingLabel,
-          aliases,
-          submit_to_community: form.submitToCommunity,
-          source: 'manual',
-        }),
+      const created = await onCreate({
+        name: form.name,
+        brand: form.brand || null,
+        category: form.category || 'Other',
+        subcategory: form.subcategory || null,
+        kcal: form.kcal,
+        protein: form.protein,
+        carbs: form.carbs,
+        fat: form.fat,
+        fiber: form.fiber,
+        standard_serving_grams: form.standardServingGrams,
+        standard_serving_label: form.standardServingLabel,
+        aliases,
+        submit_to_community: form.submitToCommunity,
+        source: 'manual',
       });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(data?.error || `HTTP ${res.status}`);
-      }
-      const f = data.food;
-      onCreated(mapRowToFood(f));
+      onCreated?.(created);
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save.');
@@ -389,38 +402,4 @@ function MacroInput({
       />
     </label>
   );
-}
-
-// Convert the API row to the shared Food shape so it can flow through
-// onPickFood → food log / favourites / meal bundles with no extra
-// translation.
-function mapRowToFood(row: Record<string, unknown>): Food {
-  return {
-    id: row.id as string,
-    name: row.name as string,
-    category: (row.category as string) || 'Other',
-    subcategory: (row.subcategory as string | null) ?? undefined,
-    type: (row.type as string) || 'ingredient',
-    kcal: Number(row.kcal ?? 0),
-    protein: Number(row.protein ?? 0),
-    carbs: Number(row.carbs ?? 0),
-    fat: Number(row.fat ?? 0),
-    fiber: Number(row.fiber ?? 0),
-    servingBasis: '100g',
-    standardServingGrams:
-      row.standard_serving_grams != null
-        ? Number(row.standard_serving_grams)
-        : undefined,
-    standardServingLabel:
-      (row.standard_serving_label as string | null) ?? undefined,
-    aliases:
-      Array.isArray(row.aliases) ? (row.aliases as string[]) : [],
-    isCustom: true,
-    customSubmissionStatus: row.submission_status as
-      | 'private'
-      | 'pending_review'
-      | 'published'
-      | 'rejected'
-      | undefined,
-  };
 }
