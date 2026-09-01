@@ -13,9 +13,12 @@ import { Food } from './types';
 // pending_review; a follow-up PATCH with submission_status =
 // 'private' withdraws the submission.
 //
-// We don't use an LLM here yet — the source field defaults to
-// 'manual'. A future follow-up can wire the OpenAI call to extract
-// macros from a free-text description; the API supports it today.
+// The "Or describe it" section above wires the OpenAI auto-fill hook
+// (`/api/foods/custom/extract`). The source field is hard-coded to
+// 'manual' here because the user reviews + edits before saving —
+// flipping it to 'llm' would misrepresent a row the user corrected.
+// A separate audit trail (description, confidence, prompt version)
+// could live on the row later.
 
 interface CreateInput {
   name: string;
@@ -77,6 +80,11 @@ const DEFAULT_FORM: FormState = {
   submitToCommunity: false,
 };
 
+interface ExtractionResult {
+  confidence: 'high' | 'medium' | 'low';
+  notes: string | null;
+}
+
 const CATEGORY_OPTIONS = [
   'Other',
   'Meat & Poultry',
@@ -117,6 +125,14 @@ export default function AddCustomFoodModal({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // LLM auto-fill state. The user types a description; we POST it to
+  // /api/foods/custom/extract which calls gpt-4o-mini, and pre-fill
+  // the form fields. The user reviews before saving.
+  const [extractDescription, setExtractDescription] = useState('');
+  const [extracting, setExtracting] = useState(false);
+  const [extractionResult, setExtractionResult] = useState<ExtractionResult | null>(null);
+  const [extractionError, setExtractionError] = useState<string | null>(null);
+
   // Reset the form each time the modal opens so previous entries
   // don't bleed across.
   useEffect(() => {
@@ -124,6 +140,10 @@ export default function AddCustomFoodModal({
       setForm({ ...DEFAULT_FORM, category: defaultCategory });
       setError(null);
       setSubmitting(false);
+      setExtractDescription('');
+      setExtracting(false);
+      setExtractionResult(null);
+      setExtractionError(null);
     }
   }, [open, defaultCategory]);
 
@@ -142,7 +162,77 @@ export default function AddCustomFoodModal({
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleExtract = async () => {
+    if (extracting) return;
+    const desc = extractDescription.trim();
+    if (!desc) {
+      setExtractionError('Type a description first.');
+      return;
+    }
+    setExtracting(true);
+    setExtractionError(null);
+    setExtractionResult(null);
+    try {
+      const res = await fetch('/api/foods/custom/extract', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description: desc }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data?.error || `HTTP ${res.status}`);
+      }
+      const food = data.food as {
+        name: string;
+        brand: string | null;
+        category: string;
+        subcategory: string | null;
+        kcal: number;
+        protein: number;
+        carbs: number;
+        fat: number;
+        fiber: number;
+        serving_basis: '100g' | '100ml';
+        standard_serving_grams: number | null;
+        standard_serving_label: string | null;
+        aliases: string[];
+        confidence: 'high' | 'medium' | 'low';
+        notes: string | null;
+      };
+      // Populate the manual form fields. The user reviews + edits
+      // before saving.
+      setForm((prev) => ({
+        ...prev,
+        name: food.name || prev.name,
+        brand: food.brand ?? '',
+        category: food.category || prev.category,
+        subcategory: food.subcategory ?? '',
+        kcal: String(food.kcal),
+        protein: String(food.protein),
+        carbs: String(food.carbs),
+        fat: String(food.fat),
+        fiber: String(food.fiber),
+        standardServingGrams: food.standard_serving_grams
+          ? String(food.standard_serving_grams)
+          : '100',
+        standardServingLabel:
+          food.standard_serving_label ?? prev.standardServingLabel,
+        aliases: (food.aliases ?? []).join(', '),
+      }));
+      setExtractionResult({
+        confidence: food.confidence,
+        notes: food.notes,
+      });
+    } catch (err) {
+      setExtractionError(
+        err instanceof Error ? err.message : 'Auto-fill failed.'
+      );
+    } finally {
+      setExtracting(false);
+    }
+  };
+
+const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (submitting) return;
     setError(null);
@@ -209,6 +299,60 @@ export default function AddCustomFoodModal({
             >
               ✕
             </button>
+          </div>
+
+          <div className="mb-4 p-3 bg-cre-30 border border-ink/15">
+            <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-2">
+              Or describe it
+            </p>
+            <textarea
+              value={extractDescription}
+              onChange={(e) => setExtractDescription(e.target.value)}
+              placeholder="e.g. homemade granola with oats, honey, almonds, and a bit of olive oil"
+              rows={2}
+              className="w-full px-3 py-2 bg-paper border-2 border-ink/20 font-body focus:border-coral outline-none text-sm"
+            />
+            <div className="flex items-center gap-2 mt-2 flex-wrap">
+              <button
+                type="button"
+                onClick={handleExtract}
+                disabled={extracting || !extractDescription.trim()}
+                className="px-3 py-2 border border-coral text-coral font-body text-caption uppercase tracking-widest hover:bg-coral/5 transition-colors disabled:opacity-50"
+              >
+                {extracting ? 'Asking AI…' : 'Auto-fill macros'}
+              </button>
+              <span className="font-body text-caption text-ink/40">
+                Sends the description to OpenAI.
+              </span>
+            </div>
+            {extractionError && (
+              <p className="font-body text-caption text-coral mt-2">
+                {extractionError}
+              </p>
+            )}
+            {extractionResult && (
+              <div
+                className={`mt-2 px-3 py-2 border text-sm ${
+                  extractionResult.confidence === 'high'
+                    ? 'border-teal/40 bg-teal/10 text-ink'
+                    : extractionResult.confidence === 'medium'
+                    ? 'border-ink/30 bg-ink/5 text-ink'
+                    : 'border-coral/40 bg-coral/10 text-ink'
+                }`}
+              >
+                <p className="font-body text-caption uppercase tracking-widest text-ink/60">
+                  AI-filled · confidence {extractionResult.confidence}
+                </p>
+                {extractionResult.notes && (
+                  <p className="mt-1 font-body text-ink/80">
+                    {extractionResult.notes}
+                  </p>
+                )}
+                <p className="mt-1 font-body text-caption text-ink/50">
+                  Verify the numbers below — they're best-effort estimates.
+                </p>
+              </div>
+            )}
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-3">
