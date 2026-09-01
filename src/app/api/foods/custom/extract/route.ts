@@ -18,6 +18,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
+import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@/lib/supabase';
 
 export const runtime = 'nodejs';
@@ -101,19 +102,10 @@ Rules:
 export async function POST(req: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  const openaiKey = process.env.OPENAI_API_KEY;
-  if (!supabaseUrl || !supabaseAnon) {
+  const supabaseService = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!supabaseUrl || !supabaseAnon || !supabaseService) {
     return NextResponse.json(
       { error: 'Supabase env vars missing.' },
-      { status: 503 }
-    );
-  }
-  if (!openaiKey) {
-    return NextResponse.json(
-      {
-        error:
-          'LLM extraction is not configured. Set OPENAI_API_KEY in the env.',
-      },
       { status: 503 }
     );
   }
@@ -162,6 +154,31 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       { error: 'Too many requests. Try again in a minute.' },
       { status: 429 }
+    );
+  }
+
+  // BYOK: the user supplies their own OpenAI key. The server only
+  // holds it long enough to make the upstream call. Admin client
+  // reads profiles.openai_api_key with the existing per-user RLS —
+  // we scope by id explicitly so a future schema change can't widen
+  // the read.
+  const admin = createClient<Database>(supabaseUrl, supabaseService, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: profile } = await (admin.from('profiles') as any)
+    .select('openai_api_key')
+    .eq('id', user.id)
+    .maybeSingle();
+  const openaiKey = (profile?.openai_api_key as string | null) ?? null;
+  if (!openaiKey) {
+    return NextResponse.json(
+      {
+        error:
+          "No OpenAI key on file. Add one in the food panel or via /api/account/openai-key.",
+        code: 'no_openai_key',
+      },
+      { status: 412 }
     );
   }
 

@@ -85,6 +85,11 @@ interface ExtractionResult {
   notes: string | null;
 }
 
+interface OpenAiKeyStatus {
+  set: boolean;
+  masked: string | null;
+}
+
 const CATEGORY_OPTIONS = [
   'Other',
   'Meat & Poultry',
@@ -126,12 +131,22 @@ export default function AddCustomFoodModal({
   const [error, setError] = useState<string | null>(null);
 
   // LLM auto-fill state. The user types a description; we POST it to
-  // /api/foods/custom/extract which calls gpt-4o-mini, and pre-fill
-  // the form fields. The user reviews before saving.
+  // /api/foods/custom/extract which calls gpt-4o-mini with the user's
+  // own OpenAI key, and pre-fills the form fields. The user reviews
+  // before saving.
   const [extractDescription, setExtractDescription] = useState('');
   const [extracting, setExtracting] = useState(false);
   const [extractionResult, setExtractionResult] = useState<ExtractionResult | null>(null);
   const [extractionError, setExtractionError] = useState<string | null>(null);
+
+  // BYOK state — the user's own OpenAI key. We never display the
+  // secret; only whether it's set + a masked preview. If unset, the
+  // modal shows an inline "add your key" prompt.
+  const [keyStatus, setKeyStatus] = useState<OpenAiKeyStatus | null>(null);
+  const [keyInput, setKeyInput] = useState('');
+  const [keyBusy, setKeyBusy] = useState(false);
+  const [keyError, setKeyError] = useState<string | null>(null);
+  const [keyEditing, setKeyEditing] = useState(false);
 
   // Reset the form each time the modal opens so previous entries
   // don't bleed across.
@@ -144,8 +159,76 @@ export default function AddCustomFoodModal({
       setExtracting(false);
       setExtractionResult(null);
       setExtractionError(null);
+      // Fetch the user's OpenAI key status. We only show the
+      // auto-fill section as fully enabled when a key is on file.
+      setKeyStatus(null);
+      setKeyInput('');
+      setKeyBusy(false);
+      setKeyError(null);
+      setKeyEditing(false);
+      fetch('/api/account/openai-key', { method: 'GET' })
+        .then((r) => r.json())
+        .then((data) => {
+          if (data && typeof data.set === 'boolean') {
+            setKeyStatus({ set: data.set, masked: data.masked ?? null });
+          }
+        })
+        .catch(() => {
+          // Non-fatal: the user can still use the manual form.
+        });
     }
   }, [open, defaultCategory]);
+
+  const handleSaveKey = async () => {
+    if (keyBusy) return;
+    const k = keyInput.trim();
+    if (!k) return;
+    setKeyBusy(true);
+    setKeyError(null);
+    try {
+      const res = await fetch('/api/account/openai-key', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ api_key: k }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data?.error || `HTTP ${res.status}`);
+      }
+      setKeyStatus({ set: true, masked: data.masked ?? 'sk-••••' });
+      setKeyInput('');
+      setKeyEditing(false);
+    } catch (err) {
+      setKeyError(err instanceof Error ? err.message : 'Could not save the key.');
+    } finally {
+      setKeyBusy(false);
+    }
+  };
+
+  const handleClearKey = async () => {
+    if (keyBusy) return;
+    if (
+      typeof window !== 'undefined' &&
+      !window.confirm('Remove your OpenAI key? Auto-fill will stop working until you add a new one.')
+    ) {
+      return;
+    }
+    setKeyBusy(true);
+    setKeyError(null);
+    try {
+      const res = await fetch('/api/account/openai-key', { method: 'DELETE' });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.error || `HTTP ${res.status}`);
+      }
+      setKeyStatus({ set: false, masked: null });
+      setKeyEditing(false);
+    } catch (err) {
+      setKeyError(err instanceof Error ? err.message : 'Could not clear the key.');
+    } finally {
+      setKeyBusy(false);
+    }
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -180,6 +263,14 @@ export default function AddCustomFoodModal({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
+        // 412 with code='no_openai_key' means the user hasn't added
+        // a key yet. Surface that as the BYOK prompt instead of a
+        // generic extraction error.
+        if (res.status === 412 && data?.code === 'no_openai_key') {
+          setKeyEditing(true);
+          setKeyError('Add your OpenAI key below to enable auto-fill.');
+          throw new Error('No OpenAI key on file.');
+        }
         throw new Error(data?.error || `HTTP ${res.status}`);
       }
       const food = data.food as {
@@ -316,15 +407,86 @@ const handleSubmit = async (e: React.FormEvent) => {
               <button
                 type="button"
                 onClick={handleExtract}
-                disabled={extracting || !extractDescription.trim()}
+                disabled={extracting || !extractDescription.trim() || keyStatus?.set === false}
                 className="px-3 py-2 border border-coral text-coral font-body text-caption uppercase tracking-widest hover:bg-coral/5 transition-colors disabled:opacity-50"
               >
                 {extracting ? 'Asking AI…' : 'Auto-fill macros'}
               </button>
-              <span className="font-body text-caption text-ink/40">
-                Sends the description to OpenAI.
-              </span>
+              {keyStatus === null ? (
+                <span className="font-body text-caption text-ink/40">
+                  Loading…
+                </span>
+              ) : keyStatus.set ? (
+                <span className="font-body text-caption text-ink/40">
+                  Uses your OpenAI key ({keyStatus.masked}).
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setKeyEditing(true)}
+                  className="font-body text-caption uppercase tracking-widest text-coral hover:text-coral/85 underline underline-offset-2"
+                >
+                  Add your OpenAI key
+                </button>
+              )}
             </div>
+
+            {(keyEditing || (!keyStatus?.set && keyStatus !== null)) && (
+              <div className="mt-3 p-3 border border-ink/15 bg-paper">
+                <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-2">
+                  Your OpenAI key
+                </p>
+                <p className="font-body text-caption text-ink/60 mb-2">
+                  Stored on your profile so the server can call OpenAI
+                  for you. We never see the secret — only that it's set.
+                  Your key, your bill.
+                </p>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <input
+                    type="password"
+                    value={keyInput}
+                    onChange={(e) => setKeyInput(e.target.value)}
+                    placeholder="sk-..."
+                    autoComplete="off"
+                    className="flex-1 min-w-[180px] px-3 py-2 bg-paper border-2 border-ink/20 font-mono text-sm focus:border-coral outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSaveKey}
+                    disabled={keyBusy || !keyInput.trim()}
+                    className="px-3 py-2 bg-ink text-paper font-body text-caption uppercase tracking-widest disabled:opacity-50"
+                  >
+                    {keyBusy ? 'Saving…' : 'Save key'}
+                  </button>
+                  {keyStatus?.set && (
+                    <button
+                      type="button"
+                      onClick={handleClearKey}
+                      disabled={keyBusy}
+                      className="px-3 py-2 border border-ink/20 font-body text-caption uppercase tracking-widest text-ink/60 hover:border-ink hover:text-ink transition-colors disabled:opacity-50"
+                    >
+                      Remove
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setKeyEditing(false);
+                      setKeyInput('');
+                      setKeyError(null);
+                    }}
+                    className="px-3 py-2 font-body text-caption uppercase tracking-widest text-ink/40 hover:text-ink transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+                {keyError && (
+                  <p className="font-body text-caption text-coral mt-2">
+                    {keyError}
+                  </p>
+                )}
+              </div>
+            )}
             {extractionError && (
               <p className="font-body text-caption text-coral mt-2">
                 {extractionError}
