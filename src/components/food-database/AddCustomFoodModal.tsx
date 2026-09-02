@@ -2,6 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { Food } from './types';
+import {
+  ALL_PROVIDERS,
+  PROVIDERS,
+  detectProvider,
+  type LLMProvider,
+} from '@/lib/llm/providers';
 
 // AddCustomFoodModal — owner-only food entry. On save, posts to
 // /api/foods/custom and on success calls `onCreated` with the new
@@ -141,14 +147,22 @@ export default function AddCustomFoodModal({
   const [extractionResult, setExtractionResult] = useState<ExtractionResult | null>(null);
   const [extractionError, setExtractionError] = useState<string | null>(null);
 
-  // BYOK state — the user's own OpenAI key. We never display the
-  // secret; only whether it's set + a masked preview. If unset, the
-  // modal shows an inline "add your key" prompt.
+  // BYOK state — the user's own LLM key + provider. We never display
+  // the secret; only whether it's set + a masked preview. If unset,
+  // the modal shows an inline "add your key" prompt.
   const [keyStatus, setKeyStatus] = useState<OpenAiKeyStatus | null>(null);
   const [keyInput, setKeyInput] = useState('');
   const [keyBusy, setKeyBusy] = useState(false);
   const [keyError, setKeyError] = useState<string | null>(null);
   const [keyEditing, setKeyEditing] = useState(false);
+  // Provider the user picks in the dropdown. Auto-detected when they
+  // type a key; the user can override by picking a different one.
+  const [pickedProvider, setPickedProvider] =
+    useState<LLMProvider>('openai');
+  // What the current keyInput looks like — drives the 'Detected:
+  // …' hint next to the dropdown. null when the input is empty.
+  const [detectedProvider, setDetectedProvider] =
+    useState<LLMProvider | null>(null);
 
   // Reset the form each time the modal opens so previous entries
   // don't bleed across.
@@ -168,6 +182,8 @@ export default function AddCustomFoodModal({
       setKeyBusy(false);
       setKeyError(null);
       setKeyEditing(false);
+      setPickedProvider('openai');
+      setDetectedProvider(null);
       fetch('/api/account/llm-key', { method: 'GET' })
         .then((r) => r.json())
         .then((data) => {
@@ -178,6 +194,10 @@ export default function AddCustomFoodModal({
               provider: data.provider ?? null,
               providerName: data.provider_name ?? null,
             });
+            // Pre-select the saved provider so the dropdown
+            // matches the next edit, but only if it's a real
+            // provider (avoid setting state to null/undefined).
+            if (data.provider) setPickedProvider(data.provider);
           }
         })
         .catch(() => {
@@ -196,7 +216,7 @@ export default function AddCustomFoodModal({
       const res = await fetch('/api/account/llm-key', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ api_key: k }),
+        body: JSON.stringify({ api_key: k, provider: pickedProvider }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -449,15 +469,50 @@ const handleSubmit = async (e: React.FormEvent) => {
                   Your OpenAI key
                 </p>
                 <p className="font-body text-caption text-ink/60 mb-2">
-                  Stored on your profile so the server can call OpenAI
-                  for you. We never see the secret — only that it's set.
-                  Your key, your bill.
+                  Stored on your profile so the server can call your
+                  provider for you. We never see the secret — only that
+                  it's set. Your key, your bill.
                 </p>
+                <div className="flex items-center gap-2 flex-wrap mb-2">
+                  <label className="font-body text-caption uppercase tracking-widest text-ink/50">
+                    Provider
+                  </label>
+                  <select
+                    value={pickedProvider}
+                    onChange={(e) =>
+                      setPickedProvider(e.target.value as LLMProvider)
+                    }
+                    aria-label="LLM provider"
+                    className="px-2 py-2 bg-paper border-2 border-ink/20 font-body text-sm focus:border-coral outline-none"
+                  >
+                    {ALL_PROVIDERS.map((p) => (
+                      <option key={p} value={p}>
+                        {PROVIDERS[p].name}
+                      </option>
+                    ))}
+                  </select>
+                  {detectedProvider && detectedProvider !== pickedProvider && (
+                    <span className="font-body text-caption text-ink/50">
+                      Detected: {PROVIDERS[detectedProvider].name}
+                    </span>
+                  )}
+                </div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <input
                     type="password"
                     value={keyInput}
-                    onChange={(e) => setKeyInput(e.target.value)}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setKeyInput(v);
+                      // Auto-detect provider from the prefix. The
+                      // dropdown follows the detected value so the
+                      // user sees "this looks like X". They can
+                      // still pick a different one if the default
+                      // guess is wrong.
+                      const detected = v.trim() ? detectProvider(v) : null;
+                      setDetectedProvider(detected);
+                      if (detected) setPickedProvider(detected);
+                    }}
                     placeholder="sk-..."
                     autoComplete="off"
                     className="flex-1 min-w-[180px] px-3 py-2 bg-paper border-2 border-ink/20 font-mono text-sm focus:border-coral outline-none"
