@@ -88,6 +88,8 @@ interface ExtractionResult {
 interface OpenAiKeyStatus {
   set: boolean;
   masked: string | null;
+  provider: string | null;
+  providerName: string | null;
 }
 
 const CATEGORY_OPTIONS = [
@@ -166,11 +168,16 @@ export default function AddCustomFoodModal({
       setKeyBusy(false);
       setKeyError(null);
       setKeyEditing(false);
-      fetch('/api/account/openai-key', { method: 'GET' })
+      fetch('/api/account/llm-key', { method: 'GET' })
         .then((r) => r.json())
         .then((data) => {
           if (data && typeof data.set === 'boolean') {
-            setKeyStatus({ set: data.set, masked: data.masked ?? null });
+            setKeyStatus({
+              set: data.set,
+              masked: data.masked ?? null,
+              provider: data.provider ?? null,
+              providerName: data.provider_name ?? null,
+            });
           }
         })
         .catch(() => {
@@ -186,7 +193,7 @@ export default function AddCustomFoodModal({
     setKeyBusy(true);
     setKeyError(null);
     try {
-      const res = await fetch('/api/account/openai-key', {
+      const res = await fetch('/api/account/llm-key', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ api_key: k }),
@@ -195,7 +202,12 @@ export default function AddCustomFoodModal({
       if (!res.ok) {
         throw new Error(data?.error || `HTTP ${res.status}`);
       }
-      setKeyStatus({ set: true, masked: data.masked ?? 'sk-••••' });
+      setKeyStatus({
+        set: true,
+        masked: data.masked ?? '••••',
+        provider: data.provider ?? null,
+        providerName: data.provider_name ?? null,
+      });
       setKeyInput('');
       setKeyEditing(false);
     } catch (err) {
@@ -216,12 +228,12 @@ export default function AddCustomFoodModal({
     setKeyBusy(true);
     setKeyError(null);
     try {
-      const res = await fetch('/api/account/openai-key', { method: 'DELETE' });
+      const res = await fetch('/api/account/llm-key', { method: 'DELETE' });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data?.error || `HTTP ${res.status}`);
       }
-      setKeyStatus({ set: false, masked: null });
+      setKeyStatus({ set: false, masked: null, provider: null, providerName: null });
       setKeyEditing(false);
     } catch (err) {
       setKeyError(err instanceof Error ? err.message : 'Could not clear the key.');
@@ -263,13 +275,13 @@ export default function AddCustomFoodModal({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        // 412 with code='no_openai_key' means the user hasn't added
+        // 412 with code='no_llm_key' means the user hasn't added
         // a key yet. Surface that as the BYOK prompt instead of a
         // generic extraction error.
-        if (res.status === 412 && data?.code === 'no_openai_key') {
+        if (res.status === 412 && data?.code === 'no_llm_key') {
           setKeyEditing(true);
-          setKeyError('Add your OpenAI key below to enable auto-fill.');
-          throw new Error('No OpenAI key on file.');
+          setKeyError('Add your LLM key below to enable auto-fill.');
+          throw new Error('No LLM key on file.');
         }
         throw new Error(data?.error || `HTTP ${res.status}`);
       }
@@ -418,7 +430,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                 </span>
               ) : keyStatus.set ? (
                 <span className="font-body text-caption text-ink/40">
-                  Uses your OpenAI key ({keyStatus.masked}).
+                  Uses your {keyStatus.providerName ?? 'LLM'} key ({keyStatus.masked}).
                 </span>
               ) : (
                 <button

@@ -1,49 +1,34 @@
 // POST /api/foods/custom/extract
 //
-// Free-text → structured macros. User types something like
-// "homemade granola with oats, honey, almonds", we ask an LLM to
-// estimate per-100g macros + name/brand/category. The result fills
-// the AddCustomFoodModal fields; the user reviews and edits before
-// saving.
+// Free-text → structured macros. The user types a description
+// like "homemade granola with oats, honey, almonds"; we ask the
+// user's stored LLM (BYOK) to estimate per-100g macros + name /
+// brand / category. The result fills the AddCustomFoodModal
+// fields; the user reviews and edits before saving.
 //
-// Model: gpt-4o-mini via OpenAI chat completions with JSON mode.
-// Cheap (under $0.001 per call at typical prompt size) and fast
-// (sub-second). Falls back to a 502 with the upstream message if the
-// model errors or the response can't be parsed as JSON.
+// Provider dispatch (src/lib/llm/extract.ts) routes the call to
+// the right adapter based on profiles.llm_provider. OpenAI /
+// DeepSeek / MiniMax / Perplexity share an OpenAI-compat adapter
+// (different baseUrl + model). Anthropic and Gemini each have
+// their own adapter because their request shapes differ.
 //
-// Privacy: the description is sent to OpenAI. The modal surfaces
-// this in the UI before the user opts in. We don't log descriptions
-// server-side; OpenAI's API policy is no-retention by default.
+// Privacy: the description is sent to whatever LLM provider the
+// user picked. We don't log descriptions server-side. The LLM
+// provider's no-retention policy is the user's call to make.
 
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@/lib/supabase';
+import { extractMacros, type LLMProvider } from '@/lib/llm/extract';
+import { PROVIDERS } from '@/lib/llm/providers';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 interface ExtractBody {
   description?: unknown;
-}
-
-interface ExtractedFood {
-  name: string;
-  brand: string | null;
-  category: string;
-  subcategory: string | null;
-  kcal: number;
-  protein: number;
-  carbs: number;
-  fat: number;
-  fiber: number;
-  serving_basis: '100g' | '100ml';
-  standard_serving_grams: number | null;
-  standard_serving_label: string | null;
-  aliases: string[];
-  confidence: 'high' | 'medium' | 'low';
-  notes: string | null;
 }
 
 const MAX_DESCRIPTION_LEN = 1000;
@@ -69,35 +54,6 @@ function rateLimited(userId: string): boolean {
   RATE_BUCKET.set(userId, bucket);
   return false;
 }
-
-const SYSTEM_PROMPT = `You're a nutrition expert. Given a free-text description of a single food, return its nutritional information per 100g as JSON.
-
-Return:
-{
-  "name": string,                    // display name, e.g. "Homemade granola"
-  "brand": string | null,           // brand if mentioned, else null
-  "category": string,               // one of: "Other", "Meat & Poultry", "Fish & Seafood", "Eggs", "Dairy", "Milk & Milk Alternatives", "Grains", "Bread & Bakery", "Pasta & Noodles", "Rice & Rice Dishes", "Legumes & Beans", "Vegetables", "Fruits", "Nuts & Seeds", "Oils & Fats", "Condiments & Sauces", "Snacks", "Sweets & Desserts", "Breakfast Foods", "Ready Meals", "Soups", "Salads", "Sandwiches & Wraps", "Pizza & Fast Food", "Beverages", "Protein Foods"
-  "subcategory": string | null,     // optional, e.g. "Cookies" or "Smoothies"
-  "kcal": number,                   // kcal per 100g (or per 100ml for beverages)
-  "protein": number,                // grams per 100g
-  "carbs": number,                  // grams per 100g
-  "fat": number,                    // grams per 100g
-  "fiber": number,                  // grams per 100g
-  "serving_basis": "100g" | "100ml",
-  "standard_serving_grams": number | null,
-  "standard_serving_label": string | null,
-  "aliases": string[],              // 2-5 alternative names / search terms
-  "confidence": "high" | "medium" | "low",
-  "notes": string | null            // one short sentence flagging assumptions, e.g. "Estimate assumes standard recipe"
-}
-
-Rules:
-- Macros are per the unit in serving_basis. For most foods that's 100g; for beverages / liquids 100ml.
-- kcal from macros should roughly equal protein*4 + carbs*4 + fat*9. Allow ±15%.
-- kcal clamped 0-999. Macros each clamped 0-999.
-- standard_serving_grams: pick a sensible typical portion (e.g. 50 for a cookie, 30 for cheese, 250 for soup). null if you genuinely don't know.
-- If the description is too vague to estimate (e.g. "some food"), set confidence="low" and notes explains why.
-- Output ONLY the JSON object — no prose, no markdown, no preamble.`;
 
 export async function POST(req: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -157,143 +113,49 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // BYOK: the user supplies their own OpenAI key. The server only
-  // holds it long enough to make the upstream call. Admin client
-  // reads profiles.openai_api_key with the existing per-user RLS —
-  // we scope by id explicitly so a future schema change can't widen
-  // the read.
+  // BYOK: the user supplies their own LLM key. Read both key and
+  // provider from profiles.llm_api_key / profiles.llm_provider.
+  // Admin client so we can read the sensitive column server-side
+  // without exposing it to the browser.
   const admin = createClient<Database>(supabaseUrl, supabaseService, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: profile } = await (admin.from('profiles') as any)
-    .select('openai_api_key')
+    .select('llm_api_key, llm_provider')
     .eq('id', user.id)
     .maybeSingle();
-  const openaiKey = (profile?.openai_api_key as string | null) ?? null;
-  if (!openaiKey) {
+  const apiKey = (profile?.llm_api_key as string | null) ?? null;
+  const provider = (profile?.llm_provider as LLMProvider | null) ?? 'openai';
+  if (!apiKey) {
     return NextResponse.json(
       {
         error:
-          "No OpenAI key on file. Add one in the food panel or via /api/account/openai-key.",
-        code: 'no_openai_key',
+          "No LLM key on file. Add one in the food panel or via /api/account/llm-key.",
+        code: 'no_llm_key',
       },
       { status: 412 }
     );
   }
 
-  let upstream: Response;
   try {
-    upstream = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${openaiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        temperature: 0.2,
-        response_format: { type: 'json_object' },
-        messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
-          { role: 'user', content: description },
-        ],
-      }),
+    const food = await extractMacros(description, apiKey, provider);
+    return NextResponse.json({
+      ok: true,
+      food,
+      provider,
+      provider_name: PROVIDERS[provider]?.name ?? provider,
     });
   } catch (err) {
-    console.error('OpenAI fetch failed:', err);
-    return NextResponse.json(
-      { error: 'Could not reach the extraction service.' },
-      { status: 502 }
-    );
-  }
-
-  if (!upstream.ok) {
-    const errBody = await upstream.text().catch(() => '');
-    console.error('OpenAI error:', upstream.status, errBody);
+    console.error('LLM extract failed:', err);
     return NextResponse.json(
       {
-        error: `Extraction service returned ${upstream.status}. Try again or fill the form manually.`,
+        error:
+          err instanceof Error
+            ? err.message
+            : 'Extraction service returned an error.',
       },
       { status: 502 }
     );
   }
-
-  const json = (await upstream.json()) as {
-    choices?: Array<{ message?: { content?: string } }>;
-  };
-  const content = json.choices?.[0]?.message?.content;
-  if (!content) {
-    return NextResponse.json(
-      { error: 'Extraction service returned an empty response.' },
-      { status: 502 }
-    );
-  }
-
-  let parsed: ExtractedFood;
-  try {
-    const raw = JSON.parse(content);
-    parsed = sanitize(raw);
-  } catch (err) {
-    console.error('Could not parse OpenAI response:', err, content);
-    return NextResponse.json(
-      { error: 'Extraction service returned malformed JSON.' },
-      { status: 502 }
-    );
-  }
-
-  return NextResponse.json({ ok: true, food: parsed });
-}
-
-// Defensive clamping + defaults. The LLM is told to follow these
-// ranges but we re-clamp here in case it slipped.
-function sanitize(raw: Record<string, unknown>): ExtractedFood {
-  const num = (v: unknown, max: number): number => {
-    const n = typeof v === 'string' ? Number(v) : (v as number);
-    if (!Number.isFinite(n)) return 0;
-    return Math.max(0, Math.min(max, n));
-  };
-  const str = (v: unknown, max: number): string => {
-    if (typeof v !== 'string') return '';
-    return v.trim().slice(0, max);
-  };
-  const optStr = (v: unknown, max: number): string | null => {
-    if (v === null || v === undefined || v === '') return null;
-    return str(v, max);
-  };
-  const aliases = Array.isArray(raw.aliases)
-    ? (raw.aliases as unknown[])
-        .filter((x): x is string => typeof x === 'string')
-        .map((s) => s.trim())
-        .filter((s) => s.length > 0)
-        .slice(0, 5)
-    : [];
-  const serving_basis =
-    raw.serving_basis === '100ml' ? '100ml' as const : '100g' as const;
-  const confidence: 'high' | 'medium' | 'low' =
-    raw.confidence === 'high' || raw.confidence === 'low'
-      ? raw.confidence
-      : 'medium';
-
-  return {
-    name: str(raw.name, 120) || 'Unnamed food',
-    brand: optStr(raw.brand, 80),
-    category: str(raw.category, 60) || 'Other',
-    subcategory: optStr(raw.subcategory, 60),
-    kcal: num(raw.kcal, 9999),
-    protein: num(raw.protein, 999),
-    carbs: num(raw.carbs, 999),
-    fat: num(raw.fat, 999),
-    fiber: num(raw.fiber, 999),
-    serving_basis,
-    standard_serving_grams:
-      typeof raw.standard_serving_grams === 'number' &&
-      raw.standard_serving_grams > 0
-        ? Math.min(9999, raw.standard_serving_grams)
-        : null,
-    standard_serving_label: optStr(raw.standard_serving_label, 40),
-    aliases,
-    confidence,
-    notes: optStr(raw.notes, 280),
-  };
 }
