@@ -13,9 +13,7 @@
 // (`'llm'`) is reserved for a follow-up.
 
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { createServerClient } from '@supabase/ssr';
-import type { Database } from '@/lib/supabase';
+import { authedUserFromRequest } from '@/lib/auth-server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -88,14 +86,9 @@ function asAliases(v: unknown): string[] {
 }
 
 export async function POST(req: NextRequest) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!supabaseUrl || !supabaseAnon) {
-    return NextResponse.json(
-      { error: 'Supabase env vars missing.' },
-      { status: 503 }
-    );
-  }
+  const auth = await authedUserFromRequest(req);
+  if ('error' in auth) return auth.error;
+  const { admin, user } = auth.ctx;
 
   let body: CreateBody;
   try {
@@ -151,24 +144,6 @@ export async function POST(req: NextRequest) {
     return bad((err as Error).message);
   }
 
-  const cookieStore = cookies();
-  const ssr = createServerClient<Database>(supabaseUrl, supabaseAnon, {
-    cookies: {
-      getAll() {
-        return cookieStore.getAll();
-      },
-      setAll(toSet) {
-        try {
-          toSet.forEach(({ name, value, options }) => {
-            cookieStore.set(name, value, options);
-          });
-        } catch {
-          // ignored
-        }
-      },
-    },
-  });
-  const { data: { user } } = await ssr.auth.getUser();
   if (!user?.id) {
     return NextResponse.json({ error: 'Not signed in.' }, { status: 401 });
   }
@@ -177,7 +152,7 @@ export async function POST(req: NextRequest) {
   const submitted_at = submitToCommunity ? new Date().toISOString() : null;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: row, error } = await (ssr.from('user_custom_foods') as any)
+  const { data: row, error } = await (admin.from('user_custom_foods') as any)
     .insert({
       user_id: user.id,
       name,
@@ -216,39 +191,13 @@ export async function POST(req: NextRequest) {
 
 // GET — list the caller's custom foods (used by FoodSearch to merge
 // custom results into the search panel).
-export async function GET(_req: NextRequest) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!supabaseUrl || !supabaseAnon) {
-    return NextResponse.json(
-      { error: 'Supabase env vars missing.' },
-      { status: 503 }
-    );
-  }
-  const cookieStore = cookies();
-  const ssr = createServerClient<Database>(supabaseUrl, supabaseAnon, {
-    cookies: {
-      getAll() {
-        return cookieStore.getAll();
-      },
-      setAll(toSet) {
-        try {
-          toSet.forEach(({ name, value, options }) => {
-            cookieStore.set(name, value, options);
-          });
-        } catch {
-          // ignored
-        }
-      },
-    },
-  });
-  const { data: { user } } = await ssr.auth.getUser();
-  if (!user?.id) {
-    return NextResponse.json({ error: 'Not signed in.' }, { status: 401 });
-  }
+export async function GET(req: NextRequest) {
+  const auth = await authedUserFromRequest(req);
+  if ('error' in auth) return auth.error;
+  const { admin, user } = auth.ctx;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: rows, error } = await (ssr.from('user_custom_foods') as any)
+  const { data: rows, error } = await (admin.from('user_custom_foods') as any)
     .select('*')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })

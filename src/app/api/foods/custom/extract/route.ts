@@ -12,15 +12,11 @@
 // (different baseUrl + model). Anthropic and Gemini each have
 // their own adapter because their request shapes differ.
 //
-// Privacy: the description is sent to whatever LLM provider the
-// user picked. We don't log descriptions server-side. The LLM
-// provider's no-retention policy is the user's call to make.
+// Auth: Bearer-token via Authorization header. Required because
+// the app's session lives in localStorage rather than cookies.
 
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { createServerClient } from '@supabase/ssr';
-import { createClient } from '@supabase/supabase-js';
-import type { Database } from '@/lib/supabase';
+import { authedUserFromRequest } from '@/lib/auth-server';
 import { extractMacros, type LLMProvider } from '@/lib/llm/extract';
 import { PROVIDERS } from '@/lib/llm/providers';
 
@@ -33,10 +29,7 @@ interface ExtractBody {
 
 const MAX_DESCRIPTION_LEN = 1000;
 
-// Per-user rate limit: 30 requests / 60s. Cheap + fast enough that
-// anyone hitting this hard is either malicious or genuinely stuck.
-// The map is in-memory so it resets on server restart — fine for a
-// soft cap; upgrade to a real rate-limit store if abuse appears.
+// Per-user rate limit: 30 requests / 60s.
 const RATE_BUCKET = new Map<string, number[]>();
 const RATE_WINDOW_MS = 60_000;
 const RATE_MAX = 30;
@@ -56,15 +49,9 @@ function rateLimited(userId: string): boolean {
 }
 
 export async function POST(req: NextRequest) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  const supabaseService = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!supabaseUrl || !supabaseAnon || !supabaseService) {
-    return NextResponse.json(
-      { error: 'Supabase env vars missing.' },
-      { status: 503 }
-    );
-  }
+  const auth = await authedUserFromRequest(req);
+  if ('error' in auth) return auth.error;
+  const { user } = auth.ctx;
 
   let body: ExtractBody;
   try {
@@ -87,25 +74,6 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const cookieStore = cookies();
-  const ssr = createServerClient<Database>(supabaseUrl, supabaseAnon, {
-    cookies: {
-      getAll() { return cookieStore.getAll(); },
-      setAll(toSet) {
-        try {
-          toSet.forEach(({ name, value, options }) => {
-            cookieStore.set(name, value, options);
-          });
-        } catch {
-          // ignored
-        }
-      },
-    },
-  });
-  const { data: { user } } = await ssr.auth.getUser();
-  if (!user?.id) {
-    return NextResponse.json({ error: 'Not signed in.' }, { status: 401 });
-  }
   if (rateLimited(user.id)) {
     return NextResponse.json(
       { error: 'Too many requests. Try again in a minute.' },
@@ -113,13 +81,12 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const { admin } = auth.ctx;
+
   // BYOK: the user supplies their own LLM key. Read both key and
   // provider from profiles.llm_api_key / profiles.llm_provider.
   // Admin client so we can read the sensitive column server-side
   // without exposing it to the browser.
-  const admin = createClient<Database>(supabaseUrl, supabaseService, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: profile } = await (admin.from('profiles') as any)
     .select('llm_api_key, llm_provider')

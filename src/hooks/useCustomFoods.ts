@@ -12,6 +12,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { apiFetch } from '@/lib/api-fetch';
 import type { Food } from '@/components/food-database/types';
 
 export interface CustomFoodRow {
@@ -98,24 +99,17 @@ export function useCustomFoods() {
       setLoading(false);
       return;
     }
-    const supabase = createClient();
-    if (!supabase) {
+    setLoading(true);
+    const res = await apiFetch('/api/foods/custom');
+    if (!res.ok) {
+      console.error('custom foods fetch failed:', res.status);
+      setError('Could not load your foods.');
       setLoading(false);
       return;
     }
-    setLoading(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error: err } = await (supabase.from('user_custom_foods') as any)
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(500);
-    if (err) {
-      console.error('custom foods fetch failed:', err);
-      setError('Could not load your foods.');
-    } else {
-      setRows((data ?? []) as CustomFoodRow[]);
-      setError(null);
-    }
+    const data = (await res.json()) as { foods?: CustomFoodRow[] };
+    setRows(data.foods ?? []);
+    setError(null);
     setLoading(false);
   }, [user]);
 
@@ -125,10 +119,9 @@ export function useCustomFoods() {
 
   const create = useCallback(
     async (input: CustomFoodCreate): Promise<CustomFoodRow> => {
-      const res = await fetch('/api/foods/custom', {
+      const res = await apiFetch('/api/foods/custom', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(input),
+        body: input,
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -147,10 +140,9 @@ export function useCustomFoods() {
 
   const update = useCallback(
     async (id: string, patch: CustomFoodPatch): Promise<CustomFoodRow> => {
-      const res = await fetch(`/api/foods/custom/${id}`, {
+      const res = await apiFetch(`/api/foods/custom/${id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(patch),
+        body: patch,
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -166,7 +158,7 @@ export function useCustomFoods() {
   );
 
   const remove = useCallback(async (id: string): Promise<void> => {
-    const res = await fetch(`/api/foods/custom/${id}`, {
+    const res = await apiFetch(`/api/foods/custom/${id}`, {
       method: 'DELETE',
     });
     if (!res.ok) {

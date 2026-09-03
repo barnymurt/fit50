@@ -8,6 +8,7 @@ import {
   detectProvider,
   type LLMProvider,
 } from '@/lib/llm/providers';
+import { apiFetch } from '@/lib/api-fetch';
 
 // AddCustomFoodModal — owner-only food entry. On save, posts to
 // /api/foods/custom and on success calls `onCreated` with the new
@@ -184,7 +185,7 @@ export default function AddCustomFoodModal({
       setKeyEditing(false);
       setPickedProvider('openai');
       setDetectedProvider(null);
-      fetch('/api/account/llm-key', { method: 'GET' })
+      apiFetch('/api/account/llm-key', { method: 'GET' })
         .then((r) => r.json())
         .then((data) => {
           if (data && typeof data.set === 'boolean') {
@@ -213,10 +214,9 @@ export default function AddCustomFoodModal({
     setKeyBusy(true);
     setKeyError(null);
     try {
-      const res = await fetch('/api/account/llm-key', {
+      const res = await apiFetch('/api/account/llm-key', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ api_key: k, provider: pickedProvider }),
+        body: { api_key: k, provider: pickedProvider },
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -248,7 +248,7 @@ export default function AddCustomFoodModal({
     setKeyBusy(true);
     setKeyError(null);
     try {
-      const res = await fetch('/api/account/llm-key', { method: 'DELETE' });
+      const res = await apiFetch('/api/account/llm-key', { method: 'DELETE' });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data?.error || `HTTP ${res.status}`);
@@ -288,10 +288,9 @@ export default function AddCustomFoodModal({
     setExtractionError(null);
     setExtractionResult(null);
     try {
-      const res = await fetch('/api/foods/custom/extract', {
+      const res = await apiFetch('/api/foods/custom/extract', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ description: desc }),
+        body: { description: desc },
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {

@@ -7,10 +7,7 @@
 // DELETE — hard-delete the caller's own custom food.
 
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { createServerClient } from '@supabase/ssr';
-import { createClient } from '@supabase/supabase-js';
-import type { Database } from '@/lib/supabase';
+import { authedUserFromRequest } from '@/lib/auth-server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -83,38 +80,10 @@ interface PatchBody {
   submission_status?: unknown;
 }
 
-async function getAuthedContext() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  const supabaseService = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!supabaseUrl || !supabaseAnon || !supabaseService) {
-    return { error: NextResponse.json({ error: 'Supabase env vars missing.' }, { status: 503 }) };
-  }
-  const cookieStore = cookies();
-  const ssr = createServerClient<Database>(supabaseUrl, supabaseAnon, {
-    cookies: {
-      getAll() {
-        return cookieStore.getAll();
-      },
-      setAll(toSet) {
-        try {
-          toSet.forEach(({ name, value, options }) => {
-            cookieStore.set(name, value, options);
-          });
-        } catch {
-          // ignored
-        }
-      },
-    },
-  });
-  const { data: { user } } = await ssr.auth.getUser();
-  if (!user?.id) {
-    return { error: NextResponse.json({ error: 'Not signed in.' }, { status: 401 }) };
-  }
-  const admin = createClient<Database>(supabaseUrl, supabaseService, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-  return { admin, user };
+async function getAuthedContext(req: NextRequest) {
+  const auth = await authedUserFromRequest(req);
+  if ('error' in auth) return auth;
+  return auth.ctx;
 }
 
 export async function PATCH(
@@ -133,7 +102,7 @@ export async function PATCH(
     return NextResponse.json({ error: 'Body must be JSON.' }, { status: 400 });
   }
 
-  const ctx = await getAuthedContext();
+  const ctx = await getAuthedContext(req);
   if ('error' in ctx) return ctx.error;
   const { admin, user } = ctx;
 
@@ -245,7 +214,7 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   const id = params.id;
@@ -253,7 +222,7 @@ export async function DELETE(
     return NextResponse.json({ error: 'Invalid id.' }, { status: 400 });
   }
 
-  const ctx = await getAuthedContext();
+  const ctx = await getAuthedContext(req);
   if ('error' in ctx) return ctx.error;
   const { admin, user } = ctx;
 

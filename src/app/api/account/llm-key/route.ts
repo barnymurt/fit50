@@ -12,12 +12,13 @@
 // Perplexity, sk-… → OpenAI). The user can override via the
 // `provider` field on POST. The detected (or overridden) provider
 // is what gets stored.
+//
+// Auth: Bearer-token via Authorization header (see src/lib/auth-
+// server.ts). Required because the app's session lives in
+// localStorage rather than cookies, which server-side helpers can't
+// see.
 
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { createServerClient } from '@supabase/ssr';
-import { createClient } from '@supabase/supabase-js';
-import type { Database } from '@/lib/supabase';
 import {
   ALL_PROVIDERS,
   PROVIDERS,
@@ -25,6 +26,7 @@ import {
   looksLikeProviderKey,
   type LLMProvider,
 } from '@/lib/llm/providers';
+import { authedUserFromRequest } from '@/lib/auth-server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -38,42 +40,10 @@ function isProvider(p: unknown): p is LLMProvider {
   return typeof p === 'string' && (ALL_PROVIDERS as string[]).includes(p);
 }
 
-async function authedUser() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  const supabaseService = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!supabaseUrl || !supabaseAnon || !supabaseService) {
-    return { error: NextResponse.json({ error: 'Supabase env vars missing.' }, { status: 503 }) };
-  }
-  const cookieStore = cookies();
-  const ssr = createServerClient<Database>(supabaseUrl, supabaseAnon, {
-    cookies: {
-      getAll() { return cookieStore.getAll(); },
-      setAll(toSet) {
-        try {
-          toSet.forEach(({ name, value, options }) => {
-            cookieStore.set(name, value, options);
-          });
-        } catch {
-          // ignored
-        }
-      },
-    },
-  });
-  const { data: { user } } = await ssr.auth.getUser();
-  if (!user?.id) {
-    return { error: NextResponse.json({ error: 'Not signed in.' }, { status: 401 }) };
-  }
-  const admin = createClient<Database>(supabaseUrl, supabaseService, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-  return { admin, user };
-}
-
-export async function GET() {
-  const ctx = await authedUser();
-  if ('error' in ctx) return ctx.error;
-  const { admin, user } = ctx;
+export async function GET(req: NextRequest) {
+  const auth = await authedUserFromRequest(req);
+  if ('error' in auth) return auth.error;
+  const { admin, user } = auth.ctx;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data } = await (admin.from('profiles') as any)
@@ -95,9 +65,9 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const ctx = await authedUser();
-  if ('error' in ctx) return ctx.error;
-  const { admin, user } = ctx;
+  const auth = await authedUserFromRequest(req);
+  if ('error' in auth) return auth.error;
+  const { admin, user } = auth.ctx;
 
   let body: { api_key?: unknown; provider?: unknown };
   try {
@@ -110,9 +80,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'api_key is required.' }, { status: 400 });
   }
 
-  // Resolve the provider: explicit override wins, otherwise
-  // detect from the key prefix. Default falls back to OpenAI for
-  // sk-… keys since that's the most common shape.
+  // Resolve the provider: explicit override wins, otherwise detect
+  // from the key prefix. Default falls back to OpenAI for sk-… keys
+  // since that's the most common shape.
   const explicit = isProvider(body.provider) ? body.provider : null;
   const provider: LLMProvider = explicit ?? detectProvider(apiKey);
 
@@ -146,10 +116,10 @@ export async function POST(req: NextRequest) {
   });
 }
 
-export async function DELETE() {
-  const ctx = await authedUser();
-  if ('error' in ctx) return ctx.error;
-  const { admin, user } = ctx;
+export async function DELETE(req: NextRequest) {
+  const auth = await authedUserFromRequest(req);
+  if ('error' in auth) return auth.error;
+  const { admin, user } = auth.ctx;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (admin.from('profiles') as any)
