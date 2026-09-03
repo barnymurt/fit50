@@ -97,6 +97,7 @@ interface OpenAiKeyStatus {
   masked: string | null;
   provider: string | null;
   providerName: string | null;
+  anthropicWorkspaceId: string | null;
 }
 
 const CATEGORY_OPTIONS = [
@@ -164,6 +165,10 @@ export default function AddCustomFoodModal({
   // …' hint next to the dropdown. null when the input is empty.
   const [detectedProvider, setDetectedProvider] =
     useState<LLMProvider | null>(null);
+  // Optional Anthropic workspace id for identity-linked keys. Only
+  // shown in the UI when the picked provider is Anthropic.
+  const [anthropicWorkspaceId, setAnthropicWorkspaceId] =
+    useState('');
 
   // Reset the form each time the modal opens so previous entries
   // don't bleed across.
@@ -185,6 +190,7 @@ export default function AddCustomFoodModal({
       setKeyEditing(false);
       setPickedProvider('openai');
       setDetectedProvider(null);
+      setAnthropicWorkspaceId('');
       apiFetch('/api/account/llm-key', { method: 'GET' })
         .then((r) => r.json())
         .then((data) => {
@@ -194,11 +200,14 @@ export default function AddCustomFoodModal({
               masked: data.masked ?? null,
               provider: data.provider ?? null,
               providerName: data.provider_name ?? null,
+              anthropicWorkspaceId: data.anthropic_workspace_id ?? null,
             });
             // Pre-select the saved provider so the dropdown
             // matches the next edit, but only if it's a real
             // provider (avoid setting state to null/undefined).
             if (data.provider) setPickedProvider(data.provider);
+            if (data.anthropic_workspace_id)
+              setAnthropicWorkspaceId(data.anthropic_workspace_id);
           }
         })
         .catch(() => {
@@ -216,7 +225,14 @@ export default function AddCustomFoodModal({
     try {
       const res = await apiFetch('/api/account/llm-key', {
         method: 'POST',
-        body: { api_key: k, provider: pickedProvider },
+        body: {
+          api_key: k,
+          provider: pickedProvider,
+          anthropic_workspace_id:
+            pickedProvider === 'anthropic'
+              ? anthropicWorkspaceId.trim() || null
+              : null,
+        },
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -227,6 +243,7 @@ export default function AddCustomFoodModal({
         masked: data.masked ?? '••••',
         provider: data.provider ?? null,
         providerName: data.provider_name ?? null,
+        anthropicWorkspaceId: data.anthropic_workspace_id ?? null,
       });
       setKeyInput('');
       setKeyEditing(false);
@@ -253,7 +270,7 @@ export default function AddCustomFoodModal({
         const data = await res.json().catch(() => ({}));
         throw new Error(data?.error || `HTTP ${res.status}`);
       }
-      setKeyStatus({ set: false, masked: null, provider: null, providerName: null });
+      setKeyStatus({ set: false, masked: null, provider: null, providerName: null, anthropicWorkspaceId: null });
       setKeyEditing(false);
     } catch (err) {
       setKeyError(err instanceof Error ? err.message : 'Could not clear the key.');
@@ -549,6 +566,31 @@ const handleSubmit = async (e: React.FormEvent) => {
                     Cancel
                   </button>
                 </div>
+                {pickedProvider === 'anthropic' && (
+                  <div className="mt-3">
+                    <label className="block">
+                      <span className="font-body text-caption uppercase tracking-widest text-ink/50 mb-1 block">
+                        Anthropic workspace id{' '}
+                        <span className="text-ink/40 normal-case">(optional)</span>
+                      </span>
+                      <input
+                        type="text"
+                        value={anthropicWorkspaceId}
+                        onChange={(e) =>
+                          setAnthropicWorkspaceId(e.target.value)
+                        }
+                        placeholder="ws-..."
+                        autoComplete="off"
+                        className="w-full px-3 py-2 bg-paper border-2 border-ink/20 font-mono text-sm focus:border-coral outline-none"
+                      />
+                    </label>
+                    <p className="font-body text-caption text-ink/50 mt-1">
+                      Required when your Anthropic key is identity-linked
+                      (Anthropic returns 400 otherwise). Most users can
+                      leave this blank.
+                    </p>
+                  </div>
+                )}
                 {keyError && (
                   <p className="font-body text-caption text-coral mt-2">
                     {keyError}

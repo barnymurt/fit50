@@ -24,6 +24,10 @@ export interface LLMConfig {
   authPrefix: string;
   /** Provider identifier used in the validation / storage layer. */
   id: LLMProvider;
+  /** Per-call extra headers (e.g. `anthropic-workspace-id` for
+   *  identity-linked Anthropic keys). Adapters merge these into
+   *  the request alongside auth + content-type. */
+  extraHeaders?: Record<string, string>;
 }
 
 export const SYSTEM_PROMPT = `You're a nutrition expert. Given a free-text description of a single food, return its nutritional information per 100g as JSON.

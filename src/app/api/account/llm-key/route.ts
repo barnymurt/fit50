@@ -47,12 +47,14 @@ export async function GET(req: NextRequest) {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data } = await (admin.from('profiles') as any)
-    .select('llm_api_key, llm_provider')
+    .select('llm_api_key, llm_provider, anthropic_workspace_id')
     .eq('id', user.id)
     .maybeSingle();
 
   const key = (data?.llm_api_key as string | null) ?? null;
   const provider = (data?.llm_provider as LLMProvider | null) ?? null;
+  const anthropicWorkspaceId =
+    (data?.anthropic_workspace_id as string | null) ?? null;
   return NextResponse.json({
     ok: true,
     set: !!key,
@@ -61,6 +63,7 @@ export async function GET(req: NextRequest) {
     masked: key ? maskKey(key) : null,
     provider: provider ?? null,
     provider_name: provider ? PROVIDERS[provider]?.name ?? provider : null,
+    anthropic_workspace_id: anthropicWorkspaceId,
   });
 }
 
@@ -69,9 +72,13 @@ export async function POST(req: NextRequest) {
   if ('error' in auth) return auth.error;
   const { admin, user } = auth.ctx;
 
-  let body: { api_key?: unknown; provider?: unknown };
+  let body: { api_key?: unknown; provider?: unknown; anthropic_workspace_id?: unknown };
   try {
-    body = (await req.json()) as { api_key?: unknown; provider?: unknown };
+    body = (await req.json()) as {
+      api_key?: unknown;
+      provider?: unknown;
+      anthropic_workspace_id?: unknown;
+    };
   } catch {
     return NextResponse.json({ error: 'Body must be JSON.' }, { status: 400 });
   }
@@ -95,9 +102,23 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // Optional Anthropic workspace id (for identity-linked keys).
+  const anthropicWorkspaceId =
+    typeof body.anthropic_workspace_id === 'string'
+      ? body.anthropic_workspace_id.trim() || null
+      : null;
+
+  const update: Record<string, unknown> = {
+    llm_api_key: apiKey,
+    llm_provider: provider,
+  };
+  // Always set the workspace id column — explicit null clears it
+  // (lets the user remove a workspace id without re-saving the key).
+  update.anthropic_workspace_id = anthropicWorkspaceId;
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (admin.from('profiles') as any)
-    .update({ llm_api_key: apiKey, llm_provider: provider })
+    .update(update)
     .eq('id', user.id);
 
   if (error) {
@@ -113,6 +134,7 @@ export async function POST(req: NextRequest) {
     masked: maskKey(apiKey),
     provider,
     provider_name: PROVIDERS[provider].name,
+    anthropic_workspace_id: anthropicWorkspaceId,
   });
 }
 

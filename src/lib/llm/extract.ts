@@ -12,23 +12,31 @@ import { geminiExtract } from './gemini';
 
 export type { LLMProvider } from './types';
 
-const OPENAI_COMPAT: LLMProvider[] = [
-  'openai',
-  'deepseek',
-  'minimax',
-  'perplexity',
-];
+/** Per-call extras. Kept narrow so adapters can read what they need
+ *  (Anthropic's `anthropic_workspace_id` for identity-linked keys). */
+export interface ExtractExtras {
+  anthropicWorkspaceId?: string;
+}
 
 export async function extractMacros(
   description: string,
   apiKey: string,
-  provider: LLMProvider
+  provider: LLMProvider,
+  extras: ExtractExtras = {}
 ): Promise<ExtractedFood> {
-  const config = PROVIDERS[provider];
-  if (!config) {
-    throw new Error(`Unknown provider: ${provider}`);
+  const config = { ...PROVIDERS[provider] };
+  if (provider === 'anthropic' && extras.anthropicWorkspaceId) {
+    config.extraHeaders = {
+      ...(config.extraHeaders ?? {}),
+      'anthropic-workspace-id': extras.anthropicWorkspaceId,
+    };
   }
-  if (OPENAI_COMPAT.includes(provider)) {
+  if (
+    provider === 'openai' ||
+    provider === 'deepseek' ||
+    provider === 'minimax' ||
+    provider === 'perplexity'
+  ) {
     return openaiCompatExtract({ config, description, apiKey });
   }
   if (provider === 'anthropic') {

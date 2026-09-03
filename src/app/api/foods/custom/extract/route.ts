@@ -83,17 +83,19 @@ export async function POST(req: NextRequest) {
 
   const { admin } = auth.ctx;
 
-  // BYOK: the user supplies their own LLM key. Read both key and
-  // provider from profiles.llm_api_key / profiles.llm_provider.
-  // Admin client so we can read the sensitive column server-side
-  // without exposing it to the browser.
+  // BYOK: the user supplies their own LLM key. Read key + provider
+  // + (optionally) Anthropic workspace id from profiles.
+  // Admin client so we can read the sensitive columns server-side
+  // without exposing them to the browser.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: profile } = await (admin.from('profiles') as any)
-    .select('llm_api_key, llm_provider')
+    .select('llm_api_key, llm_provider, anthropic_workspace_id')
     .eq('id', user.id)
     .maybeSingle();
   const apiKey = (profile?.llm_api_key as string | null) ?? null;
   const provider = (profile?.llm_provider as LLMProvider | null) ?? 'openai';
+  const anthropicWorkspaceId =
+    (profile?.anthropic_workspace_id as string | null) ?? null;
   if (!apiKey) {
     return NextResponse.json(
       {
@@ -106,7 +108,9 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const food = await extractMacros(description, apiKey, provider);
+    const food = await extractMacros(description, apiKey, provider, {
+      ...(anthropicWorkspaceId ? { anthropicWorkspaceId } : {}),
+    });
     return NextResponse.json({
       ok: true,
       food,
