@@ -241,7 +241,7 @@ export default function AddCustomFoodModal({
     if (keyBusy) return;
     if (
       typeof window !== 'undefined' &&
-      !window.confirm('Remove your OpenAI key? Auto-fill will stop working until you add a new one.')
+      !window.confirm('Remove your LLM key? Auto-fill will stop working until you add a new one.')
     ) {
       return;
     }
@@ -444,13 +444,16 @@ const handleSubmit = async (e: React.FormEvent) => {
               >
                 {extracting ? 'Asking AI…' : 'Auto-fill macros'}
               </button>
-              {keyStatus === null ? (
-                <span className="font-body text-caption text-ink/40">
-                  Loading…
-                </span>
-              ) : keyStatus.set ? (
-                <span className="font-body text-caption text-ink/40">
+              {keyStatus?.set ? (
+                <span className="font-body text-caption text-ink/40 inline-flex items-center gap-2 flex-wrap">
                   Uses your {keyStatus.providerName ?? 'LLM'} key ({keyStatus.masked}).
+                  <button
+                    type="button"
+                    onClick={() => setKeyEditing(true)}
+                    className="font-body text-caption uppercase tracking-widest text-coral hover:text-coral/85 underline underline-offset-2"
+                  >
+                    Edit
+                  </button>
                 </span>
               ) : (
                 <button
@@ -458,15 +461,15 @@ const handleSubmit = async (e: React.FormEvent) => {
                   onClick={() => setKeyEditing(true)}
                   className="font-body text-caption uppercase tracking-widest text-coral hover:text-coral/85 underline underline-offset-2"
                 >
-                  Add your OpenAI key
+                  Add your LLM key
                 </button>
               )}
             </div>
 
-            {(keyEditing || (!keyStatus?.set && keyStatus !== null)) && (
+            {(keyEditing || !keyStatus?.set) && (
               <div className="mt-3 p-3 border border-ink/15 bg-paper">
                 <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-2">
-                  Your OpenAI key
+                  Your LLM key
                 </p>
                 <p className="font-body text-caption text-ink/60 mb-2">
                   Stored on your profile so the server can call your
