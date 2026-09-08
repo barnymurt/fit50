@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Section from './Section';
 import Heading from './Heading';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePremium } from '@/hooks/usePremium';
 import { createClient } from '@/lib/supabase';
 
 interface Exercise {
@@ -185,6 +186,145 @@ const workoutLines: Record<Line, { name: string; subtitle: string; exercises: Ex
 const TOTAL_SETS = 5;
 const LINES: Line[] = ['A', 'B', 'C', 'D'];
 
+// Premium-only equipment extras. Two extra exercises per line per
+// equipment, slot numbers 06 / 07. When the user enables KB or
+// band, those moves append to the line's existing bodyweight
+// exercises — they get *more* options, not a replacement.
+// Free users see the toggle locked with an upgrade link.
+const extraKettlebellExercises: Record<Line, Exercise[]> = {
+  A: [
+    {
+      slot: '06',
+      name: 'KB Floor Press',
+      reps: '5 × 10',
+      description:
+        'Lie on your back with a kettlebell in each hand at shoulder height. Press straight up until your arms lock, lower under control. Switch sides halfway through each set so each arm gets the same volume.',
+    },
+    {
+      slot: '07',
+      name: 'KB Goblet Squat',
+      reps: '5 × 10',
+      description:
+        'Hold a kettlebell by the horns against your chest, elbows tucked. Squat as deep as comfortable — thighs parallel or lower, chest up. Drive through your heels to stand.',
+    },
+  ],
+  B: [
+    {
+      slot: '06',
+      name: 'KB Strict Press',
+      reps: '5 × 10',
+      description:
+        'KB racked at shoulder height, elbows tucked. Press straight overhead without leaning back. Lower under control to the shoulder. Keep your ribs down — don\'t flare your lower back.',
+    },
+    {
+      slot: '07',
+      name: 'KB Bent-Over Row',
+      reps: '5 × 10',
+      description:
+        'Hinge hips back, flat back, KB hangs at arm\'s length. Row the KB to your hip, squeeze the shoulder blade, lower slow. Switch sides each set.',
+    },
+  ],
+  C: [
+    {
+      slot: '06',
+      name: 'KB Romanian Deadlift',
+      reps: '5 × 10',
+      description:
+        'KB in both hands. Push your hips back with a slight knee bend, KB slides down your shins. Squeeze your glutes to stand tall — don\'t round your lower back.',
+    },
+    {
+      slot: '07',
+      name: 'KB Glute Bridge',
+      reps: '5 × 10',
+      description:
+        'KB on your hips, lie on your back, knees bent. Drive through your heels, lift your hips toward the ceiling, squeeze your glutes hard at the top. Hold a second, lower with control.',
+    },
+  ],
+  D: [
+    {
+      slot: '06',
+      name: 'KB Halo',
+      reps: '5 × 10',
+      description:
+        'KB held by the horns at chest height. Circle it around your head, close to your skull. Brace your core, no leaning. Alternate direction each set.',
+    },
+    {
+      slot: '07',
+      name: 'KB Single-Arm Row',
+      reps: '5 × 10',
+      description:
+        'Hand and knee on a bench, KB in the other hand. Row the KB to your hip, elbow tight to your side. Switch sides each set.',
+    },
+  ],
+};
+
+const extraBandExercises: Record<Line, Exercise[]> = {
+  A: [
+    {
+      slot: '06',
+      name: 'RB Chest Press',
+      reps: '5 × 10',
+      description:
+        'Anchor the band behind you at chest height (a doorframe or heavy furniture works). Handles in hands at chest. Press forward until your arms lock, return slowly under control.',
+    },
+    {
+      slot: '07',
+      name: 'RB Banded Squat',
+      reps: '5 × 10',
+      description:
+        'Band looped just above your knees. Squat down, actively push your knees out against the band on the way up. Keep tension in the band the entire rep — don\'t let it go slack at the top.',
+    },
+  ],
+  B: [
+    {
+      slot: '06',
+      name: 'RB Overhead Press',
+      reps: '5 × 10',
+      description:
+        'Stand on the band centre with one foot, handles at shoulder height. Press straight up, lock out overhead, lower under control. Keep your ribs down — don\'t arch your lower back at the top.',
+    },
+    {
+      slot: '07',
+      name: 'RB Face Pull',
+      reps: '5 × 10',
+      description:
+        'Anchor the band at head height. Pull the handles toward your forehead, elbows flaring wide, thumbs pointing back. Pause at the top, squeeze your upper back, return slow.',
+    },
+  ],
+  C: [
+    {
+      slot: '06',
+      name: 'RB Glute Kickback',
+      reps: '5 × 10',
+      description:
+        'Band around your ankles, on all fours. Kick one leg straight back, squeeze the glute hard at the top, control the return. Switch sides each set.',
+    },
+    {
+      slot: '07',
+      name: 'RB Seated Row',
+      reps: '5 × 10',
+      description:
+        'Sit with legs straight, band looped around your feet. Pull the handles to your lower ribs, elbows tight, squeeze your back. Release slow — don\'t let the band yank you forward.',
+    },
+  ],
+  D: [
+    {
+      slot: '06',
+      name: 'RB Pallof Press',
+      reps: '5 × 10',
+      description:
+        'Anchor the band at chest height, stand side-on. Hands at your chest, press straight out, RESIST the rotation the band is trying to pull. Return slow. Switch sides.',
+    },
+    {
+      slot: '07',
+      name: 'RB Dead Bug',
+      reps: '5 × 10/side',
+      description:
+        'Band anchored overhead, hold it taut in both hands while lying on your back. Extend your opposite arm and leg out at the same time, keep your low back pressed to the floor. Alternate sides.',
+    },
+  ],
+};
+
 function todayKey() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -289,6 +429,7 @@ function TickBox({ filled, size = 28 }: { filled: boolean; size?: number }) {
 
 export default function AccountWorkouts() {
   const { user } = useAuth();
+  const { isPremium } = usePremium();
   const supabase = createClient();
   const [date, setDate] = useState<string>('');
   const [line, setLine] = useState<Line>('A');
@@ -301,6 +442,44 @@ export default function AccountWorkouts() {
   // existing localStorage entry before the load has a chance to
   // read it — silently nuking the user's progress.
   const [hasLoaded, setHasLoaded] = useState(false);
+
+  // Equipment toggles (premium only). Persisted in localStorage so
+  // the user doesn't have to re-enable them every session. Free
+  // users see the toggles locked with an upgrade link.
+  const [kettlebellOn, setKettlebellOn] = useState<boolean>(false);
+  const [bandOn, setBandOn] = useState<boolean>(false);
+  const [equipmentLoaded, setEquipmentLoaded] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const raw = window.localStorage.getItem('fit50-workout-equipment');
+      if (raw) {
+        const parsed = JSON.parse(raw) as {
+          kettlebell?: boolean;
+          band?: boolean;
+        };
+        if (parsed.kettlebell) setKettlebellOn(true);
+        if (parsed.band) setBandOn(true);
+      }
+    } catch {
+      // Ignore corrupt storage.
+    }
+    setEquipmentLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (!equipmentLoaded) return;
+    if (typeof window === 'undefined') return;
+    try {
+      window.localStorage.setItem(
+        'fit50-workout-equipment',
+        JSON.stringify({ kettlebell: kettlebellOn, band: bandOn })
+      );
+    } catch {
+      // Ignore quota / private-mode errors.
+    }
+  }, [equipmentLoaded, kettlebellOn, bandOn]);
 
   useEffect(() => {
     const k = todayKey();
@@ -378,7 +557,15 @@ export default function AccountWorkouts() {
     };
   }, [date, line, sets, user, supabase]);
 
-  const exercises = workoutLines[line].exercises;
+  // The exercise list the user actually sees: the 5 bodyweight
+  // exercises for the current line, plus the KB / band extras
+  // (slots 06+) when the user has those toggles on. KB comes first
+  // when both are on so the order is deterministic.
+  const exercises: Exercise[] = [
+    ...workoutLines[line].exercises,
+    ...(kettlebellOn ? extraKettlebellExercises[line] : []),
+    ...(bandOn ? extraBandExercises[line] : []),
+  ];
   const totalCompleted = exercises.reduce((sum, ex) => sum + (sets[ex.name] || 0), 0);
   const allDone = exercises.every((ex) => (sets[ex.name] || 0) >= TOTAL_SETS);
 
@@ -456,6 +643,62 @@ export default function AccountWorkouts() {
         >
           Download the Bodyweight Four →
         </a>
+
+        {/* Equipment (premium only). Each toggle appends 2 extra
+            exercises per line, slot numbers 06+. Free users see the
+            toggles locked with an upgrade link. */}
+        <div className="mb-4 border border-ink/15 bg-cre-30 p-4">
+          <div className="flex items-baseline justify-between gap-2 mb-2 flex-wrap">
+            <span className="font-body text-caption uppercase tracking-widest text-ink/50">
+              Equipment{' '}
+              <span className="text-ink/40 normal-case">
+                — adds 2 exercises per line
+              </span>
+            </span>
+            {!isPremium && (
+              <a
+                href="/upgrade"
+                className="font-body text-caption uppercase tracking-widest text-coral hover:text-coral/85"
+              >
+                Unlock with premium →
+              </a>
+            )}
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              disabled={!isPremium}
+              onClick={() => isPremium && setKettlebellOn((v) => !v)}
+              aria-pressed={kettlebellOn}
+              className={`px-3 py-2 border font-body text-caption uppercase tracking-widest transition-colors ${
+                kettlebellOn && isPremium
+                  ? 'border-coral bg-coral text-paper'
+                  : !isPremium
+                  ? 'border-ink/20 text-ink/30 cursor-not-allowed'
+                  : 'border-ink/20 text-ink/60 hover:border-ink/40 hover:text-ink'
+              }`}
+            >
+              {kettlebellOn && isPremium ? '✓ ' : ''}Kettlebell{' '}
+              {!isPremium && '🔒'}
+            </button>
+            <button
+              type="button"
+              disabled={!isPremium}
+              onClick={() => isPremium && setBandOn((v) => !v)}
+              aria-pressed={bandOn}
+              className={`px-3 py-2 border font-body text-caption uppercase tracking-widest transition-colors ${
+                bandOn && isPremium
+                  ? 'border-coral bg-coral text-paper'
+                  : !isPremium
+                  ? 'border-ink/20 text-ink/30 cursor-not-allowed'
+                  : 'border-ink/20 text-ink/60 hover:border-ink/40 hover:text-ink'
+              }`}
+            >
+              {bandOn && isPremium ? '✓ ' : ''}Resistance band{' '}
+              {!isPremium && '🔒'}
+            </button>
+          </div>
+        </div>
 
         {/* Line selector */}
         <div className="grid grid-cols-4 gap-2 mb-6">
