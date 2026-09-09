@@ -243,6 +243,43 @@ export default function Tracker({ hideMarquee = false }: { hideMarquee?: boolean
   const [pulsingHabit, setPulsingHabit] = useState<string | null>(null);
   const [confettiKey, setConfettiKey] = useState(0);
   const [confettiIntensity, setConfettiIntensity] = useState<'small' | 'big'>('small');
+  // Toast queue — bottom-center, fixed, auto-dismiss. Two messages
+  // for the auto-tick flow ("Move Your Body" / hydration goal hit).
+  // Stacks vertically when both fire close together. 4s auto-dismiss.
+  const [toasts, setToasts] = useState<
+    { id: number; kind: 'move-body' | 'hydration'; message: string }[]
+  >([]);
+
+  const pushToast = (kind: 'move-body' | 'hydration', message: string) => {
+    const id = Date.now() + Math.random();
+    setToasts((prev) => [...prev, { id, kind, message }]);
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, 4000);
+  };
+
+  const fireCelebration = (kind: 'move-body' | 'hydration') => {
+    const message =
+      kind === 'move-body'
+        ? 'Get In! Keep it going Legend'
+        : 'Mmmm tasty tasty agua';
+    pushToast(kind, message);
+    setConfettiIntensity('big');
+    setConfettiKey((k) => k + 1);
+  };
+
+  // Listen for auto-tick events from AccountWorkouts and
+  // WaterCounter. The event carries which habit was auto-ticked so
+  // we fire the right toast + confetti.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const ce = e as CustomEvent<{ kind: 'move-body' | 'wet-lips' }>;
+      if (ce.detail?.kind === 'move-body') fireCelebration('move-body');
+      else if (ce.detail?.kind === 'wet-lips') fireCelebration('hydration');
+    };
+    window.addEventListener('fit50:auto-tick', handler);
+    return () => window.removeEventListener('fit50:auto-tick', handler);
+  }, []);
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
   const [editingDay, setEditingDay] = useState<number | null>(null);
 
@@ -521,6 +558,45 @@ export default function Tracker({ hideMarquee = false }: { hideMarquee?: boolean
       </div>
 
       <CellConfetti key={confettiKey} show={confettiKey > 0} intensity={confettiIntensity} />
+
+      {/* Toast stack — bottom-center, fixed. One entry per auto-tick
+          event. Fades in/out, auto-dismisses after 4s. Stacks when
+          multiple fire close together. Brand: square card, 1px ink
+          border on paper background, coral accent. */}
+      {toasts.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2 items-center pointer-events-none">
+          {toasts.map((t) => (
+            <div
+              key={t.id}
+              className="bg-paper border border-ink px-4 py-3 max-w-sm text-center"
+              role="status"
+              aria-live="polite"
+              style={{ animation: 'fit50-toast-in 280ms ease-out' }}
+            >
+              {t.kind === 'move-body' ? (
+                <p className="font-display text-h3 text-coral leading-tight">
+                  Get In! Keep it going Legend
+                </p>
+              ) : (
+                <p className="font-display text-h3 text-teal leading-tight">
+                  Mmmm tasty tasty agua
+                </p>
+              )}
+              <p className="font-body text-caption uppercase tracking-widest text-ink/50 mt-1">
+                {t.kind === 'move-body'
+                  ? '5 exercises logged — Move Your Body done.'
+                  : 'Hydration goal hit — 2.5 L logged.'}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+      <style>{`
+        @keyframes fit50-toast-in {
+          from { opacity: 0; transform: translate(-50%, 8px); }
+          to   { opacity: 1; transform: translate(-50%, 0); }
+        }
+      `}</style>
 
       <ConfirmDialog
         open={resetConfirmOpen}

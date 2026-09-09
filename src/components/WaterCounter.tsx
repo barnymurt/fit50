@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useWaterLog } from '@/hooks/useWaterLog';
+import { useTrackerState } from '@/hooks/useTrackerState';
 
 const PRESETS = [
   { ml: 250, label: '250 ml', subtitle: 'Small glass' },
@@ -21,8 +22,14 @@ export default function WaterCounter() {
     removeLastLog,
     resetToday,
   } = useWaterLog();
+  const tracker = useTrackerState();
   const [customAmount, setCustomAmount] = useState('');
   const [flash, setFlash] = useState(false);
+
+  // Tracks the previous value of goalHit so we can detect the
+  // false→true transition (the auto-tick trigger). Refs avoid the
+  // stale-closure trap of useState in an effect.
+  const prevGoalHitRef = useRef<boolean | null>(null);
 
   // Flash + persist happens via the hook.
   useEffect(() => {
@@ -32,6 +39,27 @@ export default function WaterCounter() {
       return () => clearTimeout(t);
     }
   }, [todayAmount]);
+
+  // Auto-tick Wet The Lips when today's water crosses 2.5L (the
+  // DAILY_GOAL_ML threshold). We check the transition — manual
+  // unticks + re-adds re-fire. The custom event signals Tracker.tsx
+  // to fire the celebration (confetti + toast) so the user sees
+  // feedback even if the tile is offscreen.
+  useEffect(() => {
+    if (prevGoalHitRef.current === null) {
+      prevGoalHitRef.current = goalHit;
+      return;
+    }
+    if (goalHit && !prevGoalHitRef.current && !tracker.todayTaps['wet-lips']) {
+      tracker.toggleHabit('wet-lips');
+      window.dispatchEvent(
+        new CustomEvent('fit50:auto-tick', {
+          detail: { kind: 'wet-lips' },
+        })
+      );
+    }
+    prevGoalHitRef.current = goalHit;
+  }, [goalHit, tracker]);
 
   const handleCustom = (e: React.FormEvent) => {
     e.preventDefault();
