@@ -188,15 +188,15 @@ const TOTAL_SETS = 5;
 const LINES: Line[] = ['A', 'B', 'C', 'D'];
 const GROUPINGS = ['bodyweight', 'kettlebell', 'band'] as const;
 type Grouping = (typeof GROUPINGS)[number];
-const STAMINA_KEY = 'S';
-type WorkoutKey = Line | typeof STAMINA_KEY;
+type WorkoutKey = Line;
 
-// Premium-only equipment programs. Each grouping (kettlebell,
-// resistance band) has 5 lines — A/B/C/D + a Stamina line — themed
-// around the user's content (5-day cycles, one main exercise per
-// category per day, plus stamina). Lines have varying counts
-// because core moves get distributed by theme into the matching
-// push / pull / legs / full-body line.
+// Premium-only equipment programs. Each line A/B/C/D has exactly
+// 4 main exercises (5×10) plus 1 stamina finisher (5×50s) at the
+// end — total 5 entries per line. Stamina is not its own group
+// (per spec); it lives as the last row of each themed line. Lines
+// draw one entry per day from the user's 5-day cycles, so each line
+// pulls from 4 of the 5 days (with the remaining day's exercise
+// either dropped or used as the stamina finisher).
 // Bodyweight keeps its current 4-line A/B/C/D structure (the
 // free-tier taster); the new equipment programs sit alongside it.
 const kettlebellLines: Record<Line, Exercise[]> = {
@@ -224,31 +224,17 @@ const kettlebellLines: Record<Line, Exercise[]> = {
     },
     {
       slot: '04',
-      name: 'KB Bottom-Up Press',
-      reps: '5 × 10',
-      description:
-        'KB inverted, bell above hand, gripped hard at shoulder. Press overhead keeping bell balanced. Lower slow. Switch sides.',
-    },
-    {
-      slot: '05',
       name: 'KB Z Press',
       reps: '5 × 10',
       description:
         'Sit on floor, legs straight in front. KB racked at shoulder. Press overhead without leaning back. Lower slow. Switch sides.',
     },
     {
-      slot: '06',
-      name: 'KB Halo',
-      reps: '5 × 10',
+      slot: '05',
+      name: 'KB Swings',
+      reps: '5 × 50s',
       description:
-        'KB held by the horns at chest height. Circle it around your head, close to your skull. Brace your core, no leaning. Alternate direction each rep.',
-    },
-    {
-      slot: '07',
-      name: 'KB Windmill',
-      reps: '5 × 10',
-      description:
-        'KB pressed overhead, feet wide, opposite foot turned out. Hinge sideways to touch floor, eyes on KB. Reverse slow. Switch sides.',
+        'Hinge hips back, KB between legs. Snap hips forward, KB floats to chest height. Not a squat, not a lift.',
     },
   ],
   B: [
@@ -275,17 +261,17 @@ const kettlebellLines: Record<Line, Exercise[]> = {
     },
     {
       slot: '04',
-      name: 'KB Renegade Row',
-      reps: '5 × 10',
-      description:
-        'Plank on two KBs, feet wide. Row one KB to hip, hips square, alternate arms each rep. Core braced throughout.',
-    },
-    {
-      slot: '05',
       name: 'KB Gorilla Row',
       reps: '5 × 10',
       description:
         'Two KBs between feet, wide sumo stance, hinge down. Row one KB to hip while other rests, alternate arms each rep.',
+    },
+    {
+      slot: '05',
+      name: 'KB Goblet Squat Pulses',
+      reps: '5 × 50s',
+      description:
+        'Hold KB at chest, squat to parallel and pulse in the bottom third. Chest up, breath steady.',
     },
   ],
   C: [
@@ -312,38 +298,17 @@ const kettlebellLines: Record<Line, Exercise[]> = {
     },
     {
       slot: '04',
-      name: 'KB Front Squat',
-      reps: '5 × 10',
-      description:
-        'KB in racked position at shoulder, elbow tucked. Squat deep, chest tall, drive through heels to stand. Switch sides halfway.',
-    },
-    {
-      slot: '05',
       name: 'KB Cossack Squat',
       reps: '5 × 10',
       description:
         'KB goblet at chest, wide stance. Shift weight fully into one leg, squat deep, other leg straight. Return, switch sides.',
     },
     {
-      slot: '06',
-      name: 'KB Russian Twist',
-      reps: '5 × 10',
+      slot: '05',
+      name: "KB Farmer's Carry",
+      reps: '5 × 50s',
       description:
-        'Sit, feet raised, KB at chest. Rotate torso, tap KB beside hip. Alternate sides, keep chest tall and lifted.',
-    },
-    {
-      slot: '07',
-      name: 'KB Sit-Up',
-      reps: '5 × 10',
-      description:
-        'Lie down, KB pressed above chest, arms locked. Sit up keeping KB overhead, lower slow. Core does the work, not arms.',
-    },
-    {
-      slot: '08',
-      name: 'KB Half Get-Up',
-      reps: '5 × 10',
-      description:
-        'Lie down, KB pressed overhead one arm. Roll to elbow, then hand, hip up off floor. Reverse slow. Switch sides.',
+        'One heavy KB per side, or one loaded. Walk with tall posture, ribs down, crushing grip. Turn, return.',
     },
   ],
   D: [
@@ -370,51 +335,20 @@ const kettlebellLines: Record<Line, Exercise[]> = {
     },
     {
       slot: '04',
-      name: 'KB Burpee Deadlift',
-      reps: '5 × 10',
-      description:
-        'KB on floor. Squat, jump feet back to plank, jump feet in, deadlift KB to standing. Reset and repeat.',
-    },
-    {
-      slot: '05',
       name: 'KB Clean',
       reps: '5 × 10',
       description:
         'KB between feet. Pull explosively to racked shoulder position, elbow tight to ribs. Lower to floor under control. Switch sides.',
     },
+    {
+      slot: '05',
+      name: 'KB Snatches',
+      reps: '5 × 50s',
+      description:
+        'As Day 3 snatch but for time. Alternate sides every few reps, breath sharp, hips do the work — not the arm.',
+    },
   ],
 };
-
-const kettlebellStamina: Exercise[] = [
-  {
-    slot: '01',
-    name: 'KB Swings',
-    reps: '5 × 50s',
-    description:
-      'Hinge hips back, KB between legs. Snap hips forward, KB floats to chest height. Not a squat, not a lift.',
-  },
-  {
-    slot: '02',
-    name: 'KB Goblet Squat Pulses',
-    reps: '5 × 50s',
-    description:
-      'Hold KB at chest, squat to parallel and pulse in the bottom third. Chest up, breath steady.',
-  },
-  {
-    slot: '03',
-    name: 'KB Farmer\'s Carry',
-    reps: '5 × 50s',
-    description:
-      'One heavy KB per side, or one loaded. Walk with tall posture, ribs down, crushing grip. Turn, return.',
-  },
-  {
-    slot: '04',
-    name: 'KB Snatches',
-    reps: '5 × 50s',
-    description:
-      'As Day 3 snatch but for time. Alternate sides every few reps, breath sharp, hips do the work — not the arm.',
-  },
-];
 
 const bandLines: Record<Line, Exercise[]> = {
   A: [
@@ -441,24 +375,17 @@ const bandLines: Record<Line, Exercise[]> = {
     },
     {
       slot: '04',
-      name: 'RB Tricep Pushdown',
-      reps: '5 × 10',
-      description:
-        'Anchor band high. Elbows pinned to sides, push handles straight down until arms lock, control the return.',
-    },
-    {
-      slot: '05',
       name: 'RB Lateral Raise',
       reps: '5 × 10',
       description:
         'Stand on band, handles at sides. Raise arms out to shoulder height, slight elbow bend, lower under control.',
     },
     {
-      slot: '06',
-      name: 'RB Pallof Press',
-      reps: '5 × 10',
+      slot: '05',
+      name: 'Banded High Knees',
+      reps: '5 × 50s',
       description:
-        'Anchor band chest-height, side-on. Hands at sternum, press straight out, resist twist, return slow. Switch sides halfway.',
+        'Band above knees. Drive knees up alternately at pace, arms pumping, stay light on the balls of your feet.',
     },
   ],
   B: [
@@ -492,10 +419,10 @@ const bandLines: Record<Line, Exercise[]> = {
     },
     {
       slot: '05',
-      name: 'RB Lat Pulldown',
-      reps: '5 × 10',
+      name: 'Banded Jumping Jacks',
+      reps: '5 × 50s',
       description:
-        'Anchor band high overhead, kneel. Grip handles wide, pull down to collarbones, elbows drive to ribs. Return slow.',
+        'Band above knees. Jump feet wide and narrow, arms swinging overhead. Keep band taut throughout, land softly.',
     },
   ],
   C: [
@@ -529,24 +456,10 @@ const bandLines: Record<Line, Exercise[]> = {
     },
     {
       slot: '05',
-      name: 'RB Hip Thrust',
-      reps: '5 × 10',
+      name: 'Banded Skater Jumps',
+      reps: '5 × 50s',
       description:
-        'Sit against a wall or bench, band across hips, feet planted. Drive hips up, squeeze glutes at top, lower slow.',
-    },
-    {
-      slot: '06',
-      name: 'RB Dead Bug',
-      reps: '5 × 10',
-      description:
-        'Band anchored overhead, hold taut, lie down. Extend opposite leg out, keep low back pressed to floor. Switch each rep.',
-    },
-    {
-      slot: '07',
-      name: 'RB Russian Twist',
-      reps: '5 × 10',
-      description:
-        'Sit, feet raised, band anchored side-on, hands together. Rotate torso away from anchor, control back. Alternate sides each rep.',
+        'Band above knees. Bound side to side, land soft on outside leg, tap opposite foot behind. Stay low.',
     },
   ],
   D: [
@@ -580,69 +493,13 @@ const bandLines: Record<Line, Exercise[]> = {
     },
     {
       slot: '05',
-      name: 'RB Deadlift to Press',
-      reps: '5 × 10',
+      name: 'Banded Fast Punches',
+      reps: '5 × 50s',
       description:
-        'Stand on band. Deadlift to standing, then press handles overhead in one flow, reverse the sequence. Big breath each rep.',
-    },
-    {
-      slot: '06',
-      name: 'RB Woodchop',
-      reps: '5 × 10',
-      description:
-        'Anchor band high, side-on. Grip with both hands, pull diagonally down to opposite hip, rotate through torso. Switch sides.',
-    },
-    {
-      slot: '07',
-      name: 'RB Anti-Rotation Hold',
-      reps: '5 × 10',
-      description:
-        'Anchor band chest-height, side-on. Press handles straight out, hold rigid against pull. 10 seconds per rep, switch sides.',
+        'Anchor band behind you. Handles at chest, punch forward alternating hands as fast as form allows. Rotate through hips.',
     },
   ],
 };
-
-const bandStamina: Exercise[] = [
-  {
-    slot: '01',
-    name: 'Banded High Knees',
-    reps: '5 × 50s',
-    description:
-      'Band above knees. Drive knees up alternately at pace, arms pumping, stay light on the balls of your feet.',
-  },
-  {
-    slot: '02',
-    name: 'Banded Jumping Jacks',
-    reps: '5 × 50s',
-    description:
-      'Band above knees. Jump feet wide and narrow, arms swinging overhead. Keep band taut throughout, land softly.',
-  },
-  {
-    slot: '03',
-    name: 'Banded Skater Jumps',
-    reps: '5 × 50s',
-    description:
-      'Band above knees. Bound side to side, land soft on outside leg, tap opposite foot behind. Stay low.',
-  },
-  {
-    slot: '04',
-    name: 'Banded Fast Punches',
-    reps: '5 × 50s',
-    description:
-      'Anchor band behind you. Handles at chest, punch forward alternating hands as fast as form allows. Rotate through hips.',
-  },
-  {
-    slot: '05',
-    name: 'Banded Deadlift-to-Press',
-    reps: '5 × 50s',
-    description:
-      'Stand on band. Deadlift to standing, press handles overhead, lower. Repeat at pace with breath on each rep.',
-  },
-];
-
-const KB_LINES: Line[] = ['A', 'B', 'C', 'D'];
-const KB_KEYS = [...KB_LINES, 'S'] as const;
-type KBKey = (typeof KB_KEYS)[number];
 
 function todayKey() {
   const d = new Date();
@@ -891,15 +748,9 @@ export default function AccountWorkouts() {
     };
   }, [date, key, sets, user, supabase]);
 
-  // The exercise list for the active grouping+key. Stamina key
-  // ('S') pulls from the matching stamina array instead of the
-  // themed lines.
+  // The exercise list for the active grouping+key. Stamina is
+  // baked into each line as the last entry — no separate group.
   const exercises: Exercise[] = (() => {
-    if (key === STAMINA_KEY) {
-      if (grouping === 'kettlebell') return kettlebellStamina;
-      if (grouping === 'band') return bandStamina;
-      return workoutLines['A'].exercises; // bodyweight has no stamina line
-    }
     if (grouping === 'bodyweight')
       return workoutLines[key as Line]?.exercises ?? [];
     if (grouping === 'kettlebell')
@@ -1071,53 +922,39 @@ export default function AccountWorkouts() {
           </div>
         </div>
 
-        {/* Sub-selector: A/B/C/D for bodyweight, A/B/C/D/Stamina for
-            the premium programs. The Stamina tab only appears for KB
-            and band. */}
-        <div className="grid grid-cols-4 sm:grid-cols-5 gap-2 mb-6">
-          {(() => {
-            const keys: WorkoutKey[] =
-              grouping === 'bodyweight'
-                ? ['A', 'B', 'C', 'D']
-                : ['A', 'B', 'C', 'D', STAMINA_KEY];
-            return keys.map((k) => {
-              const active = k === key;
-              const label =
-                k === STAMINA_KEY
-                  ? 'Stamina'
-                  : (() => {
-                      if (grouping === 'bodyweight') {
-                        return workoutLines[k as Line].name;
-                      }
-                      if (grouping === 'kettlebell') {
-                        return kettlebellLines[k as Line][0]?.name?.split(' ')[0] ?? '';
-                      }
-                      if (grouping === 'band') {
-                        return bandLines[k as Line][0]?.name?.split(' ')[0] ?? '';
-                      }
-                      return '';
-                    })();
-              return (
-                <button
-                  key={k}
-                  onClick={() => {
-                    setKey(k);
-                    setActiveIdx(null);
-                  }}
-                  className={`px-3 py-3 border font-body text-caption uppercase tracking-widest transition-colors ${
-                    active
-                      ? 'border-coral text-coral bg-coral/5'
-                      : 'border-ink/20 text-ink/70 hover:border-ink/40'
-                  }`}
-                >
-                  <span className="font-display text-h3 block leading-none mb-1">{k}</span>
-                  <span className="block text-[10px] leading-tight opacity-80 truncate">
-                    {label}
-                  </span>
-                </button>
-              );
-            });
-          })()}
+        {/* Sub-selector: A/B/C/D. Each line has 4 mains + 1 stamina
+            finisher (the 5th entry), no separate Stamina tab. */}
+        <div className="grid grid-cols-4 gap-2 mb-6">
+          {LINES.map((l) => {
+            const active = l === key;
+            const label = (() => {
+              if (grouping === 'bodyweight') return workoutLines[l].name;
+              if (grouping === 'kettlebell')
+                return kettlebellLines[l][0]?.name?.split(' ')[0] ?? '';
+              if (grouping === 'band')
+                return bandLines[l][0]?.name?.split(' ')[0] ?? '';
+              return '';
+            })();
+            return (
+              <button
+                key={l}
+                onClick={() => {
+                  setKey(l);
+                  setActiveIdx(null);
+                }}
+                className={`px-3 py-3 border font-body text-caption uppercase tracking-widest transition-colors ${
+                  active
+                    ? 'border-coral text-coral bg-coral/5'
+                    : 'border-ink/20 text-ink/70 hover:border-ink/40'
+                }`}
+              >
+                <span className="font-display text-h3 block leading-none mb-1">{l}</span>
+                <span className="block text-[10px] leading-tight opacity-80 truncate">
+                  {label}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Exercise list — line expanded */}
