@@ -12,10 +12,9 @@
 -- most recently-touched `line` and the union of all the sets.
 --
 -- workout_log has NO `id` column — the PK is the (user_id,
--- date_key, line) composite. We use ctid to identify surviving
--- rows. The merge uses a TEMP TABLE so the kept-row set is
--- available to both the UPDATE (writing merged sets) and the
--- DELETE (removing duplicates) which are separate statements.
+-- date_key, line) composite. We use the system column ctid (which
+-- we MUST alias — ctid is reserved by Postgres and can't be a
+-- user-defined column name) to identify surviving rows.
 
 ALTER TABLE workout_log
   ADD COLUMN IF NOT EXISTS grouping text NOT NULL DEFAULT 'bodyweight';
@@ -27,6 +26,10 @@ ALTER TABLE workout_log
 -- Each (user_id, date_key, line) tuple has the kept row carry
 -- forward its line value throughout the recursion so all sets
 -- from the day's different lines land in the kept row.
+--
+-- Note: the temp table column is called `row_ctid`, NOT `ctid`,
+-- because `ctid` is a Postgres system column and can't be used as
+-- a user-defined column name (Postgres throws 42701).
 CREATE TEMP TABLE _workout_kept_bodyweight AS
 WITH RECURSIVE ordered AS (
   SELECT
@@ -45,32 +48,36 @@ WITH RECURSIVE ordered AS (
 ),
 merged AS (
   -- Anchor: most-recently-touched row per pair. Keep its line and
-  -- ctid — it represents "what the user was last working on".
-  SELECT user_id, date_key, ctid, line, rn, sets
+  -- ctid (aliased as row_ctid) — it represents "what the user was
+  -- last working on".
+  SELECT user_id, date_key, ctid AS row_ctid, line, rn, sets
   FROM ordered WHERE rn = 1
   UNION ALL
   -- Recursive: fold the next row's sets into the accumulator.
-  -- The anchor's line + ctid propagate through every step so all
-  -- sets land in the kept row regardless of which line they came
-  -- from.
-  SELECT m.user_id, m.date_key, m.ctid, m.line, o.rn, m.sets || o.sets
+  -- The anchor's row_ctid + line propagate through every step so
+  -- all sets land in the kept row regardless of which line they
+  -- came from.
+  SELECT m.user_id, m.date_key, m.row_ctid, m.line, o.rn, m.sets || o.sets
   FROM merged m
   JOIN ordered o
     ON o.user_id = m.user_id AND o.date_key = m.date_key
    AND o.rn = m.rn + 1
 )
-SELECT DISTINCT ON (user_id, date_key) user_id, date_key, ctid, line, sets
+SELECT DISTINCT ON (user_id, date_key)
+  user_id, date_key, row_ctid, line, sets
 FROM merged
 ORDER BY user_id, date_key, rn DESC;
 
 -- Step 1: update the kept row with the merged sets + the kept
--- line. The update matches by ctid (workout_log has no id).
+-- line. The update matches by row_ctid (workout_log has no id,
+-- and we can't name a temp-table column 'ctid' because Postgres
+-- reserves that name).
 UPDATE workout_log dst
 SET sets = k.sets,
     line = k.line,
     updated_at = NOW()
 FROM _workout_kept_bodyweight k
-WHERE dst.ctid = k.ctid;
+WHERE dst.ctid = k.row_ctid;
 
 -- Step 2: delete the now-redundant bodyweight rows. Keep only the
 -- row identified in _workout_kept_bodyweight; everything else with
@@ -82,7 +89,7 @@ WHERE dst.grouping = 'bodyweight'
     SELECT 1 FROM _workout_kept_bodyweight k
     WHERE k.user_id = dst.user_id
       AND k.date_key = dst.date_key
-      AND k.ctid = dst.ctid
+      AND k.row_ctid = dst.ctid
   );
 
 DROP TABLE _workout_kept_bodyweight;
