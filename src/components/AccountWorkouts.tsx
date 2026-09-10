@@ -972,41 +972,77 @@ export default function AccountWorkouts() {
                       : 'border-ink/15 hover:bg-cream/30'
                   }`}
                 >
-                  {/* Desktop: single row with ticks inline next to the
-                      name. Mobile: stacked, ticks on a second row. */}
-                  <div className="flex items-center gap-3 flex-wrap md:flex-nowrap">
-                    <button
-                      onClick={() => setActiveIdx(i)}
-                      className="font-body text-base text-ink md:flex-1 md:min-w-0 truncate text-left hover:text-coral transition-colors"
-                    >
-                      {ex.name}
-                    </button>
-                    <span className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums shrink-0 hidden sm:inline">
-                      {ex.reps}
-                    </span>
-                    <span className="flex gap-1 shrink-0 order-last md:order-none md:ml-2">
-                      {Array.from({ length: TOTAL_SETS }).map((_, j) => (
+                  {/*
+                   * Row layout — stacked on mobile so the KB / RB
+                   * brand chip and the exercise name each get their
+                   * own line, then the controls on a third line. On
+                   * desktop it's a single row. The brand chip is the
+                   * first thing KB / RB users see on a phone — the
+                   * full name shows when there's room. Bodyweight
+                   * exercises (no brand prefix) render normally.
+                   */}
+                  {(() => {
+                    const brand =
+                      ex.name.startsWith('KB ')
+                        ? 'KB'
+                        : ex.name.startsWith('RB ')
+                        ? 'RB'
+                        : null;
+                    return (
+                      <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-3">
                         <button
-                          key={j}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            cycleSet(ex.name, j);
-                          }}
-                          aria-label={
-                            j < done
-                              ? `Set ${j + 1} ticked — tap to untick`
-                              : `Set ${j + 1} empty — tap to tick`
-                          }
-                          className="min-w-[36px] min-h-[36px] flex items-center justify-center"
+                          type="button"
+                          onClick={() => setActiveIdx(i)}
+                          className="font-body text-base text-ink md:flex-1 md:min-w-0 text-left hover:text-coral transition-colors flex items-center gap-2 self-start"
                         >
-                          <TickBox filled={j < done} size={26} />
+                          {brand ? (
+                            <>
+                              <span className="md:hidden shrink-0 px-2 py-0.5 border border-ink/20 uppercase tracking-wider text-[11px] leading-none font-body">
+                                {brand}
+                              </span>
+                              <span className="hidden md:inline truncate">
+                                {ex.name}
+                              </span>
+                            </>
+                          ) : (
+                            <span className="truncate">{ex.name}</span>
+                          )}
                         </button>
-                      ))}
-                    </span>
-                    <span className={`font-body text-caption uppercase tracking-widest tabular-nums shrink-0 ml-auto md:ml-0 ${complete ? 'text-teal' : 'text-ink/40'}`}>
-                      {done}/{TOTAL_SETS}
-                    </span>
-                  </div>
+                        <span className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums shrink-0 hidden sm:inline">
+                          {ex.reps}
+                        </span>
+                        <div className="flex items-center gap-2 self-end md:self-auto md:ml-auto">
+                          <span className="flex gap-1 shrink-0">
+                            {Array.from({ length: TOTAL_SETS }).map((_, j) => (
+                              <button
+                                key={j}
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  cycleSet(ex.name, j);
+                                }}
+                                aria-label={
+                                  j < done
+                                    ? `Set ${j + 1} ticked — tap to untick`
+                                    : `Set ${j + 1} empty — tap to tick`
+                                }
+                                className="min-w-[36px] min-h-[36px] flex items-center justify-center"
+                              >
+                                <TickBox filled={j < done} size={26} />
+                              </button>
+                            ))}
+                          </span>
+                          <span
+                            className={`font-body text-caption uppercase tracking-widest tabular-nums shrink-0 ml-2 ${
+                              complete ? 'text-teal' : 'text-ink/40'
+                            }`}
+                          >
+                            {done}/{TOTAL_SETS}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               );
             })}
@@ -1025,10 +1061,28 @@ export default function AccountWorkouts() {
             </button>
 
             <div className="border border-ink/15 p-5 md:p-6">
-              <div className="flex items-baseline gap-3 mb-3">
-                <span className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums">
-                  {exercises[activeIdx].reps}
-                </span>
+              <div className="flex items-baseline gap-3 mb-3 flex-wrap">
+                {(() => {
+                  const ex0 = exercises[activeIdx];
+                  const brand =
+                    ex0.name.startsWith('KB ')
+                      ? 'KB'
+                      : ex0.name.startsWith('RB ')
+                      ? 'RB'
+                      : null;
+                  return (
+                    <>
+                      {brand ? (
+                        <span className="md:hidden shrink-0 px-2 py-0.5 border border-ink/20 uppercase tracking-wider text-[11px] leading-none font-body">
+                          {brand}
+                        </span>
+                      ) : null}
+                      <span className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums">
+                        {ex0.reps}
+                      </span>
+                    </>
+                  );
+                })()}
               </div>
               <h3 className="font-display text-h2 text-ink leading-tight mb-4">
                 {exercises[activeIdx].name}
