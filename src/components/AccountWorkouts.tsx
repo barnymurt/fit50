@@ -231,10 +231,10 @@ const kettlebellLines: Record<Line, Exercise[]> = {
     },
     {
       slot: '05',
-      name: 'KB Swings',
+      name: 'KB Halo',
       reps: '5 × 50s',
       description:
-        'Hinge hips back, KB between legs. Snap hips forward, KB floats to chest height. Not a squat, not a lift.',
+        'KB held by the horns at chest height. Circle it around your head, close to your skull. Brace your core, no leaning. Alternate direction each rep. Slow tempo — KB swings are too ballistic for novice users, so halos give a similar shoulder-rotation stimulus at low load.',
     },
   ],
   B: [
