@@ -64,8 +64,14 @@ finalised AS (
 ),
 ranked AS (
   -- Re-rank all bodyweight rows by (user_id, date_key, updated_at
-  -- DESC) so we can target the kept row with the UPDATE.
-  SELECT ctid, ROW_NUMBER() OVER (PARTITION BY user_id, date_key ORDER BY updated_at DESC, ctid) AS rn
+  -- DESC) so we can target the kept row with the UPDATE. user_id
+  -- and date_key are projected (not just in PARTITION BY) so the
+  -- UPDATE below can join on them.
+  SELECT
+    user_id,
+    date_key,
+    ctid,
+    ROW_NUMBER() OVER (PARTITION BY user_id, date_key ORDER BY updated_at DESC, ctid) AS rn
   FROM workout_log
   WHERE grouping = 'bodyweight'
 )
