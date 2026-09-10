@@ -18,6 +18,127 @@ interface Props {
   targets: MacroTargets | null;
 }
 
+// Meal bundles render as a 4x4 (2 cols on mobile, 4 on desktop) tile
+// grid. 12 tiles per page — beyond that we paginate. Each tile is a
+// tap-to-log shortcut for the bundle; the user can also reorder to
+// surface their current week's go-to bundles to the top.
+const BUNDLE_TILES_PER_PAGE = 12;
+
+// A single tile in the saved-meal-bundles grid. Square aspect, brand
+// consistent (paper background, ink border). Top = name, middle =
+// nutrition summary (kcal / items), bottom row = action icons
+// (↑ reorder, ✎ edit, ⎘ duplicate, ✕ delete). Tap on the tile body
+// logs the bundle.
+function BundleTile({
+  bundle,
+  kcal,
+  canMoveUp,
+  canMoveDown,
+  onLog,
+  onEdit,
+  onDuplicate,
+  onDelete,
+  onMoveToTop,
+}: {
+  bundle: MealBundle;
+  kcal: number | null;
+  canMoveUp: boolean;
+  canMoveDown: boolean;
+  onLog: () => void;
+  onEdit: () => void;
+  onDuplicate: () => void;
+  onDelete: () => void;
+  onMoveToTop: () => void;
+}) {
+  const [logging, setLogging] = useState(false);
+  return (
+    <div className="aspect-square border border-ink/15 bg-paper hover:border-coral transition-colors flex flex-col">
+      <button
+        type="button"
+        onClick={async () => {
+          if (logging) return;
+          setLogging(true);
+          try {
+            await onLog();
+          } finally {
+            setLogging(false);
+          }
+        }}
+        aria-label={`Log meal bundle ${bundle.name}`}
+        className="flex-1 min-h-0 p-2 text-left flex flex-col gap-1 disabled:opacity-50"
+        disabled={logging}
+      >
+        <p className="font-body text-sm text-ink leading-tight line-clamp-2">
+          {bundle.name}
+        </p>
+        <p className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums">
+          {bundle.items.length}{' '}
+          {bundle.items.length === 1 ? 'item' : 'items'}
+        </p>
+        <p className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums">
+          {kcal != null ? `${kcal} kcal` : '—'}
+        </p>
+        <p className="font-body text-caption uppercase tracking-widest text-ink/30 tabular-nums mt-auto">
+          Logged {bundle.times_logged}×
+        </p>
+      </button>
+      <div className="px-2 py-1 border-t border-ink/15 flex items-center gap-1 text-ink/60">
+        <button
+          type="button"
+          disabled={!canMoveUp || logging}
+          onClick={onMoveToTop}
+          aria-label={`Move ${bundle.name} to top`}
+          className="px-1 py-0.5 hover:text-ink disabled:opacity-30 disabled:cursor-not-allowed"
+          title="Move to top"
+        >
+          ↑
+        </button>
+        <button
+          type="button"
+          disabled={!canMoveDown || logging}
+          onClick={onMoveToTop}
+          aria-label={`Move ${bundle.name} up`}
+          className="px-1 py-0.5 hover:text-ink disabled:opacity-30 disabled:cursor-not-allowed"
+          title="Move up"
+        >
+          ▴
+        </button>
+        <span className="flex-1" />
+        <button
+          type="button"
+          disabled={logging}
+          onClick={onEdit}
+          aria-label={`Edit ${bundle.name}`}
+          className="px-1 py-0.5 hover:text-ink disabled:opacity-30"
+          title="Edit"
+        >
+          ✎
+        </button>
+        <button
+          type="button"
+          disabled={logging}
+          onClick={onDuplicate}
+          aria-label={`Duplicate ${bundle.name}`}
+          className="px-1 py-0.5 hover:text-ink disabled:opacity-30"
+          title="Duplicate"
+        >
+          ⎘
+        </button>
+        <button
+          type="button"
+          disabled={logging}
+          onClick={onDelete}
+          aria-label={`Delete ${bundle.name}`}
+          className="px-1 py-0.5 hover:text-coral disabled:opacity-30"
+          title="Delete"
+        >
+          ✕
+        </button>
+      </div>
+    </div>
+  );
+}
+
 const MEAL_OPTIONS: { value: Meal; label: string }[] = [
   { value: 'breakfast', label: 'Breakfast' },
   { value: 'lunch', label: 'Lunch' },
@@ -42,6 +163,7 @@ export default function FoodDatabase({ targets }: Props) {
     createBundle,
     updateBundle,
     touchBundle,
+    reorderBundles,
     deleteBundle,
   } = useMealBundles();
   const [picked, setPicked] = useState<Food | null>(null);
@@ -87,6 +209,28 @@ export default function FoodDatabase({ targets }: Props) {
         b.items.some((it) => it.food_id.toLowerCase().includes(q))
     );
   }, [bundles, bundleQuery]);
+
+  // Pagination for the bundle tile grid. Resets to page 0 when the
+  // filter shrinks the list below the current page's range.
+  const [bundlePage, setBundlePage] = useState(0);
+  const totalBundlePages = Math.max(
+    1,
+    Math.ceil(visibleBundles.length / BUNDLE_TILES_PER_PAGE)
+  );
+  // Clamp the current page when the filtered set shrinks.
+  useEffect(() => {
+    if (bundlePage > totalBundlePages - 1) {
+      setBundlePage(Math.max(0, totalBundlePages - 1));
+    }
+  }, [bundlePage, totalBundlePages]);
+  const paginatedBundles = useMemo(
+    () =>
+      visibleBundles.slice(
+        bundlePage * BUNDLE_TILES_PER_PAGE,
+        (bundlePage + 1) * BUNDLE_TILES_PER_PAGE
+      ),
+    [visibleBundles, bundlePage]
+  );
 
   // Resolve "recently logged" ids → Food rows via a targeted lookup.
   // We never load the full ~135K corpus into the browser.
@@ -463,8 +607,12 @@ export default function FoodDatabase({ targets }: Props) {
         <MyCustomFoodsPanel onPickFood={handlePickFood} />
       )}
 
-      {/* Saved meal bundles. Each row is one tap to re-log the
-          whole combo at the saved portions. */}
+      {/* Saved meal bundles. 4x4 (2 cols on mobile, 4 on desktop)
+          square-tile grid. Each tile is a tap-to-log shortcut for
+          the bundle's stored portions. ↑↓ on a tile bumps its
+          position so the user can surface their current week's
+          go-to meal to the top without reordering the rest.
+          Pagination once the filtered list exceeds 12 tiles. */}
       {logLoaded && bundles.length > 0 && (
         <div className="bg-paper border border-ink/15">
           <div className="px-6 py-4 border-b border-ink/10 flex flex-wrap items-baseline justify-between gap-3">
@@ -473,7 +621,7 @@ export default function FoodDatabase({ targets }: Props) {
                 Saved meal bundles
               </p>
               <p className="font-body text-caption text-ink/40 mt-1">
-                One tap to log a combo. Edit / duplicate to adjust.
+                Tap a tile to log the combo. ↑↓ to reorder.
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -489,84 +637,92 @@ export default function FoodDatabase({ targets }: Props) {
               </span>
             </div>
           </div>
-          <ul>
-            {visibleBundles.map((b) => {
+          <div className="p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+            {paginatedBundles.map((b) => {
               const kcal = bundleKcal[b.id];
               return (
-                <li
+                <BundleTile
                   key={b.id}
-                  className="px-4 sm:px-6 py-3 border-b border-ink/10 last:border-b-0 flex flex-wrap items-center sm:items-baseline justify-between gap-x-3 gap-y-2"
-                >
-                  <div className="min-w-0 flex-1 basis-full sm:basis-auto">
-                    <p className="font-body text-sm text-ink break-words">
-                      {b.name}
-                    </p>
-                    <p className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums">
-                      {b.items.length} {b.items.length === 1 ? 'item' : 'items'}
-                      {kcal != null ? ` · ${kcal} kcal` : ''}
-                      {' · logged '}{b.times_logged}×
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        const ids = b.items.map((it) => it.food_id);
-                        const list = await fetchFoodsByIds(ids);
-                        const byId = new Map(list.map((f) => [f.id, f] as const));
-                        for (const it of b.items) {
-                          const f = byId.get(it.food_id);
-                          if (!f) continue;
-                          const scaled = scaleFood(f, it.portion_grams);
-                          await addEntry({
-                            food_id: f.id,
-                            name: f.name,
-                            grams: it.portion_grams,
-                            kcal: scaled.kcal,
-                            protein: scaled.protein,
-                            carbs: scaled.carbs,
-                            fat: scaled.fat,
-                            fiber: scaled.fiber,
-                            meal: null,
-                          });
-                          rememberPortion(f.id, it.portion_grams);
-                        }
-                        touchBundle(b.id);
-                      }}
-                      className="bg-ink text-paper font-body text-caption uppercase tracking-widest px-3 py-2 hover:bg-ink/85 transition-colors"
-                    >
-                      Log this meal
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => startEditing(b)}
-                      className="font-body text-caption uppercase tracking-widest text-ink/60 hover:text-ink border border-ink/20 px-2 py-2 transition-colors"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => startDuplicating(b)}
-                      className="font-body text-caption uppercase tracking-widest text-ink/60 hover:text-ink border border-ink/20 px-2 py-2 transition-colors"
-                    >
-                      Duplicate
-                    </button>
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        if (!window.confirm(`Delete meal bundle "${b.name}"?`)) return;
-                        await deleteBundle(b.id);
-                      }}
-                      aria-label={`Delete meal bundle ${b.name}`}
-                      className="font-body text-caption uppercase text-ink/40 hover:text-coral px-2 py-2 transition-colors"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                </li>
+                  bundle={b}
+                  kcal={kcal ?? null}
+                  canMoveUp={bundlePage * BUNDLE_TILES_PER_PAGE > 0}
+                  canMoveDown={
+                    bundlePage * BUNDLE_TILES_PER_PAGE +
+                      paginatedBundles.length <
+                    visibleBundles.length
+                  }
+                  onLog={async () => {
+                    const ids = b.items.map((it) => it.food_id);
+                    const list = await fetchFoodsByIds(ids);
+                    const byId = new Map(
+                      list.map((f) => [f.id, f] as const)
+                    );
+                    for (const it of b.items) {
+                      const f = byId.get(it.food_id);
+                      if (!f) continue;
+                      const scaled = scaleFood(f, it.portion_grams);
+                      await addEntry({
+                        food_id: f.id,
+                        name: f.name,
+                        grams: it.portion_grams,
+                        kcal: scaled.kcal,
+                        protein: scaled.protein,
+                        carbs: scaled.carbs,
+                        fat: scaled.fat,
+                        fiber: scaled.fiber,
+                        meal: null,
+                      });
+                      rememberPortion(f.id, it.portion_grams);
+                    }
+                    touchBundle(b.id);
+                  }}
+                  onEdit={() => startEditing(b)}
+                  onDuplicate={() => startDuplicating(b)}
+                  onDelete={() => {
+                    if (
+                      window.confirm(
+                        `Delete meal bundle "${b.name}"?`
+                      )
+                    ) {
+                      void deleteBundle(b.id);
+                    }
+                  }}
+                  onMoveToTop={() => {
+                    void reorderBundles(b.id);
+                  }}
+                />
               );
             })}
-          </ul>
+          </div>
+          {totalBundlePages > 1 && (
+            <div className="px-6 py-4 border-t border-ink/10 flex items-center justify-center gap-2">
+              <button
+                type="button"
+                disabled={bundlePage === 0}
+                onClick={() => setBundlePage((p) => Math.max(0, p - 1))}
+                aria-label="Previous bundles page"
+                className="px-3 py-1 border border-ink/20 font-body text-caption uppercase tracking-widest text-ink/70 hover:border-ink/40 disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                ◀
+              </button>
+              <span className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums">
+                Page {bundlePage + 1} of {totalBundlePages}
+              </span>
+              <button
+                type="button"
+                disabled={bundlePage >= totalBundlePages - 1}
+                onClick={() =>
+                  setBundlePage((p) =>
+                    Math.min(totalBundlePages - 1, p + 1)
+                  )
+                }
+                aria-label="Next bundles page"
+                className="px-3 py-1 border border-ink/20 font-body text-caption uppercase tracking-widest text-ink/70 hover:border-ink/40 disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                ▶
+              </button>
+            </div>
+          )}
         </div>
       )}
 

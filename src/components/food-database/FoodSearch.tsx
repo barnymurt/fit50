@@ -478,12 +478,14 @@ function applyFavouritesSort(foods: Food[], favourites: Set<string>): Food[] {
                               {std.label}
                             </span>
                           </span>
-                          <span className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums shrink-0">
+                          <span className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums shrink-0 flex flex-wrap items-baseline justify-end gap-x-2 max-w-full">
                             {i === 0 && finalResults.length > 1 && f.score > 0 ? (
-                              <span className="text-coral mr-2">Top match</span>
+                              <span className="text-coral">Top match</span>
                             ) : null}
-                            {stdKcal} kcal · {stdProtein}g P
-                            {favorites.has(f.id) ? ' · ★' : ''}
+                            <span>
+                              {stdKcal} kcal · {stdProtein}g P
+                              {favorites.has(f.id) ? ' · ★' : ''}
+                            </span>
                           </span>
                         </button>
                       </li>

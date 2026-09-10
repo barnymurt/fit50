@@ -22,6 +22,7 @@ export interface MealBundleItem {
 export interface MealBundle {
   id: string;
   name: string;
+  position: number;
   created_at: string;
   last_logged_at: string;
   times_logged: number;
@@ -51,8 +52,13 @@ export function useMealBundles() {
         await Promise.all([
           supabase
             .from('meal_bundles')
-            .select('id, name, created_at, last_logged_at, times_logged')
+            .select('id, name, position, created_at, last_logged_at, times_logged')
             .eq('user_id', user.id)
+            // Manual position wins (lower = earlier). Within the same
+            // position value, recent usage sorts first. New bundles
+            // all have position=0 and land at the bottom in usage
+            // order — a reorder bumps them above.
+            .order('position', { ascending: true })
             .order('last_logged_at', { ascending: false }),
           supabase
             .from('meal_bundle_items')
@@ -75,6 +81,7 @@ export function useMealBundles() {
       const merged: MealBundle[] = (bundleRows ?? []).map((b: any) => ({
         id: b.id,
         name: b.name,
+        position: typeof b.position === 'number' ? b.position : 0,
         created_at: b.created_at,
         last_logged_at: b.last_logged_at,
         times_logged: b.times_logged,
@@ -123,6 +130,7 @@ export function useMealBundles() {
         {
           id,
           name: name.trim(),
+          position: 0,
           created_at: new Date().toISOString(),
           last_logged_at: new Date().toISOString(),
           times_logged: 0,
@@ -246,6 +254,57 @@ export function useMealBundles() {
     []
   );
 
+  // Reorder: move the bundle at fromIndex to toIndex within the
+  // user's list. The simplest implementation that survives
+  // concurrent edits is "assign the moved bundle a position one
+  // lower than the current minimum" — this puts it at the top of
+  // the manual ordering regardless of what other bundles have.
+  // Other bundles' positions are unchanged. The next reload still
+  // shows the moved bundle first because (position ASC) wins.
+  //
+  // For a "reorder within the page" UX, we don't actually need
+  // stable ranks — moving to top is enough. If the user later
+  // wants more granular ordering, we can switch to a normalised
+  // position float.
+  const reorderBundles = useCallback(
+    async (movedId: string): Promise<void> => {
+      if (!user) return;
+      const supabase = createClient();
+      if (!supabase) return;
+      const { data: rows, error } = await supabase
+        .from('meal_bundles')
+        .select('id, position')
+        .eq('user_id', user.id);
+      if (error) {
+        console.error('useMealBundles: reorder lookup failed', error);
+        return;
+      }
+      const list = (rows ?? []) as { id: string; position: number }[];
+      if (list.find((r) => r.id === movedId) == null) return;
+      const minPos = list.reduce(
+        (m, r) => Math.min(m, typeof r.position === 'number' ? r.position : 0),
+        0
+      );
+      const next = minPos - 1;
+      const { error: updErr } = await supabase
+        .from('meal_bundles')
+        .update({ position: next })
+        .eq('id', movedId)
+        .eq('user_id', user.id);
+      if (updErr) {
+        console.error('useMealBundles: reorder update failed', updErr);
+        return;
+      }
+      setBundles((prev) => {
+        const without = prev.filter((b) => b.id !== movedId);
+        const moved = prev.find((b) => b.id === movedId);
+        if (!moved) return prev;
+        return [{ ...moved, position: next }, ...without];
+      });
+    },
+    [user]
+  );
+
   return {
     bundles,
     hydrated: bundlesLoaded,
@@ -253,5 +312,6 @@ export function useMealBundles() {
     updateBundle,
     touchBundle,
     deleteBundle,
+    reorderBundles,
   };
 }
