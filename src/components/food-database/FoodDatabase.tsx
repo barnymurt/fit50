@@ -160,6 +160,7 @@ export default function FoodDatabase({ targets }: Props) {
   const { portionFor, rememberPortion } = usePortionPrefs();
   const {
     bundles,
+    hydrated: bundlesLoaded,
     createBundle,
     updateBundle,
     touchBundle,
@@ -540,7 +541,7 @@ export default function FoodDatabase({ targets }: Props) {
           position so the user can surface their current week's
           go-to meal to the top without reordering the rest.
           Pagination once the filtered list exceeds 12 tiles. */}
-      {logLoaded && bundles.length > 0 && (
+      {bundlesLoaded && bundles.length > 0 && (
         <div className="bg-paper border border-ink/15">
           <div className="px-6 py-4 border-b border-ink/10 flex flex-wrap items-baseline justify-between gap-3">
             <div>
