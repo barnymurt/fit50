@@ -534,79 +534,6 @@ export default function FoodDatabase({ targets }: Props) {
 
   return (
     <div className="space-y-6">
-      <DailyTotalsBar totals={todayTotals} targets={targets} />
-
-      {!targets && (
-        <div className="border border-ink/15 bg-cream/30 p-4">
-          <p className="font-body text-caption uppercase tracking-widest text-ink/60 mb-1">
-            No targets yet
-          </p>
-          <p className="font-body text-sm text-ink/70">
-            Run the macro calculator above to set your daily targets. They drive the totals bar.
-          </p>
-        </div>
-      )}
-
-      {isOverBudget && topContributors.length > 0 && (
-        <div className="border border-coral/40 bg-coral/5 p-4">
-          <p className="font-body text-caption uppercase tracking-widest text-coral mb-2">
-            Over budget · top contributors
-          </p>
-          <ul className="space-y-1">
-            {topContributors.map(({ entry }) => (
-              <li
-                key={entry.id}
-                className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1"
-              >
-                <span className="font-body text-sm text-ink min-w-0 break-words">
-                  {entry.name}
-                </span>
-                <span className="font-body text-caption uppercase tracking-widest text-coral tabular-nums shrink-0">
-                  {Math.round(entry.kcal)} kcal
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      <div className="flex items-center gap-1 border-b border-ink/10 mb-4">
-        <button
-          type="button"
-          onClick={() => setTab('search')}
-          aria-pressed={tab === 'search'}
-          className={`px-4 py-2 font-body text-caption uppercase tracking-widest border-b-2 transition-colors ${
-            tab === 'search'
-              ? 'border-coral text-ink'
-              : 'border-transparent text-ink/50 hover:text-ink'
-          }`}
-        >
-          Search
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab('myfoods')}
-          aria-pressed={tab === 'myfoods'}
-          className={`px-4 py-2 font-body text-caption uppercase tracking-widest border-b-2 transition-colors ${
-            tab === 'myfoods'
-              ? 'border-coral text-ink'
-              : 'border-transparent text-ink/50 hover:text-ink'
-          }`}
-        >
-          My foods
-        </button>
-      </div>
-
-      {tab === 'search' ? (
-        <FoodSearch
-          favorites={favoriteIds}
-          onPickFood={handlePickFood}
-          recentlyLoggedFoods={recentFoods}
-        />
-      ) : (
-        <MyCustomFoodsPanel onPickFood={handlePickFood} />
-      )}
-
       {/* Saved meal bundles. 4x4 (2 cols on mobile, 4 on desktop)
           square-tile grid. Each tile is a tap-to-log shortcut for
           the bundle's stored portions. ↑↓ on a tile bumps its
@@ -706,7 +633,10 @@ export default function FoodDatabase({ targets }: Props) {
                 ◀
               </button>
               <span className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums">
-                Page {bundlePage + 1} of {totalBundlePages}
+                Showing {bundlePage * BUNDLE_TILES_PER_PAGE + 1}–{Math.min(
+      (bundlePage + 1) * BUNDLE_TILES_PER_PAGE,
+      visibleBundles.length
+    )} of {visibleBundles.length} (page {bundlePage + 1}/{totalBundlePages})
               </span>
               <button
                 type="button"
@@ -726,6 +656,78 @@ export default function FoodDatabase({ targets }: Props) {
         </div>
       )}
 
+      <DailyTotalsBar totals={todayTotals} targets={targets} />
+
+      {!targets && (
+        <div className="border border-ink/15 bg-cream/30 p-4">
+          <p className="font-body text-caption uppercase tracking-widest text-ink/60 mb-1">
+            No targets yet
+          </p>
+          <p className="font-body text-sm text-ink/70">
+            Run the macro calculator above to set your daily targets. They drive the totals bar.
+          </p>
+        </div>
+      )}
+
+      {isOverBudget && topContributors.length > 0 && (
+        <div className="border border-coral/40 bg-coral/5 p-4">
+          <p className="font-body text-caption uppercase tracking-widest text-coral mb-2">
+            Over budget · top contributors
+          </p>
+          <ul className="space-y-1">
+            {topContributors.map(({ entry }) => (
+              <li
+                key={entry.id}
+                className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1"
+              >
+                <span className="font-body text-sm text-ink min-w-0 break-words">
+                  {entry.name}
+                </span>
+                <span className="font-body text-caption uppercase tracking-widest text-coral tabular-nums shrink-0">
+                  {Math.round(entry.kcal)} kcal
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <div className="flex items-center gap-1 border-b border-ink/10 mb-4">
+        <button
+          type="button"
+          onClick={() => setTab('search')}
+          aria-pressed={tab === 'search'}
+          className={`px-4 py-2 font-body text-caption uppercase tracking-widest border-b-2 transition-colors ${
+            tab === 'search'
+              ? 'border-coral text-ink'
+              : 'border-transparent text-ink/50 hover:text-ink'
+          }`}
+        >
+          Search
+        </button>
+        <button
+          type="button"
+          onClick={() => setTab('myfoods')}
+          aria-pressed={tab === 'myfoods'}
+          className={`px-4 py-2 font-body text-caption uppercase tracking-widest border-b-2 transition-colors ${
+            tab === 'myfoods'
+              ? 'border-coral text-ink'
+              : 'border-transparent text-ink/50 hover:text-ink'
+          }`}
+        >
+          My foods
+        </button>
+      </div>
+
+      {tab === 'search' ? (
+        <FoodSearch
+          favorites={favoriteIds}
+          onPickFood={handlePickFood}
+          recentlyLoggedFoods={recentFoods}
+        />
+      ) : (
+        <MyCustomFoodsPanel onPickFood={handlePickFood} />
+      )}
       {/* Logged today. Each row: meal-slot picker, favorite, log
           again, remove. Build-meal mode below shows checkboxes + a
           save form so the user picks which items go into the bundle
@@ -963,6 +965,9 @@ export default function FoodDatabase({ targets }: Props) {
           )}
         </div>
       )}
+
+
+
 
       {/* Bundle editor / duplicator. Opened by Edit or Duplicate
           on a saved bundle. Shows the items with their portions and
