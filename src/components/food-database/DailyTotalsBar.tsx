@@ -1,10 +1,65 @@
 'use client';
 
+import { useState } from 'react';
 import { Food, MacroTargets } from './types';
 
 interface Props {
   totals: { kcal: number; protein: number; carbs: number; fat: number };
   targets: MacroTargets | null;
+}
+
+// Protein = 4 kcal/g, carbs = 4 kcal/g, fat = 9 kcal/g. Alcohol
+// and other macros are out of scope — pie shows the three
+// macronutrients only.
+const PROTEIN_KCAL_PER_G = 4;
+const CARBS_KCAL_PER_G = 4;
+const FAT_KCAL_PER_G = 9;
+
+export default function DailyTotalsBar({ totals, targets }: Props) {
+  const [mode, setMode] = useState<'bar' | 'pie'>('bar');
+
+  return (
+    <div className="bg-paper border border-ink/15">
+      <div className="px-6 py-4 border-b border-ink/10 flex items-baseline justify-between gap-3 flex-wrap">
+        <p className="font-body text-caption uppercase tracking-widest text-ink/50">
+          Daily totals
+        </p>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => setMode('bar')}
+            aria-pressed={mode === 'bar'}
+            className={`px-3 py-1 font-body text-caption uppercase tracking-widest border transition-colors ${
+              mode === 'bar'
+                ? 'border-coral bg-coral text-paper'
+                : 'border-ink/20 text-ink/60 hover:border-ink/40'
+            }`}
+          >
+            Bar
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode('pie')}
+            aria-pressed={mode === 'pie'}
+            className={`px-3 py-1 font-body text-caption uppercase tracking-widest border transition-colors ${
+              mode === 'pie'
+                ? 'border-coral bg-coral text-paper'
+                : 'border-ink/20 text-ink/60 hover:border-ink/40'
+            }`}
+          >
+            Pie
+          </button>
+        </div>
+      </div>
+      <div className="p-6">
+        {mode === 'bar' ? (
+          <BarView totals={totals} targets={targets} />
+        ) : (
+          <PieView totals={totals} />
+        )}
+      </div>
+    </div>
+  );
 }
 
 const BARS: { key: 'kcal' | 'protein' | 'carbs' | 'fat'; label: string; unit: string }[] = [
@@ -14,178 +69,259 @@ const BARS: { key: 'kcal' | 'protein' | 'carbs' | 'fat'; label: string; unit: st
   { key: 'fat', label: 'Fat', unit: 'g' },
 ];
 
-// Bar zones (% of target):
-//   0%–95%  : empty (ink/10 background)
-//   95%–100%: teal hatched (close to target)
-//   100%–105%: coral hatched (over-target but within tolerance)
-//   >105%   : full coral (warning)
-const TIGHT = 0.95;
-const BUFFER = 0.05;
-// Total bar width represents 100% target + 5% buffer = 1.05 of target.
-const TOTAL_BAR = 1 + BUFFER; // 1.05
-
-export default function DailyTotalsBar({ totals, targets }: Props) {
+function BarView({
+  totals,
+  targets,
+}: {
+  totals: { kcal: number; protein: number; carbs: number; fat: number };
+  targets: MacroTargets | null;
+}) {
   return (
-    <div className="bg-paper border border-ink/15">
-      <div className="px-6 py-4 border-b border-ink/10 flex items-baseline justify-between">
-        <p className="font-body text-caption uppercase tracking-widest text-ink/50">
-          Daily totals
-        </p>
-        <p className="font-body text-caption uppercase text-ink/40">
-          Today
-        </p>
-      </div>
-      <div className="p-6 space-y-5">
-        {BARS.map(({ key, label, unit }) => {
-          const value = totals[key];
-          const target = targets?.[key] ?? 0;
-          if (target <= 0) {
-            return (
-              <div key={key}>
-                <div className="flex items-baseline justify-between mb-1">
-                  <span className="font-body text-caption uppercase tracking-widest text-ink/70">
-                    {label}
-                  </span>
-                  <span className="font-display text-h3 tabular-nums leading-none text-ink">
-                    {Math.round(value)}
-                    <span className="text-ink/40 font-body text-sm font-normal ml-1">
-                      / — {unit}
-                    </span>
-                  </span>
-                </div>
-              </div>
-            );
-          }
-
-          const ratio = value / target;
-          // Positions on the bar (0 .. TOTAL_BAR):
-          //   tightEndPct   = 95% mark  (teal zone starts)
-          //   targetPct    = 100% mark (finish line)
-          //   bufferEndPct = 105% mark (end of bar)
-          const tightEnd = TIGHT / TOTAL_BAR;        // 0.95 / 1.0 = 0.95
-          const targetPct = 1 / TOTAL_BAR;            // 1.0 / 1.0 = 1.0
-          const bufferEndPct = TOTAL_BAR / TOTAL_BAR;  // 1.0
-          // Fill position:
-          const fillPct = Math.min(ratio / TOTAL_BAR, 1);  // how far across the visible bar
-
-          // Status: only flag "over" past 105% — within 95-105% is
-          // acceptable and shown in the standard teal/ink colour.
-          let status: 'on-track' | 'over' = 'on-track';
-          if (ratio > 1 + BUFFER) status = 'over';
-
-          const fillPctLabel = Math.round(ratio * 100);
-
+    <div className="space-y-5">
+      {BARS.map(({ key, label, unit }) => {
+        const value = totals[key];
+        const target = targets?.[key] ?? 0;
+        if (target <= 0) {
           return (
             <div key={key}>
               <div className="flex items-baseline justify-between mb-1">
                 <span className="font-body text-caption uppercase tracking-widest text-ink/70">
                   {label}
                 </span>
-                <span
-                  className={`font-display text-h3 tabular-nums leading-none ${
-                    status === 'over' ? 'text-coral' : 'text-ink'
-                  }`}
-                >
+                <span className="font-display text-h3 tabular-nums leading-none text-ink">
                   {Math.round(value)}
                   <span className="text-ink/40 font-body text-sm font-normal ml-1">
-                    / {Math.round(target)} {unit}
+                    / — {unit}
                   </span>
                 </span>
-              </div>
-              <div
-                className="h-4 bg-ink/10 relative"
-                aria-label={`${label} ${fillPctLabel}% of target ${Math.round(target)} ${unit}, 5% buffer at 100-105%`}
-              >
-                {/* 95%→100% zone — teal hatched (you're getting close) */}
-                <div
-                  className="absolute inset-y-0"
-                  style={{
-                    left: `${tightEnd * 100}%`,
-                    width: `${(targetPct - tightEnd) * 100}%`,
-                    backgroundImage:
-                      'repeating-linear-gradient(45deg, rgba(74,155,155,0.30) 0 4px, transparent 4px 8px)',
-                    backgroundColor: 'rgba(74,155,155,0.10)',
-                  }}
-                  aria-hidden
-                />
-                {/* 100%→105% zone — coral hatched (over-target but within tolerance) */}
-                <div
-                  className="absolute inset-y-0"
-                  style={{
-                    left: `${targetPct * 100}%`,
-                    width: `${(bufferEndPct - targetPct) * 100}%`,
-                    backgroundImage:
-                      'repeating-linear-gradient(45deg, rgba(232,139,90,0.30) 0 4px, transparent 4px 8px)',
-                    backgroundColor: 'rgba(232,139,90,0.10)',
-                  }}
-                  aria-hidden
-                />
-                {/* Fill (clipped to bar width) */}
-                <div
-                  className="absolute inset-y-0 left-0 overflow-hidden"
-                  style={{ width: `${fillPct * 100}%` }}
-                >
-                  <div
-                    className={`h-full transition-all duration-300 ${
-                      status === 'over' ? 'bg-coral' : 'bg-teal'
-                    }`}
-                    style={{ width: '100%' }}
-                  />
-                </div>
-                {/* 100% target marker — thick line + flag + "100%" label */}
-                <div
-                  className="absolute inset-y-0 w-0.5 bg-ink"
-                  style={{ left: `${targetPct * 100}%` }}
-                  aria-hidden
-                />
-                <div
-                  className="absolute top-0 -translate-x-1/2"
-                  style={{ left: `${targetPct * 100}%` }}
-                  aria-hidden
-                >
-                  <div className="w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-ink" />
-                </div>
-                <span
-                  className="absolute top-3 -translate-x-1/2 font-body text-caption uppercase tracking-widest text-ink/70 font-medium"
-                  style={{ left: `${targetPct * 100}%` }}
-                  aria-hidden
-                >
-                  100%
-                </span>
-                {/* 95% and 105% boundary labels (small) */}
-                <span
-                  className="absolute -bottom-5 -translate-x-1/2 font-body text-[10px] uppercase tracking-widest text-ink/40"
-                  style={{ left: `${tightEnd * 100}%` }}
-                  aria-hidden
-                >
-                  95%
-                </span>
-                <span
-                  className="absolute -bottom-5 -translate-x-1/2 font-body text-[10px] uppercase tracking-widest text-ink/40"
-                  style={{ left: `${bufferEndPct * 100}%` }}
-                  aria-hidden
-                >
-                  105%
-                </span>
-                {/* Percent-complete label — sits right of the fill's
-                    leading edge, with a dark ink pill for readability. */}
-                {fillPct > 0 && (
-                  <span
-                    className="absolute top-1/2 -translate-y-1/2 inline-flex items-center justify-center font-body text-caption tabular-nums font-semibold bg-ink text-paper px-1.5 py-0.5 pointer-events-none whitespace-nowrap"
-                    style={{
-                      left: `calc(${fillPct * 100}% + 4px)`,
-                      transform: 'translate(0, -50%)',
-                    }}
-                    aria-hidden
-                  >
-                    {fillPctLabel}%
-                  </span>
-                )}
               </div>
             </div>
           );
-        })}
-      </div>
+        }
+
+        const ratio = value / target;
+        const status: 'on-track' | 'over' = ratio > 1 ? 'over' : 'on-track';
+        const fillPct = Math.min(ratio, 1);
+        const fillPctLabel = Math.round(ratio * 100);
+
+        return (
+          <div key={key}>
+            <div className="flex items-baseline justify-between mb-1">
+              <span className="font-body text-caption uppercase tracking-widest text-ink/70">
+                {label}
+              </span>
+              <span
+                className={`font-display text-h3 tabular-nums leading-none ${
+                  status === 'over' ? 'text-coral' : 'text-ink'
+                }`}
+              >
+                {Math.round(value)}
+                <span className="text-ink/40 font-body text-sm font-normal ml-1">
+                  / {Math.round(target)} {unit}
+                </span>
+              </span>
+            </div>
+            <div
+              className="h-4 bg-ink/10 relative"
+              aria-label={`${label} ${fillPctLabel}% of target ${Math.round(target)} ${unit}`}
+            >
+              <div
+                className="absolute inset-y-0 left-0 overflow-hidden"
+                style={{ width: `${fillPct * 100}%` }}
+              >
+                <div
+                  className={`h-full transition-all duration-300 ${
+                    status === 'over' ? 'bg-coral' : 'bg-teal'
+                  }`}
+                  style={{ width: '100%' }}
+                />
+              </div>
+              <div
+                className="absolute inset-y-0 w-0.5 bg-ink"
+                style={{ left: '100%' }}
+                aria-hidden
+              />
+              <span
+                className="absolute -bottom-5 left-full -translate-x-full -ml-1 font-body text-[10px] uppercase tracking-widest text-ink/40"
+                aria-hidden
+              >
+                100%
+              </span>
+            </div>
+            {fillPct > 0 && (
+              <span
+                className="absolute -bottom-5 inline-flex items-center justify-center font-body text-caption tabular-nums font-semibold text-ink/60"
+                aria-hidden
+              >
+                {fillPctLabel}%
+              </span>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
+}
+
+const PIE_RADIUS = 72;
+const PIE_CENTER = 84;
+
+function PieView({
+  totals,
+}: {
+  totals: { kcal: number; protein: number; carbs: number; fat: number };
+}) {
+  const pKcal = totals.protein * PROTEIN_KCAL_PER_G;
+  const cKcal = totals.carbs * CARBS_KCAL_PER_G;
+  const fKcal = totals.fat * FAT_KCAL_PER_G;
+  const total = pKcal + cKcal + fKcal;
+
+  const slices = [
+    {
+      key: 'protein',
+      label: 'Protein',
+      value: pKcal,
+      color: '#4A9B9B', // teal
+    },
+    {
+      key: 'carbs',
+      label: 'Carbs',
+      value: cKcal,
+      color: '#E88B5A', // coral
+    },
+    {
+      key: 'fat',
+      label: 'Fat',
+      value: fKcal,
+      color: '#1A1A1A', // ink
+    },
+  ];
+
+  // SVG arc starts at 12 o'clock and proceeds clockwise. The pie
+  // circumference maps degrees to arc lengths; each slice gets
+  // `startAngle..startAngle + sliceDegrees` degrees.
+  return (
+    <div className="flex flex-col md:flex-row items-center gap-6">
+      <div className="shrink-0">
+        <svg
+          width={PIE_CENTER * 2}
+          height={PIE_CENTER * 2}
+          viewBox={`0 0 ${PIE_CENTER * 2} ${PIE_CENTER * 2}`}
+          aria-label={`Today's macro split — protein ${pKcal.toFixed(0)} kcal, carbs ${cKcal.toFixed(0)} kcal, fat ${fKcal.toFixed(0)} kcal`}
+          role="img"
+        >
+          {total <= 0 ? (
+            <circle
+              cx={PIE_CENTER}
+              cy={PIE_CENTER}
+              r={PIE_RADIUS}
+              fill="none"
+              stroke="#1A1A1A"
+              strokeOpacity="0.15"
+              strokeWidth="2"
+              strokeDasharray="4 4"
+            />
+          ) : (
+            (() => {
+              let cursor = 0;
+              return slices.map((s) => {
+                if (s.value <= 0) return null;
+                const sliceDeg = (s.value / total) * 360;
+                const startDeg = cursor;
+                const endDeg = cursor + sliceDeg;
+                cursor = endDeg;
+                return (
+                  <path
+                    key={s.key}
+                    d={arcPath(PIE_CENTER, PIE_CENTER, PIE_RADIUS, startDeg, endDeg)}
+                    fill={s.color}
+                    aria-label={`${s.label}: ${s.value.toFixed(0)} kcal`}
+                  />
+                );
+              });
+            })()
+          )}
+          <circle cx={PIE_CENTER} cy={PIE_CENTER} r="20" fill="#FAF6EE" />
+          {total > 0 && (
+            <text
+              x={PIE_CENTER}
+              y={PIE_CENTER - 4}
+              textAnchor="middle"
+              fontFamily="Georgia, serif"
+              fontSize="16"
+              fill="#1A1A1A"
+              className="font-display"
+            >
+              {Math.round(totals.kcal).toLocaleString()}
+            </text>
+          )}
+          {total > 0 && (
+            <text
+              x={PIE_CENTER}
+              y={PIE_CENTER + 12}
+              textAnchor="middle"
+              fontFamily="ui-sans-serif, system-ui, sans-serif"
+              fontSize="9"
+              letterSpacing="0.16em"
+              fill="#1A1A1A"
+              fillOpacity="0.6"
+              className="font-body uppercase"
+            >
+              KCAL
+            </text>
+          )}
+        </svg>
+      </div>
+      <ul className="flex flex-col gap-2 font-body text-sm w-full md:flex-1">
+        {slices.map((s) => (
+          <li key={s.key} className="flex items-center gap-3">
+            <span
+              aria-hidden
+              className="inline-block w-3 h-3"
+              style={{ backgroundColor: s.color }}
+            />
+            <span className="font-body text-caption uppercase tracking-widest text-ink/60 min-w-20">
+              {s.label}
+            </span>
+            <span className="font-display tabular-nums">
+              {s.value.toFixed(0)}
+              <span className="text-ink/40 text-xs uppercase tracking-widest ml-1">
+                kcal
+              </span>
+            </span>
+            {total > 0 && (
+              <span className="text-ink/40 text-xs uppercase tracking-widest ml-auto">
+                {Math.round((s.value / total) * 100)}%
+              </span>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+// Generate an SVG path for an arc slice starting at `startDeg` (clockwise
+// from 12 o'clock) ending at `endDeg`. The slice starts at 12 o'clock
+// (cx, cy - r) and sweeps clockwise.
+function arcPath(
+  cx: number,
+  cy: number,
+  r: number,
+  startDeg: number,
+  endDeg: number
+): string {
+  const startRad = (startDeg - 90) * (Math.PI / 180);
+  const endRad = (endDeg - 90) * (Math.PI / 180);
+  const x1 = cx + r * Math.cos(startRad);
+  const y1 = cy + r * Math.sin(startRad);
+  const x2 = cx + r * Math.cos(endRad);
+  const y2 = cy + r * Math.sin(endRad);
+  const largeArc = endDeg - startDeg > 180 ? 1 : 0;
+  return [
+    `M ${cx} ${cy}`,
+    `L ${x1} ${y1}`,
+    `A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2}`,
+    'Z',
+  ].join(' ');
 }

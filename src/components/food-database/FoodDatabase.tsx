@@ -12,7 +12,7 @@ import FoodSearch from './FoodSearch';
 import FoodDetail from './FoodDetail';
 import MyCustomFoodsPanel from './MyCustomFoodsPanel';
 
-type FoodTab = 'search' | 'myfoods';
+type FoodTab = 'bundles' | 'search' | 'myfoods';
 
 interface Props {
   targets: MacroTargets | null;
@@ -39,6 +39,7 @@ function BundleTile({
   onDuplicate,
   onDelete,
   onMoveToTop,
+  onMoveUp,
 }: {
   bundle: MealBundle;
   kcal: number | null;
@@ -49,6 +50,7 @@ function BundleTile({
   onDuplicate: () => void;
   onDelete: () => void;
   onMoveToTop: () => void;
+  onMoveUp: () => void;
 }) {
   const [logging, setLogging] = useState(false);
   return (
@@ -85,7 +87,7 @@ function BundleTile({
       <div className="px-2 py-1 border-t border-ink/15 flex items-center gap-1 text-ink/60">
         <button
           type="button"
-          disabled={!canMoveUp || logging}
+          disabled={logging}
           onClick={onMoveToTop}
           aria-label={`Move ${bundle.name} to top`}
           className="px-1 py-0.5 hover:text-ink disabled:opacity-30 disabled:cursor-not-allowed"
@@ -95,11 +97,11 @@ function BundleTile({
         </button>
         <button
           type="button"
-          disabled={!canMoveDown || logging}
-          onClick={onMoveToTop}
-          aria-label={`Move ${bundle.name} up`}
+          disabled={!canMoveUp || logging}
+          onClick={onMoveUp}
+          aria-label={`Move ${bundle.name} up one`}
           className="px-1 py-0.5 hover:text-ink disabled:opacity-30 disabled:cursor-not-allowed"
-          title="Move up"
+          title="Move up one"
         >
           ▴
         </button>
@@ -165,6 +167,7 @@ export default function FoodDatabase({ targets }: Props) {
     updateBundle,
     touchBundle,
     reorderBundles,
+    moveUpOne,
     deleteBundle,
   } = useMealBundles();
   const [picked, setPicked] = useState<Food | null>(null);
@@ -573,7 +576,7 @@ export default function FoodDatabase({ targets }: Props) {
                   key={b.id}
                   bundle={b}
                   kcal={kcal ?? null}
-                  canMoveUp={bundlePage * BUNDLE_TILES_PER_PAGE > 0}
+                  canMoveUp={bundles.findIndex((bb) => bb.id === b.id) > 0}
                   canMoveDown={
                     bundlePage * BUNDLE_TILES_PER_PAGE +
                       paginatedBundles.length <
@@ -617,6 +620,9 @@ export default function FoodDatabase({ targets }: Props) {
                   }}
                   onMoveToTop={() => {
                     void reorderBundles(b.id);
+                  }}
+                  onMoveUp={() => {
+                    void moveUpOne(b.id);
                   }}
                 />
               );

@@ -305,6 +305,60 @@ export function useMealBundles() {
     [user]
   );
 
+  // Move the bundle up by one position (swap with the one above it).
+  // Uses fractional positions so we don't have to renumber every
+  // row on every swap — picking a new median between the current
+  // value and the neighbour above pins the relative order. If the
+  // bundle is already at the top of the user's list, no-op.
+  const moveUpOne = useCallback(
+    async (movedId: string): Promise<void> => {
+      if (!user) return;
+      const supabase = createClient();
+      if (!supabase) return;
+      const { data: rows, error } = await supabase
+        .from('meal_bundles')
+        .select('id, position')
+        .eq('user_id', user.id)
+        .order('position', { ascending: true });
+      if (error) {
+        console.error('useMealBundles: move-up lookup failed', error);
+        return;
+      }
+      const list = (rows ?? []) as { id: string; position: number }[];
+      const i = list.findIndex((r) => r.id === movedId);
+      if (i <= 0) return; // already at the top
+      const me = list[i];
+      const above = list[i - 1];
+      const newPos =
+        ((typeof me.position === 'number' ? me.position : 0) +
+          (typeof above.position === 'number' ? above.position : 0)) /
+        2;
+      const { error: updErr } = await supabase
+        .from('meal_bundles')
+        .update({ position: newPos })
+        .eq('id', movedId)
+        .eq('user_id', user.id);
+      if (updErr) {
+        console.error('useMealBundles: move-up update failed', updErr);
+        return;
+      }
+      setBundles((prev) =>
+        prev.map((b) => {
+          if (b.id === movedId) return { ...b, position: newPos };
+          if (b.id === above.id) {
+            return {
+              ...b,
+              position:
+                typeof me.position === 'number' ? me.position : 0,
+            };
+          }
+          return b;
+        })
+      );
+    },
+    [user]
+  );
+
   return {
     bundles,
     hydrated: bundlesLoaded,
@@ -313,5 +367,6 @@ export function useMealBundles() {
     touchBundle,
     deleteBundle,
     reorderBundles,
+    moveUpOne,
   };
 }
