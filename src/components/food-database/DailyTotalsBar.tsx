@@ -80,13 +80,14 @@ const BARS: { key: 'kcal' | 'protein' | 'carbs' | 'fat'; label: string; unit: st
   { key: 'fat', label: 'Fat', unit: 'g' },
 ];
 
-// Bar represents 0% to BAR_MAX (110%) of the target. Extending past
-// 100% gives room for the 105%+ over zone to be visible inside the
-// bar track, and lets the fill reach the right edge only when the
-// user truly blows past 110%.
-const BAR_MAX = 1.10;
-// Thresholds as fractions of target. 95% is the upper edge of the
-// shaded teal zone; 105% is the lower edge of the shaded coral zone.
+// Bar visualises 0% to BAR_VISUAL_MAX (120%) of the target. The
+// shaded zones only span 95–105% of target (per spec); the rest of
+// the track is the neutral bg-ink/10. The fill grows from 0 up
+// to BAR_FILL_CAP (110% of target) — past that the percentage
+// number keeps climbing but the bar stops extending so the
+// user gets a stable upper edge instead of runaway overshoot.
+const BAR_VISUAL_MAX = 1.20;
+const BAR_FILL_CAP = 1.10;
 const TEAL_THRESHOLD = 0.95;
 const CORAL_THRESHOLD = 1.05;
 
@@ -122,15 +123,21 @@ function BarView({
 
         const ratio = value / target;
         const status: 'on-track' | 'over' = ratio > 1 ? 'over' : 'on-track';
-        const fillPct = Math.min(ratio, 1);
-        const fillPctLabel = Math.round(ratio * 100);
+        const fillPctLabel = Math.round(ratio * 100); // uncapped
 
-        // Bar-relative positions for the threshold zones.
-        const tealEndPct = (TEAL_THRESHOLD / BAR_MAX) * 100; // ≈86.36
-        const coralStartPct = (CORAL_THRESHOLD / BAR_MAX) * 100; // ≈95.45
-        const targetLinePct = (1 / BAR_MAX) * 100; // ≈90.91
+        // Bar-relative positions as percentages of the visible
+        // track width. The track spans 0–120% of target, so
+        // 100% of target sits at 100/120 ≈ 83.33% of width.
+        const tealStartPct =
+          (TEAL_THRESHOLD / BAR_VISUAL_MAX) * 100; // ≈79.17
+        const tealEndPct = (1.0 / BAR_VISUAL_MAX) * 100; // ≈83.33
+        const coralEndPct =
+          (CORAL_THRESHOLD / BAR_VISUAL_MAX) * 100; // ≈87.5
+        const targetLinePct = tealEndPct; // 100% of target
+        const fillCapPct =
+          (BAR_FILL_CAP / BAR_VISUAL_MAX) * 100; // ≈91.67
         const fillBarPct =
-          (Math.min(value / target, BAR_MAX) / BAR_MAX) * 100;
+          (Math.min(value / target, BAR_FILL_CAP) / BAR_VISUAL_MAX) * 100;
 
         return (
           <div key={key} className="relative pb-6">
@@ -153,21 +160,29 @@ function BarView({
               className="h-4 bg-ink/10 relative overflow-hidden"
               aria-label={`${label} ${fillPctLabel}% of target ${Math.round(target)} ${unit}`}
             >
-              {/* Shaded teal zone: 0–95% of target. Marks the "good"
-                  range the user is aiming for. */}
+              {/* Teal zone: 95–100% of target. "Approaching target". */}
               <div
-                className="absolute inset-y-0 left-0 bg-teal/15"
-                style={{ width: `${tealEndPct}%` }}
+                className="absolute inset-y-0 bg-teal/15"
+                style={{
+                  left: `${tealStartPct}%`,
+                  width: `${tealEndPct - tealStartPct}%`,
+                }}
                 aria-hidden
               />
-              {/* Shaded coral zone: 105%+ of target. Marks the over
-                  budget band; fill turns coral once it crosses here. */}
+              {/* Coral zone: 100–105% of target. "Over budget band". */}
               <div
                 className="absolute inset-y-0 bg-coral/15"
-                style={{ left: `${coralStartPct}%`, right: 0 }}
+                style={{
+                  left: `${tealEndPct}%`,
+                  width: `${coralEndPct - tealEndPct}%`,
+                }}
                 aria-hidden
               />
-              {/* Fill: solid teal under 100%, solid coral once over. */}
+              {/* Fill: solid teal under 100% of target, solid coral
+                  once over. Capped at BAR_FILL_CAP (110% of target
+                  → ≈91.67% of bar width) so the bar stops extending
+                  visually once the user blows past 110%. The
+                  percentage label below keeps climbing uncapped. */}
               <div
                 className="absolute inset-y-0 left-0"
                 style={{ width: `${fillBarPct}%` }}
@@ -178,11 +193,11 @@ function BarView({
                   }`}
                 />
               </div>
-              {/* 95% / 100% / 105% tick marks — thin vertical rules so
-                  the threshold positions are visible regardless of fill. */}
+              {/* Tick marks at 95 / 100 / 105 / 110 so all four
+                  thresholds are visible regardless of fill. */}
               <div
                 className="absolute inset-y-0 w-px bg-ink/30"
-                style={{ left: `${tealEndPct}%` }}
+                style={{ left: `${tealStartPct}%` }}
                 aria-hidden
               />
               <div
@@ -192,17 +207,22 @@ function BarView({
               />
               <div
                 className="absolute inset-y-0 w-px bg-ink/30"
-                style={{ left: `${coralStartPct}%` }}
+                style={{ left: `${coralEndPct}%` }}
                 aria-hidden
               />
-              {/* 100% label, anchored to the right of the target line */}
-              <span className="absolute -bottom-5 font-body text-[10px] uppercase tracking-widest text-ink/40 whitespace-nowrap" style={{ left: `${targetLinePct}%`, transform: 'translateX(-50%)' }}>
-                100%
-              </span>
-              {/* Fill percentage pinned to the leading edge of the fill */}
-              {fillPct > 0 && (
+              <div
+                className="absolute inset-y-0 w-px bg-ink/20 border-l border-dashed border-ink/40"
+                style={{ left: `${fillCapPct}%` }}
+                aria-hidden
+              />
+              {/* Fill percentage pinned to the leading edge of the
+                  fill. Stays a fixed-width label and scales with
+                  the bar via percentage positioning. */}
+              {ratio > 0 && (
                 <span
-                  className="absolute -bottom-5 -translate-x-1/2 font-body text-caption tabular-nums font-semibold text-ink/60 whitespace-nowrap"
+                  className={`absolute -bottom-5 -translate-x-1/2 font-body text-caption tabular-nums font-semibold whitespace-nowrap ${
+                    status === 'over' ? 'text-coral' : 'text-ink/60'
+                  }`}
                   style={{ left: `${fillBarPct}%` }}
                   aria-hidden
                 >
@@ -226,6 +246,13 @@ function BarView({
 // the ring, anchored at the placeholder segment's midpoint
 // (60°, 180°, 300°). Labels stay put as the slices grow /
 // shrink — only the colored arc lengths move.
+//
+// The whole thing is wrapped in a responsive container:
+// `w-full max-w-[400px] aspect-square`. The SVG has a viewBox
+// equal to the container's internal coordinate space, so it
+// scales to any width. The slice labels are HTML divs positioned
+// at SVG-relative percentages of the container, so they stay
+// just outside the ring at every breakpoint.
 function PieView({
   totals,
   targets,
@@ -271,26 +298,25 @@ function PieView({
   const PLACEHOLDER_SEGMENTS = 3;
   const placeholderDeg = 360 / PLACEHOLDER_SEGMENTS;
 
-  // Per-slice labels are anchored at the placeholder midpoint so
-  // they stay put as the actual slices resize. The wrapper
-  // container is sized bigger than the SVG to fit the labels
-  // outside the ring without clipping.
-  const LABEL_PAD = 32;
-  const containerSize = PIE_SIZE + LABEL_PAD * 2;
-  const containerCenter = containerSize / 2;
-  const labelDistance = PIE_OUTER + 18;
+  // viewBox / container size. Sized bigger than the pie so slice
+  // labels can sit clearly outside the ring without overlapping
+  // the strokes. The container is responsive — the SVG fills it,
+  // so the internal coordinates map to whatever rendered width
+  // the container ends up at.
+  const LABEL_PAD = 70;
+  const containerSize = PIE_SIZE + LABEL_PAD * 2; // 400
+  const containerCenter = containerSize / 2; // 200
+  // Distance from container center to the label baseline. Extra
+  // space beyond the ring (PIE_OUTER + ~45) so the labels never
+  // sit on top of the strokes.
+  const labelDistance = PIE_OUTER + 45; // 166
 
   return (
     <div className="flex flex-col items-center gap-6">
-      <div
-        className="relative"
-        style={{ width: containerSize, height: containerSize }}
-      >
+      <div className="relative w-full max-w-[400px] aspect-square">
         <svg
-          width={PIE_SIZE}
-          height={PIE_SIZE}
-          viewBox={`0 0 ${PIE_SIZE} ${PIE_SIZE}`}
-          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+          className="absolute inset-0 w-full h-full"
+          viewBox={`0 0 ${containerSize} ${containerSize}`}
           aria-label={`Today's macro split — protein ${pKcal.toFixed(0)} kcal, carbs ${cKcal.toFixed(0)} kcal, fat ${fKcal.toFixed(0)} kcal`}
           role="img"
         >
@@ -303,8 +329,8 @@ function PieView({
               <path
                 key={`bg-${slice.key}`}
                 d={arcStrokePath(
-                  PIE_CENTER,
-                  PIE_CENTER,
+                  containerCenter,
+                  containerCenter,
                   PIE_RADIUS,
                   startDeg,
                   endDeg
@@ -331,8 +357,8 @@ function PieView({
                   <path
                     key={s.key}
                     d={arcStrokePath(
-                      PIE_CENTER,
-                      PIE_CENTER,
+                      containerCenter,
+                      containerCenter,
                       PIE_RADIUS,
                       startDeg,
                       endDeg
@@ -349,8 +375,8 @@ function PieView({
           {/* Center text — kcal accumulated, target below, KCAL label.
               The target value only shows when targets are configured. */}
           <text
-            x={PIE_CENTER}
-            y={PIE_CENTER - 6}
+            x={containerCenter}
+            y={containerCenter - 6}
             textAnchor="middle"
             fontFamily="Georgia, serif"
             fontSize="36"
@@ -360,8 +386,8 @@ function PieView({
             {Math.round(totals.kcal).toLocaleString()}
           </text>
           <text
-            x={PIE_CENTER}
-            y={PIE_CENTER + 18}
+            x={containerCenter}
+            y={containerCenter + 18}
             textAnchor="middle"
             fontFamily="ui-sans-serif, system-ui, sans-serif"
             fontSize="11"
@@ -377,12 +403,16 @@ function PieView({
 
         {/* Per-slice labels — sit just outside the ring at the
             placeholder midpoints so each macro's accumulated
-            amount + % of target is readable next to its slice. */}
+            amount + % of target is readable next to its slice.
+            Positioned at SVG-relative percentages of the container
+            so they scale with the pie on every breakpoint. */}
         {slices.map((s, i) => {
           const midDeg = i * placeholderDeg + placeholderDeg / 2;
           const midRad = ((midDeg - 90) * Math.PI) / 180;
-          const x = containerCenter + labelDistance * Math.cos(midRad);
-          const y = containerCenter + labelDistance * Math.sin(midRad);
+          const svgX = containerCenter + labelDistance * Math.cos(midRad);
+          const svgY = containerCenter + labelDistance * Math.sin(midRad);
+          const xPct = (svgX / containerSize) * 100;
+          const yPct = (svgY / containerSize) * 100;
           const pct =
             s.target > 0
               ? Math.round((s.gramValue / s.target) * 100)
@@ -392,25 +422,25 @@ function PieView({
             <div
               key={s.key}
               className="absolute -translate-x-1/2 -translate-y-1/2 text-center"
-              style={{ left: x, top: y }}
+              style={{ left: `${xPct}%`, top: `${yPct}%` }}
             >
-              <p className="font-body text-[10px] uppercase tracking-widest text-ink/60">
+              <p className="font-body text-[9px] sm:text-[10px] uppercase tracking-widest text-ink/60 leading-tight">
                 {s.label}
               </p>
-              <p className="font-display text-sm tabular-nums leading-tight">
+              <p className="font-display text-xs sm:text-sm tabular-nums leading-tight">
                 {Math.round(s.gramValue)}
                 {s.target > 0 && (
                   <span className="text-ink/40 ml-0.5">
                     / {Math.round(s.target)}
                   </span>
                 )}
-                <span className="text-ink/40 text-[10px] uppercase tracking-widest ml-0.5">
+                <span className="text-ink/40 text-[9px] sm:text-[10px] uppercase tracking-widest ml-0.5">
                   g
                 </span>
               </p>
               {pct != null && (
                 <p
-                  className={`font-body text-[10px] tabular-nums mt-0.5 ${
+                  className={`font-body text-[9px] sm:text-[10px] tabular-nums mt-0.5 ${
                     over ? 'text-coral' : 'text-ink/60'
                   }`}
                 >
