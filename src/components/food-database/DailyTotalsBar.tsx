@@ -15,6 +15,17 @@ const PROTEIN_KCAL_PER_G = 4;
 const CARBS_KCAL_PER_G = 4;
 const FAT_KCAL_PER_G = 9;
 
+// Pie dimensions. The ring is drawn with a stroked arc (not a
+// filled pie + donut hole) so the thickness is a single tunable
+// constant. Inner radius is large enough to host the kcal number
+// without the stroke clipping it.
+const PIE_RADIUS = 110;
+const PIE_STROKE = 22;
+const PIE_PADDING = 10;
+const PIE_OUTER = PIE_RADIUS + PIE_STROKE / 2;
+const PIE_SIZE = (PIE_OUTER + PIE_PADDING) * 2;
+const PIE_CENTER = PIE_SIZE / 2;
+
 export default function DailyTotalsBar({ totals, targets }: Props) {
   const [mode, setMode] = useState<'bar' | 'pie'>('bar');
 
@@ -55,7 +66,7 @@ export default function DailyTotalsBar({ totals, targets }: Props) {
         {mode === 'bar' ? (
           <BarView totals={totals} targets={targets} />
         ) : (
-          <PieView totals={totals} />
+          <PieView totals={totals} targets={targets} />
         )}
       </div>
     </div>
@@ -77,13 +88,13 @@ function BarView({
   targets: MacroTargets | null;
 }) {
   return (
-    <div className="space-y-5">
+    <div className="space-y-7">
       {BARS.map(({ key, label, unit }) => {
         const value = totals[key];
         const target = targets?.[key] ?? 0;
         if (target <= 0) {
           return (
-            <div key={key}>
+            <div key={key} className="relative pb-6">
               <div className="flex items-baseline justify-between mb-1">
                 <span className="font-body text-caption uppercase tracking-widest text-ink/70">
                   {label}
@@ -105,7 +116,7 @@ function BarView({
         const fillPctLabel = Math.round(ratio * 100);
 
         return (
-          <div key={key}>
+          <div key={key} className="relative pb-6">
             <div className="flex items-baseline justify-between mb-1">
               <span className="font-body text-caption uppercase tracking-widest text-ink/70">
                 {label}
@@ -141,21 +152,21 @@ function BarView({
                 style={{ left: '100%' }}
                 aria-hidden
               />
-              <span
-                className="absolute -bottom-5 left-full -translate-x-full -ml-1 font-body text-[10px] uppercase tracking-widest text-ink/40"
-                aria-hidden
-              >
+              {/* 100% marker label at the right edge of the bar */}
+              <span className="absolute left-full -bottom-5 ml-1 font-body text-[10px] uppercase tracking-widest text-ink/40 whitespace-nowrap">
                 100%
               </span>
+              {/* Fill percentage pinned to the leading edge of the fill */}
+              {fillPct > 0 && (
+                <span
+                  className="absolute -bottom-5 -translate-x-1/2 font-body text-caption tabular-nums font-semibold text-ink/60 whitespace-nowrap"
+                  style={{ left: `${fillPct * 100}%` }}
+                  aria-hidden
+                >
+                  {fillPctLabel}%
+                </span>
+              )}
             </div>
-            {fillPct > 0 && (
-              <span
-                className="absolute -bottom-5 inline-flex items-center justify-center font-body text-caption tabular-nums font-semibold text-ink/60"
-                aria-hidden
-              >
-                {fillPctLabel}%
-              </span>
-            )}
           </div>
         );
       })}
@@ -163,13 +174,16 @@ function BarView({
   );
 }
 
-const PIE_RADIUS = 72;
-const PIE_CENTER = 84;
-
+// SVG arc starts at 12 o'clock and proceeds clockwise. Stroked
+// (not filled) — the visible ring is just the stroke, no donut
+// hole to mask. Inner radius is large enough that the center
+// text never clips the stroke.
 function PieView({
   totals,
+  targets,
 }: {
   totals: { kcal: number; protein: number; carbs: number; fat: number };
+  targets: MacroTargets | null;
 }) {
   const pKcal = totals.protein * PROTEIN_KCAL_PER_G;
   const cKcal = totals.carbs * CARBS_KCAL_PER_G;
@@ -180,131 +194,201 @@ function PieView({
     {
       key: 'protein',
       label: 'Protein',
-      value: pKcal,
+      kcalValue: pKcal,
+      gramValue: totals.protein,
+      target: targets?.protein ?? 0,
       color: '#4A9B9B', // teal
     },
     {
       key: 'carbs',
       label: 'Carbs',
-      value: cKcal,
+      kcalValue: cKcal,
+      gramValue: totals.carbs,
+      target: targets?.carbs ?? 0,
       color: '#E88B5A', // coral
     },
     {
       key: 'fat',
       label: 'Fat',
-      value: fKcal,
+      kcalValue: fKcal,
+      gramValue: totals.fat,
+      target: targets?.fat ?? 0,
       color: '#1A1A1A', // ink
     },
   ];
 
-  // SVG arc starts at 12 o'clock and proceeds clockwise. The pie
-  // circumference maps degrees to arc lengths; each slice gets
-  // `startAngle..startAngle + sliceDegrees` degrees.
+  // The legend lists all four tracked totals — the three macros
+  // (matching the ring) plus the calorie total (matching the
+  // number in the center). Each row carries current + target +
+  // percent of target.
+  const legendItems = [
+    {
+      key: 'kcal',
+      label: 'Calories',
+      value: totals.kcal,
+      target: targets?.kcal ?? 0,
+      unit: 'kcal',
+      color: '#1A1A1A',
+    },
+    ...slices.map((s) => ({
+      key: s.key,
+      label: s.label,
+      value: s.gramValue,
+      target: s.target,
+      unit: 'g',
+      color: s.color,
+    })),
+  ];
+
+  // Background ring: three equal placeholder segments so the user
+  // always sees three slots and watches them fill with colour as
+  // the day's intake comes in.
+  const PLACEHOLDER_SEGMENTS = 3;
+  const placeholderDeg = 360 / PLACEHOLDER_SEGMENTS;
+
   return (
-    <div className="flex flex-col md:flex-row items-center gap-6">
+    <div className="flex flex-col items-center gap-6">
       <div className="shrink-0">
         <svg
-          width={PIE_CENTER * 2}
-          height={PIE_CENTER * 2}
-          viewBox={`0 0 ${PIE_CENTER * 2} ${PIE_CENTER * 2}`}
+          width={PIE_SIZE}
+          height={PIE_SIZE}
+          viewBox={`0 0 ${PIE_SIZE} ${PIE_SIZE}`}
           aria-label={`Today's macro split — protein ${pKcal.toFixed(0)} kcal, carbs ${cKcal.toFixed(0)} kcal, fat ${fKcal.toFixed(0)} kcal`}
           role="img"
         >
-          {total <= 0 ? (
-            <circle
-              cx={PIE_CENTER}
-              cy={PIE_CENTER}
-              r={PIE_RADIUS}
-              fill="none"
-              stroke="#1A1A1A"
-              strokeOpacity="0.15"
-              strokeWidth="2"
-              strokeDasharray="4 4"
-            />
-          ) : (
+          {/* Placeholder segments: always rendered, faint, equal thirds */}
+          {Array.from({ length: PLACEHOLDER_SEGMENTS }).map((_, i) => {
+            const startDeg = i * placeholderDeg;
+            const endDeg = (i + 1) * placeholderDeg;
+            const slice = slices[i];
+            return (
+              <path
+                key={`bg-${slice.key}`}
+                d={arcStrokePath(
+                  PIE_CENTER,
+                  PIE_CENTER,
+                  PIE_RADIUS,
+                  startDeg,
+                  endDeg
+                )}
+                fill="none"
+                stroke={slice.color}
+                strokeOpacity="0.15"
+                strokeWidth={PIE_STROKE}
+              />
+            );
+          })}
+
+          {/* Colored slices: overlay proportional to actual intake */}
+          {total > 0 &&
             (() => {
               let cursor = 0;
               return slices.map((s) => {
-                if (s.value <= 0) return null;
-                const sliceDeg = (s.value / total) * 360;
+                if (s.kcalValue <= 0) return null;
+                const sliceDeg = (s.kcalValue / total) * 360;
                 const startDeg = cursor;
                 const endDeg = cursor + sliceDeg;
                 cursor = endDeg;
                 return (
                   <path
                     key={s.key}
-                    d={arcPath(PIE_CENTER, PIE_CENTER, PIE_RADIUS, startDeg, endDeg)}
-                    fill={s.color}
-                    aria-label={`${s.label}: ${s.value.toFixed(0)} kcal`}
+                    d={arcStrokePath(
+                      PIE_CENTER,
+                      PIE_CENTER,
+                      PIE_RADIUS,
+                      startDeg,
+                      endDeg
+                    )}
+                    fill="none"
+                    stroke={s.color}
+                    strokeWidth={PIE_STROKE}
+                    aria-label={`${s.label}: ${s.kcalValue.toFixed(0)} kcal`}
                   />
                 );
               });
-            })()
-          )}
-          <circle cx={PIE_CENTER} cy={PIE_CENTER} r="20" fill="#FAF6EE" />
-          {total > 0 && (
-            <text
-              x={PIE_CENTER}
-              y={PIE_CENTER - 4}
-              textAnchor="middle"
-              fontFamily="Georgia, serif"
-              fontSize="16"
-              fill="#1A1A1A"
-              className="font-display"
-            >
-              {Math.round(totals.kcal).toLocaleString()}
-            </text>
-          )}
-          {total > 0 && (
-            <text
-              x={PIE_CENTER}
-              y={PIE_CENTER + 12}
-              textAnchor="middle"
-              fontFamily="ui-sans-serif, system-ui, sans-serif"
-              fontSize="9"
-              letterSpacing="0.16em"
-              fill="#1A1A1A"
-              fillOpacity="0.6"
-              className="font-body uppercase"
-            >
-              KCAL
-            </text>
-          )}
+            })()}
+
+          {/* Center text — kcal accumulated, target below, KCAL label.
+              The target value only shows when targets are configured. */}
+          <text
+            x={PIE_CENTER}
+            y={PIE_CENTER - 6}
+            textAnchor="middle"
+            fontFamily="Georgia, serif"
+            fontSize="36"
+            fontWeight="400"
+            fill="#1A1A1A"
+          >
+            {Math.round(totals.kcal).toLocaleString()}
+          </text>
+          <text
+            x={PIE_CENTER}
+            y={PIE_CENTER + 18}
+            textAnchor="middle"
+            fontFamily="ui-sans-serif, system-ui, sans-serif"
+            fontSize="11"
+            letterSpacing="0.16em"
+            fill="#1A1A1A"
+            fillOpacity="0.55"
+          >
+            {targets?.kcal
+              ? `/ ${Math.round(targets.kcal)} KCAL`
+              : 'KCAL'}
+          </text>
         </svg>
       </div>
-      <ul className="flex flex-col gap-2 font-body text-sm w-full md:flex-1">
-        {slices.map((s) => (
-          <li key={s.key} className="flex items-center gap-3">
-            <span
-              aria-hidden
-              className="inline-block w-3 h-3"
-              style={{ backgroundColor: s.color }}
-            />
-            <span className="font-body text-caption uppercase tracking-widest text-ink/60 min-w-20">
-              {s.label}
-            </span>
-            <span className="font-display tabular-nums">
-              {s.value.toFixed(0)}
-              <span className="text-ink/40 text-xs uppercase tracking-widest ml-1">
-                kcal
+
+      <ul className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 font-body text-sm">
+        {legendItems.map((item) => {
+          const pct =
+            item.target > 0
+              ? Math.round((item.value / item.target) * 100)
+              : null;
+          const over = pct != null && pct > 100;
+          return (
+            <li key={item.key} className="flex items-center gap-2">
+              <span
+                aria-hidden
+                className="inline-block w-3 h-3"
+                style={{ backgroundColor: item.color }}
+              />
+              <span className="font-body text-caption uppercase tracking-widest text-ink/60">
+                {item.label}
               </span>
-            </span>
-            {total > 0 && (
-              <span className="text-ink/40 text-xs uppercase tracking-widest ml-auto">
-                {Math.round((s.value / total) * 100)}%
+              <span className="font-display tabular-nums">
+                {Math.round(item.value)}
+                {item.target > 0 && (
+                  <span className="text-ink/40 ml-1">
+                    / {Math.round(item.target)}
+                  </span>
+                )}
+                <span className="text-ink/40 text-xs uppercase tracking-widest ml-1">
+                  {item.unit}
+                </span>
               </span>
-            )}
-          </li>
-        ))}
+              {pct != null && (
+                <span
+                  className={`text-xs uppercase tracking-widest tabular-nums ${
+                    over ? 'text-coral' : 'text-ink/40'
+                  }`}
+                >
+                  {pct}%
+                </span>
+              )}
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
 }
 
-// Generate an SVG path for an arc slice starting at `startDeg` (clockwise
-// from 12 o'clock) ending at `endDeg`. The slice starts at 12 o'clock
-// (cx, cy - r) and sweeps clockwise.
-function arcPath(
+// Generate an SVG path for a stroked arc starting at `startDeg`
+// (clockwise from 12 o'clock) ending at `endDeg`. The arc runs
+// along the ring's centerline; no fill, no Z (no back-to-center
+// line). Used by the donut-style pie to draw both the placeholder
+// segments and the colored intake slices.
+function arcStrokePath(
   cx: number,
   cy: number,
   r: number,
@@ -318,10 +402,5 @@ function arcPath(
   const x2 = cx + r * Math.cos(endRad);
   const y2 = cy + r * Math.sin(endRad);
   const largeArc = endDeg - startDeg > 180 ? 1 : 0;
-  return [
-    `M ${cx} ${cy}`,
-    `L ${x1} ${y1}`,
-    `A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2}`,
-    'Z',
-  ].join(' ');
+  return `M ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2}`;
 }
