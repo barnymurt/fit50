@@ -80,14 +80,16 @@ const BARS: { key: 'kcal' | 'protein' | 'carbs' | 'fat'; label: string; unit: st
   { key: 'fat', label: 'Fat', unit: 'g' },
 ];
 
-// Bar visualises 0% to BAR_VISUAL_MAX (120%) of the target. The
-// shaded zones only span 95–105% of target (per spec); the rest of
-// the track is the neutral bg-ink/10. The fill grows from 0 up
-// to BAR_FILL_CAP (110% of target) — past that the percentage
-// number keeps climbing but the bar stops extending so the
-// user gets a stable upper edge instead of runaway overshoot.
-const BAR_VISUAL_MAX = 1.20;
-const BAR_FILL_CAP = 1.10;
+// Bar visualises 0% to TRACK_MAX (105%) of target. Shaded zones
+// sit inside that range — there's no plain-grey track beyond
+// 105% of target for the user to second-guess when they're under
+// 100%. The fill grows from 0 up to FILL_CAP (110% of target) and
+// is allowed to overflow past the right edge of the bar track so
+// the user sees they've blown past 105%. Past the cap, the bar
+// stops extending visually while the % label keeps climbing
+// uncapped.
+const TRACK_MAX = 1.05;
+const FILL_CAP = 1.10;
 const TEAL_THRESHOLD = 0.95;
 const CORAL_THRESHOLD = 1.05;
 
@@ -125,19 +127,17 @@ function BarView({
         const status: 'on-track' | 'over' = ratio > 1 ? 'over' : 'on-track';
         const fillPctLabel = Math.round(ratio * 100); // uncapped
 
-        // Bar-relative positions as percentages of the visible
-        // track width. The track spans 0–120% of target, so
-        // 100% of target sits at 100/120 ≈ 83.33% of width.
+        // Track positions (as % of bar width). The track itself
+        // represents 0–105% of target, so 100% of target sits at
+        // 100/105 ≈ 95.24% of bar width.
         const tealStartPct =
-          (TEAL_THRESHOLD / BAR_VISUAL_MAX) * 100; // ≈79.17
-        const tealEndPct = (1.0 / BAR_VISUAL_MAX) * 100; // ≈83.33
-        const coralEndPct =
-          (CORAL_THRESHOLD / BAR_VISUAL_MAX) * 100; // ≈87.5
+          (TEAL_THRESHOLD / TRACK_MAX) * 100; // ≈90.48
+        const tealEndPct = (1.0 / TRACK_MAX) * 100; // ≈95.24
+        const coralEndPct = (CORAL_THRESHOLD / TRACK_MAX) * 100; // 100
         const targetLinePct = tealEndPct; // 100% of target
-        const fillCapPct =
-          (BAR_FILL_CAP / BAR_VISUAL_MAX) * 100; // ≈91.67
+        const fillCapPct = (FILL_CAP / TRACK_MAX) * 100; // ≈104.76
         const fillBarPct =
-          (Math.min(value / target, BAR_FILL_CAP) / BAR_VISUAL_MAX) * 100;
+          (Math.min(value / target, FILL_CAP) / TRACK_MAX) * 100;
 
         return (
           <div key={key} className="relative pb-6">
@@ -156,11 +156,15 @@ function BarView({
                 </span>
               </span>
             </div>
+            {/* Track ends at the right edge (105% of target). No
+                overflow-hidden so the fill can run past the edge
+                when value > 105% — past that there's no grey
+                background, just the fill running into empty paper. */}
             <div
-              className="h-4 bg-ink/10 relative overflow-hidden"
+              className="h-4 bg-ink/10 relative"
               aria-label={`${label} ${fillPctLabel}% of target ${Math.round(target)} ${unit}`}
             >
-              {/* Teal zone: 95–100% of target. "Approaching target". */}
+              {/* Teal band: 95–100% of target. "Approaching target". */}
               <div
                 className="absolute inset-y-0 bg-teal/15"
                 style={{
@@ -169,7 +173,7 @@ function BarView({
                 }}
                 aria-hidden
               />
-              {/* Coral zone: 100–105% of target. "Over budget band". */}
+              {/* Coral band: 100–105% of target. "Over budget". */}
               <div
                 className="absolute inset-y-0 bg-coral/15"
                 style={{
@@ -179,10 +183,9 @@ function BarView({
                 aria-hidden
               />
               {/* Fill: solid teal under 100% of target, solid coral
-                  once over. Capped at BAR_FILL_CAP (110% of target
-                  → ≈91.67% of bar width) so the bar stops extending
-                  visually once the user blows past 110%. The
-                  percentage label below keeps climbing uncapped. */}
+                  once over. Allowed to overflow the right edge
+                  up to FILL_CAP (110% of target). The % label
+                  below keeps climbing past the cap. */}
               <div
                 className="absolute inset-y-0 left-0"
                 style={{ width: `${fillBarPct}%` }}
@@ -193,8 +196,9 @@ function BarView({
                   }`}
                 />
               </div>
-              {/* Tick marks at 95 / 100 / 105 / 110 so all four
-                  thresholds are visible regardless of fill. */}
+              {/* Tick marks at 95 / 100 / 105 (inside the track) and
+                  a dashed tick at 110 (overflow position) marking
+                  where the fill visually caps. */}
               <div
                 className="absolute inset-y-0 w-px bg-ink/30"
                 style={{ left: `${tealStartPct}%` }}
@@ -211,13 +215,14 @@ function BarView({
                 aria-hidden
               />
               <div
-                className="absolute inset-y-0 w-px bg-ink/20 border-l border-dashed border-ink/40"
+                className="absolute inset-y-0 w-px border-l border-dashed border-ink/40"
                 style={{ left: `${fillCapPct}%` }}
                 aria-hidden
               />
               {/* Fill percentage pinned to the leading edge of the
-                  fill. Stays a fixed-width label and scales with
-                  the bar via percentage positioning. */}
+                  fill. Scales with the bar via percentage
+                  positioning; can extend past the right edge when
+                  value > 105%. */}
               {ratio > 0 && (
                 <span
                   className={`absolute -bottom-5 -translate-x-1/2 font-body text-caption tabular-nums font-semibold whitespace-nowrap ${
