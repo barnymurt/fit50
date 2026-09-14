@@ -80,6 +80,16 @@ const BARS: { key: 'kcal' | 'protein' | 'carbs' | 'fat'; label: string; unit: st
   { key: 'fat', label: 'Fat', unit: 'g' },
 ];
 
+// Bar represents 0% to BAR_MAX (110%) of the target. Extending past
+// 100% gives room for the 105%+ over zone to be visible inside the
+// bar track, and lets the fill reach the right edge only when the
+// user truly blows past 110%.
+const BAR_MAX = 1.10;
+// Thresholds as fractions of target. 95% is the upper edge of the
+// shaded teal zone; 105% is the lower edge of the shaded coral zone.
+const TEAL_THRESHOLD = 0.95;
+const CORAL_THRESHOLD = 1.05;
+
 function BarView({
   totals,
   targets,
@@ -115,6 +125,13 @@ function BarView({
         const fillPct = Math.min(ratio, 1);
         const fillPctLabel = Math.round(ratio * 100);
 
+        // Bar-relative positions for the threshold zones.
+        const tealEndPct = (TEAL_THRESHOLD / BAR_MAX) * 100; // ≈86.36
+        const coralStartPct = (CORAL_THRESHOLD / BAR_MAX) * 100; // ≈95.45
+        const targetLinePct = (1 / BAR_MAX) * 100; // ≈90.91
+        const fillBarPct =
+          (Math.min(value / target, BAR_MAX) / BAR_MAX) * 100;
+
         return (
           <div key={key} className="relative pb-6">
             <div className="flex items-baseline justify-between mb-1">
@@ -133,34 +150,60 @@ function BarView({
               </span>
             </div>
             <div
-              className="h-4 bg-ink/10 relative"
+              className="h-4 bg-ink/10 relative overflow-hidden"
               aria-label={`${label} ${fillPctLabel}% of target ${Math.round(target)} ${unit}`}
             >
+              {/* Shaded teal zone: 0–95% of target. Marks the "good"
+                  range the user is aiming for. */}
               <div
-                className="absolute inset-y-0 left-0 overflow-hidden"
-                style={{ width: `${fillPct * 100}%` }}
+                className="absolute inset-y-0 left-0 bg-teal/15"
+                style={{ width: `${tealEndPct}%` }}
+                aria-hidden
+              />
+              {/* Shaded coral zone: 105%+ of target. Marks the over
+                  budget band; fill turns coral once it crosses here. */}
+              <div
+                className="absolute inset-y-0 bg-coral/15"
+                style={{ left: `${coralStartPct}%`, right: 0 }}
+                aria-hidden
+              />
+              {/* Fill: solid teal under 100%, solid coral once over. */}
+              <div
+                className="absolute inset-y-0 left-0"
+                style={{ width: `${fillBarPct}%` }}
               >
                 <div
                   className={`h-full transition-all duration-300 ${
                     status === 'over' ? 'bg-coral' : 'bg-teal'
                   }`}
-                  style={{ width: '100%' }}
                 />
               </div>
+              {/* 95% / 100% / 105% tick marks — thin vertical rules so
+                  the threshold positions are visible regardless of fill. */}
               <div
-                className="absolute inset-y-0 w-0.5 bg-ink"
-                style={{ left: '100%' }}
+                className="absolute inset-y-0 w-px bg-ink/30"
+                style={{ left: `${tealEndPct}%` }}
                 aria-hidden
               />
-              {/* 100% marker label at the right edge of the bar */}
-              <span className="absolute left-full -bottom-5 ml-1 font-body text-[10px] uppercase tracking-widest text-ink/40 whitespace-nowrap">
+              <div
+                className="absolute inset-y-0 w-0.5 bg-ink"
+                style={{ left: `${targetLinePct}%` }}
+                aria-hidden
+              />
+              <div
+                className="absolute inset-y-0 w-px bg-ink/30"
+                style={{ left: `${coralStartPct}%` }}
+                aria-hidden
+              />
+              {/* 100% label, anchored to the right of the target line */}
+              <span className="absolute -bottom-5 font-body text-[10px] uppercase tracking-widest text-ink/40 whitespace-nowrap" style={{ left: `${targetLinePct}%`, transform: 'translateX(-50%)' }}>
                 100%
               </span>
               {/* Fill percentage pinned to the leading edge of the fill */}
               {fillPct > 0 && (
                 <span
                   className="absolute -bottom-5 -translate-x-1/2 font-body text-caption tabular-nums font-semibold text-ink/60 whitespace-nowrap"
-                  style={{ left: `${fillPct * 100}%` }}
+                  style={{ left: `${fillBarPct}%` }}
                   aria-hidden
                 >
                   {fillPctLabel}%
@@ -178,6 +221,11 @@ function BarView({
 // (not filled) — the visible ring is just the stroke, no donut
 // hole to mask. Inner radius is large enough that the center
 // text never clips the stroke.
+//
+// Each slice also gets a small text label sitting just outside
+// the ring, anchored at the placeholder segment's midpoint
+// (60°, 180°, 300°). Labels stay put as the slices grow /
+// shrink — only the colored arc lengths move.
 function PieView({
   totals,
   targets,
@@ -217,42 +265,32 @@ function PieView({
     },
   ];
 
-  // The legend lists all four tracked totals — the three macros
-  // (matching the ring) plus the calorie total (matching the
-  // number in the center). Each row carries current + target +
-  // percent of target.
-  const legendItems = [
-    {
-      key: 'kcal',
-      label: 'Calories',
-      value: totals.kcal,
-      target: targets?.kcal ?? 0,
-      unit: 'kcal',
-      color: '#1A1A1A',
-    },
-    ...slices.map((s) => ({
-      key: s.key,
-      label: s.label,
-      value: s.gramValue,
-      target: s.target,
-      unit: 'g',
-      color: s.color,
-    })),
-  ];
-
   // Background ring: three equal placeholder segments so the user
   // always sees three slots and watches them fill with colour as
   // the day's intake comes in.
   const PLACEHOLDER_SEGMENTS = 3;
   const placeholderDeg = 360 / PLACEHOLDER_SEGMENTS;
 
+  // Per-slice labels are anchored at the placeholder midpoint so
+  // they stay put as the actual slices resize. The wrapper
+  // container is sized bigger than the SVG to fit the labels
+  // outside the ring without clipping.
+  const LABEL_PAD = 32;
+  const containerSize = PIE_SIZE + LABEL_PAD * 2;
+  const containerCenter = containerSize / 2;
+  const labelDistance = PIE_OUTER + 18;
+
   return (
     <div className="flex flex-col items-center gap-6">
-      <div className="shrink-0">
+      <div
+        className="relative"
+        style={{ width: containerSize, height: containerSize }}
+      >
         <svg
           width={PIE_SIZE}
           height={PIE_SIZE}
           viewBox={`0 0 ${PIE_SIZE} ${PIE_SIZE}`}
+          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
           aria-label={`Today's macro split — protein ${pKcal.toFixed(0)} kcal, carbs ${cKcal.toFixed(0)} kcal, fat ${fKcal.toFixed(0)} kcal`}
           role="img"
         >
@@ -336,49 +374,53 @@ function PieView({
               : 'KCAL'}
           </text>
         </svg>
-      </div>
 
-      <ul className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 font-body text-sm">
-        {legendItems.map((item) => {
+        {/* Per-slice labels — sit just outside the ring at the
+            placeholder midpoints so each macro's accumulated
+            amount + % of target is readable next to its slice. */}
+        {slices.map((s, i) => {
+          const midDeg = i * placeholderDeg + placeholderDeg / 2;
+          const midRad = ((midDeg - 90) * Math.PI) / 180;
+          const x = containerCenter + labelDistance * Math.cos(midRad);
+          const y = containerCenter + labelDistance * Math.sin(midRad);
           const pct =
-            item.target > 0
-              ? Math.round((item.value / item.target) * 100)
+            s.target > 0
+              ? Math.round((s.gramValue / s.target) * 100)
               : null;
           const over = pct != null && pct > 100;
           return (
-            <li key={item.key} className="flex items-center gap-2">
-              <span
-                aria-hidden
-                className="inline-block w-3 h-3"
-                style={{ backgroundColor: item.color }}
-              />
-              <span className="font-body text-caption uppercase tracking-widest text-ink/60">
-                {item.label}
-              </span>
-              <span className="font-display tabular-nums">
-                {Math.round(item.value)}
-                {item.target > 0 && (
-                  <span className="text-ink/40 ml-1">
-                    / {Math.round(item.target)}
+            <div
+              key={s.key}
+              className="absolute -translate-x-1/2 -translate-y-1/2 text-center"
+              style={{ left: x, top: y }}
+            >
+              <p className="font-body text-[10px] uppercase tracking-widest text-ink/60">
+                {s.label}
+              </p>
+              <p className="font-display text-sm tabular-nums leading-tight">
+                {Math.round(s.gramValue)}
+                {s.target > 0 && (
+                  <span className="text-ink/40 ml-0.5">
+                    / {Math.round(s.target)}
                   </span>
                 )}
-                <span className="text-ink/40 text-xs uppercase tracking-widest ml-1">
-                  {item.unit}
+                <span className="text-ink/40 text-[10px] uppercase tracking-widest ml-0.5">
+                  g
                 </span>
-              </span>
+              </p>
               {pct != null && (
-                <span
-                  className={`text-xs uppercase tracking-widest tabular-nums ${
-                    over ? 'text-coral' : 'text-ink/40'
+                <p
+                  className={`font-body text-[10px] tabular-nums mt-0.5 ${
+                    over ? 'text-coral' : 'text-ink/60'
                   }`}
                 >
                   {pct}%
-                </span>
+                </p>
               )}
-            </li>
+            </div>
           );
         })}
-      </ul>
+      </div>
     </div>
   );
 }
