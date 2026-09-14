@@ -12,7 +12,7 @@ import FoodSearch from './FoodSearch';
 import FoodDetail from './FoodDetail';
 import MyCustomFoodsPanel from './MyCustomFoodsPanel';
 
-type FoodTab = 'bundles' | 'search' | 'myfoods';
+type FoodTab = 'logged' | 'search' | 'myfoods';
 
 interface Props {
   targets: MacroTargets | null;
@@ -71,16 +71,19 @@ function BundleTile({
   const [logging, setLogging] = useState(false);
   return (
     <div
-      className={`aspect-square border bg-paper transition-colors flex flex-col ${
+      draggable
+      onDragStart={onDragStart}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+      onDragEnd={onDragEnd}
+      className={`aspect-square border bg-paper transition-colors flex flex-col cursor-grab active:cursor-grabbing ${
         isDragging
           ? 'opacity-40 border-dashed border-ink/40'
           : isDropTarget
             ? 'border-coral border-2'
             : 'border-ink/15 hover:border-coral'
       }`}
-      onDragOver={onDragOver}
-      onDragLeave={onDragLeave}
-      onDrop={onDrop}
     >
       <div className={`h-1.5 shrink-0 ${TILE_ACCENT[accent]}`} aria-hidden />
       <button
@@ -95,7 +98,7 @@ function BundleTile({
           }
         }}
         aria-label={`Log meal bundle ${bundle.name}`}
-        className="flex-1 min-h-0 p-2 text-left flex flex-col gap-1 disabled:opacity-50"
+        className="flex-1 min-h-0 p-2 text-left flex flex-col gap-1 disabled:opacity-50 cursor-pointer"
         disabled={logging}
       >
         <p className="font-body text-sm text-ink leading-tight line-clamp-2">
@@ -114,14 +117,9 @@ function BundleTile({
       </button>
       <div className="px-2 py-1 border-t border-ink/15 flex items-center gap-1 text-ink/60">
         <span
-          role="button"
-          tabIndex={0}
-          draggable
-          onDragStart={onDragStart}
-          onDragEnd={onDragEnd}
-          aria-label={`Drag to reorder ${bundle.name}`}
+          aria-hidden
+          className="px-1 py-0.5 select-none"
           title="Drag to reorder"
-          className="px-1 py-0.5 cursor-grab active:cursor-grabbing hover:text-ink select-none"
         >
           ⠿
         </span>
@@ -131,7 +129,7 @@ function BundleTile({
           disabled={logging}
           onClick={onEdit}
           aria-label={`Edit ${bundle.name}`}
-          className="px-1 py-0.5 hover:text-ink disabled:opacity-30"
+          className="px-1 py-0.5 hover:text-ink disabled:opacity-30 cursor-pointer"
           title="Edit"
         >
           ✎
@@ -141,7 +139,7 @@ function BundleTile({
           disabled={logging}
           onClick={onDuplicate}
           aria-label={`Duplicate ${bundle.name}`}
-          className="px-1 py-0.5 hover:text-ink disabled:opacity-30"
+          className="px-1 py-0.5 hover:text-ink disabled:opacity-30 cursor-pointer"
           title="Duplicate"
         >
           ⎘
@@ -151,7 +149,7 @@ function BundleTile({
           disabled={logging}
           onClick={onDelete}
           aria-label={`Delete ${bundle.name}`}
-          className="px-1 py-0.5 hover:text-coral disabled:opacity-30"
+          className="px-1 py-0.5 hover:text-coral disabled:opacity-30 cursor-pointer"
           title="Delete"
         >
           ✕
@@ -193,7 +191,7 @@ export default function FoodDatabase({ targets }: Props) {
   // Tab in the food panel — public search vs the user's own custom
   // foods. Persists per session so a quick switch to "my foods"
   // doesn't bounce back to the search.
-  const [tab, setTab] = useState<FoodTab>('search');
+  const [tab, setTab] = useState<FoodTab>('logged');
 
   // "Build a meal" mode. When the user clicks the CTA we reveal
   // checkboxes next to every log-today row. They pick which items
@@ -737,245 +735,29 @@ export default function FoodDatabase({ targets }: Props) {
         </div>
       )}
 
-      {/* Logged today. Each row: meal-slot picker, favorite, log
-          again, remove. Build-meal mode below shows checkboxes + a
-          save form so the user picks which items go into the bundle
-          (instead of all-of-today which was too greedy). */}
-      {logLoaded && todayEntries.length > 0 && (
-        <div className="bg-paper border border-ink/15">
-          <div className="px-6 py-4 border-b border-ink/10 flex flex-wrap items-baseline justify-between gap-3">
-            <div>
-              <p className="font-body text-caption uppercase tracking-widest text-ink/50">
-                Logged today
-              </p>
-              <p className="font-body text-caption text-ink/40 mt-1">
-                Tap the meal slot to re-categorize. Pick items below to
-                build a bundle.
-              </p>
-            </div>
-            <p className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums">
-              {todayEntries.length} {todayEntries.length === 1 ? 'item' : 'items'}
-            </p>
-          </div>
-          <ul>
-            {todayEntries.map((e) => {
-              const cKcal = contribution(e, 'kcal');
-              const cProtein = contribution(e, 'protein');
-              const cCarbs = contribution(e, 'carbs');
-              const cFat = contribution(e, 'fat');
-              const showChips = !!targets;
-              const isPickedForBuild = buildMode && e.meal && pickedIds.has(e.id);
-              return (
-                <li
-                  key={e.id}
-                  className={`px-4 sm:px-6 py-3 border-b border-ink/10 last:border-b-0 flex flex-wrap items-center sm:items-baseline justify-between gap-x-4 gap-y-2 ${
-                    isPickedForBuild ? 'bg-coral/5' : ''
-                  }`}
-                >
-                  <div className="min-w-0 flex-1 basis-full sm:basis-auto">
-                    <p className="font-body text-sm text-ink break-words">
-                      {e.name}
-                    </p>
-                    <p className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums">
-                      {Math.round(e.grams)} g
-                      {e.meal ? ` · ${e.meal}` : ''}
-                    </p>
-                    {showChips && (
-                      <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1">
-                        {cKcal >= 5 && (
-                          <span
-                            className={`font-body text-caption uppercase tracking-widest tabular-nums ${
-                              isOverFor('kcal') ? 'text-coral' : 'text-ink/50'
-                            }`}
-                          >
-                            +{Math.round(cKcal)}% kcal
-                          </span>
-                        )}
-                        {cProtein >= 5 && (
-                          <span
-                            className={`font-body text-caption uppercase tracking-widest tabular-nums ${
-                              isOverFor('protein') ? 'text-coral' : 'text-ink/50'
-                            }`}
-                          >
-                            +{Math.round(cProtein)}% P
-                          </span>
-                        )}
-                        {cCarbs >= 5 && (
-                          <span
-                            className={`font-body text-caption uppercase tracking-widest tabular-nums ${
-                              isOverFor('carbs') ? 'text-coral' : 'text-ink/50'
-                            }`}
-                          >
-                            +{Math.round(cCarbs)}% C
-                          </span>
-                        )}
-                        {cFat >= 5 && (
-                          <span
-                            className={`font-body text-caption uppercase tracking-widest tabular-nums ${
-                              isOverFor('fat') ? 'text-coral' : 'text-ink/50'
-                            }`}
-                          >
-                            +{Math.round(cFat)}% F
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    {/* Per-row meal-slot picker. Lets the user re-categorize
-                        an entry that was logged without a slot. Click
-                        cycles: none → breakfast → lunch → dinner → snack → none. */}
-                    <select
-                      value={e.meal ?? ''}
-                      onChange={(ev) => {
-                        const v = ev.target.value;
-                        updateEntry(e.id, {
-                          meal: v === '' ? null : (v as Meal),
-                        });
-                      }}
-                      aria-label={`Meal slot for ${e.name}`}
-                      className="font-body text-caption uppercase tracking-widest px-2 py-1 bg-paper border border-ink/20 text-ink/70 focus:border-coral outline-none"
-                    >
-                      <option value="">—</option>
-                      {MEAL_OPTIONS.map((m) => (
-                        <option key={m.value} value={m.value}>
-                          {m.label}
-                        </option>
-                      ))}
-                    </select>
-                    {/* "Include in bundle" checkbox (only visible while
-                        buildMode is on). Bundles only accept items that
-                        have a meal slot, so a row with no slot is
-                        still picked but the save will skip it. */}
-                    {buildMode && (
-                      <label className="flex items-center gap-1 text-ink/60">
-                        <input
-                          type="checkbox"
-                          checked={pickedIds.has(e.id)}
-                          onChange={() => togglePick(e.id)}
-                          className="w-4 h-4"
-                        />
-                      </label>
-                    )}
-                    <button
-                      onClick={async () => {
-                        const f = await fetchFoodsByIds([e.food_id]).then(
-                          (l) => l[0]
-                        );
-                        if (!f) return;
-                        setPicked(f);
-                        const remembered = portionFor(f.id);
-                        if (remembered != null) setPendingGrams(remembered);
-                      }}
-                      aria-label={`Log ${e.name} again`}
-                      title="Log again at the same portion"
-                      className="font-body text-caption uppercase tracking-widest text-ink/60 hover:text-coral px-2 py-1 transition-colors"
-                    >
-                      Log again
-                    </button>
-                    <button
-                      onClick={() => toggle(e.food_id)}
-                      aria-label={isFavorite(e.food_id) ? 'Unfavourite' : 'Favourite'}
-                      className={`min-w-[44px] min-h-[44px] flex items-center justify-center text-3xl leading-none transition-colors ${
-                        isFavorite(e.food_id)
-                          ? 'text-coral'
-                          : 'text-ink/30 hover:text-coral'
-                      }`}
-                    >
-                      {isFavorite(e.food_id) ? '★' : '☆'}
-                    </button>
-                    <button
-                      onClick={() => removeEntry(e.id)}
-                      aria-label="Remove"
-                      className="font-body text-caption uppercase text-ink/40 hover:text-coral px-2 py-1 transition-colors"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-
-          {/* Build-meal CTA + form. Appears once the user has at
-              least 2 items today. In build mode the form sits below
-              the list and exposes the selected count + name input. */}
-          {todayEntries.length >= 2 && !buildMode && (
-            <div className="px-6 py-3 border-t border-ink/10 flex flex-wrap items-center justify-between gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setBuildMode(true);
-                  setPickedIds(new Set());
-                  setBuildName('');
-                  setBuildError(null);
-                }}
-                className="font-body text-caption uppercase tracking-widest text-coral hover:text-coral/85 transition-colors"
-              >
-                + Build a meal bundle from today's items
-              </button>
-              {mealMatch && (
-                <span className="font-body text-caption uppercase tracking-widest text-ink/40">
-                  Suggested: "{mealMatch.bundle.name}" · click "Log this
-                  meal" above
-                </span>
-              )}
-            </div>
-          )}
-
-          {buildMode && (
-            <div className="px-6 py-3 border-t border-ink/10 space-y-3">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <p className="font-body text-caption uppercase tracking-widest text-ink/50">
-                  Pick items with a meal slot
-                </p>
-                <span className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums">
-                  {pickedIds.size} selected
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <input
-                  autoFocus
-                  value={buildName}
-                  onChange={(e) => setBuildName(e.target.value)}
-                  placeholder="e.g. Breakfast"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleSaveBundle();
-                    if (e.key === 'Escape') clearBuild();
-                  }}
-                  className="flex-1 px-3 py-2 bg-paper border-2 border-ink/30 text-ink font-body focus:border-coral outline-none"
-                  aria-label="Bundle name"
-                />
-                <button
-                  type="button"
-                  onClick={handleSaveBundle}
-                  disabled={buildSaving}
-                  className="bg-ink text-paper font-body text-caption uppercase tracking-widest px-3 py-2 hover:bg-ink/85 transition-colors disabled:opacity-40"
-                >
-                  {buildSaving ? 'Saving…' : 'Save bundle'}
-                </button>
-                <button
-                  type="button"
-                  onClick={clearBuild}
-                  className="font-body text-caption uppercase text-ink/60 hover:text-ink px-2 py-2 transition-colors"
-                >
-                  Cancel
-                </button>
-              </div>
-              {buildError && (
-                <p className="font-body text-caption text-coral">{buildError}</p>
-              )}
-              <p className="font-body text-caption text-ink/40">
-                Items without a meal slot are skipped automatically —
-                pick breakfast / lunch / dinner / snack on the rows
-                you want included.
-              </p>
-            </div>
-          )}
-        </div>
-      )}
-
+      {/* Tab block. The "food panel" has three tabs: Logged today,
+          Search, My foods. Each tab's content renders its own
+          bordered panel below the tab nav. Logged today is the
+          default — when the user opens the foods section they see
+          what they've already eaten before they start searching. */}
       <div className="flex items-center gap-1 border-b border-ink/10 mb-4">
+        <button
+          type="button"
+          onClick={() => setTab('logged')}
+          aria-pressed={tab === 'logged'}
+          className={`px-4 py-2 font-body text-caption uppercase tracking-widest border-b-2 transition-colors ${
+            tab === 'logged'
+              ? 'border-coral text-ink'
+              : 'border-transparent text-ink/50 hover:text-ink'
+          }`}
+        >
+          Logged today
+          {todayEntries.length > 0 && (
+            <span className="ml-2 text-ink/40 tabular-nums">
+              {todayEntries.length}
+            </span>
+          )}
+        </button>
         <button
           type="button"
           onClick={() => setTab('search')}
@@ -1002,7 +784,257 @@ export default function FoodDatabase({ targets }: Props) {
         </button>
       </div>
 
-      {tab === 'search' ? (
+      {tab === 'logged' ? (
+        logLoaded && todayEntries.length > 0 ? (
+          /* Logged today. Each row: meal-slot picker, favourite,
+             log again, remove. Build-meal mode below shows
+             checkboxes + a save form so the user picks which
+             items go into the bundle (instead of all-of-today
+             which was too greedy). */
+          <div className="bg-paper border border-ink/15">
+            <div className="px-6 py-4 border-b border-ink/10 flex flex-wrap items-baseline justify-between gap-3">
+              <p className="font-body text-caption text-ink/40">
+                Tap the meal slot to re-categorize. Pick items below
+                to build a bundle.
+              </p>
+              <p className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums">
+                {todayEntries.length}{' '}
+                {todayEntries.length === 1 ? 'item' : 'items'}
+              </p>
+            </div>
+            <ul>
+              {todayEntries.map((e) => {
+                const cKcal = contribution(e, 'kcal');
+                const cProtein = contribution(e, 'protein');
+                const cCarbs = contribution(e, 'carbs');
+                const cFat = contribution(e, 'fat');
+                const showChips = !!targets;
+                const isPickedForBuild =
+                  buildMode && e.meal && pickedIds.has(e.id);
+                return (
+                  <li
+                    key={e.id}
+                    className={`px-4 sm:px-6 py-3 border-b border-ink/10 last:border-b-0 flex flex-wrap items-center sm:items-baseline justify-between gap-x-4 gap-y-2 ${
+                      isPickedForBuild ? 'bg-coral/5' : ''
+                    }`}
+                  >
+                    <div className="min-w-0 flex-1 basis-full sm:basis-auto">
+                      <p className="font-body text-sm text-ink break-words">
+                        {e.name}
+                      </p>
+                      <p className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums">
+                        {Math.round(e.grams)} g
+                        {e.meal ? ` · ${e.meal}` : ''}
+                      </p>
+                      {showChips && (
+                        <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1">
+                          {cKcal >= 5 && (
+                            <span
+                              className={`font-body text-caption uppercase tracking-widest tabular-nums ${
+                                isOverFor('kcal')
+                                  ? 'text-coral'
+                                  : 'text-ink/50'
+                              }`}
+                            >
+                              +{Math.round(cKcal)}% kcal
+                            </span>
+                          )}
+                          {cProtein >= 5 && (
+                            <span
+                              className={`font-body text-caption uppercase tracking-widest tabular-nums ${
+                                isOverFor('protein')
+                                  ? 'text-coral'
+                                  : 'text-ink/50'
+                              }`}
+                            >
+                              +{Math.round(cProtein)}% P
+                            </span>
+                          )}
+                          {cCarbs >= 5 && (
+                            <span
+                              className={`font-body text-caption uppercase tracking-widest tabular-nums ${
+                                isOverFor('carbs')
+                                  ? 'text-coral'
+                                  : 'text-ink/50'
+                              }`}
+                            >
+                              +{Math.round(cCarbs)}% C
+                            </span>
+                          )}
+                          {cFat >= 5 && (
+                            <span
+                              className={`font-body text-caption uppercase tracking-widest tabular-nums ${
+                                isOverFor('fat')
+                                  ? 'text-coral'
+                                  : 'text-ink/50'
+                              }`}
+                            >
+                              +{Math.round(cFat)}% F
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <select
+                        value={e.meal ?? ''}
+                        onChange={(ev) => {
+                          const v = ev.target.value;
+                          updateEntry(e.id, {
+                            meal: v === '' ? null : (v as Meal),
+                          });
+                        }}
+                        aria-label={`Meal slot for ${e.name}`}
+                        className="font-body text-caption uppercase tracking-widest px-2 py-1 bg-paper border border-ink/20 text-ink/70 focus:border-coral outline-none"
+                      >
+                        <option value="">—</option>
+                        {MEAL_OPTIONS.map((m) => (
+                          <option key={m.value} value={m.value}>
+                            {m.label}
+                          </option>
+                        ))}
+                      </select>
+                      {buildMode && (
+                        <label className="flex items-center gap-1 text-ink/60">
+                          <input
+                            type="checkbox"
+                            checked={pickedIds.has(e.id)}
+                            onChange={() => togglePick(e.id)}
+                            className="w-4 h-4"
+                          />
+                        </label>
+                      )}
+                      <button
+                        onClick={async () => {
+                          const f = await fetchFoodsByIds([
+                            e.food_id,
+                          ]).then((l) => l[0]);
+                          if (!f) return;
+                          setPicked(f);
+                          const remembered = portionFor(f.id);
+                          if (remembered != null)
+                            setPendingGrams(remembered);
+                        }}
+                        aria-label={`Log ${e.name} again`}
+                        title="Log again at the same portion"
+                        className="font-body text-caption uppercase tracking-widest text-ink/60 hover:text-coral px-2 py-1 transition-colors"
+                      >
+                        Log again
+                      </button>
+                      <button
+                        onClick={() => toggle(e.food_id)}
+                        aria-label={
+                          isFavorite(e.food_id)
+                            ? 'Unfavourite'
+                            : 'Favourite'
+                        }
+                        className={`min-w-[44px] min-h-[44px] flex items-center justify-center text-3xl leading-none transition-colors ${
+                          isFavorite(e.food_id)
+                            ? 'text-coral'
+                            : 'text-ink/30 hover:text-coral'
+                        }`}
+                      >
+                        {isFavorite(e.food_id) ? '★' : '☆'}
+                      </button>
+                      <button
+                        onClick={() => removeEntry(e.id)}
+                        aria-label="Remove"
+                        className="font-body text-caption uppercase text-ink/40 hover:text-coral px-2 py-1 transition-colors"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+
+            {todayEntries.length >= 2 && !buildMode && (
+              <div className="px-6 py-3 border-t border-ink/10 flex flex-wrap items-center justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBuildMode(true);
+                    setPickedIds(new Set());
+                    setBuildName('');
+                    setBuildError(null);
+                  }}
+                  className="font-body text-caption uppercase tracking-widest text-coral hover:text-coral/85 transition-colors"
+                >
+                  + Build a meal bundle from today's items
+                </button>
+                {mealMatch && (
+                  <span className="font-body text-caption uppercase tracking-widest text-ink/40">
+                    Suggested: "{mealMatch.bundle.name}" · click "Log
+                    this meal" above
+                  </span>
+                )}
+              </div>
+            )}
+
+            {buildMode && (
+              <div className="px-6 py-3 border-t border-ink/10 space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <p className="font-body text-caption uppercase tracking-widest text-ink/50">
+                    Pick items with a meal slot
+                  </p>
+                  <span className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums">
+                    {pickedIds.size} selected
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    autoFocus
+                    value={buildName}
+                    onChange={(e) => setBuildName(e.target.value)}
+                    placeholder="e.g. Breakfast"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleSaveBundle();
+                      if (e.key === 'Escape') clearBuild();
+                    }}
+                    className="flex-1 px-3 py-2 bg-paper border-2 border-ink/30 text-ink font-body focus:border-coral outline-none"
+                    aria-label="Bundle name"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSaveBundle}
+                    disabled={buildSaving}
+                    className="bg-ink text-paper font-body text-caption uppercase tracking-widest px-3 py-2 hover:bg-ink/85 transition-colors disabled:opacity-40"
+                  >
+                    {buildSaving ? 'Saving…' : 'Save bundle'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={clearBuild}
+                    className="font-body text-caption uppercase text-ink/60 hover:text-ink px-2 py-2 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+                {buildError && (
+                  <p className="font-body text-caption text-coral">
+                    {buildError}
+                  </p>
+                )}
+                <p className="font-body text-caption text-ink/40">
+                  Items without a meal slot are skipped automatically
+                  — pick breakfast / lunch / dinner / snack on the
+                  rows you want included.
+                </p>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="bg-paper border border-ink/15 px-6 py-8 text-center">
+            <p className="font-body text-caption uppercase tracking-widest text-ink/40">
+              Nothing logged today
+            </p>
+            <p className="font-body text-sm text-ink/60 mt-2">
+              Switch to Search or My foods to log your first meal.
+            </p>
+          </div>
+        )
+      ) : tab === 'search' ? (
         <FoodSearch
           favorites={favoriteIds}
           onPickFood={handlePickFood}
