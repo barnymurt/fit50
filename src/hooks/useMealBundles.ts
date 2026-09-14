@@ -254,65 +254,16 @@ export function useMealBundles() {
     []
   );
 
-  // Reorder: move the bundle at fromIndex to toIndex within the
-  // user's list. The simplest implementation that survives
-  // concurrent edits is "assign the moved bundle a position one
-  // lower than the current minimum" — this puts it at the top of
-  // the manual ordering regardless of what other bundles have.
-  // Other bundles' positions are unchanged. The next reload still
-  // shows the moved bundle first because (position ASC) wins.
-  //
-  // For a "reorder within the page" UX, we don't actually need
-  // stable ranks — moving to top is enough. If the user later
-  // wants more granular ordering, we can switch to a normalised
-  // position float.
-  const reorderBundles = useCallback(
-    async (movedId: string): Promise<void> => {
-      if (!user) return;
-      const supabase = createClient();
-      if (!supabase) return;
-      const { data: rows, error } = await supabase
-        .from('meal_bundles')
-        .select('id, position')
-        .eq('user_id', user.id);
-      if (error) {
-        console.error('useMealBundles: reorder lookup failed', error);
-        return;
-      }
-      const list = (rows ?? []) as { id: string; position: number }[];
-      if (list.find((r) => r.id === movedId) == null) return;
-      const minPos = list.reduce(
-        (m, r) => Math.min(m, typeof r.position === 'number' ? r.position : 0),
-        0
-      );
-      const next = minPos - 1;
-      const { error: updErr } = await supabase
-        .from('meal_bundles')
-        .update({ position: next })
-        .eq('id', movedId)
-        .eq('user_id', user.id);
-      if (updErr) {
-        console.error('useMealBundles: reorder update failed', updErr);
-        return;
-      }
-      setBundles((prev) => {
-        const without = prev.filter((b) => b.id !== movedId);
-        const moved = prev.find((b) => b.id === movedId);
-        if (!moved) return prev;
-        return [{ ...moved, position: next }, ...without];
-      });
-    },
-    [user]
-  );
-
-  // Move the bundle up by one position (swap with the one above it).
-  // Uses fractional positions so we don't have to renumber every
-  // row on every swap — picking a new median between the current
-  // value and the neighbour above pins the relative order. If the
-  // bundle is already at the top of the user's list, no-op.
-  const moveUpOne = useCallback(
-    async (movedId: string): Promise<void> => {
-      if (!user) return;
+  // Drag-and-drop reorder: move `movedId` so it takes `targetId`'s
+  // slot in the list. Picks a fractional position between the
+  // target's neighbours (or one below the min if dropping on the
+  // first row) so we never have to renumber every row. The DB
+  // touches only the moved row; local state inserts at the target's
+  // index with the same position so the grid reflects the change
+  // instantly.
+  const moveBundleTo = useCallback(
+    async (movedId: string, targetId: string): Promise<void> => {
+      if (!user || movedId === targetId) return;
       const supabase = createClient();
       if (!supabase) return;
       const { data: rows, error } = await supabase
@@ -321,40 +272,40 @@ export function useMealBundles() {
         .eq('user_id', user.id)
         .order('position', { ascending: true });
       if (error) {
-        console.error('useMealBundles: move-up lookup failed', error);
+        console.error('useMealBundles: move lookup failed', error);
         return;
       }
       const list = (rows ?? []) as { id: string; position: number }[];
-      const i = list.findIndex((r) => r.id === movedId);
-      if (i <= 0) return; // already at the top
-      const me = list[i];
-      const above = list[i - 1];
-      const newPos =
-        ((typeof me.position === 'number' ? me.position : 0) +
-          (typeof above.position === 'number' ? above.position : 0)) /
-        2;
+      if (list.find((r) => r.id === movedId) == null) return;
+      if (list.find((r) => r.id === targetId) == null) return;
+      // Build the list without `movedId` and find where to insert it.
+      const without = list.filter((r) => r.id !== movedId);
+      const insertAt = without.findIndex((r) => r.id === targetId);
+      if (insertAt < 0) return;
+      const before = insertAt > 0 ? without[insertAt - 1].position : null;
+      const after = without[insertAt].position;
+      const newPos = before == null ? after - 1 : (before + after) / 2;
       const { error: updErr } = await supabase
         .from('meal_bundles')
         .update({ position: newPos })
         .eq('id', movedId)
         .eq('user_id', user.id);
       if (updErr) {
-        console.error('useMealBundles: move-up update failed', updErr);
+        console.error('useMealBundles: move update failed', updErr);
         return;
       }
-      setBundles((prev) =>
-        prev.map((b) => {
-          if (b.id === movedId) return { ...b, position: newPos };
-          if (b.id === above.id) {
-            return {
-              ...b,
-              position:
-                typeof me.position === 'number' ? me.position : 0,
-            };
-          }
-          return b;
-        })
-      );
+      setBundles((prev) => {
+        const moved = prev.find((b) => b.id === movedId);
+        if (!moved) return prev;
+        const rest = prev.filter((b) => b.id !== movedId);
+        const idx = rest.findIndex((b) => b.id === targetId);
+        if (idx < 0) return prev;
+        return [
+          ...rest.slice(0, idx),
+          { ...moved, position: newPos },
+          ...rest.slice(idx),
+        ];
+      });
     },
     [user]
   );
@@ -366,7 +317,6 @@ export function useMealBundles() {
     updateBundle,
     touchBundle,
     deleteBundle,
-    reorderBundles,
-    moveUpOne,
+    moveBundleTo,
   };
 }

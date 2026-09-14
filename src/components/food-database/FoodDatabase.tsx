@@ -28,8 +28,8 @@ const BUNDLE_TILES_PER_PAGE = 12;
 // consistent (paper background, ink border). A 6px palette-color
 // stripe runs across the top so the grid has rhythm — the body stays
 // paper. Top = name, middle = nutrition summary (kcal / items),
-// bottom row = action icons (↑ reorder, ✎ edit, ⎘ duplicate, ✕ delete).
-// Tap on the tile body logs the bundle.
+// bottom row = drag handle (⠿), edit (✎), duplicate (⎘), delete (✕).
+// Tap on the tile body logs the bundle; the drag handle reorders.
 const TILE_ACCENT: Record<0 | 1 | 2 | 3, string> = {
   0: 'bg-teal',
   1: 'bg-cream',
@@ -40,31 +40,48 @@ const TILE_ACCENT: Record<0 | 1 | 2 | 3, string> = {
 function BundleTile({
   bundle,
   kcal,
-  canMoveUp,
-  canMoveDown,
   accent,
+  isDragging,
+  isDropTarget,
   onLog,
   onEdit,
   onDuplicate,
   onDelete,
-  onMoveToTop,
-  onMoveUp,
+  onDragStart,
+  onDragOver,
+  onDragLeave,
+  onDrop,
+  onDragEnd,
 }: {
   bundle: MealBundle;
   kcal: number | null;
-  canMoveUp: boolean;
-  canMoveDown: boolean;
   accent: 0 | 1 | 2 | 3;
+  isDragging: boolean;
+  isDropTarget: boolean;
   onLog: () => void;
   onEdit: () => void;
   onDuplicate: () => void;
   onDelete: () => void;
-  onMoveToTop: () => void;
-  onMoveUp: () => void;
+  onDragStart: (e: React.DragEvent) => void;
+  onDragOver: (e: React.DragEvent) => void;
+  onDragLeave: () => void;
+  onDrop: (e: React.DragEvent) => void;
+  onDragEnd: () => void;
 }) {
   const [logging, setLogging] = useState(false);
   return (
-    <div className="aspect-square border border-ink/15 bg-paper hover:border-coral transition-colors flex flex-col">
+    <div
+      className={`aspect-square border bg-paper transition-colors flex flex-col ${
+        isDragging
+          ? 'opacity-40 border-dashed border-ink/40'
+          : isDropTarget
+            ? 'border-coral border-2'
+            : 'border-ink/15 hover:border-coral'
+      }`}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+    >
       <div className={`h-1.5 shrink-0 ${TILE_ACCENT[accent]}`} aria-hidden />
       <button
         type="button"
@@ -96,26 +113,18 @@ function BundleTile({
         </p>
       </button>
       <div className="px-2 py-1 border-t border-ink/15 flex items-center gap-1 text-ink/60">
-        <button
-          type="button"
-          disabled={logging}
-          onClick={onMoveToTop}
-          aria-label={`Move ${bundle.name} to top`}
-          className="px-1 py-0.5 hover:text-ink disabled:opacity-30 disabled:cursor-not-allowed"
-          title="Move to top"
+        <span
+          role="button"
+          tabIndex={0}
+          draggable
+          onDragStart={onDragStart}
+          onDragEnd={onDragEnd}
+          aria-label={`Drag to reorder ${bundle.name}`}
+          title="Drag to reorder"
+          className="px-1 py-0.5 cursor-grab active:cursor-grabbing hover:text-ink select-none"
         >
-          ↑
-        </button>
-        <button
-          type="button"
-          disabled={!canMoveUp || logging}
-          onClick={onMoveUp}
-          aria-label={`Move ${bundle.name} up one`}
-          className="px-1 py-0.5 hover:text-ink disabled:opacity-30 disabled:cursor-not-allowed"
-          title="Move up one"
-        >
-          ▴
-        </button>
+          ⠿
+        </span>
         <span className="flex-1" />
         <button
           type="button"
@@ -176,8 +185,7 @@ export default function FoodDatabase({ targets }: Props) {
     createBundle,
     updateBundle,
     touchBundle,
-    reorderBundles,
-    moveUpOne,
+    moveBundleTo,
     deleteBundle,
   } = useMealBundles();
   const [picked, setPicked] = useState<Food | null>(null);
@@ -209,6 +217,13 @@ export default function FoodDatabase({ targets }: Props) {
   const [editName, setEditName] = useState('');
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
+
+  // Drag-and-drop reorder state. `draggingId` is the bundle being
+  // dragged (set on dragstart, cleared on dragend). `dropTargetId`
+  // is the tile the cursor is currently over — paints a coral border
+  // to show where the dragged tile will land.
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dropTargetId, setDropTargetId] = useState<string | null>(null);
 
   // Bundle search. Free-text filter over bundle names + items.
   // Cheap on a list that's small (dozens of bundles per user).
@@ -278,6 +293,46 @@ export default function FoodDatabase({ targets }: Props) {
     setPicked(f);
     const remembered = portionFor(f.id);
     if (remembered != null) setPendingGrams(remembered);
+  };
+
+  // Drag-and-drop handlers. The dragged tile id travels in the
+  // dataTransfer payload so the drop site can read it without us
+  // having to thread props through every tile.
+  const handleDragStart = (
+    e: React.DragEvent,
+    bundleId: string
+  ) => {
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', bundleId);
+    setDraggingId(bundleId);
+  };
+  const handleDragOver = (
+    e: React.DragEvent,
+    bundleId: string
+  ) => {
+    if (!draggingId || bundleId === draggingId) return;
+    e.preventDefault(); // signals "this is a drop target"
+    e.dataTransfer.dropEffect = 'move';
+    setDropTargetId(bundleId);
+  };
+  const handleDragLeave = (bundleId: string) => {
+    setDropTargetId((prev) => (prev === bundleId ? null : prev));
+  };
+  const handleDrop = (
+    e: React.DragEvent,
+    targetId: string
+  ) => {
+    e.preventDefault();
+    const sourceId = e.dataTransfer.getData('text/plain') || draggingId;
+    if (sourceId && sourceId !== targetId) {
+      void moveBundleTo(sourceId, targetId);
+    }
+    setDraggingId(null);
+    setDropTargetId(null);
+  };
+  const handleDragEnd = () => {
+    setDraggingId(null);
+    setDropTargetId(null);
   };
 
   // Build-meal helpers.
@@ -575,7 +630,7 @@ export default function FoodDatabase({ targets }: Props) {
                 Saved meal bundles
               </p>
               <p className="font-body text-caption text-ink/40 mt-1">
-                Tap a tile to log the combo. ↑↓ to reorder.
+                Tap a tile to log the combo. Drag ⠿ to reorder.
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -600,12 +655,8 @@ export default function FoodDatabase({ targets }: Props) {
                   bundle={b}
                   kcal={kcal ?? null}
                   accent={(b.position % 4) as 0 | 1 | 2 | 3}
-                  canMoveUp={bundles.findIndex((bb) => bb.id === b.id) > 0}
-                  canMoveDown={
-                    bundlePage * BUNDLE_TILES_PER_PAGE +
-                      paginatedBundles.length <
-                    visibleBundles.length
-                  }
+                  isDragging={draggingId === b.id}
+                  isDropTarget={dropTargetId === b.id}
                   onLog={async () => {
                     const ids = b.items.map((it) => it.food_id);
                     const list = await fetchFoodsByIds(ids);
@@ -642,12 +693,11 @@ export default function FoodDatabase({ targets }: Props) {
                       void deleteBundle(b.id);
                     }
                   }}
-                  onMoveToTop={() => {
-                    void reorderBundles(b.id);
-                  }}
-                  onMoveUp={() => {
-                    void moveUpOne(b.id);
-                  }}
+                  onDragStart={(e) => handleDragStart(e, b.id)}
+                  onDragOver={(e) => handleDragOver(e, b.id)}
+                  onDragLeave={() => handleDragLeave(b.id)}
+                  onDrop={(e) => handleDrop(e, b.id)}
+                  onDragEnd={handleDragEnd}
                 />
               );
             })}
