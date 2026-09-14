@@ -25,15 +25,24 @@ interface Props {
 const BUNDLE_TILES_PER_PAGE = 12;
 
 // A single tile in the saved-meal-bundles grid. Square aspect, brand
-// consistent (paper background, ink border). Top = name, middle =
-// nutrition summary (kcal / items), bottom row = action icons
-// (↑ reorder, ✎ edit, ⎘ duplicate, ✕ delete). Tap on the tile body
-// logs the bundle.
+// consistent (paper background, ink border). A 6px palette-color
+// stripe runs across the top so the grid has rhythm — the body stays
+// paper. Top = name, middle = nutrition summary (kcal / items),
+// bottom row = action icons (↑ reorder, ✎ edit, ⎘ duplicate, ✕ delete).
+// Tap on the tile body logs the bundle.
+const TILE_ACCENT: Record<0 | 1 | 2 | 3, string> = {
+  0: 'bg-teal',
+  1: 'bg-cream',
+  2: 'bg-lavender',
+  3: 'bg-coral',
+};
+
 function BundleTile({
   bundle,
   kcal,
   canMoveUp,
   canMoveDown,
+  accent,
   onLog,
   onEdit,
   onDuplicate,
@@ -45,6 +54,7 @@ function BundleTile({
   kcal: number | null;
   canMoveUp: boolean;
   canMoveDown: boolean;
+  accent: 0 | 1 | 2 | 3;
   onLog: () => void;
   onEdit: () => void;
   onDuplicate: () => void;
@@ -55,6 +65,7 @@ function BundleTile({
   const [logging, setLogging] = useState(false);
   return (
     <div className="aspect-square border border-ink/15 bg-paper hover:border-coral transition-colors flex flex-col">
+      <div className={`h-1.5 shrink-0 ${TILE_ACCENT[accent]}`} aria-hidden />
       <button
         type="button"
         onClick={async () => {
@@ -155,7 +166,6 @@ export default function FoodDatabase({ targets }: Props) {
     addEntry,
     removeEntry,
     updateEntry,
-    recent,
     loaded: logLoaded,
   } = useFoodLog();
   const { favoriteIds, isFavorite, toggle } = useFoodFavorites();
@@ -172,7 +182,6 @@ export default function FoodDatabase({ targets }: Props) {
   } = useMealBundles();
   const [picked, setPicked] = useState<Food | null>(null);
   const [pendingGrams, setPendingGrams] = useState<number | null>(null);
-  const [recentFoods, setRecentFoods] = useState<Food[]>([]);
   // Tab in the food panel — public search vs the user's own custom
   // foods. Persists per session so a quick switch to "my foods"
   // doesn't bounce back to the search.
@@ -235,28 +244,6 @@ export default function FoodDatabase({ targets }: Props) {
       ),
     [visibleBundles, bundlePage]
   );
-
-  // Resolve "recently logged" ids → Food rows via a targeted lookup.
-  // We never load the full ~135K corpus into the browser.
-  useEffect(() => {
-    const ids = Array.from(new Set(recent.map((e) => e.food_id))).slice(0, 6);
-    if (ids.length === 0) {
-      setRecentFoods([]);
-      return;
-    }
-    let cancelled = false;
-    fetchFoodsByIds(ids).then((list) => {
-      if (cancelled) return;
-      const byId = new Map(list.map((f) => [f.id, f]));
-      const ordered = ids
-        .map((id) => byId.get(id))
-        .filter((f): f is Food => !!f);
-      setRecentFoods(ordered);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [recent]);
 
   // Suggest a meal bundle for the foods just logged this meal.
   // Picks the most-recent bundle that has the same food-id set as
@@ -538,6 +525,42 @@ export default function FoodDatabase({ targets }: Props) {
 
   return (
     <div className="space-y-6">
+      <DailyTotalsBar totals={todayTotals} targets={targets} />
+
+      {!targets && (
+        <div className="border border-ink/15 bg-cream/30 p-4">
+          <p className="font-body text-caption uppercase tracking-widest text-ink/60 mb-1">
+            No targets yet
+          </p>
+          <p className="font-body text-sm text-ink/70">
+            Run the macro calculator above to set your daily targets. They drive the totals bar.
+          </p>
+        </div>
+      )}
+
+      {isOverBudget && topContributors.length > 0 && (
+        <div className="border border-coral/40 bg-coral/5 p-4">
+          <p className="font-body text-caption uppercase tracking-widest text-coral mb-2">
+            Over budget · top contributors
+          </p>
+          <ul className="space-y-1">
+            {topContributors.map(({ entry }) => (
+              <li
+                key={entry.id}
+                className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1"
+              >
+                <span className="font-body text-sm text-ink min-w-0 break-words">
+                  {entry.name}
+                </span>
+                <span className="font-body text-caption uppercase tracking-widest text-coral tabular-nums shrink-0">
+                  {Math.round(entry.kcal)} kcal
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {/* Saved meal bundles. 4x4 (2 cols on mobile, 4 on desktop)
           square-tile grid. Each tile is a tap-to-log shortcut for
           the bundle's stored portions. ↑↓ on a tile bumps its
@@ -576,6 +599,7 @@ export default function FoodDatabase({ targets }: Props) {
                   key={b.id}
                   bundle={b}
                   kcal={kcal ?? null}
+                  accent={(b.position % 4) as 0 | 1 | 2 | 3}
                   canMoveUp={bundles.findIndex((bb) => bb.id === b.id) > 0}
                   canMoveDown={
                     bundlePage * BUNDLE_TILES_PER_PAGE +
@@ -663,78 +687,6 @@ export default function FoodDatabase({ targets }: Props) {
         </div>
       )}
 
-      <DailyTotalsBar totals={todayTotals} targets={targets} />
-
-      {!targets && (
-        <div className="border border-ink/15 bg-cream/30 p-4">
-          <p className="font-body text-caption uppercase tracking-widest text-ink/60 mb-1">
-            No targets yet
-          </p>
-          <p className="font-body text-sm text-ink/70">
-            Run the macro calculator above to set your daily targets. They drive the totals bar.
-          </p>
-        </div>
-      )}
-
-      {isOverBudget && topContributors.length > 0 && (
-        <div className="border border-coral/40 bg-coral/5 p-4">
-          <p className="font-body text-caption uppercase tracking-widest text-coral mb-2">
-            Over budget · top contributors
-          </p>
-          <ul className="space-y-1">
-            {topContributors.map(({ entry }) => (
-              <li
-                key={entry.id}
-                className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1"
-              >
-                <span className="font-body text-sm text-ink min-w-0 break-words">
-                  {entry.name}
-                </span>
-                <span className="font-body text-caption uppercase tracking-widest text-coral tabular-nums shrink-0">
-                  {Math.round(entry.kcal)} kcal
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      <div className="flex items-center gap-1 border-b border-ink/10 mb-4">
-        <button
-          type="button"
-          onClick={() => setTab('search')}
-          aria-pressed={tab === 'search'}
-          className={`px-4 py-2 font-body text-caption uppercase tracking-widest border-b-2 transition-colors ${
-            tab === 'search'
-              ? 'border-coral text-ink'
-              : 'border-transparent text-ink/50 hover:text-ink'
-          }`}
-        >
-          Search
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab('myfoods')}
-          aria-pressed={tab === 'myfoods'}
-          className={`px-4 py-2 font-body text-caption uppercase tracking-widest border-b-2 transition-colors ${
-            tab === 'myfoods'
-              ? 'border-coral text-ink'
-              : 'border-transparent text-ink/50 hover:text-ink'
-          }`}
-        >
-          My foods
-        </button>
-      </div>
-
-      {tab === 'search' ? (
-        <FoodSearch
-          favorites={favoriteIds}
-          onPickFood={handlePickFood}
-          recentlyLoggedFoods={recentFoods}
-        />
-      ) : (
-        <MyCustomFoodsPanel onPickFood={handlePickFood} />
-      )}
       {/* Logged today. Each row: meal-slot picker, favorite, log
           again, remove. Build-meal mode below shows checkboxes + a
           save form so the user picks which items go into the bundle
@@ -973,8 +925,41 @@ export default function FoodDatabase({ targets }: Props) {
         </div>
       )}
 
+      <div className="flex items-center gap-1 border-b border-ink/10 mb-4">
+        <button
+          type="button"
+          onClick={() => setTab('search')}
+          aria-pressed={tab === 'search'}
+          className={`px-4 py-2 font-body text-caption uppercase tracking-widest border-b-2 transition-colors ${
+            tab === 'search'
+              ? 'border-coral text-ink'
+              : 'border-transparent text-ink/50 hover:text-ink'
+          }`}
+        >
+          Search
+        </button>
+        <button
+          type="button"
+          onClick={() => setTab('myfoods')}
+          aria-pressed={tab === 'myfoods'}
+          className={`px-4 py-2 font-body text-caption uppercase tracking-widest border-b-2 transition-colors ${
+            tab === 'myfoods'
+              ? 'border-coral text-ink'
+              : 'border-transparent text-ink/50 hover:text-ink'
+          }`}
+        >
+          My foods
+        </button>
+      </div>
 
-
+      {tab === 'search' ? (
+        <FoodSearch
+          favorites={favoriteIds}
+          onPickFood={handlePickFood}
+        />
+      ) : (
+        <MyCustomFoodsPanel onPickFood={handlePickFood} />
+      )}
 
       {/* Bundle editor / duplicator. Opened by Edit or Duplicate
           on a saved bundle. Shows the items with their portions and
