@@ -123,20 +123,21 @@ function BundleTile({
         <p className="font-body text-sm text-ink leading-tight line-clamp-2">
           {bundle.name}
         </p>
+        {/* Meal caption: truncate so a long meal name ('Breakfast')
+            can't bleed past the tile on a narrow 2-col mobile grid. */}
         {mealLabel && (
-          <p className="font-body text-[10px] uppercase tracking-widest text-ink/50 leading-tight">
+          <p className="font-body text-[9px] sm:text-[10px] uppercase tracking-widest text-ink/50 leading-none truncate">
             {mealLabel}
           </p>
         )}
-        <p className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums">
+        {/* Items + kcal on one line. mt-auto pushes it to the
+            bottom of the button so multi-line names + the meal
+            caption stay vertically aligned across tiles. */}
+        <p className="font-body text-[10px] sm:text-caption uppercase tracking-widest text-ink/40 tabular-nums leading-none truncate mt-auto">
           {bundle.items.length}{' '}
           {bundle.items.length === 1 ? 'item' : 'items'}
-        </p>
-        <p className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums">
+          {' · '}
           {kcal != null ? `${kcal} kcal` : '—'}
-        </p>
-        <p className="font-body text-caption uppercase tracking-widest text-ink/30 tabular-nums mt-auto">
-          Logged {bundle.times_logged}×
         </p>
       </button>
       <div className="px-2 py-1 border-t border-ink/15 flex items-center gap-1 text-ink/60">
