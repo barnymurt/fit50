@@ -339,13 +339,14 @@ function PieView({
   // the strokes. The container is responsive — the SVG fills it,
   // so the internal coordinates map to whatever rendered width
   // the container ends up at.
-  const LABEL_PAD = 70;
-  const containerSize = PIE_SIZE + LABEL_PAD * 2; // 400
-  const containerCenter = containerSize / 2; // 200
-  // Distance from container center to the label baseline. Extra
-  // space beyond the ring (PIE_OUTER + ~45) so the labels never
-  // sit on top of the strokes.
-  const labelDistance = PIE_OUTER + 45; // 166
+  const LABEL_PAD = 75;
+  const containerSize = PIE_SIZE + LABEL_PAD * 2; // 456
+  const containerCenter = containerSize / 2; // 228
+  // Distance from container center to the label baseline. Sits
+  // just past the ring (PIE_OUTER + 40) so the labels never
+  // sit on top of the strokes while still leaving enough room
+  // for the bigger text sizes.
+  const labelDistance = PIE_OUTER + 40; // 183
 
   return (
     <div className="flex flex-col items-center gap-6">
@@ -412,10 +413,10 @@ function PieView({
               The target value only shows when targets are configured. */}
           <text
             x={containerCenter}
-            y={containerCenter - 8}
+            y={containerCenter - 10}
             textAnchor="middle"
             fontFamily="Georgia, serif"
-            fontSize="42"
+            fontSize="52"
             fontWeight="400"
             fill="#1A1A1A"
           >
@@ -423,10 +424,10 @@ function PieView({
           </text>
           <text
             x={containerCenter}
-            y={containerCenter + 22}
+            y={containerCenter + 26}
             textAnchor="middle"
             fontFamily="ui-sans-serif, system-ui, sans-serif"
-            fontSize="13"
+            fontSize="15"
             letterSpacing="0.16em"
             fill="#1A1A1A"
             fillOpacity="0.55"
@@ -460,23 +461,23 @@ function PieView({
               className="absolute -translate-x-1/2 -translate-y-1/2 text-center"
               style={{ left: `${xPct}%`, top: `${yPct}%` }}
             >
-              <p className="font-body text-[10px] sm:text-[11px] uppercase tracking-widest text-ink/60 leading-tight">
+              <p className="font-body text-xs sm:text-sm uppercase tracking-widest text-ink/60 leading-tight">
                 {s.label}
               </p>
-              <p className="font-display text-sm sm:text-base tabular-nums leading-tight">
+              <p className="font-display text-lg sm:text-xl tabular-nums leading-tight">
                 {Math.round(s.gramValue)}
                 {s.target > 0 && (
                   <span className="text-ink/40 ml-0.5">
                     / {Math.round(s.target)}
                   </span>
                 )}
-                <span className="text-ink/40 text-[10px] sm:text-[11px] uppercase tracking-widest ml-0.5">
+                <span className="font-body text-xs sm:text-sm uppercase tracking-widest text-ink/40 ml-0.5">
                   g
                 </span>
               </p>
               {pct != null && (
                 <p
-                  className={`font-body text-[10px] sm:text-[11px] tabular-nums mt-0.5 ${
+                  className={`font-body text-xs sm:text-sm tabular-nums mt-0.5 ${
                     over ? 'text-coral' : 'text-ink/60'
                   }`}
                 >
