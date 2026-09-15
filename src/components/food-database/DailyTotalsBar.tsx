@@ -343,10 +343,12 @@ function PieView({
   const containerSize = PIE_SIZE + LABEL_PAD * 2; // 456
   const containerCenter = containerSize / 2; // 228
   // Distance from container center to the label baseline. Sits
-  // just past the ring (PIE_OUTER + 40) so the labels never
-  // sit on top of the strokes while still leaving enough room
-  // for the bigger text sizes.
-  const labelDistance = PIE_OUTER + 40; // 183
+  // a comfortable gap past the ring (PIE_OUTER + 55) so the
+  // labels never visually touch the strokes on either desktop or
+  // mobile. The previous +40 gap shrunk to ≈6 CSS px of breathing
+  // room on a 320-wide phone — too tight, the labels looked like
+  // they were glued to the ring.
+  const labelDistance = PIE_OUTER + 55; // 198
 
   return (
     <div className="flex flex-col items-center gap-6">
@@ -461,10 +463,13 @@ function PieView({
               className="absolute -translate-x-1/2 -translate-y-1/2 text-center"
               style={{ left: `${xPct}%`, top: `${yPct}%` }}
             >
-              <p className="font-body text-xs sm:text-sm uppercase tracking-widest text-ink/60 leading-tight">
+              <p className="font-body text-xs sm:text-sm uppercase tracking-widest text-ink/60 leading-tight truncate max-w-full">
                 {s.label}
               </p>
-              <p className="font-display text-lg sm:text-xl tabular-nums leading-tight">
+              {/* Mobile uses text-sm so the value row stays compact
+                  enough to clear the ring on a 320-wide phone.
+                  Desktop steps up to text-lg for legibility. */}
+              <p className="font-display text-sm sm:text-lg tabular-nums leading-tight">
                 {Math.round(s.gramValue)}
                 {s.target > 0 && (
                   <span className="text-ink/40 ml-0.5">
