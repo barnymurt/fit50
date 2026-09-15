@@ -1,38 +1,42 @@
 -- 0029_workout_log_grouping.sql
 --
 -- One user has up to three rows per day in workout_log — one for
--- bodyweight, one for kettlebell, one for resistance band. The old
--- unique constraint (user_id, date_key, line) allowed multiple
--- rows per (user_id, date_key) since line was just "A"/"B"/"C"/"D"
--- with no grouping distinction. We add grouping, merge the existing
--- duplicates, then add a per-grouping unique index.
+-- bodyweight, one for kettlebell, one for resistance band. The
+-- existing PK is (user_id, date_key, line); grouping is new and
+-- distinct.
 --
--- Run order:
---   1. Add grouping column (nullable default 'bodyweight').
---   2. Recursive CTE merge — for each (user_id, date_key) pair with
---      multiple bodyweight rows, keep the most-recently-updated row's
---      id and accumulate all `sets` blobs into it via jsonb ||.
---   3. Delete the now-redundant bodyweight rows.
---   4. Drop the old unique constraint, add the new per-grouping one.
+-- Existing rows may have multiple (user_id, date_key, line='A'),
+-- (line='B'), (line='C'), (line='D') entries from the same day
+-- (one per worked line). We merge them into a single
+-- (user_id, date_key, grouping='bodyweight') row that keeps the
+-- most recently-touched `line` and the union of all the sets.
 --
--- After this migration runs, the client UPSERTs with onConflict
--- 'user_id,date_key,grouping' (was 'user_id,date_key,line'). See
--- src/hooks/useTrackerState.ts or wherever the workout_log upsert
--- lives.
+-- workout_log has NO `id` column — the PK is the (user_id,
+-- date_key, line) composite. We use the system column ctid (which
+-- we MUST alias — ctid is reserved by Postgres and can't be a
+-- user-defined column name) to identify surviving rows.
 
 ALTER TABLE workout_log
   ADD COLUMN IF NOT EXISTS grouping text NOT NULL DEFAULT 'bodyweight';
 
--- Recursive CTE: anchor on the most-recent row per pair, then OR-fold
--- the remaining rows' sets into it. The anchor's id propagates
--- through every recursive step so the UPDATE below targets the
--- single surviving row per pair.
+-- Recursive CTE: pick one row per (user_id, date_key) (rn=1, the
+-- most recently touched), then OR-fold the remaining rows' sets
+-- into it via the jsonb || operator (top-level key merge — our
+-- keys are exercise names which don't overlap across lines).
+-- Each (user_id, date_key, line) tuple has the kept row carry
+-- forward its line value throughout the recursion so all sets
+-- from the day's different lines land in the kept row.
+--
+-- Note: the temp table column is called `row_ctid`, NOT `ctid`,
+-- because `ctid` is a Postgres system column and can't be used as
+-- a user-defined column name (Postgres throws 42701).
+CREATE TEMP TABLE _workout_kept_bodyweight AS
 WITH RECURSIVE ordered AS (
   SELECT
-    w.id, w.user_id, w.date_key, w.sets, w.line, w.updated_at,
+    w.user_id, w.date_key, w.line, w.sets, w.updated_at, w.ctid,
     ROW_NUMBER() OVER (
       PARTITION BY w.user_id, w.date_key
-      ORDER BY w.updated_at DESC, w.id
+      ORDER BY w.updated_at DESC
     ) AS rn
   FROM workout_log w
   WHERE w.grouping = 'bodyweight'
@@ -43,42 +47,53 @@ WITH RECURSIVE ordered AS (
     )
 ),
 merged AS (
-  SELECT user_id, date_key, id, rn, sets, line FROM ordered WHERE rn = 1
+  -- Anchor: most-recently-touched row per pair. Keep its line and
+  -- ctid (aliased as row_ctid) — it represents "what the user was
+  -- last working on".
+  SELECT user_id, date_key, ctid AS row_ctid, line, rn, sets
+  FROM ordered WHERE rn = 1
   UNION ALL
-  SELECT m.user_id, m.date_key, m.id, o.rn, m.sets || o.sets, o.line
+  -- Recursive: fold the next row's sets into the accumulator.
+  -- The anchor's row_ctid + line propagate through every step so
+  -- all sets land in the kept row regardless of which line they
+  -- came from.
+  SELECT m.user_id, m.date_key, m.row_ctid, m.line, o.rn, m.sets || o.sets
   FROM merged m
   JOIN ordered o
-    ON o.user_id = m.user_id AND o.date_key = m.date_key AND o.rn = m.rn + 1
-),
-finalised AS (
-  SELECT DISTINCT ON (user_id, date_key) user_id, date_key, id, sets, line
-  FROM merged
-  ORDER BY user_id, date_key, rn DESC
+    ON o.user_id = m.user_id AND o.date_key = m.date_key
+   AND o.rn = m.rn + 1
 )
+SELECT DISTINCT ON (user_id, date_key)
+  user_id, date_key, row_ctid, line, sets
+FROM merged
+ORDER BY user_id, date_key, rn DESC;
+
+-- Step 1: update the kept row with the merged sets + the kept
+-- line. The update matches by row_ctid (workout_log has no id,
+-- and we can't name a temp-table column 'ctid' because Postgres
+-- reserves that name).
 UPDATE workout_log dst
-SET sets = f.sets,
-    line = f.line,
+SET sets = k.sets,
+    line = k.line,
     updated_at = NOW()
-FROM finalised f
-WHERE dst.id = f.id;
+FROM _workout_kept_bodyweight k
+WHERE dst.ctid = k.row_ctid;
 
--- Delete the now-redundant bodyweight rows. Keep the row with the
--- smallest id (typically the most-recent, since UUIDv4 isn't strictly
--- time-ordered but our migration order is consistent).
-DELETE FROM workout_log w
-USING (
-  SELECT user_id, date_key, MIN(id::text)::uuid AS keep_id, COUNT(*) AS n
-  FROM workout_log
-  WHERE grouping = 'bodyweight'
-  GROUP BY user_id, date_key
-  HAVING COUNT(*) > 1
-) m
-WHERE w.user_id = m.user_id
-  AND w.date_key = m.date_key
-  AND w.id != m.keep_id;
+-- Step 2: delete the now-redundant bodyweight rows. Keep only the
+-- row identified in _workout_kept_bodyweight; everything else with
+-- grouping='bodyweight' for the same (user_id, date_key) is a
+-- duplicate.
+DELETE FROM workout_log dst
+WHERE dst.grouping = 'bodyweight'
+  AND NOT EXISTS (
+    SELECT 1 FROM _workout_kept_bodyweight k
+    WHERE k.user_id = dst.user_id
+      AND k.date_key = dst.date_key
+      AND k.row_ctid = dst.ctid
+  );
 
--- Safe to add the per-grouping unique index now that bodyweight rows
--- have been merged.
+DROP TABLE _workout_kept_bodyweight;
+
 DROP INDEX IF EXISTS workout_log_user_id_date_key_line_key;
 CREATE UNIQUE INDEX IF NOT EXISTS workout_log_user_day_grouping_idx
   ON workout_log (user_id, date_key, grouping);

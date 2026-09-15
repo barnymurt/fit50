@@ -12,10 +12,175 @@ import FoodSearch from './FoodSearch';
 import FoodDetail from './FoodDetail';
 import MyCustomFoodsPanel from './MyCustomFoodsPanel';
 
-type FoodTab = 'search' | 'myfoods';
+type FoodTab = 'logged' | 'search' | 'myfoods';
 
 interface Props {
   targets: MacroTargets | null;
+}
+
+// Meal bundles render as a 4x4 (2 cols on mobile, 4 on desktop) tile
+// grid. 12 tiles per page — beyond that we paginate. Each tile is a
+// tap-to-log shortcut for the bundle; the user can also reorder to
+// surface their current week's go-to bundles to the top.
+const BUNDLE_TILES_PER_PAGE = 12;
+
+// A single tile in the saved-meal-bundles grid. Square aspect, brand
+// consistent (paper background, ink border). The tile wears the
+// colour of its meal slot — cream for breakfast, coral for lunch,
+// lavender for dinner, teal for snack — via a 6px stripe across
+// the top and a subtle tint of the same colour in the body. Top =
+// name + meal caption, middle = nutrition summary (kcal / items),
+// bottom row = drag handle (⠿), edit (✎), duplicate (⎘), delete
+// (✕). Tap on the tile body logs the bundle; the drag handle
+// reorders.
+type MealKey = 'breakfast' | 'lunch' | 'dinner' | 'snack';
+const TILE_STYLE: Record<
+  MealKey,
+  { stripe: string; tint: string; label: string }
+> = {
+  breakfast: { stripe: 'bg-cream', tint: 'bg-cream/40', label: 'Breakfast' },
+  lunch: { stripe: 'bg-coral', tint: 'bg-coral/15', label: 'Lunch' },
+  dinner: { stripe: 'bg-lavender', tint: 'bg-lavender/40', label: 'Dinner' },
+  snack: { stripe: 'bg-teal', tint: 'bg-teal/15', label: 'Snack' },
+};
+const NEUTRAL_TINT = 'bg-paper';
+const NEUTRAL_STRIPE = 'bg-ink/20';
+
+function getTileStyle(meal: string | null): {
+  stripe: string;
+  tint: string;
+  label: string | null;
+} {
+  if (meal && meal in TILE_STYLE) {
+    return { ...TILE_STYLE[meal as MealKey], label: TILE_STYLE[meal as MealKey].label };
+  }
+  return { stripe: NEUTRAL_STRIPE, tint: NEUTRAL_TINT, label: null };
+}
+
+function BundleTile({
+  bundle,
+  kcal,
+  isDragging,
+  isDropTarget,
+  onLog,
+  onEdit,
+  onDuplicate,
+  onDelete,
+  onDragStart,
+  onDragOver,
+  onDragLeave,
+  onDrop,
+  onDragEnd,
+}: {
+  bundle: MealBundle;
+  kcal: number | null;
+  isDragging: boolean;
+  isDropTarget: boolean;
+  onLog: () => void;
+  onEdit: () => void;
+  onDuplicate: () => void;
+  onDelete: () => void;
+  onDragStart: (e: React.DragEvent) => void;
+  onDragOver: (e: React.DragEvent) => void;
+  onDragLeave: () => void;
+  onDrop: (e: React.DragEvent) => void;
+  onDragEnd: () => void;
+}) {
+  const [logging, setLogging] = useState(false);
+  const { stripe, tint, label: mealLabel } = getTileStyle(bundle.meal);
+  return (
+    <div
+      draggable
+      onDragStart={onDragStart}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+      onDragEnd={onDragEnd}
+      className={`aspect-square border ${tint} transition-colors flex flex-col cursor-grab active:cursor-grabbing ${
+        isDragging
+          ? 'opacity-40 border-dashed border-ink/40'
+          : isDropTarget
+            ? 'border-coral border-2'
+            : 'border-ink/15 hover:border-coral'
+      }`}
+    >
+      <div className={`h-1.5 shrink-0 ${stripe}`} aria-hidden />
+      <button
+        type="button"
+        onClick={async () => {
+          if (logging) return;
+          setLogging(true);
+          try {
+            await onLog();
+          } finally {
+            setLogging(false);
+          }
+        }}
+        aria-label={`Log meal bundle ${bundle.name}`}
+        className="flex-1 min-h-0 p-2 text-left flex flex-col gap-1 disabled:opacity-50 cursor-pointer"
+        disabled={logging}
+      >
+        <p className="font-body text-sm text-ink leading-tight line-clamp-2">
+          {bundle.name}
+        </p>
+        {mealLabel && (
+          <p className="font-body text-[10px] uppercase tracking-widest text-ink/50 leading-tight">
+            {mealLabel}
+          </p>
+        )}
+        <p className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums">
+          {bundle.items.length}{' '}
+          {bundle.items.length === 1 ? 'item' : 'items'}
+        </p>
+        <p className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums">
+          {kcal != null ? `${kcal} kcal` : '—'}
+        </p>
+        <p className="font-body text-caption uppercase tracking-widest text-ink/30 tabular-nums mt-auto">
+          Logged {bundle.times_logged}×
+        </p>
+      </button>
+      <div className="px-2 py-1 border-t border-ink/15 flex items-center gap-1 text-ink/60">
+        <span
+          aria-hidden
+          className="px-1 py-0.5 select-none"
+          title="Drag to reorder"
+        >
+          ⠿
+        </span>
+        <span className="flex-1" />
+        <button
+          type="button"
+          disabled={logging}
+          onClick={onEdit}
+          aria-label={`Edit ${bundle.name}`}
+          className="px-1 py-0.5 hover:text-ink disabled:opacity-30 cursor-pointer"
+          title="Edit"
+        >
+          ✎
+        </button>
+        <button
+          type="button"
+          disabled={logging}
+          onClick={onDuplicate}
+          aria-label={`Duplicate ${bundle.name}`}
+          className="px-1 py-0.5 hover:text-ink disabled:opacity-30 cursor-pointer"
+          title="Duplicate"
+        >
+          ⎘
+        </button>
+        <button
+          type="button"
+          disabled={logging}
+          onClick={onDelete}
+          aria-label={`Delete ${bundle.name}`}
+          className="px-1 py-0.5 hover:text-coral disabled:opacity-30 cursor-pointer"
+          title="Delete"
+        >
+          ✕
+        </button>
+      </div>
+    </div>
+  );
 }
 
 const MEAL_OPTIONS: { value: Meal; label: string }[] = [
@@ -32,25 +197,25 @@ export default function FoodDatabase({ targets }: Props) {
     addEntry,
     removeEntry,
     updateEntry,
-    recent,
     loaded: logLoaded,
   } = useFoodLog();
   const { favoriteIds, isFavorite, toggle } = useFoodFavorites();
   const { portionFor, rememberPortion } = usePortionPrefs();
   const {
     bundles,
+    hydrated: bundlesLoaded,
     createBundle,
     updateBundle,
     touchBundle,
+    moveBundleTo,
     deleteBundle,
   } = useMealBundles();
   const [picked, setPicked] = useState<Food | null>(null);
   const [pendingGrams, setPendingGrams] = useState<number | null>(null);
-  const [recentFoods, setRecentFoods] = useState<Food[]>([]);
   // Tab in the food panel — public search vs the user's own custom
   // foods. Persists per session so a quick switch to "my foods"
   // doesn't bounce back to the search.
-  const [tab, setTab] = useState<FoodTab>('search');
+  const [tab, setTab] = useState<FoodTab>('logged');
 
   // "Build a meal" mode. When the user clicks the CTA we reveal
   // checkboxes next to every log-today row. They pick which items
@@ -59,21 +224,38 @@ export default function FoodDatabase({ targets }: Props) {
   const [buildMode, setBuildMode] = useState(false);
   const [pickedIds, setPickedIds] = useState<Set<string>>(new Set());
   const [buildName, setBuildName] = useState('');
+  // Inferred at the moment build mode opens (the most common meal
+  // among today's logged items with a slot). The user can override
+  // it before saving; '' means "no meal slot" (the tile renders
+  // with the neutral accent).
+  const [buildMeal, setBuildMeal] = useState<Meal | ''>('');
   const [buildSaving, setBuildSaving] = useState(false);
   const [buildError, setBuildError] = useState<string | null>(null);
 
-  // Bundle editor. Lets the user rename + re-pick items on an
-  // existing bundle. Opened by "Edit" or "Duplicate" on a row.
+  // Bundle editor. Lets the user rename + re-pick items + change
+  // the meal slot on an existing bundle. Opened by "Edit" or
+  // "Duplicate" on a tile.
   const [editing, setEditing] = useState<{
     id: string;
     name: string;
+    meal: Meal | null;
     isDuplicate: boolean;
     originalName: string;
   } | null>(null);
   const [editItems, setEditItems] = useState<{ food_id: string; portion_grams: number }[]>([]);
   const [editName, setEditName] = useState('');
+  // '' = leave the meal slot unset; otherwise one of the four
+  // meal keys.
+  const [editMeal, setEditMeal] = useState<Meal | ''>('');
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
+
+  // Drag-and-drop reorder state. `draggingId` is the bundle being
+  // dragged (set on dragstart, cleared on dragend). `dropTargetId`
+  // is the tile the cursor is currently over — paints a coral border
+  // to show where the dragged tile will land.
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dropTargetId, setDropTargetId] = useState<string | null>(null);
 
   // Bundle search. Free-text filter over bundle names + items.
   // Cheap on a list that's small (dozens of bundles per user).
@@ -88,27 +270,27 @@ export default function FoodDatabase({ targets }: Props) {
     );
   }, [bundles, bundleQuery]);
 
-  // Resolve "recently logged" ids → Food rows via a targeted lookup.
-  // We never load the full ~135K corpus into the browser.
+  // Pagination for the bundle tile grid. Resets to page 0 when the
+  // filter shrinks the list below the current page's range.
+  const [bundlePage, setBundlePage] = useState(0);
+  const totalBundlePages = Math.max(
+    1,
+    Math.ceil(visibleBundles.length / BUNDLE_TILES_PER_PAGE)
+  );
+  // Clamp the current page when the filtered set shrinks.
   useEffect(() => {
-    const ids = Array.from(new Set(recent.map((e) => e.food_id))).slice(0, 6);
-    if (ids.length === 0) {
-      setRecentFoods([]);
-      return;
+    if (bundlePage > totalBundlePages - 1) {
+      setBundlePage(Math.max(0, totalBundlePages - 1));
     }
-    let cancelled = false;
-    fetchFoodsByIds(ids).then((list) => {
-      if (cancelled) return;
-      const byId = new Map(list.map((f) => [f.id, f]));
-      const ordered = ids
-        .map((id) => byId.get(id))
-        .filter((f): f is Food => !!f);
-      setRecentFoods(ordered);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [recent]);
+  }, [bundlePage, totalBundlePages]);
+  const paginatedBundles = useMemo(
+    () =>
+      visibleBundles.slice(
+        bundlePage * BUNDLE_TILES_PER_PAGE,
+        (bundlePage + 1) * BUNDLE_TILES_PER_PAGE
+      ),
+    [visibleBundles, bundlePage]
+  );
 
   // Suggest a meal bundle for the foods just logged this meal.
   // Picks the most-recent bundle that has the same food-id set as
@@ -145,6 +327,46 @@ export default function FoodDatabase({ targets }: Props) {
     if (remembered != null) setPendingGrams(remembered);
   };
 
+  // Drag-and-drop handlers. The dragged tile id travels in the
+  // dataTransfer payload so the drop site can read it without us
+  // having to thread props through every tile.
+  const handleDragStart = (
+    e: React.DragEvent,
+    bundleId: string
+  ) => {
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', bundleId);
+    setDraggingId(bundleId);
+  };
+  const handleDragOver = (
+    e: React.DragEvent,
+    bundleId: string
+  ) => {
+    if (!draggingId || bundleId === draggingId) return;
+    e.preventDefault(); // signals "this is a drop target"
+    e.dataTransfer.dropEffect = 'move';
+    setDropTargetId(bundleId);
+  };
+  const handleDragLeave = (bundleId: string) => {
+    setDropTargetId((prev) => (prev === bundleId ? null : prev));
+  };
+  const handleDrop = (
+    e: React.DragEvent,
+    targetId: string
+  ) => {
+    e.preventDefault();
+    const sourceId = e.dataTransfer.getData('text/plain') || draggingId;
+    if (sourceId && sourceId !== targetId) {
+      void moveBundleTo(sourceId, targetId);
+    }
+    setDraggingId(null);
+    setDropTargetId(null);
+  };
+  const handleDragEnd = () => {
+    setDraggingId(null);
+    setDropTargetId(null);
+  };
+
   // Build-meal helpers.
   const togglePick = (id: string) => {
     setPickedIds((prev) => {
@@ -158,6 +380,7 @@ export default function FoodDatabase({ targets }: Props) {
     setBuildMode(false);
     setPickedIds(new Set());
     setBuildName('');
+    setBuildMeal('');
     setBuildError(null);
   };
   const handleSaveBundle = async () => {
@@ -166,19 +389,26 @@ export default function FoodDatabase({ targets }: Props) {
       setBuildError('Give the meal a name.');
       return;
     }
-    const items = todayEntries
+    const pickedEntries = todayEntries
       .filter((e) => pickedIds.has(e.id))
-      .filter((e) => e.meal) // must be assigned a meal slot
-      .map((e) => ({ food_id: e.food_id, portion_grams: e.grams }));
+      .filter((e) => e.meal); // must be assigned a meal slot
+    const items = pickedEntries.map((e) => ({
+      food_id: e.food_id,
+      portion_grams: e.grams,
+    }));
     if (items.length < 2) {
       setBuildError(
         'Pick at least two items, each with a meal slot (breakfast / lunch / dinner / snack).'
       );
       return;
     }
+    // The user can override the meal slot in the form before
+    // saving. Empty string means "no meal type set" — the tile
+    // renders with the neutral accent.
+    const mealValue = buildMeal === '' ? null : buildMeal;
     setBuildSaving(true);
     setBuildError(null);
-    const id = await createBundle(buildName, items);
+    const id = await createBundle(buildName, items, mealValue);
     setBuildSaving(false);
     if (!id) {
       setBuildError('Could not save the bundle. Try again.');
@@ -189,26 +419,32 @@ export default function FoodDatabase({ targets }: Props) {
 
   // Bundle editor helpers.
   const startEditing = (b: MealBundle) => {
+    const meal = (b.meal as Meal | null) ?? null;
     setEditing({
       id: b.id,
       name: b.name,
+      meal,
       isDuplicate: false,
       originalName: b.name,
     });
     setEditName(b.name);
+    setEditMeal(meal ?? '');
     setEditItems(
       b.items.map((it) => ({ food_id: it.food_id, portion_grams: it.portion_grams }))
     );
     setEditError(null);
   };
   const startDuplicating = (b: MealBundle) => {
+    const meal = (b.meal as Meal | null) ?? null;
     setEditing({
       id: b.id,
       name: `Copy of ${b.name}`,
+      meal,
       isDuplicate: true,
       originalName: b.name,
     });
     setEditName(`Copy of ${b.name}`);
+    setEditMeal(meal ?? '');
     setEditItems(
       b.items.map((it) => ({ food_id: it.food_id, portion_grams: it.portion_grams }))
     );
@@ -218,6 +454,7 @@ export default function FoodDatabase({ targets }: Props) {
     setEditing(null);
     setEditItems([]);
     setEditName('');
+    setEditMeal('');
     setEditError(null);
   };
   const toggleEditItem = (food_id: string) => {
@@ -249,9 +486,12 @@ export default function FoodDatabase({ targets }: Props) {
     }
     setEditSaving(true);
     setEditError(null);
+    // Normalise the meal slot — '' becomes null (no meal type).
+    const mealValue = editMeal === '' ? null : editMeal;
     if (editing.isDuplicate) {
-      // Duplicate: create a fresh bundle under the new name.
-      const newId = await createBundle(editName, editItems);
+      // Duplicate: create a fresh bundle under the new name with
+      // the (possibly edited) meal slot.
+      const newId = await createBundle(editName, editItems, mealValue);
       setEditSaving(false);
       if (!newId) {
         setEditError('Could not save the new bundle. Try again.');
@@ -260,8 +500,14 @@ export default function FoodDatabase({ targets }: Props) {
       cancelEdit();
       return;
     }
-    // Edit: update in place.
-    const res = await updateBundle(editing.id, editName, editItems);
+    // Edit: update in place. The meal slot always gets pushed so
+    // the editor can clear it back to null with the "—" option.
+    const res = await updateBundle(
+      editing.id,
+      editName,
+      editItems,
+      mealValue
+    );
     setEditSaving(false);
     if (!res.ok) {
       setEditError(res.error || 'Could not save. Try again.');
@@ -426,7 +672,149 @@ export default function FoodDatabase({ targets }: Props) {
         </div>
       )}
 
+      {/* Saved meal bundles. 4x4 (2 cols on mobile, 4 on desktop)
+          square-tile grid. Each tile is a tap-to-log shortcut for
+          the bundle's stored portions. ↑↓ on a tile bumps its
+          position so the user can surface their current week's
+          go-to meal to the top without reordering the rest.
+          Pagination once the filtered list exceeds 12 tiles. */}
+      {bundlesLoaded && bundles.length > 0 && (
+        <div className="bg-paper border border-ink/15">
+          <div className="px-6 py-4 border-b border-ink/10 flex flex-wrap items-baseline justify-between gap-3">
+            <div>
+              <p className="font-body text-caption uppercase tracking-widest text-ink/50">
+                Saved meal bundles
+              </p>
+              <p className="font-body text-caption text-ink/40 mt-1">
+                Tap a tile to log the combo. Drag ⠿ to reorder.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                value={bundleQuery}
+                onChange={(e) => setBundleQuery(e.target.value)}
+                placeholder="Filter by name or food…"
+                aria-label="Filter meal bundles"
+                className="px-3 py-2 bg-paper border-2 border-ink/20 text-ink font-body focus:border-coral outline-none text-sm w-56"
+              />
+              <span className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums">
+                {visibleBundles.length}/{bundles.length}
+              </span>
+            </div>
+          </div>
+          <div className="p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+            {paginatedBundles.map((b) => {
+              const kcal = bundleKcal[b.id];
+              return (
+                <BundleTile
+                  key={b.id}
+                  bundle={b}
+                  kcal={kcal ?? null}
+                  isDragging={draggingId === b.id}
+                  isDropTarget={dropTargetId === b.id}
+                  onLog={async () => {
+                    const ids = b.items.map((it) => it.food_id);
+                    const list = await fetchFoodsByIds(ids);
+                    const byId = new Map(
+                      list.map((f) => [f.id, f] as const)
+                    );
+                    for (const it of b.items) {
+                      const f = byId.get(it.food_id);
+                      if (!f) continue;
+                      const scaled = scaleFood(f, it.portion_grams);
+                      await addEntry({
+                        food_id: f.id,
+                        name: f.name,
+                        grams: it.portion_grams,
+                        kcal: scaled.kcal,
+                        protein: scaled.protein,
+                        carbs: scaled.carbs,
+                        fat: scaled.fat,
+                        fiber: scaled.fiber,
+                        meal: null,
+                      });
+                      rememberPortion(f.id, it.portion_grams);
+                    }
+                    touchBundle(b.id);
+                  }}
+                  onEdit={() => startEditing(b)}
+                  onDuplicate={() => startDuplicating(b)}
+                  onDelete={() => {
+                    if (
+                      window.confirm(
+                        `Delete meal bundle "${b.name}"?`
+                      )
+                    ) {
+                      void deleteBundle(b.id);
+                    }
+                  }}
+                  onDragStart={(e) => handleDragStart(e, b.id)}
+                  onDragOver={(e) => handleDragOver(e, b.id)}
+                  onDragLeave={() => handleDragLeave(b.id)}
+                  onDrop={(e) => handleDrop(e, b.id)}
+                  onDragEnd={handleDragEnd}
+                />
+              );
+            })}
+          </div>
+          {totalBundlePages > 1 && (
+            <div className="px-6 py-4 border-t border-ink/10 flex items-center justify-center gap-2">
+              <button
+                type="button"
+                disabled={bundlePage === 0}
+                onClick={() => setBundlePage((p) => Math.max(0, p - 1))}
+                aria-label="Previous bundles page"
+                className="px-3 py-1 border border-ink/20 font-body text-caption uppercase tracking-widest text-ink/70 hover:border-ink/40 disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                ◀
+              </button>
+              <span className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums">
+                Showing {bundlePage * BUNDLE_TILES_PER_PAGE + 1}–{Math.min(
+      (bundlePage + 1) * BUNDLE_TILES_PER_PAGE,
+      visibleBundles.length
+    )} of {visibleBundles.length} (page {bundlePage + 1}/{totalBundlePages})
+              </span>
+              <button
+                type="button"
+                disabled={bundlePage >= totalBundlePages - 1}
+                onClick={() =>
+                  setBundlePage((p) =>
+                    Math.min(totalBundlePages - 1, p + 1)
+                  )
+                }
+                aria-label="Next bundles page"
+                className="px-3 py-1 border border-ink/20 font-body text-caption uppercase tracking-widest text-ink/70 hover:border-ink/40 disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                ▶
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Tab block. The "food panel" has three tabs: Logged today,
+          Search, My foods. Each tab's content renders its own
+          bordered panel below the tab nav. Logged today is the
+          default — when the user opens the foods section they see
+          what they've already eaten before they start searching. */}
       <div className="flex items-center gap-1 border-b border-ink/10 mb-4">
+        <button
+          type="button"
+          onClick={() => setTab('logged')}
+          aria-pressed={tab === 'logged'}
+          className={`px-4 py-2 font-body text-caption uppercase tracking-widest border-b-2 transition-colors ${
+            tab === 'logged'
+              ? 'border-coral text-ink'
+              : 'border-transparent text-ink/50 hover:text-ink'
+          }`}
+        >
+          Logged today
+          {todayEntries.length > 0 && (
+            <span className="ml-2 text-ink/40 tabular-nums">
+              {todayEntries.length}
+            </span>
+          )}
+        </button>
         <button
           type="button"
           onClick={() => setTab('search')}
@@ -453,359 +841,291 @@ export default function FoodDatabase({ targets }: Props) {
         </button>
       </div>
 
-      {tab === 'search' ? (
+      {tab === 'logged' ? (
+        logLoaded && todayEntries.length > 0 ? (
+          /* Logged today. Each row: meal-slot picker, favourite,
+             log again, remove. Build-meal mode below shows
+             checkboxes + a save form so the user picks which
+             items go into the bundle (instead of all-of-today
+             which was too greedy). */
+          <div className="bg-paper border border-ink/15">
+            <div className="px-6 py-4 border-b border-ink/10 flex flex-wrap items-baseline justify-between gap-3">
+              <p className="font-body text-caption text-ink/40">
+                Tap the meal slot to re-categorize. Pick items below
+                to build a bundle.
+              </p>
+              <p className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums">
+                {todayEntries.length}{' '}
+                {todayEntries.length === 1 ? 'item' : 'items'}
+              </p>
+            </div>
+            <ul>
+              {todayEntries.map((e) => {
+                const cKcal = contribution(e, 'kcal');
+                const cProtein = contribution(e, 'protein');
+                const cCarbs = contribution(e, 'carbs');
+                const cFat = contribution(e, 'fat');
+                const showChips = !!targets;
+                const isPickedForBuild =
+                  buildMode && e.meal && pickedIds.has(e.id);
+                return (
+                  <li
+                    key={e.id}
+                    className={`px-4 sm:px-6 py-3 border-b border-ink/10 last:border-b-0 flex flex-wrap items-center sm:items-baseline justify-between gap-x-4 gap-y-2 ${
+                      isPickedForBuild ? 'bg-coral/5' : ''
+                    }`}
+                  >
+                    <div className="min-w-0 flex-1 basis-full sm:basis-auto">
+                      <p className="font-body text-sm text-ink break-words">
+                        {e.name}
+                      </p>
+                      <p className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums">
+                        {Math.round(e.grams)} g
+                        {e.meal ? ` · ${e.meal}` : ''}
+                      </p>
+                      {showChips && (
+                        <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1">
+                          {cKcal >= 5 && (
+                            <span
+                              className={`font-body text-caption uppercase tracking-widest tabular-nums ${
+                                isOverFor('kcal')
+                                  ? 'text-coral'
+                                  : 'text-ink/50'
+                              }`}
+                            >
+                              +{Math.round(cKcal)}% kcal
+                            </span>
+                          )}
+                          {cProtein >= 5 && (
+                            <span
+                              className={`font-body text-caption uppercase tracking-widest tabular-nums ${
+                                isOverFor('protein')
+                                  ? 'text-coral'
+                                  : 'text-ink/50'
+                              }`}
+                            >
+                              +{Math.round(cProtein)}% P
+                            </span>
+                          )}
+                          {cCarbs >= 5 && (
+                            <span
+                              className={`font-body text-caption uppercase tracking-widest tabular-nums ${
+                                isOverFor('carbs')
+                                  ? 'text-coral'
+                                  : 'text-ink/50'
+                              }`}
+                            >
+                              +{Math.round(cCarbs)}% C
+                            </span>
+                          )}
+                          {cFat >= 5 && (
+                            <span
+                              className={`font-body text-caption uppercase tracking-widest tabular-nums ${
+                                isOverFor('fat')
+                                  ? 'text-coral'
+                                  : 'text-ink/50'
+                              }`}
+                            >
+                              +{Math.round(cFat)}% F
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <select
+                        value={e.meal ?? ''}
+                        onChange={(ev) => {
+                          const v = ev.target.value;
+                          updateEntry(e.id, {
+                            meal: v === '' ? null : (v as Meal),
+                          });
+                        }}
+                        aria-label={`Meal slot for ${e.name}`}
+                        className="font-body text-caption uppercase tracking-widest px-2 py-1 bg-paper border border-ink/20 text-ink/70 focus:border-coral outline-none"
+                      >
+                        <option value="">—</option>
+                        {MEAL_OPTIONS.map((m) => (
+                          <option key={m.value} value={m.value}>
+                            {m.label}
+                          </option>
+                        ))}
+                      </select>
+                      {buildMode && (
+                        <label className="flex items-center gap-1 text-ink/60">
+                          <input
+                            type="checkbox"
+                            checked={pickedIds.has(e.id)}
+                            onChange={() => togglePick(e.id)}
+                            className="w-4 h-4"
+                          />
+                        </label>
+                      )}
+                      <button
+                        onClick={async () => {
+                          const f = await fetchFoodsByIds([
+                            e.food_id,
+                          ]).then((l) => l[0]);
+                          if (!f) return;
+                          setPicked(f);
+                          const remembered = portionFor(f.id);
+                          if (remembered != null)
+                            setPendingGrams(remembered);
+                        }}
+                        aria-label={`Log ${e.name} again`}
+                        title="Log again at the same portion"
+                        className="font-body text-caption uppercase tracking-widest text-ink/60 hover:text-coral px-2 py-1 transition-colors"
+                      >
+                        Log again
+                      </button>
+                      <button
+                        onClick={() => toggle(e.food_id)}
+                        aria-label={
+                          isFavorite(e.food_id)
+                            ? 'Unfavourite'
+                            : 'Favourite'
+                        }
+                        className={`min-w-[44px] min-h-[44px] flex items-center justify-center text-3xl leading-none transition-colors ${
+                          isFavorite(e.food_id)
+                            ? 'text-coral'
+                            : 'text-ink/30 hover:text-coral'
+                        }`}
+                      >
+                        {isFavorite(e.food_id) ? '★' : '☆'}
+                      </button>
+                      <button
+                        onClick={() => removeEntry(e.id)}
+                        aria-label="Remove"
+                        className="font-body text-caption uppercase text-ink/40 hover:text-coral px-2 py-1 transition-colors"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+
+            {todayEntries.length >= 2 && !buildMode && (
+              <div className="px-6 py-3 border-t border-ink/10 flex flex-wrap items-center justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    // Seed the meal slot from today's items: pick
+                    // the most common non-null meal so the bundle
+                    // starts with a sensible default. The user can
+                    // override it in the form before saving.
+                    const counts: Record<string, number> = {};
+                    for (const e of todayEntries) {
+                      if (e.meal) counts[e.meal] = (counts[e.meal] ?? 0) + 1;
+                    }
+                    const inferred =
+                      (Object.entries(counts).sort(
+                        (a, b) => b[1] - a[1]
+                      )[0]?.[0] as Meal | undefined) ?? '';
+                    setBuildMode(true);
+                    setPickedIds(new Set());
+                    setBuildName('');
+                    setBuildMeal(inferred);
+                    setBuildError(null);
+                  }}
+                  className="font-body text-caption uppercase tracking-widest text-coral hover:text-coral/85 transition-colors"
+                >
+                  + Build a meal bundle from today's items
+                </button>
+                {mealMatch && (
+                  <span className="font-body text-caption uppercase tracking-widest text-ink/40">
+                    Suggested: "{mealMatch.bundle.name}" · click "Log
+                    this meal" above
+                  </span>
+                )}
+              </div>
+            )}
+
+            {buildMode && (
+              <div className="px-6 py-3 border-t border-ink/10 space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <p className="font-body text-caption uppercase tracking-widest text-ink/50">
+                    Pick items with a meal slot
+                  </p>
+                  <span className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums">
+                    {pickedIds.size} selected
+                  </span>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <input
+                    autoFocus
+                    value={buildName}
+                    onChange={(e) => setBuildName(e.target.value)}
+                    placeholder="e.g. Breakfast"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleSaveBundle();
+                      if (e.key === 'Escape') clearBuild();
+                    }}
+                    className="flex-1 min-w-[180px] px-3 py-2 bg-paper border-2 border-ink/30 text-ink font-body focus:border-coral outline-none"
+                    aria-label="Bundle name"
+                  />
+                  <select
+                    value={buildMeal}
+                    onChange={(e) =>
+                      setBuildMeal((e.target.value || '') as Meal | '')
+                    }
+                    aria-label="Meal slot"
+                    className="px-3 py-2 bg-paper border-2 border-ink/30 text-ink font-body text-caption uppercase tracking-widest focus:border-coral outline-none"
+                  >
+                    <option value="">—</option>
+                    {MEAL_OPTIONS.map((m) => (
+                      <option key={m.value} value={m.value}>
+                        {m.label}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={handleSaveBundle}
+                    disabled={buildSaving}
+                    className="bg-ink text-paper font-body text-caption uppercase tracking-widest px-3 py-2 hover:bg-ink/85 transition-colors disabled:opacity-40"
+                  >
+                    {buildSaving ? 'Saving…' : 'Save bundle'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={clearBuild}
+                    className="font-body text-caption uppercase text-ink/60 hover:text-ink px-2 py-2 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+                {buildError && (
+                  <p className="font-body text-caption text-coral">
+                    {buildError}
+                  </p>
+                )}
+                <p className="font-body text-caption text-ink/40">
+                  Items without a meal slot are skipped automatically.
+                  Pick a meal slot above (or leave as — for a neutral
+                  tile) before saving.
+                </p>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="bg-paper border border-ink/15 px-6 py-8 text-center">
+            <p className="font-body text-caption uppercase tracking-widest text-ink/40">
+              Nothing logged today
+            </p>
+            <p className="font-body text-sm text-ink/60 mt-2">
+              Switch to Search or My foods to log your first meal.
+            </p>
+          </div>
+        )
+      ) : tab === 'search' ? (
         <FoodSearch
           favorites={favoriteIds}
           onPickFood={handlePickFood}
-          recentlyLoggedFoods={recentFoods}
         />
       ) : (
         <MyCustomFoodsPanel onPickFood={handlePickFood} />
-      )}
-
-      {/* Saved meal bundles. Each row is one tap to re-log the
-          whole combo at the saved portions. */}
-      {logLoaded && bundles.length > 0 && (
-        <div className="bg-paper border border-ink/15">
-          <div className="px-6 py-4 border-b border-ink/10 flex flex-wrap items-baseline justify-between gap-3">
-            <div>
-              <p className="font-body text-caption uppercase tracking-widest text-ink/50">
-                Saved meal bundles
-              </p>
-              <p className="font-body text-caption text-ink/40 mt-1">
-                One tap to log a combo. Edit / duplicate to adjust.
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <input
-                value={bundleQuery}
-                onChange={(e) => setBundleQuery(e.target.value)}
-                placeholder="Filter by name or food…"
-                aria-label="Filter meal bundles"
-                className="px-3 py-2 bg-paper border-2 border-ink/20 text-ink font-body focus:border-coral outline-none text-sm w-56"
-              />
-              <span className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums">
-                {visibleBundles.length}/{bundles.length}
-              </span>
-            </div>
-          </div>
-          <ul>
-            {visibleBundles.map((b) => {
-              const kcal = bundleKcal[b.id];
-              return (
-                <li
-                  key={b.id}
-                  className="px-4 sm:px-6 py-3 border-b border-ink/10 last:border-b-0 flex flex-wrap items-center sm:items-baseline justify-between gap-x-3 gap-y-2"
-                >
-                  <div className="min-w-0 flex-1 basis-full sm:basis-auto">
-                    <p className="font-body text-sm text-ink break-words">
-                      {b.name}
-                    </p>
-                    <p className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums">
-                      {b.items.length} {b.items.length === 1 ? 'item' : 'items'}
-                      {kcal != null ? ` · ${kcal} kcal` : ''}
-                      {' · logged '}{b.times_logged}×
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        const ids = b.items.map((it) => it.food_id);
-                        const list = await fetchFoodsByIds(ids);
-                        const byId = new Map(list.map((f) => [f.id, f] as const));
-                        for (const it of b.items) {
-                          const f = byId.get(it.food_id);
-                          if (!f) continue;
-                          const scaled = scaleFood(f, it.portion_grams);
-                          await addEntry({
-                            food_id: f.id,
-                            name: f.name,
-                            grams: it.portion_grams,
-                            kcal: scaled.kcal,
-                            protein: scaled.protein,
-                            carbs: scaled.carbs,
-                            fat: scaled.fat,
-                            fiber: scaled.fiber,
-                            meal: null,
-                          });
-                          rememberPortion(f.id, it.portion_grams);
-                        }
-                        touchBundle(b.id);
-                      }}
-                      className="bg-ink text-paper font-body text-caption uppercase tracking-widest px-3 py-2 hover:bg-ink/85 transition-colors"
-                    >
-                      Log this meal
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => startEditing(b)}
-                      className="font-body text-caption uppercase tracking-widest text-ink/60 hover:text-ink border border-ink/20 px-2 py-2 transition-colors"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => startDuplicating(b)}
-                      className="font-body text-caption uppercase tracking-widest text-ink/60 hover:text-ink border border-ink/20 px-2 py-2 transition-colors"
-                    >
-                      Duplicate
-                    </button>
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        if (!window.confirm(`Delete meal bundle "${b.name}"?`)) return;
-                        await deleteBundle(b.id);
-                      }}
-                      aria-label={`Delete meal bundle ${b.name}`}
-                      className="font-body text-caption uppercase text-ink/40 hover:text-coral px-2 py-2 transition-colors"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      )}
-
-      {/* Logged today. Each row: meal-slot picker, favorite, log
-          again, remove. Build-meal mode below shows checkboxes + a
-          save form so the user picks which items go into the bundle
-          (instead of all-of-today which was too greedy). */}
-      {logLoaded && todayEntries.length > 0 && (
-        <div className="bg-paper border border-ink/15">
-          <div className="px-6 py-4 border-b border-ink/10 flex flex-wrap items-baseline justify-between gap-3">
-            <div>
-              <p className="font-body text-caption uppercase tracking-widest text-ink/50">
-                Logged today
-              </p>
-              <p className="font-body text-caption text-ink/40 mt-1">
-                Tap the meal slot to re-categorize. Pick items below to
-                build a bundle.
-              </p>
-            </div>
-            <p className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums">
-              {todayEntries.length} {todayEntries.length === 1 ? 'item' : 'items'}
-            </p>
-          </div>
-          <ul>
-            {todayEntries.map((e) => {
-              const cKcal = contribution(e, 'kcal');
-              const cProtein = contribution(e, 'protein');
-              const cCarbs = contribution(e, 'carbs');
-              const cFat = contribution(e, 'fat');
-              const showChips = !!targets;
-              const isPickedForBuild = buildMode && e.meal && pickedIds.has(e.id);
-              return (
-                <li
-                  key={e.id}
-                  className={`px-4 sm:px-6 py-3 border-b border-ink/10 last:border-b-0 flex flex-wrap items-center sm:items-baseline justify-between gap-x-4 gap-y-2 ${
-                    isPickedForBuild ? 'bg-coral/5' : ''
-                  }`}
-                >
-                  <div className="min-w-0 flex-1 basis-full sm:basis-auto">
-                    <p className="font-body text-sm text-ink break-words">
-                      {e.name}
-                    </p>
-                    <p className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums">
-                      {Math.round(e.grams)} g
-                      {e.meal ? ` · ${e.meal}` : ''}
-                    </p>
-                    {showChips && (
-                      <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1">
-                        {cKcal >= 5 && (
-                          <span
-                            className={`font-body text-caption uppercase tracking-widest tabular-nums ${
-                              isOverFor('kcal') ? 'text-coral' : 'text-ink/50'
-                            }`}
-                          >
-                            +{Math.round(cKcal)}% kcal
-                          </span>
-                        )}
-                        {cProtein >= 5 && (
-                          <span
-                            className={`font-body text-caption uppercase tracking-widest tabular-nums ${
-                              isOverFor('protein') ? 'text-coral' : 'text-ink/50'
-                            }`}
-                          >
-                            +{Math.round(cProtein)}% P
-                          </span>
-                        )}
-                        {cCarbs >= 5 && (
-                          <span
-                            className={`font-body text-caption uppercase tracking-widest tabular-nums ${
-                              isOverFor('carbs') ? 'text-coral' : 'text-ink/50'
-                            }`}
-                          >
-                            +{Math.round(cCarbs)}% C
-                          </span>
-                        )}
-                        {cFat >= 5 && (
-                          <span
-                            className={`font-body text-caption uppercase tracking-widest tabular-nums ${
-                              isOverFor('fat') ? 'text-coral' : 'text-ink/50'
-                            }`}
-                          >
-                            +{Math.round(cFat)}% F
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    {/* Per-row meal-slot picker. Lets the user re-categorize
-                        an entry that was logged without a slot. Click
-                        cycles: none → breakfast → lunch → dinner → snack → none. */}
-                    <select
-                      value={e.meal ?? ''}
-                      onChange={(ev) => {
-                        const v = ev.target.value;
-                        updateEntry(e.id, {
-                          meal: v === '' ? null : (v as Meal),
-                        });
-                      }}
-                      aria-label={`Meal slot for ${e.name}`}
-                      className="font-body text-caption uppercase tracking-widest px-2 py-1 bg-paper border border-ink/20 text-ink/70 focus:border-coral outline-none"
-                    >
-                      <option value="">—</option>
-                      {MEAL_OPTIONS.map((m) => (
-                        <option key={m.value} value={m.value}>
-                          {m.label}
-                        </option>
-                      ))}
-                    </select>
-                    {/* "Include in bundle" checkbox (only visible while
-                        buildMode is on). Bundles only accept items that
-                        have a meal slot, so a row with no slot is
-                        still picked but the save will skip it. */}
-                    {buildMode && (
-                      <label className="flex items-center gap-1 text-ink/60">
-                        <input
-                          type="checkbox"
-                          checked={pickedIds.has(e.id)}
-                          onChange={() => togglePick(e.id)}
-                          className="w-4 h-4"
-                        />
-                      </label>
-                    )}
-                    <button
-                      onClick={async () => {
-                        const f = await fetchFoodsByIds([e.food_id]).then(
-                          (l) => l[0]
-                        );
-                        if (!f) return;
-                        setPicked(f);
-                        const remembered = portionFor(f.id);
-                        if (remembered != null) setPendingGrams(remembered);
-                      }}
-                      aria-label={`Log ${e.name} again`}
-                      title="Log again at the same portion"
-                      className="font-body text-caption uppercase tracking-widest text-ink/60 hover:text-coral px-2 py-1 transition-colors"
-                    >
-                      Log again
-                    </button>
-                    <button
-                      onClick={() => toggle(e.food_id)}
-                      aria-label={isFavorite(e.food_id) ? 'Unfavourite' : 'Favourite'}
-                      className={`min-w-[44px] min-h-[44px] flex items-center justify-center text-3xl leading-none transition-colors ${
-                        isFavorite(e.food_id)
-                          ? 'text-coral'
-                          : 'text-ink/30 hover:text-coral'
-                      }`}
-                    >
-                      {isFavorite(e.food_id) ? '★' : '☆'}
-                    </button>
-                    <button
-                      onClick={() => removeEntry(e.id)}
-                      aria-label="Remove"
-                      className="font-body text-caption uppercase text-ink/40 hover:text-coral px-2 py-1 transition-colors"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-
-          {/* Build-meal CTA + form. Appears once the user has at
-              least 2 items today. In build mode the form sits below
-              the list and exposes the selected count + name input. */}
-          {todayEntries.length >= 2 && !buildMode && (
-            <div className="px-6 py-3 border-t border-ink/10 flex flex-wrap items-center justify-between gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setBuildMode(true);
-                  setPickedIds(new Set());
-                  setBuildName('');
-                  setBuildError(null);
-                }}
-                className="font-body text-caption uppercase tracking-widest text-coral hover:text-coral/85 transition-colors"
-              >
-                + Build a meal bundle from today's items
-              </button>
-              {mealMatch && (
-                <span className="font-body text-caption uppercase tracking-widest text-ink/40">
-                  Suggested: "{mealMatch.bundle.name}" · click "Log this
-                  meal" above
-                </span>
-              )}
-            </div>
-          )}
-
-          {buildMode && (
-            <div className="px-6 py-3 border-t border-ink/10 space-y-3">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <p className="font-body text-caption uppercase tracking-widest text-ink/50">
-                  Pick items with a meal slot
-                </p>
-                <span className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums">
-                  {pickedIds.size} selected
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <input
-                  autoFocus
-                  value={buildName}
-                  onChange={(e) => setBuildName(e.target.value)}
-                  placeholder="e.g. Breakfast"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleSaveBundle();
-                    if (e.key === 'Escape') clearBuild();
-                  }}
-                  className="flex-1 px-3 py-2 bg-paper border-2 border-ink/30 text-ink font-body focus:border-coral outline-none"
-                  aria-label="Bundle name"
-                />
-                <button
-                  type="button"
-                  onClick={handleSaveBundle}
-                  disabled={buildSaving}
-                  className="bg-ink text-paper font-body text-caption uppercase tracking-widest px-3 py-2 hover:bg-ink/85 transition-colors disabled:opacity-40"
-                >
-                  {buildSaving ? 'Saving…' : 'Save bundle'}
-                </button>
-                <button
-                  type="button"
-                  onClick={clearBuild}
-                  className="font-body text-caption uppercase text-ink/60 hover:text-ink px-2 py-2 transition-colors"
-                >
-                  Cancel
-                </button>
-              </div>
-              {buildError && (
-                <p className="font-body text-caption text-coral">{buildError}</p>
-              )}
-              <p className="font-body text-caption text-ink/40">
-                Items without a meal slot are skipped automatically —
-                pick breakfast / lunch / dinner / snack on the rows
-                you want included.
-              </p>
-            </div>
-          )}
-        </div>
       )}
 
       {/* Bundle editor / duplicator. Opened by Edit or Duplicate
@@ -826,13 +1146,28 @@ export default function FoodDatabase({ targets }: Props) {
             </p>
           </div>
           <div className="px-6 py-4 space-y-3">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <input
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
                 aria-label="Bundle name"
-                className="flex-1 px-3 py-2 bg-paper border-2 border-ink/30 text-ink font-body focus:border-coral outline-none"
+                className="flex-1 min-w-[180px] px-3 py-2 bg-paper border-2 border-ink/30 text-ink font-body focus:border-coral outline-none"
               />
+              <select
+                value={editMeal}
+                onChange={(e) =>
+                  setEditMeal((e.target.value || '') as Meal | '')
+                }
+                aria-label="Meal slot"
+                className="px-3 py-2 bg-paper border-2 border-ink/30 text-ink font-body text-caption uppercase tracking-widest focus:border-coral outline-none"
+              >
+                <option value="">—</option>
+                {MEAL_OPTIONS.map((m) => (
+                  <option key={m.value} value={m.value}>
+                    {m.label}
+                  </option>
+                ))}
+              </select>
               <button
                 type="button"
                 onClick={saveEdit}

@@ -12,12 +12,6 @@ import {
   useDebounced,
   RankedFood,
 } from './search';
-import { useStaples } from '@/hooks/useStaples';
-import {
-  useLocalFoods,
-  filterLocalFoods,
-  mergeFoodResults,
-} from '@/hooks/useLocalFoods';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCustomFoods } from '@/hooks/useCustomFoods';
 import AddCustomFoodModal from './AddCustomFoodModal';
@@ -25,14 +19,13 @@ import AddCustomFoodModal from './AddCustomFoodModal';
 interface Props {
   favorites: Set<string>;
   onPickFood: (food: Food) => void;
-  recentlyLoggedFoods: Food[];
 }
 
 const PAGE_SIZE = 30;
 const REGION_KEY = 'fit50-food-region';
 const BRANDED_KEY = 'fit50-food-show-branded';
 
-export default function FoodSearch({ favorites, onPickFood, recentlyLoggedFoods }: Props) {
+export default function FoodSearch({ favorites, onPickFood }: Props) {
   const { user } = useAuth();
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('all');
@@ -55,7 +48,6 @@ export default function FoodSearch({ favorites, onPickFood, recentlyLoggedFoods 
     if (typeof window === 'undefined') return false;
     return window.localStorage.getItem(BRANDED_KEY) === '1';
   });
-  const { staples, loaded: staplesLoaded } = useStaples(region);
   // Tracks which alias variants the last server query expanded to.
   // When non-empty, the UI shows "Also searched: yoghurt, yogourt"
   // under the input so the user understands why the results differ
@@ -365,63 +357,6 @@ function applyFavouritesSort(foods: Food[], favourites: Set<string>): Food[] {
 
       {!open ? null : (
         <>
-          {/* Common foods (curated staples). Always shows at the
-              top before any query so the user has instant hits.
-              Filtered by the selected region via the foods_staples
-              table's `regions` column. */}
-          {staplesLoaded && staples.length > 0 && (
-            <div className="px-6 py-4 border-b border-ink/10">
-              <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-2">
-                Common foods
-              </p>
-              <div className="flex gap-2 overflow-x-auto">
-                {staples.map((s) => (
-                  <button
-                    key={s.id}
-                    onClick={() =>
-                      onPickFood({
-                        id: s.id,
-                        name: s.name,
-                        category: s.category,
-                        type: 'ingredient',
-                        kcal: s.kcal,
-                        protein: s.protein,
-                        carbs: s.carbs,
-                        fat: s.fat,
-                        fiber: s.fiber,
-                        servingBasis: s.servingBasis,
-                        standardServingLabel: s.standardServingLabel,
-                        aliases: s.aliases,
-                      })
-                    }
-                    className="shrink-0 px-3 py-2 border border-ink/20 hover:border-coral hover:bg-coral/5 font-body text-caption uppercase tracking-widest text-ink/70 whitespace-nowrap"
-                  >
-                    {s.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {recentlyLoggedFoods.length > 0 && query === '' && (
-            <div className="px-6 py-4 border-b border-ink/10">
-              <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-2">
-                Recently logged
-              </p>
-              <div className="flex gap-2 overflow-x-auto">
-                {recentlyLoggedFoods.map((f) => (
-                  <button
-                    key={f.id}
-                    onClick={() => onPickFood(f)}
-                    className="shrink-0 px-3 py-2 border border-ink/20 hover:border-coral hover:bg-coral/5 font-body text-caption uppercase tracking-widest text-ink/70 whitespace-nowrap"
-                  >
-                    {f.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
           <div>
             <div className="px-6 py-2 border-b border-ink/10 flex items-baseline justify-between">
               <p className="font-body text-caption uppercase tracking-widest text-ink/40">
@@ -478,12 +413,14 @@ function applyFavouritesSort(foods: Food[], favourites: Set<string>): Food[] {
                               {std.label}
                             </span>
                           </span>
-                          <span className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums shrink-0">
+                          <span className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums shrink-0 flex flex-wrap items-baseline justify-end gap-x-2 max-w-full">
                             {i === 0 && finalResults.length > 1 && f.score > 0 ? (
-                              <span className="text-coral mr-2">Top match</span>
+                              <span className="text-coral">Top match</span>
                             ) : null}
-                            {stdKcal} kcal · {stdProtein}g P
-                            {favorites.has(f.id) ? ' · ★' : ''}
+                            <span>
+                              {stdKcal} kcal · {stdProtein}g P
+                              {favorites.has(f.id) ? ' · ★' : ''}
+                            </span>
                           </span>
                         </button>
                       </li>
