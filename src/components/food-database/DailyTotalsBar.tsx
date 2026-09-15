@@ -19,8 +19,8 @@ const FAT_KCAL_PER_G = 9;
 // filled pie + donut hole) so the thickness is a single tunable
 // constant. Inner radius is large enough to host the kcal number
 // without the stroke clipping it.
-const PIE_RADIUS = 110;
-const PIE_STROKE = 22;
+const PIE_RADIUS = 130;
+const PIE_STROKE = 26;
 const PIE_PADDING = 10;
 const PIE_OUTER = PIE_RADIUS + PIE_STROKE / 2;
 const PIE_SIZE = (PIE_OUTER + PIE_PADDING) * 2;
@@ -140,8 +140,8 @@ function BarView({
           (Math.min(value / target, FILL_CAP) / TRACK_MAX) * 100;
 
         return (
-          <div key={key} className="relative pb-6">
-            <div className="flex items-baseline justify-between mb-1">
+          <div key={key} className="relative pb-6 pt-5">
+            <div className="flex items-baseline justify-between mb-2">
               <span className="font-body text-caption uppercase tracking-widest text-ink/70">
                 {label}
               </span>
@@ -156,84 +156,115 @@ function BarView({
                 </span>
               </span>
             </div>
-            {/* Track ends at the right edge (105% of target). No
-                overflow-hidden so the fill can run past the edge
-                when value > 105% — past that there's no grey
-                background, just the fill running into empty paper. */}
-            <div
-              className="h-4 bg-ink/10 relative"
-              aria-label={`${label} ${fillPctLabel}% of target ${Math.round(target)} ${unit}`}
-            >
-              {/* Teal band: 95–100% of target. "Approaching target". */}
-              <div
-                className="absolute inset-y-0 bg-teal/15"
-                style={{
-                  left: `${tealStartPct}%`,
-                  width: `${tealEndPct - tealStartPct}%`,
-                }}
-                aria-hidden
-              />
-              {/* Coral band: 100–105% of target. "Over budget". */}
-              <div
-                className="absolute inset-y-0 bg-coral/15"
-                style={{
-                  left: `${tealEndPct}%`,
-                  width: `${coralEndPct - tealEndPct}%`,
-                }}
-                aria-hidden
-              />
-              {/* Fill: solid teal under 100% of target, solid coral
-                  once over. Allowed to overflow the right edge
-                  up to FILL_CAP (110% of target). The % label
-                  below keeps climbing past the cap. */}
-              <div
-                className="absolute inset-y-0 left-0"
-                style={{ width: `${fillBarPct}%` }}
-              >
-                <div
-                  className={`h-full transition-all duration-300 ${
-                    status === 'over' ? 'bg-coral' : 'bg-teal'
-                  }`}
-                />
-              </div>
-              {/* Tick marks at 95 / 100 / 105 (inside the track) and
-                  a dashed tick at 110 (overflow position) marking
-                  where the fill visually caps. */}
-              <div
-                className="absolute inset-y-0 w-px bg-ink/30"
+            {/* Bar wrapper: contains the labels above the tick
+                marks, the bar track itself, and the fill-% label
+                below. pt-5 on the parent gives the labels above
+                room without colliding with the header. */}
+            <div className="relative">
+              {/* Tick labels above the bar. Pinned to the same
+                  percentages as the tick marks underneath so the
+                  95 / 100 / 105 numbers visually anchor to the
+                  thresholds. */}
+              <span
+                className="absolute top-0 -translate-x-1/2 -translate-y-full font-body text-[10px] uppercase tracking-widest text-ink/40 whitespace-nowrap"
                 style={{ left: `${tealStartPct}%` }}
                 aria-hidden
-              />
-              <div
-                className="absolute inset-y-0 w-0.5 bg-ink"
+              >
+                95%
+              </span>
+              <span
+                className="absolute top-0 -translate-x-1/2 -translate-y-full font-body text-[10px] uppercase tracking-widest text-ink font-semibold whitespace-nowrap"
                 style={{ left: `${targetLinePct}%` }}
                 aria-hidden
-              />
-              <div
-                className="absolute inset-y-0 w-px bg-ink/30"
+              >
+                100%
+              </span>
+              <span
+                className="absolute top-0 -translate-x-1/2 -translate-y-full font-body text-[10px] uppercase tracking-widest text-coral whitespace-nowrap"
                 style={{ left: `${coralEndPct}%` }}
                 aria-hidden
-              />
+              >
+                105%
+              </span>
+              {/* Track ends at the right edge (105% of target). No
+                  overflow-hidden so the fill can run past the edge
+                  when value > 105% — past that there's no grey
+                  background, just the fill running into empty paper. */}
               <div
-                className="absolute inset-y-0 w-px border-l border-dashed border-ink/40"
-                style={{ left: `${fillCapPct}%` }}
-                aria-hidden
-              />
-              {/* Fill percentage pinned to the leading edge of the
-                  fill. Scales with the bar via percentage
-                  positioning; can extend past the right edge when
-                  value > 105%. */}
-              {ratio > 0 && (
-                <span
-                  className={`absolute -bottom-5 -translate-x-1/2 font-body text-caption tabular-nums font-semibold whitespace-nowrap ${
-                    status === 'over' ? 'text-coral' : 'text-ink/60'
-                  }`}
-                  style={{ left: `${fillBarPct}%` }}
+                className="h-4 bg-ink/10 relative"
+                aria-label={`${label} ${fillPctLabel}% of target ${Math.round(target)} ${unit}`}
+              >
+                {/* Teal band: 95–100% of target. "Approaching target". */}
+                <div
+                  className="absolute inset-y-0 bg-teal/30"
+                  style={{
+                    left: `${tealStartPct}%`,
+                    width: `${tealEndPct - tealStartPct}%`,
+                  }}
                   aria-hidden
+                />
+                {/* Coral band: 100–105% of target. "Over budget". */}
+                <div
+                  className="absolute inset-y-0 bg-coral/30"
+                  style={{
+                    left: `${tealEndPct}%`,
+                    width: `${coralEndPct - tealEndPct}%`,
+                  }}
+                  aria-hidden
+                />
+                {/* Fill: solid teal under 100% of target, solid coral
+                    once over. Allowed to overflow the right edge
+                    up to FILL_CAP (110% of target). The % label
+                    below keeps climbing past the cap. */}
+                <div
+                  className="absolute inset-y-0 left-0"
+                  style={{ width: `${fillBarPct}%` }}
                 >
-                  {fillPctLabel}%
-                </span>
-              )}
+                  <div
+                    className={`h-full transition-all duration-300 ${
+                      status === 'over' ? 'bg-coral' : 'bg-teal'
+                    }`}
+                  />
+                </div>
+                {/* Tick marks at 95 / 100 / 105 (inside the track) and
+                    a dashed tick at 110 (overflow position) marking
+                    where the fill visually caps. */}
+                <div
+                  className="absolute inset-y-0 w-px bg-ink/30"
+                  style={{ left: `${tealStartPct}%` }}
+                  aria-hidden
+                />
+                <div
+                  className="absolute inset-y-0 w-0.5 bg-ink"
+                  style={{ left: `${targetLinePct}%` }}
+                  aria-hidden
+                />
+                <div
+                  className="absolute inset-y-0 w-px bg-ink/30"
+                  style={{ left: `${coralEndPct}%` }}
+                  aria-hidden
+                />
+                <div
+                  className="absolute inset-y-0 w-px border-l border-dashed border-ink/40"
+                  style={{ left: `${fillCapPct}%` }}
+                  aria-hidden
+                />
+                {/* Fill percentage pinned to the leading edge of the
+                    fill. Scales with the bar via percentage
+                    positioning; can extend past the right edge when
+                    value > 105%. */}
+                {ratio > 0 && (
+                  <span
+                    className={`absolute -bottom-5 -translate-x-1/2 font-body text-caption tabular-nums font-semibold whitespace-nowrap ${
+                      status === 'over' ? 'text-coral' : 'text-ink/60'
+                    }`}
+                    style={{ left: `${fillBarPct}%` }}
+                    aria-hidden
+                  >
+                    {fillPctLabel}%
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         );
@@ -381,10 +412,10 @@ function PieView({
               The target value only shows when targets are configured. */}
           <text
             x={containerCenter}
-            y={containerCenter - 6}
+            y={containerCenter - 8}
             textAnchor="middle"
             fontFamily="Georgia, serif"
-            fontSize="36"
+            fontSize="42"
             fontWeight="400"
             fill="#1A1A1A"
           >
@@ -392,10 +423,10 @@ function PieView({
           </text>
           <text
             x={containerCenter}
-            y={containerCenter + 18}
+            y={containerCenter + 22}
             textAnchor="middle"
             fontFamily="ui-sans-serif, system-ui, sans-serif"
-            fontSize="11"
+            fontSize="13"
             letterSpacing="0.16em"
             fill="#1A1A1A"
             fillOpacity="0.55"
@@ -429,23 +460,23 @@ function PieView({
               className="absolute -translate-x-1/2 -translate-y-1/2 text-center"
               style={{ left: `${xPct}%`, top: `${yPct}%` }}
             >
-              <p className="font-body text-[9px] sm:text-[10px] uppercase tracking-widest text-ink/60 leading-tight">
+              <p className="font-body text-[10px] sm:text-[11px] uppercase tracking-widest text-ink/60 leading-tight">
                 {s.label}
               </p>
-              <p className="font-display text-xs sm:text-sm tabular-nums leading-tight">
+              <p className="font-display text-sm sm:text-base tabular-nums leading-tight">
                 {Math.round(s.gramValue)}
                 {s.target > 0 && (
                   <span className="text-ink/40 ml-0.5">
                     / {Math.round(s.target)}
                   </span>
                 )}
-                <span className="text-ink/40 text-[9px] sm:text-[10px] uppercase tracking-widest ml-0.5">
+                <span className="text-ink/40 text-[10px] sm:text-[11px] uppercase tracking-widest ml-0.5">
                   g
                 </span>
               </p>
               {pct != null && (
                 <p
-                  className={`font-body text-[9px] sm:text-[10px] tabular-nums mt-0.5 ${
+                  className={`font-body text-[10px] sm:text-[11px] tabular-nums mt-0.5 ${
                     over ? 'text-coral' : 'text-ink/60'
                   }`}
                 >
