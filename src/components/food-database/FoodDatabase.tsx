@@ -25,22 +25,41 @@ interface Props {
 const BUNDLE_TILES_PER_PAGE = 12;
 
 // A single tile in the saved-meal-bundles grid. Square aspect, brand
-// consistent (paper background, ink border). A 6px palette-color
-// stripe runs across the top so the grid has rhythm — the body stays
-// paper. Top = name, middle = nutrition summary (kcal / items),
-// bottom row = drag handle (⠿), edit (✎), duplicate (⎘), delete (✕).
-// Tap on the tile body logs the bundle; the drag handle reorders.
-const TILE_ACCENT: Record<0 | 1 | 2 | 3, string> = {
-  0: 'bg-teal',
-  1: 'bg-cream',
-  2: 'bg-lavender',
-  3: 'bg-coral',
+// consistent (paper background, ink border). The tile wears the
+// colour of its meal slot — cream for breakfast, coral for lunch,
+// lavender for dinner, teal for snack — via a 6px stripe across
+// the top and a subtle tint of the same colour in the body. Top =
+// name + meal caption, middle = nutrition summary (kcal / items),
+// bottom row = drag handle (⠿), edit (✎), duplicate (⎘), delete
+// (✕). Tap on the tile body logs the bundle; the drag handle
+// reorders.
+type MealKey = 'breakfast' | 'lunch' | 'dinner' | 'snack';
+const TILE_STYLE: Record<
+  MealKey,
+  { stripe: string; tint: string; label: string }
+> = {
+  breakfast: { stripe: 'bg-cream', tint: 'bg-cream/40', label: 'Breakfast' },
+  lunch: { stripe: 'bg-coral', tint: 'bg-coral/15', label: 'Lunch' },
+  dinner: { stripe: 'bg-lavender', tint: 'bg-lavender/40', label: 'Dinner' },
+  snack: { stripe: 'bg-teal', tint: 'bg-teal/15', label: 'Snack' },
 };
+const NEUTRAL_TINT = 'bg-paper';
+const NEUTRAL_STRIPE = 'bg-ink/20';
+
+function getTileStyle(meal: string | null): {
+  stripe: string;
+  tint: string;
+  label: string | null;
+} {
+  if (meal && meal in TILE_STYLE) {
+    return { ...TILE_STYLE[meal as MealKey], label: TILE_STYLE[meal as MealKey].label };
+  }
+  return { stripe: NEUTRAL_STRIPE, tint: NEUTRAL_TINT, label: null };
+}
 
 function BundleTile({
   bundle,
   kcal,
-  accent,
   isDragging,
   isDropTarget,
   onLog,
@@ -55,7 +74,6 @@ function BundleTile({
 }: {
   bundle: MealBundle;
   kcal: number | null;
-  accent: 0 | 1 | 2 | 3;
   isDragging: boolean;
   isDropTarget: boolean;
   onLog: () => void;
@@ -69,6 +87,7 @@ function BundleTile({
   onDragEnd: () => void;
 }) {
   const [logging, setLogging] = useState(false);
+  const { stripe, tint, label: mealLabel } = getTileStyle(bundle.meal);
   return (
     <div
       draggable
@@ -77,7 +96,7 @@ function BundleTile({
       onDragLeave={onDragLeave}
       onDrop={onDrop}
       onDragEnd={onDragEnd}
-      className={`aspect-square border bg-paper transition-colors flex flex-col cursor-grab active:cursor-grabbing ${
+      className={`aspect-square border ${tint} transition-colors flex flex-col cursor-grab active:cursor-grabbing ${
         isDragging
           ? 'opacity-40 border-dashed border-ink/40'
           : isDropTarget
@@ -85,7 +104,7 @@ function BundleTile({
             : 'border-ink/15 hover:border-coral'
       }`}
     >
-      <div className={`h-1.5 shrink-0 ${TILE_ACCENT[accent]}`} aria-hidden />
+      <div className={`h-1.5 shrink-0 ${stripe}`} aria-hidden />
       <button
         type="button"
         onClick={async () => {
@@ -104,6 +123,11 @@ function BundleTile({
         <p className="font-body text-sm text-ink leading-tight line-clamp-2">
           {bundle.name}
         </p>
+        {mealLabel && (
+          <p className="font-body text-[10px] uppercase tracking-widest text-ink/50 leading-tight">
+            {mealLabel}
+          </p>
+        )}
         <p className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums">
           {bundle.items.length}{' '}
           {bundle.items.length === 1 ? 'item' : 'items'}
@@ -200,19 +224,29 @@ export default function FoodDatabase({ targets }: Props) {
   const [buildMode, setBuildMode] = useState(false);
   const [pickedIds, setPickedIds] = useState<Set<string>>(new Set());
   const [buildName, setBuildName] = useState('');
+  // Inferred at the moment build mode opens (the most common meal
+  // among today's logged items with a slot). The user can override
+  // it before saving; '' means "no meal slot" (the tile renders
+  // with the neutral accent).
+  const [buildMeal, setBuildMeal] = useState<Meal | ''>('');
   const [buildSaving, setBuildSaving] = useState(false);
   const [buildError, setBuildError] = useState<string | null>(null);
 
-  // Bundle editor. Lets the user rename + re-pick items on an
-  // existing bundle. Opened by "Edit" or "Duplicate" on a row.
+  // Bundle editor. Lets the user rename + re-pick items + change
+  // the meal slot on an existing bundle. Opened by "Edit" or
+  // "Duplicate" on a tile.
   const [editing, setEditing] = useState<{
     id: string;
     name: string;
+    meal: Meal | null;
     isDuplicate: boolean;
     originalName: string;
   } | null>(null);
   const [editItems, setEditItems] = useState<{ food_id: string; portion_grams: number }[]>([]);
   const [editName, setEditName] = useState('');
+  // '' = leave the meal slot unset; otherwise one of the four
+  // meal keys.
+  const [editMeal, setEditMeal] = useState<Meal | ''>('');
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
 
@@ -346,6 +380,7 @@ export default function FoodDatabase({ targets }: Props) {
     setBuildMode(false);
     setPickedIds(new Set());
     setBuildName('');
+    setBuildMeal('');
     setBuildError(null);
   };
   const handleSaveBundle = async () => {
@@ -354,19 +389,26 @@ export default function FoodDatabase({ targets }: Props) {
       setBuildError('Give the meal a name.');
       return;
     }
-    const items = todayEntries
+    const pickedEntries = todayEntries
       .filter((e) => pickedIds.has(e.id))
-      .filter((e) => e.meal) // must be assigned a meal slot
-      .map((e) => ({ food_id: e.food_id, portion_grams: e.grams }));
+      .filter((e) => e.meal); // must be assigned a meal slot
+    const items = pickedEntries.map((e) => ({
+      food_id: e.food_id,
+      portion_grams: e.grams,
+    }));
     if (items.length < 2) {
       setBuildError(
         'Pick at least two items, each with a meal slot (breakfast / lunch / dinner / snack).'
       );
       return;
     }
+    // The user can override the meal slot in the form before
+    // saving. Empty string means "no meal type set" — the tile
+    // renders with the neutral accent.
+    const mealValue = buildMeal === '' ? null : buildMeal;
     setBuildSaving(true);
     setBuildError(null);
-    const id = await createBundle(buildName, items);
+    const id = await createBundle(buildName, items, mealValue);
     setBuildSaving(false);
     if (!id) {
       setBuildError('Could not save the bundle. Try again.');
@@ -377,26 +419,32 @@ export default function FoodDatabase({ targets }: Props) {
 
   // Bundle editor helpers.
   const startEditing = (b: MealBundle) => {
+    const meal = (b.meal as Meal | null) ?? null;
     setEditing({
       id: b.id,
       name: b.name,
+      meal,
       isDuplicate: false,
       originalName: b.name,
     });
     setEditName(b.name);
+    setEditMeal(meal ?? '');
     setEditItems(
       b.items.map((it) => ({ food_id: it.food_id, portion_grams: it.portion_grams }))
     );
     setEditError(null);
   };
   const startDuplicating = (b: MealBundle) => {
+    const meal = (b.meal as Meal | null) ?? null;
     setEditing({
       id: b.id,
       name: `Copy of ${b.name}`,
+      meal,
       isDuplicate: true,
       originalName: b.name,
     });
     setEditName(`Copy of ${b.name}`);
+    setEditMeal(meal ?? '');
     setEditItems(
       b.items.map((it) => ({ food_id: it.food_id, portion_grams: it.portion_grams }))
     );
@@ -406,6 +454,7 @@ export default function FoodDatabase({ targets }: Props) {
     setEditing(null);
     setEditItems([]);
     setEditName('');
+    setEditMeal('');
     setEditError(null);
   };
   const toggleEditItem = (food_id: string) => {
@@ -437,9 +486,12 @@ export default function FoodDatabase({ targets }: Props) {
     }
     setEditSaving(true);
     setEditError(null);
+    // Normalise the meal slot — '' becomes null (no meal type).
+    const mealValue = editMeal === '' ? null : editMeal;
     if (editing.isDuplicate) {
-      // Duplicate: create a fresh bundle under the new name.
-      const newId = await createBundle(editName, editItems);
+      // Duplicate: create a fresh bundle under the new name with
+      // the (possibly edited) meal slot.
+      const newId = await createBundle(editName, editItems, mealValue);
       setEditSaving(false);
       if (!newId) {
         setEditError('Could not save the new bundle. Try again.');
@@ -448,8 +500,14 @@ export default function FoodDatabase({ targets }: Props) {
       cancelEdit();
       return;
     }
-    // Edit: update in place.
-    const res = await updateBundle(editing.id, editName, editItems);
+    // Edit: update in place. The meal slot always gets pushed so
+    // the editor can clear it back to null with the "—" option.
+    const res = await updateBundle(
+      editing.id,
+      editName,
+      editItems,
+      mealValue
+    );
     setEditSaving(false);
     if (!res.ok) {
       setEditError(res.error || 'Could not save. Try again.');
@@ -652,7 +710,6 @@ export default function FoodDatabase({ targets }: Props) {
                   key={b.id}
                   bundle={b}
                   kcal={kcal ?? null}
-                  accent={(b.position % 4) as 0 | 1 | 2 | 3}
                   isDragging={draggingId === b.id}
                   isDropTarget={dropTargetId === b.id}
                   onLog={async () => {
@@ -954,9 +1011,22 @@ export default function FoodDatabase({ targets }: Props) {
                 <button
                   type="button"
                   onClick={() => {
+                    // Seed the meal slot from today's items: pick
+                    // the most common non-null meal so the bundle
+                    // starts with a sensible default. The user can
+                    // override it in the form before saving.
+                    const counts: Record<string, number> = {};
+                    for (const e of todayEntries) {
+                      if (e.meal) counts[e.meal] = (counts[e.meal] ?? 0) + 1;
+                    }
+                    const inferred =
+                      (Object.entries(counts).sort(
+                        (a, b) => b[1] - a[1]
+                      )[0]?.[0] as Meal | undefined) ?? '';
                     setBuildMode(true);
                     setPickedIds(new Set());
                     setBuildName('');
+                    setBuildMeal(inferred);
                     setBuildError(null);
                   }}
                   className="font-body text-caption uppercase tracking-widest text-coral hover:text-coral/85 transition-colors"
@@ -982,7 +1052,7 @@ export default function FoodDatabase({ targets }: Props) {
                     {pickedIds.size} selected
                   </span>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <input
                     autoFocus
                     value={buildName}
@@ -992,9 +1062,24 @@ export default function FoodDatabase({ targets }: Props) {
                       if (e.key === 'Enter') handleSaveBundle();
                       if (e.key === 'Escape') clearBuild();
                     }}
-                    className="flex-1 px-3 py-2 bg-paper border-2 border-ink/30 text-ink font-body focus:border-coral outline-none"
+                    className="flex-1 min-w-[180px] px-3 py-2 bg-paper border-2 border-ink/30 text-ink font-body focus:border-coral outline-none"
                     aria-label="Bundle name"
                   />
+                  <select
+                    value={buildMeal}
+                    onChange={(e) =>
+                      setBuildMeal((e.target.value || '') as Meal | '')
+                    }
+                    aria-label="Meal slot"
+                    className="px-3 py-2 bg-paper border-2 border-ink/30 text-ink font-body text-caption uppercase tracking-widest focus:border-coral outline-none"
+                  >
+                    <option value="">—</option>
+                    {MEAL_OPTIONS.map((m) => (
+                      <option key={m.value} value={m.value}>
+                        {m.label}
+                      </option>
+                    ))}
+                  </select>
                   <button
                     type="button"
                     onClick={handleSaveBundle}
@@ -1017,9 +1102,9 @@ export default function FoodDatabase({ targets }: Props) {
                   </p>
                 )}
                 <p className="font-body text-caption text-ink/40">
-                  Items without a meal slot are skipped automatically
-                  — pick breakfast / lunch / dinner / snack on the
-                  rows you want included.
+                  Items without a meal slot are skipped automatically.
+                  Pick a meal slot above (or leave as — for a neutral
+                  tile) before saving.
                 </p>
               </div>
             )}
@@ -1061,13 +1146,28 @@ export default function FoodDatabase({ targets }: Props) {
             </p>
           </div>
           <div className="px-6 py-4 space-y-3">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <input
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
                 aria-label="Bundle name"
-                className="flex-1 px-3 py-2 bg-paper border-2 border-ink/30 text-ink font-body focus:border-coral outline-none"
+                className="flex-1 min-w-[180px] px-3 py-2 bg-paper border-2 border-ink/30 text-ink font-body focus:border-coral outline-none"
               />
+              <select
+                value={editMeal}
+                onChange={(e) =>
+                  setEditMeal((e.target.value || '') as Meal | '')
+                }
+                aria-label="Meal slot"
+                className="px-3 py-2 bg-paper border-2 border-ink/30 text-ink font-body text-caption uppercase tracking-widest focus:border-coral outline-none"
+              >
+                <option value="">—</option>
+                {MEAL_OPTIONS.map((m) => (
+                  <option key={m.value} value={m.value}>
+                    {m.label}
+                  </option>
+                ))}
+              </select>
               <button
                 type="button"
                 onClick={saveEdit}
