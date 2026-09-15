@@ -994,6 +994,16 @@ export default function AccountWorkouts() {
     });
   };
 
+  // Quick-add: tap the count in the "Done today" panel to cycle
+  // the exercise's sets by one. Mirrors the row ticks — 0 → 1 → … →
+  // 5 → 0. Routes to the right dict (line sets or random-session
+  // ticks) based on which pool the exercise lives in.
+  const cycleTodayProgress = (name: string) => {
+    const inRandom = randomSession.some((ex) => ex.name === name);
+    if (inRandom) cycleRandomSet(name);
+    else cycleSet(name);
+  };
+
   // Combined "done today" view: line ticks + random session
   // ticks. Used by the today's progress panel at the top of the
   // section. Sorted alphabetically by exercise name for stable
@@ -1149,13 +1159,23 @@ export default function AccountWorkouts() {
                     >
                       {name}
                     </span>
-                    <span
-                      className={`shrink-0 text-caption uppercase tracking-widest tabular-nums ${
-                        complete ? 'text-teal' : 'text-ink/40'
+                    {/* Tap the count to cycle sets — same UX as
+                        the per-row tick boxes. Mirrors into the
+                        line `sets` dict or the random-session
+                        tick dict based on which pool the
+                        exercise lives in. */}
+                    <button
+                      type="button"
+                      onClick={() => cycleTodayProgress(name)}
+                      aria-label={`${name}: ${count} of ${TOTAL_SETS} sets done — tap to add another set`}
+                      className={`shrink-0 px-2 py-0.5 border text-caption uppercase tracking-widest tabular-nums transition-colors ${
+                        complete
+                          ? 'border-teal text-teal bg-teal/10'
+                          : 'border-ink/20 text-ink/40 hover:border-ink/40 hover:text-ink/70'
                       }`}
                     >
                       {count}/{TOTAL_SETS}
-                    </span>
+                    </button>
                   </li>
                 );
               })}
@@ -1204,44 +1224,61 @@ export default function AccountWorkouts() {
                         : 'border-ink/15'
                     }`}
                   >
-                    <div className="flex items-center gap-3">
-                      <span className="font-body text-caption uppercase tracking-widest text-ink/40 w-12 shrink-0">
-                        {ex.category}
-                      </span>
-                      <span
-                        className={`flex-1 min-w-0 truncate font-body text-sm ${
-                          complete ? 'text-teal' : 'text-ink'
-                        }`}
-                      >
-                        {ex.name}
-                      </span>
-                      <span className="hidden sm:inline font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums shrink-0">
-                        {ex.reps}
-                      </span>
-                      <span className="flex gap-1 shrink-0">
-                        {Array.from({ length: TOTAL_SETS }).map((_, j) => (
-                          <button
-                            key={j}
-                            type="button"
-                            onClick={() => cycleRandomSet(ex.name)}
-                            aria-label={
-                              j < done
-                                ? `Set ${j + 1} ticked — tap to untick`
-                                : `Set ${j + 1} empty — tap to tick`
-                            }
-                            className="min-w-[28px] min-h-[28px] flex items-center justify-center"
-                          >
-                            <TickBox filled={j < done} size={20} />
-                          </button>
-                        ))}
-                      </span>
-                      <span
-                        className={`font-body text-caption uppercase tracking-widest tabular-nums shrink-0 ${
-                          complete ? 'text-teal' : 'text-ink/40'
-                        }`}
-                      >
-                        {done}/{TOTAL_SETS}
-                      </span>
+                    {/* On mobile (stacked): category + name + reps
+                        sit on row 1, tick boxes + count sit on row
+                        2. On desktop (sm+): everything fits on a
+                        single row. The category column is wide
+                        enough on desktop (w-16 = 64px) for
+                        'stamina' — the longest category label —
+                        with tracking-widest applied, otherwise it
+                        bleeds into the exercise name. */}
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+                      <div className="flex items-center gap-2 sm:flex-1 sm:min-w-0">
+                        <span className="font-body text-caption uppercase tracking-widest text-ink/40 w-16 shrink-0">
+                          {ex.category}
+                        </span>
+                        <span
+                          className={`flex-1 min-w-0 truncate font-body text-sm ${
+                            complete ? 'text-teal' : 'text-ink'
+                          }`}
+                        >
+                          {ex.name}
+                        </span>
+                        <span className="hidden sm:inline font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums shrink-0">
+                          {ex.reps}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between gap-2 self-end sm:self-auto">
+                        <span className="flex gap-1 shrink-0">
+                          {Array.from({ length: TOTAL_SETS }).map((_, j) => (
+                            <button
+                              key={j}
+                              type="button"
+                              onClick={() => cycleRandomSet(ex.name)}
+                              aria-label={
+                                j < done
+                                  ? `Set ${j + 1} ticked — tap to untick`
+                                  : `Set ${j + 1} empty — tap to tick`
+                              }
+                              className="min-w-[28px] min-h-[28px] flex items-center justify-center"
+                            >
+                              <TickBox filled={j < done} size={20} />
+                            </button>
+                          ))}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => cycleRandomSet(ex.name)}
+                          aria-label={`${ex.name}: ${done} of ${TOTAL_SETS} sets done — tap to add another set`}
+                          className={`shrink-0 px-2 py-0.5 border font-body text-caption uppercase tracking-widest tabular-nums transition-colors ${
+                            complete
+                              ? 'border-teal text-teal bg-teal/10'
+                              : 'border-ink/20 text-ink/40 hover:border-ink/40 hover:text-ink/70'
+                          }`}
+                        >
+                          {done}/{TOTAL_SETS}
+                        </button>
+                      </div>
                     </div>
                   </li>
                 );
