@@ -1144,38 +1144,43 @@ export default function AccountWorkouts() {
                 {todaysProgress.length === 1 ? 'exercise' : 'exercises'}
               </span>
             </div>
-            <ul className="space-y-1">
+            <ul className="space-y-2">
               {todaysProgress.map(({ name, count }) => {
                 const complete = count >= TOTAL_SETS;
                 return (
                   <li
                     key={name}
-                    className="flex items-baseline justify-between gap-2 font-body text-sm"
+                    className="flex items-center gap-2 font-body text-sm"
                   >
                     <span
-                      className={`truncate min-w-0 ${
+                      className={`truncate min-w-0 flex-1 ${
                         complete ? 'text-teal' : 'text-ink/70'
                       }`}
                     >
                       {name}
                     </span>
-                    {/* Tap the count to cycle sets — same UX as
-                        the per-row tick boxes. Mirrors into the
-                        line `sets` dict or the random-session
-                        tick dict based on which pool the
-                        exercise lives in. */}
-                    <button
-                      type="button"
-                      onClick={() => cycleTodayProgress(name)}
-                      aria-label={`${name}: ${count} of ${TOTAL_SETS} sets done — tap to add another set`}
-                      className={`shrink-0 px-2 py-0.5 border text-caption uppercase tracking-widest tabular-nums transition-colors ${
-                        complete
-                          ? 'border-teal text-teal bg-teal/10'
-                          : 'border-ink/20 text-ink/40 hover:border-ink/40 hover:text-ink/70'
-                      }`}
-                    >
-                      {count}/{TOTAL_SETS}
-                    </button>
+                    {/* Same 5-tick-box UI as the today's-session
+                        panel — tap any box to cycle sets for the
+                        exercise. Routes to the line `sets` dict or
+                        the random-session tick dict based on which
+                        pool the exercise lives in. */}
+                    <span className="flex gap-1 shrink-0">
+                      {Array.from({ length: TOTAL_SETS }).map((_, j) => (
+                        <button
+                          key={j}
+                          type="button"
+                          onClick={() => cycleTodayProgress(name)}
+                          aria-label={
+                            j < count
+                              ? `${name}: set ${j + 1} ticked — tap to untick`
+                              : `${name}: set ${j + 1} empty — tap to tick`
+                          }
+                          className="min-w-[28px] min-h-[28px] flex items-center justify-center"
+                        >
+                          <TickBox filled={j < count} size={20} />
+                        </button>
+                      ))}
+                    </span>
                   </li>
                 );
               })}
