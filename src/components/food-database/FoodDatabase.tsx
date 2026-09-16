@@ -11,6 +11,7 @@ import DailyTotalsBar from './DailyTotalsBar';
 import FoodSearch from './FoodSearch';
 import FoodDetail from './FoodDetail';
 import MyCustomFoodsPanel from './MyCustomFoodsPanel';
+import Modal from '@/components/Modal';
 
 type FoodTab = 'logged' | 'search' | 'myfoods';
 
@@ -1130,23 +1131,30 @@ export default function FoodDatabase({ targets }: Props) {
       )}
 
       {/* Bundle editor / duplicator. Opened by Edit or Duplicate
-          on a saved bundle. Shows the items with their portions and
-          a list of candidate foods to add. Inline edit so the user
-          can change portions or swap items without leaving the
-          Foods panel. */}
-      {editing && (
-        <div className="bg-paper border border-ink/15">
-          <div className="px-6 py-4 border-b border-ink/10">
-            <p className="font-body text-caption uppercase tracking-widest text-ink/50">
-              {editing.isDuplicate ? `Duplicate "${editing.originalName}"` : `Edit "${editing.originalName}"`}
-            </p>
-            <p className="font-body text-caption text-ink/40 mt-1">
+          on a saved bundle. Shows the items with their portions
+          and a list of candidate foods to add. Renders as a
+          modal so the user lands on it immediately when they
+          tap the tile's ✎ button — no scrolling down to the
+          bottom of the logged-food section. */}
+      <Modal
+        open={!!editing}
+        onClose={cancelEdit}
+        title={
+          editing
+            ? editing.isDuplicate
+              ? `Duplicate "${editing.originalName}"`
+              : `Edit "${editing.originalName}"`
+            : ''
+        }
+        ariaLabel="Bundle editor"
+      >
+        {editing && (
+          <>
+            <p className="font-body text-caption text-ink/50">
               {editing.isDuplicate
                 ? 'Pick the items + portions for the new copy and save under a fresh name.'
                 : 'Change the items + portions in place. The new values take effect immediately.'}
             </p>
-          </div>
-          <div className="px-6 py-4 space-y-3">
             <div className="flex flex-wrap items-center gap-2">
               <input
                 value={editName}
@@ -1180,7 +1188,7 @@ export default function FoodDatabase({ targets }: Props) {
               <button
                 type="button"
                 onClick={cancelEdit}
-                className="font-body text-caption uppercase text-ink/60 hover:text-ink px-2 py-2 transition-colors"
+                className="font-body text-caption uppercase text-ink/60 hover:text-ink px-3 py-2 transition-colors"
               >
                 Cancel
               </button>
@@ -1218,9 +1226,9 @@ export default function FoodDatabase({ targets }: Props) {
                 ]);
               }}
             />
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </Modal>
 
       {picked && (
         <FoodDetail
