@@ -413,7 +413,7 @@ function applyFavouritesSort(foods: Food[], favourites: Set<string>): Food[] {
                               {std.label}
                             </span>
                           </span>
-                          <span className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums sm:shrink-0 flex flex-wrap items-baseline justify-end gap-x-2 max-w-full">
+                          <span className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums sm:shrink-0 flex flex-col sm:flex-row sm:flex-wrap items-baseline sm:justify-end gap-x-2 gap-y-1 max-w-full">
                             {i === 0 && finalResults.length > 1 && f.score > 0 ? (
                               <span className="text-coral">Top match</span>
                             ) : null}

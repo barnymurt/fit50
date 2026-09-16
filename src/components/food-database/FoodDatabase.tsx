@@ -141,14 +141,33 @@ function BundleTile({
             cram 3-5 food names into a ~140 px square tile. */}
         {bundle.items.length > 0 && (
           <ul className="space-y-0.5 text-left w-full">
-            {bundle.items.map((it) => (
-              <li
-                key={it.food_id}
-                className="font-body text-[11px] text-ink/60 leading-tight truncate"
-              >
-                · {foodNames[it.food_id] ?? it.food_id}
-              </li>
-            ))}
+            {(() => {
+              // Cap the items list at 6 so the tile never overruns
+              // its aspect-square on mobile — a 7+ item bundle would
+              // push the count + kcal summary off the bottom of the
+              // button and clip the meal caption (Lunch / Dinner /
+              // Snack). Show a "+N more" line when we truncated.
+              const MAX_VISIBLE = 6;
+              const visible = bundle.items.slice(0, MAX_VISIBLE);
+              const remaining = bundle.items.length - visible.length;
+              return (
+                <>
+                  {visible.map((it) => (
+                    <li
+                      key={it.food_id}
+                      className="font-body text-[11px] text-ink/60 leading-tight truncate"
+                    >
+                      · {foodNames[it.food_id] ?? it.food_id}
+                    </li>
+                  ))}
+                  {remaining > 0 && (
+                    <li className="font-body text-[11px] text-ink/40 leading-tight truncate">
+                      · +{remaining} more
+                    </li>
+                  )}
+                </>
+              );
+            })()}
           </ul>
         )}
         {/* Items + kcal on one line. mt-auto pushes it to the
