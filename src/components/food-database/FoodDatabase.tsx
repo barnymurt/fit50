@@ -140,7 +140,7 @@ function BundleTile({
             line below so the cramped 2-col grid doesn't try to
             cram 3-5 food names into a ~140 px square tile. */}
         {bundle.items.length > 0 && (
-          <ul className="hidden md:block space-y-0.5 text-left w-full">
+          <ul className="space-y-0.5 text-left w-full">
             {bundle.items.map((it) => (
               <li
                 key={it.food_id}
