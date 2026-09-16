@@ -61,6 +61,7 @@ function getTileStyle(meal: string | null): {
 function BundleTile({
   bundle,
   kcal,
+  foodNames,
   isDragging,
   isDropTarget,
   onLog,
@@ -75,6 +76,10 @@ function BundleTile({
 }: {
   bundle: MealBundle;
   kcal: number | null;
+  /** Resolved food names for this bundle's items — bundle_id →
+   *  food_id → name. Missing keys fall back to the raw food_id
+   *  so the tile never renders an empty list. */
+  foodNames: Record<string, string>;
   isDragging: boolean;
   isDropTarget: boolean;
   onLog: () => void;
@@ -131,9 +136,27 @@ function BundleTile({
             {mealLabel}
           </p>
         )}
+        {/* Item list — desktop only. Mobile keeps the count + kcal
+            line below so the cramped 2-col grid doesn't try to
+            cram 3-5 food names into a ~140 px square tile. */}
+        {bundle.items.length > 0 && (
+          <ul className="hidden md:block space-y-0.5 text-left w-full">
+            {bundle.items.map((it) => (
+              <li
+                key={it.food_id}
+                className="font-body text-[11px] text-ink/60 leading-tight truncate"
+              >
+                · {foodNames[it.food_id] ?? it.food_id}
+              </li>
+            ))}
+          </ul>
+        )}
         {/* Items + kcal on one line. mt-auto pushes it to the
             bottom of the button so multi-line names + the meal
-            caption stay vertically aligned across tiles. */}
+            caption stay vertically aligned across tiles. On
+            desktop the items list above already gives detail; we
+            keep this summary line so mobile still gets the kcal +
+            count in a single glance. */}
         <p className="font-body text-[10px] sm:text-caption uppercase tracking-widest text-ink/40 tabular-nums leading-none truncate mt-auto">
           {bundle.items.length}{' '}
           {bundle.items.length === 1 ? 'item' : 'items'}
@@ -518,28 +541,34 @@ export default function FoodDatabase({ targets }: Props) {
     cancelEdit();
   };
 
-  // Compute the kcal summary for the bundle list. Resolves the
-  // food rows for each bundle's items on demand, caches the result
-  // per (bundle_id, day) for the session so the list doesn't
-  // refetch on every render.
+  // Compute the kcal summary + per-item food names for the bundle
+  // list. Resolves the food rows for each bundle's items on demand,
+  // caches the result per (bundle_id, day) for the session so the
+  // list doesn't refetch on every render. bundleFoodNames holds the
+  // resolved names so the desktop tile can list each item under
+  // the bundle name without going back to Supabase.
   const [bundleKcal, setBundleKcal] = useState<Record<string, number | null>>({});
+  const [bundleFoodNames, setBundleFoodNames] = useState<
+    Record<string, Record<string, string>>
+  >({});
   useEffect(() => {
     if (visibleBundles.length === 0) return;
     let cancelled = false;
-    const updates: Record<string, number | null> = {};
+    const kcalUpdates: Record<string, number | null> = {};
+    const nameUpdates: Record<string, Record<string, string>> = {};
     const needFetch: string[] = [];
     for (const b of visibleBundles) {
-      if (b.id in bundleKcal) continue;
+      if (b.id in bundleKcal && b.id in bundleFoodNames) continue;
       needFetch.push(b.id);
     }
     if (needFetch.length === 0) return;
     (async () => {
       const allFoodIds = new Set<string>();
-      const bundleFoods = new Map<string, string[]>();
+      const bundleFoodIds = new Map<string, string[]>();
       for (const b of visibleBundles) {
         if (!needFetch.includes(b.id)) continue;
         const ids = b.items.map((it) => it.food_id);
-        bundleFoods.set(b.id, ids);
+        bundleFoodIds.set(b.id, ids);
         for (const id of ids) allFoodIds.add(id);
       }
       const list = await fetchFoodsByIds(Array.from(allFoodIds));
@@ -547,7 +576,8 @@ export default function FoodDatabase({ targets }: Props) {
       const byId = new Map(list.map((f) => [f.id, f] as const));
       for (const b of visibleBundles) {
         if (!needFetch.includes(b.id)) continue;
-        const ids = bundleFoods.get(b.id) ?? [];
+        const ids = bundleFoodIds.get(b.id) ?? [];
+        // kcal
         let total = 0;
         let known = true;
         for (const id of ids) {
@@ -558,15 +588,24 @@ export default function FoodDatabase({ targets }: Props) {
           }
           total += scaleFood(f, 100).kcal * (b.items.find((it) => it.food_id === id)!.portion_grams / 100);
         }
-        updates[b.id] = known ? Math.round(total) : null;
+        kcalUpdates[b.id] = known ? Math.round(total) : null;
+        // names — one lookup per item, missing names fall back to
+        // the raw food_id so the tile is never empty.
+        const names: Record<string, string> = {};
+        for (const id of ids) {
+          const f = byId.get(id);
+          names[id] = f?.name ?? id;
+        }
+        nameUpdates[b.id] = names;
       }
       if (cancelled) return;
-      setBundleKcal((prev) => ({ ...prev, ...updates }));
+      setBundleKcal((prev) => ({ ...prev, ...kcalUpdates }));
+      setBundleFoodNames((prev) => ({ ...prev, ...nameUpdates }));
     })();
     return () => {
       cancelled = true;
     };
-  }, [visibleBundles, bundleKcal]);
+  }, [visibleBundles, bundleKcal, bundleFoodNames]);
 
   const isOverBudget =
     !!targets &&
@@ -712,6 +751,7 @@ export default function FoodDatabase({ targets }: Props) {
                   key={b.id}
                   bundle={b}
                   kcal={kcal ?? null}
+                  foodNames={bundleFoodNames[b.id] ?? {}}
                   isDragging={draggingId === b.id}
                   isDropTarget={dropTargetId === b.id}
                   onLog={async () => {
