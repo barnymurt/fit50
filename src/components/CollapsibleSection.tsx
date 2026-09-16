@@ -103,7 +103,7 @@ export default function CollapsibleSection({
   return (
     <div
       id={id}
-      className={`relative ${isDragging ? 'opacity-40' : ''} transition-opacity`}
+      className={`relative scroll-mt-28 md:scroll-mt-0 ${isDragging ? 'opacity-40' : ''} transition-opacity`}
       data-section-id={id}
       data-section-draggable={draggable ? 'true' : undefined}
     >
