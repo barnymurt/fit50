@@ -994,14 +994,30 @@ export default function AccountWorkouts() {
     });
   };
 
-  // Quick-add: tap the count in the "Done today" panel to cycle
-  // the exercise's sets by one. Mirrors the row ticks — 0 → 1 → … →
-  // 5 → 0. Routes to the right dict (line sets or random-session
-  // ticks) based on which pool the exercise lives in.
-  const cycleTodayProgress = (name: string) => {
+  // Quick-add / quick-undo: tap a tick box in the "Done today"
+  // panel to cycle the exercise's sets — same UX as the per-row
+  // tick boxes (tap to fill forward, tap a filled one to untick
+  // down to that position). Routes to the line `sets` dict or the
+  // random-session tick dict based on which pool the exercise
+  // lives in. The optional `index` lets the tick box carry the
+  // tap position through to `cycleSet` / `cycleRandomSet`, which
+  // both honour the same `current` ↔ `index` semantics.
+  const cycleTodayProgress = (name: string, index?: number) => {
     const inRandom = randomSession.some((ex) => ex.name === name);
-    if (inRandom) cycleRandomSet(name);
-    else cycleSet(name);
+    if (inRandom) {
+      if (typeof index === 'number') {
+        setRandomSessionTicks((prev) => {
+          const current = prev[name] || 0;
+          const next =
+            index < current ? index : index + 1 > TOTAL_SETS ? TOTAL_SETS : index + 1;
+          return { ...prev, [name]: next };
+        });
+      } else {
+        cycleRandomSet(name);
+      }
+    } else {
+      cycleSet(name, index);
+    }
   };
 
   // Combined "done today" view: line ticks + random session
@@ -1169,7 +1185,7 @@ export default function AccountWorkouts() {
                         <button
                           key={j}
                           type="button"
-                          onClick={() => cycleTodayProgress(name)}
+                          onClick={() => cycleTodayProgress(name, j)}
                           aria-label={
                             j < count
                               ? `${name}: set ${j + 1} ticked — tap to untick`
@@ -1401,12 +1417,6 @@ export default function AccountWorkouts() {
                    * exercises (no brand prefix) render normally.
                    */}
                   {(() => {
-                    const brand =
-                      ex.name.startsWith('KB ')
-                        ? 'KB'
-                        : ex.name.startsWith('RB ')
-                        ? 'RB'
-                        : null;
                     return (
                       <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-3">
                         <button
@@ -1414,18 +1424,16 @@ export default function AccountWorkouts() {
                           onClick={() => setActiveIdx(i)}
                           className="font-body text-base text-ink md:flex-1 md:min-w-0 text-left hover:text-coral transition-colors flex items-center gap-2 self-start"
                         >
-                          {brand ? (
-                            <>
-                              <span className="md:hidden shrink-0 px-2 py-0.5 border border-ink/20 uppercase tracking-wider text-[11px] leading-none font-body">
-                                {brand}
-                              </span>
-                              <span className="hidden md:inline truncate">
-                                {ex.name}
-                              </span>
-                            </>
-                          ) : (
-                            <span className="truncate">{ex.name}</span>
-                          )}
+                          {/* Always render the full exercise name.
+                              Earlier we hid the full name behind a
+                              'KB' / 'RB' chip on mobile so the row
+                              would fit a narrow viewport, but that
+                              left users unable to tell which
+                              kettlebell or band exercise was which
+                              — the names themselves include the
+                              'KB ' / 'RB ' prefix and read fine on
+                              a phone. */}
+                          <span className="truncate">{ex.name}</span>
                         </button>
                         <span className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums shrink-0 hidden sm:inline">
                           {ex.reps}
@@ -1483,19 +1491,8 @@ export default function AccountWorkouts() {
               <div className="flex items-baseline gap-3 mb-3 flex-wrap">
                 {(() => {
                   const ex0 = exercises[activeIdx];
-                  const brand =
-                    ex0.name.startsWith('KB ')
-                      ? 'KB'
-                      : ex0.name.startsWith('RB ')
-                      ? 'RB'
-                      : null;
                   return (
                     <>
-                      {brand ? (
-                        <span className="md:hidden shrink-0 px-2 py-0.5 border border-ink/20 uppercase tracking-wider text-[11px] leading-none font-body">
-                          {brand}
-                        </span>
-                      ) : null}
                       <span className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums">
                         {ex0.reps}
                       </span>
