@@ -18,6 +18,24 @@ interface ExtractArgs {
   apiKey: string;
 }
 
+// Photo path — supply an image instead of (or alongside) the text
+// description. The route passes the JPEG bytes we got back from
+// sharp; we base64-encode and send as a `data:image/jpeg;base64,…`
+// URL per OpenAI's vision spec. Any text in `description` is sent
+// as an extra user-content part (used when the route has both an
+// image and an OCR'd description it wants to feed alongside).
+interface ExtractImageArgs {
+  config: LLMConfig;
+  apiKey: string;
+  /** Raw JPEG bytes (or PNG/WebP — we tag the data URL by mime). */
+  imageBytes: Uint8Array;
+  /** MIME for the data URL prefix. */
+  mime: 'image/jpeg' | 'image/png' | 'image/webp';
+  /** Optional caption (e.g. "OCR'd text below"). Concatenated as a
+   *  text part before the image so the model uses it as context. */
+  caption?: string;
+}
+
 export async function openaiCompatExtract({
   config,
   description,
@@ -26,6 +44,54 @@ export async function openaiCompatExtract({
   if (description.length > MAX_DESCRIPTION_LEN) {
     throw new Error(`description too long (max ${MAX_DESCRIPTION_LEN} chars).`);
   }
+  return callOpenAICompat({
+    config,
+    apiKey,
+    userContent: [{ type: 'text', text: description }],
+  });
+}
+
+export async function openaiCompatExtractImage({
+  config,
+  apiKey,
+  imageBytes,
+  mime,
+  caption,
+}: ExtractImageArgs): Promise<ExtractedFood> {
+  const content: Array<Record<string, unknown>> = [];
+  if (caption) content.push({ type: 'text', text: caption });
+  content.push({
+    type: 'image_url',
+    image_url: {
+      // base64-encode into a data URL — small enough that a data URL
+      // is fine; the photo route pre-shrinks to ≤1024px JPEG via
+      // sharp before we get here.
+      url: `data:${mime};base64,${bytesToBase64(imageBytes)}`,
+      // 'auto' lets the provider pick the best tile size based on
+      // the image dimensions. 'high' would burn more tokens for the
+      // same accuracy on a small nutrition panel.
+      detail: 'auto',
+    },
+  });
+  return callOpenAICompat({
+    config,
+    apiKey,
+    userContent: content,
+  });
+}
+
+// Shared request body / response parsing. Both the text and image
+// paths funnel through here so the JSON sanitiser + error
+// handling is in one place.
+async function callOpenAICompat({
+  config,
+  apiKey,
+  userContent,
+}: {
+  config: LLMConfig;
+  apiKey: string;
+  userContent: Array<Record<string, unknown>>;
+}): Promise<ExtractedFood> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
@@ -43,7 +109,7 @@ export async function openaiCompatExtract({
         response_format: { type: 'json_object' },
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
-          { role: 'user', content: description },
+          { role: 'user', content: userContent },
         ],
       }),
       signal: controller.signal,
@@ -70,6 +136,21 @@ export async function openaiCompatExtract({
   const content = json.choices?.[0]?.message?.content;
   if (!content) throw new Error(`${config.name} returned no content.`);
   return parseAndSanitize(content);
+}
+
+// Browser-safe base64 encoder. btoa is available in Node ≥ 16 and
+// in Edge runtime; the photo route runs on Node so Buffer is also
+// fine but Uint8Array + btoa is portable.
+function bytesToBase64(bytes: Uint8Array): string {
+  if (typeof Buffer !== 'undefined') {
+    return Buffer.from(bytes).toString('base64');
+  }
+  let binary = '';
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i]!);
+  }
+  // btoa exists in both browser globals and modern Node.
+  return btoa(binary);
 }
 
 // Defensive clamping + defaults. The model is told to follow these

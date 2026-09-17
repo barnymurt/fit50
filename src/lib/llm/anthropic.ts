@@ -20,6 +20,19 @@ interface ExtractArgs {
   apiKey: string;
 }
 
+// Photo path — supply an image instead of (or alongside) text.
+// Anthropic vision: image goes in `messages[].content` as a
+// `{type: 'image', source: {type: 'base64', media_type, data}}`
+// block; text goes alongside as `{type: 'text', text}`. The model
+// sees both blocks together.
+interface ExtractImageArgs {
+  config: LLMConfig;
+  apiKey: string;
+  imageBytes: Uint8Array;
+  mime: 'image/jpeg' | 'image/png' | 'image/webp';
+  caption?: string;
+}
+
 export async function anthropicExtract({
   config,
   description,
@@ -28,6 +41,46 @@ export async function anthropicExtract({
   if (description.length > MAX_DESCRIPTION_LEN) {
     throw new Error(`description too long (max ${MAX_DESCRIPTION_LEN} chars).`);
   }
+  return callAnthropic({
+    config,
+    apiKey,
+    userContent: [{ type: 'text', text: description }],
+  });
+}
+
+export async function anthropicExtractImage({
+  config,
+  apiKey,
+  imageBytes,
+  mime,
+  caption,
+}: ExtractImageArgs): Promise<ExtractedFood> {
+  const content: Array<Record<string, unknown>> = [];
+  if (caption) content.push({ type: 'text', text: caption });
+  content.push({
+    type: 'image',
+    source: {
+      type: 'base64',
+      media_type: mime,
+      data: bytesToBase64(imageBytes),
+    },
+  });
+  return callAnthropic({
+    config,
+    apiKey,
+    userContent: content,
+  });
+}
+
+async function callAnthropic({
+  config,
+  apiKey,
+  userContent,
+}: {
+  config: LLMConfig;
+  apiKey: string;
+  userContent: Array<Record<string, unknown>>;
+}): Promise<ExtractedFood> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
@@ -47,7 +100,7 @@ export async function anthropicExtract({
         max_tokens: MAX_TOKENS,
         temperature: 0.2,
         system: SYSTEM_PROMPT,
-        messages: [{ role: 'user', content: description }],
+        messages: [{ role: 'user', content: userContent }],
       }),
       signal: controller.signal,
     });
@@ -76,6 +129,17 @@ export async function anthropicExtract({
     .join('');
   if (!text) throw new Error(`${config.name} returned no text content.`);
   return parseAndSanitize(text);
+}
+
+function bytesToBase64(bytes: Uint8Array): string {
+  if (typeof Buffer !== 'undefined') {
+    return Buffer.from(bytes).toString('base64');
+  }
+  let binary = '';
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i]!);
+  }
+  return btoa(binary);
 }
 
 function parseAndSanitize(raw: string): ExtractedFood {

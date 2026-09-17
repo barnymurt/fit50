@@ -2,13 +2,27 @@
 // adapter based on the user's stored provider. Keeps the route thin
 // (just auth + provider lookup + this call) and makes adding a new
 // provider a one-line change in `providers.ts` + an adapter.
+//
+// Photo path: `extractMacrosFromImage` decides between vision-direct
+// (send the bytes straight to the user's vision-capable LLM) and
+// OCR-then-text (call HF Inference for GOT-OCR-2, then re-enter
+// the text path) based on whether the user's stored provider is in
+// `VISION_CAPABLE_PROVIDERS`. The result shape is identical, so the
+// route treats both paths the same.
 
-import type { ExtractedFood } from './types';
-import type { LLMProvider } from './types';
+import type { ExtractedFood, LLMProvider, OCRResult } from './types';
 import { PROVIDERS } from './providers';
-import { openaiCompatExtract } from './openai-compat';
-import { anthropicExtract } from './anthropic';
-import { geminiExtract } from './gemini';
+import {
+  openaiCompatExtract,
+  openaiCompatExtractImage,
+} from './openai-compat';
+import { anthropicExtract, anthropicExtractImage } from './anthropic';
+import { geminiExtract, geminiExtractImage } from './gemini';
+import { hfOcr } from './hf-ocr';
+import {
+  VISION_CAPABLE_PROVIDERS,
+  type HFOCRProvider,
+} from './types';
 
 export type { LLMProvider } from './types';
 
@@ -46,4 +60,114 @@ export async function extractMacros(
     return geminiExtract({ config, description, apiKey });
   }
   throw new Error(`Provider ${provider} is not wired up.`);
+}
+
+// Result of the vision-vs-OCR dispatch — the route uses
+// `extractor` to surface which path was taken so the client can
+// show "Read by your vision model" vs "OCR + your text model".
+export type VisionPath = 'vision' | 'ocr-then-text';
+
+export interface ImageExtractResult {
+  food: ExtractedFood;
+  path: VisionPath;
+  /** Only present when path='ocr-then-text'. */
+  ocr?: OCRResult;
+}
+
+/** Photo entry point. `apiKey` is the user's BYOK LLM key.
+ *  `hfApiKey` is the HF Inference API key (server env) used for OCR
+ *  on text-only providers. The function never asks the user for the
+ *  HF key — it's a server-side env var. */
+export async function extractMacrosFromImage(
+  imageBytes: Uint8Array,
+  mime: 'image/jpeg' | 'image/png' | 'image/webp',
+  apiKey: string,
+  provider: LLMProvider,
+  extras: ExtractExtras = {},
+  hfApiKey: string | null = null
+): Promise<ImageExtractResult> {
+  // Vision-direct path — one round-trip to the user's own LLM.
+  if (VISION_CAPABLE_PROVIDERS.has(provider)) {
+    const food = await callVisionAdapter(
+      provider,
+      imageBytes,
+      mime,
+      apiKey,
+      extras
+    );
+    return { food, path: 'vision' };
+  }
+
+  // Text-only providers — OCR the image first, then re-enter the
+  // existing text path. The OCR'd description gets passed through
+  // `extractMacros` so the JSON sanitiser + system prompt are
+  // identical to the typed-description flow.
+  if (!hfApiKey) {
+    throw new Error(
+      `Provider ${provider} doesn't support image inputs and no HF_API_KEY is configured for the OCR fallback. Add an OpenAI / Anthropic / Gemini key, or contact support.`
+    );
+  }
+  const ocr = await hfOcr(imageBytes, hfApiKey);
+  // Cap the OCR'd text at the same 1000-char limit the typed path
+  // enforces — long OCR transcripts can blow past the LLM context
+  // window. Trim from the start if it overshoots (the nutrition
+  // panel is usually near the end of a back-of-pack OCR pass).
+  const cappedDescription = ocr.text.length > 1000
+    ? ocr.text.slice(-1000)
+    : ocr.text;
+  const food = await extractMacros(
+    cappedDescription,
+    apiKey,
+    provider,
+    extras
+  );
+  return { food, path: 'ocr-then-text', ocr };
+}
+
+async function callVisionAdapter(
+  provider: LLMProvider,
+  imageBytes: Uint8Array,
+  mime: 'image/jpeg' | 'image/png' | 'image/webp',
+  apiKey: string,
+  extras: ExtractExtras
+): Promise<ExtractedFood> {
+  if (provider === 'openai') {
+    // openaiCompatExtractImage is also reused for the OpenAI-compat
+    // providers (deepseek, MiniMax, perplexity) — but those aren't in
+    // VISION_CAPABLE_PROVIDERS, so this branch only fires for openai.
+    return openaiCompatExtractImage({
+      config: PROVIDERS.openai,
+      apiKey,
+      imageBytes,
+      mime,
+    });
+  }
+  if (provider === 'anthropic') {
+    const config = { ...PROVIDERS.anthropic };
+    if (extras.anthropicWorkspaceId) {
+      config.extraHeaders = {
+        ...(config.extraHeaders ?? {}),
+        'anthropic-workspace-id': extras.anthropicWorkspaceId,
+      };
+    }
+    return anthropicExtractImage({
+      config,
+      apiKey,
+      imageBytes,
+      mime,
+    });
+  }
+  if (provider === 'gemini') {
+    return geminiExtractImage({
+      config: PROVIDERS.gemini,
+      apiKey,
+      imageBytes,
+      mime,
+    });
+  }
+  // Defensive — the VISION_CAPABLE_PROVIDERS gate above should
+  // catch this before we get here.
+  throw new Error(
+    `Provider ${provider} is not wired for vision. Add it to VISION_CAPABLE_PROVIDERS in src/lib/llm/types.ts.`
+  );
 }

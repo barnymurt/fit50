@@ -18,6 +18,18 @@ interface ExtractArgs {
   apiKey: string;
 }
 
+// Photo path — supply an image instead of (or alongside) text.
+// Gemini vision: image goes in `parts[]` as
+// `{inline_data: {mime_type, data}}` (data is base64, no data URL
+// prefix). Text parts are siblings in the same `parts[]` array.
+interface ExtractImageArgs {
+  config: LLMConfig;
+  apiKey: string;
+  imageBytes: Uint8Array;
+  mime: 'image/jpeg' | 'image/png' | 'image/webp';
+  caption?: string;
+}
+
 export async function geminiExtract({
   config,
   description,
@@ -26,6 +38,44 @@ export async function geminiExtract({
   if (description.length > MAX_DESCRIPTION_LEN) {
     throw new Error(`description too long (max ${MAX_DESCRIPTION_LEN} chars).`);
   }
+  return callGemini({
+    config,
+    apiKey,
+    userParts: [{ text: description }],
+  });
+}
+
+export async function geminiExtractImage({
+  config,
+  apiKey,
+  imageBytes,
+  mime,
+  caption,
+}: ExtractImageArgs): Promise<ExtractedFood> {
+  const parts: Array<Record<string, unknown>> = [];
+  if (caption) parts.push({ text: caption });
+  parts.push({
+    inline_data: {
+      mime_type: mime,
+      data: bytesToBase64(imageBytes),
+    },
+  });
+  return callGemini({
+    config,
+    apiKey,
+    userParts: parts,
+  });
+}
+
+async function callGemini({
+  config,
+  apiKey,
+  userParts,
+}: {
+  config: LLMConfig;
+  apiKey: string;
+  userParts: Array<Record<string, unknown>>;
+}): Promise<ExtractedFood> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
@@ -37,9 +87,7 @@ export async function geminiExtract({
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [
-          { role: 'user', parts: [{ text: description }] },
-        ],
+        contents: [{ role: 'user', parts: userParts }],
         systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
         generationConfig: {
           temperature: 0.2,
@@ -74,6 +122,17 @@ export async function geminiExtract({
     .join('');
   if (!text) throw new Error(`${config.name} returned no text content.`);
   return parseAndSanitize(text);
+}
+
+function bytesToBase64(bytes: Uint8Array): string {
+  if (typeof Buffer !== 'undefined') {
+    return Buffer.from(bytes).toString('base64');
+  }
+  let binary = '';
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i]!);
+  }
+  return btoa(binary);
 }
 
 function parseAndSanitize(raw: string): ExtractedFood {

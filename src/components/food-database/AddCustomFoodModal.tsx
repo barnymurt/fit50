@@ -8,7 +8,9 @@ import {
   detectProvider,
   type LLMProvider,
 } from '@/lib/llm/providers';
+import type { ExtractedFood } from '@/lib/llm/types';
 import { apiFetch } from '@/lib/api-fetch';
+import PhotoFoodScan from './PhotoFoodScan';
 
 // AddCustomFoodModal — owner-only food entry. On save, posts to
 // /api/foods/custom and on success calls `onCreated` with the new
@@ -149,6 +151,11 @@ export default function AddCustomFoodModal({
   const [extractionResult, setExtractionResult] = useState<ExtractionResult | null>(null);
   const [extractionError, setExtractionError] = useState<string | null>(null);
 
+  // Photo-flow state — holds the OCR'd raw text from the last
+  // photo so we can persist it on save (audit trail + debugging
+  // aid when confidence is low). Null for typed-description entries.
+  const [photoOcrText, setPhotoOcrText] = useState<string | null>(null);
+
   // BYOK state — the user's own LLM key + provider. We never display
   // the secret; only whether it's set + a masked preview. If unset,
   // the modal shows an inline "add your key" prompt.
@@ -181,6 +188,7 @@ export default function AddCustomFoodModal({
       setExtracting(false);
       setExtractionResult(null);
       setExtractionError(null);
+      setPhotoOcrText(null);
       // Fetch the user's OpenAI key status. We only show the
       // auto-fill section as fully enabled when a key is on file.
       setKeyStatus(null);
@@ -397,7 +405,11 @@ const handleSubmit = async (e: React.FormEvent) => {
         standard_serving_label: form.standardServingLabel,
         aliases,
         submit_to_community: form.submitToCommunity,
-        source: 'manual',
+        // Photo flow: LLM did all the extraction → 'llm'.
+        // Typed description: user wrote the prose → 'manual'.
+        source: photoOcrText ? 'llm' : 'manual',
+        // Only populated for photo entries; null for typed.
+        ...(photoOcrText ? { description: photoOcrText } : {}),
       });
       onCreated?.(created);
       onClose();
@@ -439,6 +451,39 @@ const handleSubmit = async (e: React.FormEvent) => {
               ✕
             </button>
           </div>
+
+          {/* Photo scan — disabled until the user has an LLM key on
+              file. Same gating as the typed-description path below. */}
+          <PhotoFoodScan
+            disabled={keyStatus?.set === false}
+            disabledReason="Add your LLM key below to enable photo scanning."
+            onExtracted={(food, meta) => {
+              setForm((prev) => ({
+                ...prev,
+                name: food.name || prev.name,
+                brand: food.brand ?? '',
+                category: food.category || prev.category,
+                subcategory: food.subcategory ?? '',
+                kcal: String(food.kcal),
+                protein: String(food.protein),
+                carbs: String(food.carbs),
+                fat: String(food.fat),
+                fiber: String(food.fiber),
+                standardServingGrams: food.standard_serving_grams
+                  ? String(food.standard_serving_grams)
+                  : '100',
+                standardServingLabel:
+                  food.standard_serving_label ?? prev.standardServingLabel,
+                aliases: (food.aliases ?? []).join(', '),
+              }));
+              setExtractionResult({
+                confidence: food.confidence,
+                notes: food.notes,
+              });
+              setPhotoOcrText(meta.ocrText);
+              setExtractionError(null);
+            }}
+          />
 
           <div className="mb-4 p-3 bg-cre-30 border border-ink/15">
             <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-2">
