@@ -45,7 +45,7 @@ export const PROVIDERS: Record<LLMProvider, LLMConfig> = {
     id: 'anthropic',
     name: 'Anthropic',
     baseUrl: 'https://api.anthropic.com/v1',
-    model: 'claude-3-5-haiku-20241022',
+    model: 'claude-haiku-4-5-20251001',
     authHeader: 'x-api-key',
     authPrefix: '',
   },
