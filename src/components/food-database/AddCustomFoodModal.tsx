@@ -196,7 +196,11 @@ export default function AddCustomFoodModal({
       setKeyBusy(false);
       setKeyError(null);
       setKeyEditing(false);
-      setPickedProvider('openai');
+      // Don't reset pickedProvider here — the GET below seeds it
+      // from the saved value. Defaulting to 'openai' first then
+      // overriding with the saved provider causes a visible flicker
+      // (and a window where 'openai' is shown even though the user
+      // may have saved MiniMax / Anthropic / Gemini earlier).
       setDetectedProvider(null);
       setAnthropicWorkspaceId('');
       apiFetch('/api/account/llm-key', { method: 'GET' })
@@ -568,14 +572,15 @@ const handleSubmit = async (e: React.FormEvent) => {
                     onChange={(e) => {
                       const v = e.target.value;
                       setKeyInput(v);
-                      // Auto-detect provider from the prefix. The
-                      // dropdown follows the detected value so the
-                      // user sees "this looks like X". They can
-                      // still pick a different one if the default
-                      // guess is wrong.
+                      // Auto-detect provider from the prefix. We only
+                      // update the "Detected: …" hint — the dropdown
+                      // itself stays on whatever the user picked
+                      // (so picking MiniMax doesn't get clobbered
+                      // back to OpenAI when the user starts typing
+                      // an 'M' that doesn't yet match a known
+                      // prefix).
                       const detected = v.trim() ? detectProvider(v) : null;
                       setDetectedProvider(detected);
-                      if (detected) setPickedProvider(detected);
                     }}
                     placeholder="sk-..."
                     autoComplete="off"
