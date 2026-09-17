@@ -9,6 +9,7 @@ import {
   type LLMProvider,
 } from '@/lib/llm/providers';
 import type { ExtractedFood } from '@/lib/llm/types';
+import { VISION_CAPABLE_PROVIDERS } from '@/lib/llm/types';
 import { apiFetch } from '@/lib/api-fetch';
 import PhotoFoodScan from './PhotoFoodScan';
 
@@ -101,6 +102,10 @@ interface OpenAiKeyStatus {
   providerName: string | null;
   anthropicWorkspaceId: string | null;
 }
+
+const VISION_PROVIDERS = ALL_PROVIDERS.filter((p) =>
+  VISION_CAPABLE_PROVIDERS.has(p)
+);
 
 const CATEGORY_OPTIONS = [
   'Other',
@@ -460,7 +465,7 @@ const handleSubmit = async (e: React.FormEvent) => {
               file. Same gating as the typed-description path below. */}
           <PhotoFoodScan
             disabled={keyStatus?.set === false}
-            disabledReason="Add your LLM key below to enable photo scanning."
+            disabledReason="Add your AI key below to unlock photo scanning."
             onExtracted={(food, meta) => {
               setForm((prev) => ({
                 ...prev,
@@ -536,10 +541,31 @@ const handleSubmit = async (e: React.FormEvent) => {
                 <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-2">
                   Your LLM key
                 </p>
-                <p className="font-body text-caption text-ink/60 mb-2">
-                  Stored on your profile so the server can call your
-                  provider for you. We never see the secret — only that
-                  it's set. Your key, your bill.
+                <p className="font-body text-sm text-ink/80 mb-2 leading-relaxed">
+                  This is your personal API key from an AI provider (OpenAI,
+                  Anthropic, Google, or Perplexity). Think of it like a
+                  password — only you have it, and we never see it. We just
+                  borrow it on your behalf to look up nutrition facts.
+                </p>
+                <p className="font-body text-sm text-ink/60 mb-3 leading-relaxed">
+                  <span className="font-semibold text-ink">Why bother?</span> No
+                  more squinting at food labels like the macro police. Snap a
+                  photo, let the AI do the number crunching, and get that time
+                  back for something better — like actually eating the food
+                  with friends.
+                </p>
+                <p className="font-body text-sm text-ink/50 mb-3">
+                  Need help finding your key?{' '}
+                  <a
+                    href="https://fit50challenge.io"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-coral underline underline-offset-2"
+                  >
+                    See the setup guide
+                  </a>{' '}
+                  — it takes about 2 minutes. Choose OpenAI or Perplexity for
+                  the smoothest experience.
                 </p>
                 <div className="flex items-center gap-2 flex-wrap mb-2">
                   <label className="font-body text-caption uppercase tracking-widest text-ink/50">
@@ -553,17 +579,23 @@ const handleSubmit = async (e: React.FormEvent) => {
                     aria-label="LLM provider"
                     className="px-2 py-2 bg-paper border-2 border-ink/20 font-body text-sm focus:border-coral outline-none"
                   >
-                    {ALL_PROVIDERS.map((p) => (
+                    {VISION_PROVIDERS.map((p) => (
                       <option key={p} value={p}>
                         {PROVIDERS[p].name}
+                        {p === 'openai' ? ' — popular, great for photos' : ''}
+                        {p === 'perplexity' ? ' — great for photos' : ''}
+                        {p === 'gemini' ? ' — good for photos' : ''}
+                        {p === 'anthropic' ? ' — great for photos' : ''}
                       </option>
                     ))}
                   </select>
-                  {detectedProvider && detectedProvider !== pickedProvider && (
-                    <span className="font-body text-caption text-ink/50">
-                      Detected: {PROVIDERS[detectedProvider].name}
-                    </span>
-                  )}
+                  {detectedProvider &&
+                    detectedProvider !== pickedProvider &&
+                    VISION_CAPABLE_PROVIDERS.has(detectedProvider) && (
+                      <span className="font-body text-caption text-ink/50">
+                        Detected: {PROVIDERS[detectedProvider].name}
+                      </span>
+                    )}
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <input
@@ -572,17 +604,10 @@ const handleSubmit = async (e: React.FormEvent) => {
                     onChange={(e) => {
                       const v = e.target.value;
                       setKeyInput(v);
-                      // Auto-detect provider from the prefix. We only
-                      // update the "Detected: …" hint — the dropdown
-                      // itself stays on whatever the user picked
-                      // (so picking MiniMax doesn't get clobbered
-                      // back to OpenAI when the user starts typing
-                      // an 'M' that doesn't yet match a known
-                      // prefix).
                       const detected = v.trim() ? detectProvider(v) : null;
                       setDetectedProvider(detected);
                     }}
-                    placeholder="sk-..."
+                    placeholder="sk-..., sk-ant-..., pp-..., AIza..."
                     autoComplete="off"
                     className="flex-1 min-w-[180px] px-3 py-2 bg-paper border-2 border-ink/20 font-mono text-sm focus:border-coral outline-none"
                   />
@@ -635,9 +660,8 @@ const handleSubmit = async (e: React.FormEvent) => {
                       />
                     </label>
                     <p className="font-body text-caption text-ink/50 mt-1">
-                      Required when your Anthropic key is identity-linked
-                      (Anthropic returns 400 otherwise). Most users can
-                      leave this blank.
+                      Only needed if your organisation has a dedicated
+                      Anthropic account. Most people can leave this blank.
                     </p>
                   </div>
                 )}

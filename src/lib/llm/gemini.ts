@@ -20,13 +20,19 @@ interface ExtractArgs {
 
 // Photo path — supply an image instead of (or alongside) text.
 // Gemini vision: image goes in `parts[]` as
-// `{inline_data: {mime_type, data}}` (data is base64, no data URL
-// prefix). Text parts are siblings in the same `parts[]` array.
+// `{file_data: {fileUri, mime_type}}` — Gemini fetches the URL
+// itself, so the photo route uploads to Supabase Storage first
+// and passes the public URL here. Text parts are siblings in the
+// same `parts[]` array.
 interface ExtractImageArgs {
   config: LLMConfig;
   apiKey: string;
-  imageBytes: Uint8Array;
+  /** Public URL of the photo on Supabase Storage. */
+  imageUrl: string;
+  /** MIME for logging only — Gemini fetches the URL itself. */
   mime: 'image/jpeg' | 'image/png' | 'image/webp';
+  /** Optional caption (e.g. "OCR'd text below"). Concatenated as a
+   *  text part before the image so the model uses it as context. */
   caption?: string;
 }
 
@@ -48,16 +54,16 @@ export async function geminiExtract({
 export async function geminiExtractImage({
   config,
   apiKey,
-  imageBytes,
+  imageUrl,
   mime,
   caption,
 }: ExtractImageArgs): Promise<ExtractedFood> {
   const parts: Array<Record<string, unknown>> = [];
   if (caption) parts.push({ text: caption });
   parts.push({
-    inline_data: {
+    file_data: {
+      file_uri: imageUrl,
       mime_type: mime,
-      data: bytesToBase64(imageBytes),
     },
   });
   return callGemini({
@@ -122,17 +128,6 @@ async function callGemini({
     .join('');
   if (!text) throw new Error(`${config.name} returned no text content.`);
   return parseAndSanitize(text);
-}
-
-function bytesToBase64(bytes: Uint8Array): string {
-  if (typeof Buffer !== 'undefined') {
-    return Buffer.from(bytes).toString('base64');
-  }
-  let binary = '';
-  for (let i = 0; i < bytes.byteLength; i++) {
-    binary += String.fromCharCode(bytes[i]!);
-  }
-  return btoa(binary);
 }
 
 function parseAndSanitize(raw: string): ExtractedFood {

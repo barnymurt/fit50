@@ -2,14 +2,16 @@
 //
 // Photo of a nutrition label → structured macros. The user captures
 // an image (mobile camera, desktop file picker, drag-and-drop, or
-// paste); the server pre-processes it with sharp, then routes to
-// one of two paths based on the user's stored LLM provider:
+// paste); the server pre-processes it with sharp, uploads it to
+// Supabase Storage, then routes to one of two paths based on the
+// user's stored LLM provider:
 //
-//   1. Vision-direct (OpenAI / Anthropic / Gemini): send the bytes
-//      straight to the user's vision-capable model. One round-trip.
-//   2. OCR + text (DeepSeek / MiniMax / Perplexity): call HF
-//      Inference for GOT-OCR-2.0, then forward the extracted text
-//      to the existing extractMacros() path.
+//   1. Vision-direct (OpenAI / Anthropic / Gemini / Perplexity):
+//      pass the photo URL to the user's vision-capable model. The
+//      provider fetches the URL itself. One round-trip.
+//   2. OCR + text (DeepSeek / MiniMax): the URL is passed to
+//      Hugging Face GOT-OCR-2.0; the OCR'd description goes
+//      through the existing extractMacros() text path.
 //
 // In both cases the response shape is identical (same ExtractedFood
 // JSON as the typed-description /extract route), so the client uses
@@ -28,6 +30,7 @@ import {
   type LLMProvider,
 } from '@/lib/llm/extract';
 import { PROVIDERS } from '@/lib/llm/providers';
+import { uploadImageForExtraction } from '@/lib/photo-upload';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -161,6 +164,31 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // Upload once to Supabase Storage. Both the LLM provider and the
+  // HF OCR fallback fetch this URL — saves us from having to upload
+  // twice. We always go through this path even for text-only
+  // providers since HF's Inference API accepts image URLs directly.
+  let photo: { url: string };
+  try {
+    photo = await uploadImageForExtraction(
+      admin,
+      user.id,
+      processed.bytes,
+      processed.mime
+    );
+  } catch (err) {
+    console.error('photo: storage upload failed', err);
+    return NextResponse.json(
+      {
+        error:
+          err instanceof Error
+            ? err.message
+            : 'Could not upload the photo for processing.',
+      },
+      { status: 500 }
+    );
+  }
+
   // BYOK: read the user's own LLM key + provider. We never see or
   // touch the user's HF_API_KEY — that's a server-side env var
   // (read below) used only when the provider can't read images.
@@ -189,7 +217,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const result = await extractMacrosFromImage(
-      processed.bytes,
+      photo.url,
       processed.mime,
       apiKey,
       provider,

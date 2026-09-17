@@ -4,11 +4,16 @@
 // provider a one-line change in `providers.ts` + an adapter.
 //
 // Photo path: `extractMacrosFromImage` decides between vision-direct
-// (send the bytes straight to the user's vision-capable LLM) and
+// (send the photo URL to the user's vision-capable LLM) and
 // OCR-then-text (call HF Inference for GOT-OCR-2, then re-enter
 // the text path) based on whether the user's stored provider is in
 // `VISION_CAPABLE_PROVIDERS`. The result shape is identical, so the
 // route treats both paths the same.
+//
+// The route uploads the photo to Supabase Storage once and passes
+// the public URL here. Vision-capable providers all accept image
+// URLs (image_url / source.url / file_data.file_uri), so we don't
+// have to base64-anything into the request body.
 
 import type { ExtractedFood, LLMProvider, OCRResult } from './types';
 import { PROVIDERS } from './providers';
@@ -64,7 +69,8 @@ export async function extractMacros(
 
 // Result of the vision-vs-OCR dispatch — the route uses
 // `extractor` to surface which path was taken so the client can
-// show "Read by your vision model" vs "OCR + your text model".
+// show "Read by your vision model" vs "OCR'd + parsed by your
+// text model".
 export type VisionPath = 'vision' | 'ocr-then-text';
 
 export interface ImageExtractResult {
@@ -74,12 +80,16 @@ export interface ImageExtractResult {
   ocr?: OCRResult;
 }
 
-/** Photo entry point. `apiKey` is the user's BYOK LLM key.
- *  `hfApiKey` is the HF Inference API key (server env) used for OCR
- *  on text-only providers. The function never asks the user for the
- *  HF key — it's a server-side env var. */
+/** Photo entry point. `imageUrl` is the public URL of the
+ *  Supabase Storage object the route uploaded; `apiKey` is the
+ *  user's BYOK LLM key; `hfApiKey` is the HF Inference API key
+ *  (server env) used for OCR on text-only providers. The function
+ *  never asks the user for the HF key — it's a server-side env var.
+ *
+ *  The `mime` parameter is only used for logging. The providers all
+ *  fetch the URL themselves and infer the format from the bytes. */
 export async function extractMacrosFromImage(
-  imageBytes: Uint8Array,
+  imageUrl: string,
   mime: 'image/jpeg' | 'image/png' | 'image/webp',
   apiKey: string,
   provider: LLMProvider,
@@ -90,7 +100,7 @@ export async function extractMacrosFromImage(
   if (VISION_CAPABLE_PROVIDERS.has(provider)) {
     const food = await callVisionAdapter(
       provider,
-      imageBytes,
+      imageUrl,
       mime,
       apiKey,
       extras
@@ -107,7 +117,7 @@ export async function extractMacrosFromImage(
       `Provider ${provider} doesn't support image inputs and no HF_API_KEY is configured for the OCR fallback. Add an OpenAI / Anthropic / Gemini key, or contact support.`
     );
   }
-  const ocr = await hfOcr(imageBytes, hfApiKey);
+  const ocr = await hfOcr(imageUrl, hfApiKey);
   // Cap the OCR'd text at the same 1000-char limit the typed path
   // enforces — long OCR transcripts can blow past the LLM context
   // window. Trim from the start if it overshoots (the nutrition
@@ -118,7 +128,7 @@ export async function extractMacrosFromImage(
   const food = await extractMacros(
     cappedDescription,
     apiKey,
-    provider,
+  provider,
     extras
   );
   return { food, path: 'ocr-then-text', ocr };
@@ -126,7 +136,7 @@ export async function extractMacrosFromImage(
 
 async function callVisionAdapter(
   provider: LLMProvider,
-  imageBytes: Uint8Array,
+  imageUrl: string,
   mime: 'image/jpeg' | 'image/png' | 'image/webp',
   apiKey: string,
   extras: ExtractExtras
@@ -138,7 +148,7 @@ async function callVisionAdapter(
     return openaiCompatExtractImage({
       config: PROVIDERS.openai,
       apiKey,
-      imageBytes,
+      imageUrl,
       mime,
     });
   }
@@ -153,7 +163,7 @@ async function callVisionAdapter(
     return anthropicExtractImage({
       config,
       apiKey,
-      imageBytes,
+      imageUrl,
       mime,
     });
   }
@@ -161,7 +171,7 @@ async function callVisionAdapter(
     return geminiExtractImage({
       config: PROVIDERS.gemini,
       apiKey,
-      imageBytes,
+      imageUrl,
       mime,
     });
   }

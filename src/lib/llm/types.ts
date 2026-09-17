@@ -87,6 +87,7 @@ export const VISION_CAPABLE_PROVIDERS: ReadonlySet<LLMProvider> = new Set([
   'openai', // gpt-4o-mini supports image_url content parts
   'anthropic', // claude-3-5-haiku accepts image source blocks
   'gemini', // gemini-1.5-flash accepts inline_data parts
+  'perplexity', // sonar accepts image URLs as remote_file inputs
 ]);
 
 // HF-hosted OCR — used as the vision fallback for non-vision-capable

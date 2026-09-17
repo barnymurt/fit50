@@ -111,7 +111,7 @@ export default function PhotoFoodScan({ onExtracted, disabled, disabledReason }:
         // Mirror the typed-description flow's "no key" surfacing.
         if (res.status === 412 || data.code === 'no_llm_key') {
           setError(
-            'Add your LLM key below to enable photo scanning.'
+            'Add your AI key below first — then you can scan food labels with your phone camera.'
           );
           setExtracting(false);
           return;
@@ -119,7 +119,7 @@ export default function PhotoFoodScan({ onExtracted, disabled, disabledReason }:
         if (res.status === 503 || data.code === 'no_ocr_provider') {
           setError(
             data.error ||
-              "Your LLM provider doesn't read images and no OCR service is configured. Add an OpenAI / Anthropic / Gemini key."
+              "Your chosen provider can't read photos. Try switching to OpenAI, Anthropic, Gemini, or Perplexity — they all handle food label photos directly."
           );
           setExtracting(false);
           return;
@@ -180,9 +180,10 @@ export default function PhotoFoodScan({ onExtracted, disabled, disabledReason }:
         <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-2">
           📷 Scan the label
         </p>
-        <p className="font-body text-caption text-ink/60">
-          {disabledReason ||
-            'Add your LLM key below to enable photo scanning.'}
+        <p className="font-body text-sm text-ink/70 leading-relaxed">
+          Snap a photo of any food label and we'll read the macros for you.
+          Add your AI key below to unlock this — it takes about 2 minutes and
+          you won't need to squint at tiny print again.
         </p>
       </div>
     );

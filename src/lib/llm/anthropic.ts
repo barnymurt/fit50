@@ -22,14 +22,19 @@ interface ExtractArgs {
 
 // Photo path — supply an image instead of (or alongside) text.
 // Anthropic vision: image goes in `messages[].content` as a
-// `{type: 'image', source: {type: 'base64', media_type, data}}`
-// block; text goes alongside as `{type: 'text', text}`. The model
-// sees both blocks together.
+// `{type: 'image', source: {type: 'url', url}}` block; text goes
+// alongside as `{type: 'text', text}`. The model sees both blocks
+// together. Anthropic fetches the URL itself, so the photo route
+// uploads to Supabase Storage first.
 interface ExtractImageArgs {
   config: LLMConfig;
   apiKey: string;
-  imageBytes: Uint8Array;
+  /** Public URL of the photo on Supabase Storage. */
+  imageUrl: string;
+  /** MIME for logging only — Anthropic fetches the URL itself. */
   mime: 'image/jpeg' | 'image/png' | 'image/webp';
+  /** Optional caption (e.g. "OCR'd text below"). Concatenated as a
+   *  text part before the image so the model uses it as context. */
   caption?: string;
 }
 
@@ -51,7 +56,7 @@ export async function anthropicExtract({
 export async function anthropicExtractImage({
   config,
   apiKey,
-  imageBytes,
+  imageUrl,
   mime,
   caption,
 }: ExtractImageArgs): Promise<ExtractedFood> {
@@ -60,9 +65,8 @@ export async function anthropicExtractImage({
   content.push({
     type: 'image',
     source: {
-      type: 'base64',
-      media_type: mime,
-      data: bytesToBase64(imageBytes),
+      type: 'url',
+      url: imageUrl,
     },
   });
   return callAnthropic({
@@ -129,17 +133,6 @@ async function callAnthropic({
     .join('');
   if (!text) throw new Error(`${config.name} returned no text content.`);
   return parseAndSanitize(text);
-}
-
-function bytesToBase64(bytes: Uint8Array): string {
-  if (typeof Buffer !== 'undefined') {
-    return Buffer.from(bytes).toString('base64');
-  }
-  let binary = '';
-  for (let i = 0; i < bytes.byteLength; i++) {
-    binary += String.fromCharCode(bytes[i]!);
-  }
-  return btoa(binary);
 }
 
 function parseAndSanitize(raw: string): ExtractedFood {

@@ -3,10 +3,11 @@
 // Korean text, handles dense nutrition panels well, free tier
 // covers the volumes a single-user BYOK app sees.
 //
-// The endpoint POSTs raw image bytes (multipart) and returns
-// JSON: `{generated_text: string}` on success, or an `error`
-// field when the model is loading (HF cold-starts the model on
-// first hit — typically 5-20s — and returns 503 with a retry hint).
+// The endpoint accepts image inputs either as multipart/form-data
+// or as a JSON payload with `inputs.image` set to a URL or base64
+// string. We pass the Supabase Storage URL the photo route
+// already uploaded to — HF fetches it from Supabase and runs OCR
+// in their infra. JSON is cleaner than multipart for this case.
 //
 // Auth: HF API key in `Authorization: Bearer ${HF_API_KEY}`. The
 // server reads the key from env at request time so it can be
@@ -24,7 +25,7 @@ interface HFOCRResponse {
 }
 
 export async function hfOcr(
-  imageBytes: Uint8Array,
+  imageUrl: string,
   apiKey: string | null,
   model: HFOCRProvider = 'hf-got-ocr-2',
 ): Promise<OCRResult> {
@@ -40,27 +41,17 @@ export async function hfOcr(
 
   let res: Response;
   try {
-    // HF Inference expects multipart/form-data with the image under
-    // the `inputs` field. We construct the body by hand so we don't
-    // need to pull in a multipart lib — the image is the only field
-    // and we know its bytes.
-    //
-    // TS strictness: Node's Uint8Array<ArrayBufferLike> isn't
-    // directly assignable to BlobPart (which wants
-    // Uint8Array<ArrayBuffer>), so we copy into a fresh
-    // ArrayBuffer-backed view first. Cheap at our sizes (≤1024px JPEG).
-    const fd = new FormData();
-    const view = new Uint8Array(new ArrayBuffer(imageBytes.byteLength));
-    view.set(imageBytes);
-    fd.append(
-      'inputs',
-      new Blob([view], { type: 'image/jpeg' }),
-      'photo.jpg'
-    );
+    // HF Inference accepts a JSON payload with `inputs.image` set to
+    // a URL (Supabase Storage public URL) — HF fetches it server-side.
     res = await fetch(url, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${apiKey}` },
-      body: fd,
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        inputs: { image: imageUrl },
+      }),
       signal: controller.signal,
     });
   } catch (err) {
