@@ -270,16 +270,6 @@ export async function POST(req: NextRequest) {
         groqApiKey,
         'groq'
       );
-      if (food.kcal === 0 && food.protein === 0 && food.carbs === 0 && food.fat === 0) {
-        return NextResponse.json(
-          {
-            error:
-              "Couldn't read any macros from that photo. Try a clearer shot of a nutrition label — ideally with the label flat and in focus.",
-            code: 'no_macros_detected',
-          },
-          { status: 422 }
-        );
-      }
       return NextResponse.json({
         ok: true,
         food,
