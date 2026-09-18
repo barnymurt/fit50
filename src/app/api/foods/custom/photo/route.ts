@@ -3,21 +3,15 @@
 // Photo of a nutrition label → structured macros. The user captures
 // an image (mobile camera, desktop file picker, drag-and-drop, or
 // paste); the server pre-processes it with sharp, uploads it to
-// Supabase Storage, then routes to one of two paths based on the
-// user's stored LLM provider:
+// Supabase Storage, then routes to one of three paths:
 //
-//   1. Vision-direct (OpenAI / Anthropic / Gemini / Perplexity):
-//      pass the photo URL to the user's vision-capable model. The
-//      provider fetches the URL itself. One round-trip.
-//   2. OCR + text (DeepSeek / MiniMax): the URL is passed to
-//      Hugging Face GOT-OCR-2.0; the OCR'd description goes
-//      through the existing extractMacros() text path.
-//
-// In both cases the response shape is identical (same ExtractedFood
-// JSON as the typed-description /extract route), so the client uses
-// the same modal pre-fill flow. `path` + `ocr_provider` tell the
-// client which pipeline ran — handy for "Read by your vision model"
-// vs "OCR'd + parsed by your text model" copy.
+//   1. Vision-direct (user's own key, vision-capable provider):
+//      pass the photo URL to the user's vision-capable model. One
+//      round-trip. Highest quality for users with their own key.
+//   2. Premium fallback (no user key, GROQ_API_KEY set server-side):
+//      HF OCR → groq parses the text into structured macros. No
+//      user key needed — included with premium.
+//   3. Non-premium without a key: returns 412 asking for a key.
 //
 // Auth: Bearer-token via Authorization header (same as /extract).
 // Rate limit: 30 req / 60s per user (same as /extract).
@@ -27,8 +21,10 @@ import sharp from 'sharp';
 import { authedUserFromRequest } from '@/lib/auth-server';
 import {
   extractMacrosFromImage,
+  extractMacros,
   type LLMProvider,
 } from '@/lib/llm/extract';
+import { hfOcr } from '@/lib/llm/hf-ocr';
 import { PROVIDERS } from '@/lib/llm/providers';
 import { uploadImageForExtraction } from '@/lib/photo-upload';
 
@@ -189,68 +185,106 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // BYOK: read the user's own LLM key + provider. We never see or
-  // touch the user's HF_API_KEY — that's a server-side env var
-  // (read below) used only when the provider can't read images.
+  // BYOK: read the user's own LLM key + provider + premium status.
+  // We never see or touch the user's HF_API_KEY — that's a server-
+  // side env var (read below) used only for the premium fallback.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: profile } = await (admin.from('profiles') as any)
-    .select('llm_api_key, llm_provider, anthropic_workspace_id')
+    .select('llm_api_key, llm_provider, anthropic_workspace_id, is_premium')
     .eq('id', user.id)
     .maybeSingle();
   const apiKey = (profile?.llm_api_key as string | null) ?? null;
   const provider = (profile?.llm_provider as LLMProvider | null) ?? 'openai';
   const anthropicWorkspaceId =
     (profile?.anthropic_workspace_id as string | null) ?? null;
-
-  if (!apiKey) {
-    return NextResponse.json(
-      {
-        error:
-          "No LLM key on file. Add one in the food panel or via /api/account/llm-key.",
-        code: 'no_llm_key',
-      },
-      { status: 412 }
-    );
-  }
-
+  const isPremium = profile?.is_premium === true;
   const hfApiKey = process.env.HF_API_KEY ?? null;
+  const groqApiKey = process.env.GROQ_API_KEY ?? null;
 
-  try {
-    const result = await extractMacrosFromImage(
-      photo.url,
-      processed.mime,
-      apiKey,
-      provider,
-      { ...(anthropicWorkspaceId ? { anthropicWorkspaceId } : {}) },
-      hfApiKey
-    );
-    return NextResponse.json({
-      ok: true,
-      food: result.food,
-      provider,
-      provider_name: PROVIDERS[provider]?.name ?? provider,
-      path: result.path,
-      ocr_provider: result.ocr?.provider ?? null,
-      ocr_text: result.ocr?.text ?? null,
-    });
-  } catch (err) {
-    console.error('photo: extract failed', err);
-    // The text-only providers need HF_API_KEY. The extract layer
-    // throws a plain Error in that case — surface it as a 503 so
-    // the client knows to ask the user to add a vision-capable key.
-    const message =
-      err instanceof Error ? err.message : 'Extraction failed.';
-    const isOcrMissing =
-      hfApiKey === null &&
-      message.includes("doesn't support image inputs");
-    return NextResponse.json(
-      {
-        error: message,
-        ...(isOcrMissing
-          ? { code: 'no_ocr_provider' }
-          : {}),
-      },
-      { status: isOcrMissing ? 503 : 502 }
-    );
+  // Path 1: user has their own LLM key → vision-direct (or OCR
+  // fallback if their provider isn't vision-capable).
+  if (apiKey) {
+    try {
+      const result = await extractMacrosFromImage(
+        photo.url,
+        processed.mime,
+        apiKey,
+        provider,
+        { ...(anthropicWorkspaceId ? { anthropicWorkspaceId } : {}) },
+        hfApiKey
+      );
+      return NextResponse.json({
+        ok: true,
+        food: result.food,
+        provider,
+        provider_name: PROVIDERS[provider]?.name ?? provider,
+        path: result.path,
+        ocr_provider: result.ocr?.provider ?? null,
+        ocr_text: result.ocr?.text ?? null,
+      });
+    } catch (err) {
+      console.error('photo: BYOK extract failed', err);
+      const message = err instanceof Error ? err.message : 'Extraction failed.';
+      const isOcrMissing =
+        hfApiKey === null && message.includes("doesn't support image inputs");
+      return NextResponse.json(
+        { error: message, ...(isOcrMissing ? { code: 'no_ocr_provider' } : {}) },
+        { status: isOcrMissing ? 503 : 502 }
+      );
+    }
   }
+
+  // Path 2: premium user, no own key, server has Groq → HF OCR + Groq.
+  if (isPremium && groqApiKey) {
+    if (!hfApiKey) {
+      return NextResponse.json(
+        {
+          error:
+            'Photo scan is temporarily unavailable — the OCR service is not configured. Contact support.',
+          code: 'no_ocr_provider',
+        },
+        { status: 503 }
+      );
+    }
+    try {
+      const ocr = await hfOcr(photo.url, hfApiKey);
+      const cappedDescription =
+        ocr.text.length > 1000 ? ocr.text.slice(-1000) : ocr.text;
+      const food = await extractMacros(
+        cappedDescription,
+        groqApiKey,
+        'groq'
+      );
+      return NextResponse.json({
+        ok: true,
+        food,
+        provider: 'groq',
+        provider_name: 'Groq (premium)',
+        path: 'ocr-then-text',
+        ocr_provider: ocr.provider,
+        ocr_text: ocr.text,
+      });
+    } catch (err) {
+      console.error('photo: premium OCR fallback failed', err);
+      return NextResponse.json(
+        {
+          error:
+            err instanceof Error
+              ? err.message
+              : 'Photo scan failed. Try again or add your own LLM key for more reliable results.',
+        },
+        { status: 502 }
+      );
+    }
+  }
+
+  // Path 3: non-premium without a key → ask them to add one.
+  return NextResponse.json(
+    {
+      error:
+        "Add your AI key below to unlock photo scanning. OpenAI, Anthropic, Gemini, and Perplexity all support photo scanning.",
+      code: 'no_llm_key',
+    },
+    { status: 412 }
+  );
 }

@@ -9,7 +9,8 @@ export type LLMProvider =
   | 'gemini'
   | 'deepseek'
   | 'minimax'
-  | 'perplexity';
+  | 'perplexity'
+  | 'groq';
 
 export interface LLMConfig {
   /** Display name for the UI. */
