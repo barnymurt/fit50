@@ -263,21 +263,6 @@ export async function POST(req: NextRequest) {
     }
     try {
       const ocr = await hfOcr(photo.url, hfApiKey);
-      if (
-        /reference|legend|multilingual|declaration|rgulate|regulatory|nutrient\s+table/i.test(
-          ocr.text
-        ) &&
-        !/\d+\s*[ck]cal/i.test(ocr.text)
-      ) {
-        return NextResponse.json(
-          {
-            error:
-              "That looks like a nutrition reference table, not a food label. Try snapping a photo of an actual product's nutrition label instead.",
-            code: 'not_a_food_label',
-          },
-          { status: 422 }
-        );
-      }
       const cappedDescription =
         ocr.text.length > 1000 ? ocr.text.slice(-1000) : ocr.text;
       const food = await extractMacros(
