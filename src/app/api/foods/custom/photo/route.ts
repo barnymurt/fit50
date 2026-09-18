@@ -248,6 +248,21 @@ export async function POST(req: NextRequest) {
     }
     try {
       const ocr = await hfOcr(photo.url, hfApiKey);
+      if (
+        /reference|legend|multilingual|declaration|rgulate|regulatory|nutrient\s+table/i.test(
+          ocr.text
+        ) &&
+        !/\d+\s*[ck]cal/i.test(ocr.text)
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "That looks like a nutrition reference table, not a food label. Try snapping a photo of an actual product's nutrition label instead.",
+            code: 'not_a_food_label',
+          },
+          { status: 422 }
+        );
+      }
       const cappedDescription =
         ocr.text.length > 1000 ? ocr.text.slice(-1000) : ocr.text;
       const food = await extractMacros(
@@ -255,6 +270,16 @@ export async function POST(req: NextRequest) {
         groqApiKey,
         'groq'
       );
+      if (food.kcal === 0 && food.protein === 0 && food.carbs === 0 && food.fat === 0) {
+        return NextResponse.json(
+          {
+            error:
+              "Couldn't read any macros from that photo. Try a clearer shot of a nutrition label — ideally with the label flat and in focus.",
+            code: 'no_macros_detected',
+          },
+          { status: 422 }
+        );
+      }
       return NextResponse.json({
         ok: true,
         food,
