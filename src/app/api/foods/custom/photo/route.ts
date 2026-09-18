@@ -26,6 +26,7 @@ import {
 } from '@/lib/llm/extract';
 import { hfOcr } from '@/lib/llm/hf-ocr';
 import { PROVIDERS } from '@/lib/llm/providers';
+import { VISION_CAPABLE_PROVIDERS } from '@/lib/llm/types';
 import { uploadImageForExtraction } from '@/lib/photo-upload';
 
 export const runtime = 'nodejs';
@@ -204,6 +205,20 @@ export async function POST(req: NextRequest) {
   // Path 1: user has their own LLM key → vision-direct (or OCR
   // fallback if their provider isn't vision-capable).
   if (apiKey) {
+    // Guard against text-only providers that can't handle images.
+    // The extract layer will fail anyway, but with a confusing API
+    // error — catch it here with a clear message instead.
+    if (!VISION_CAPABLE_PROVIDERS.has(provider)) {
+      const providerName = PROVIDERS[provider]?.name ?? provider;
+      return NextResponse.json(
+        {
+          error:
+            `${providerName} can't read food label photos directly. Switch to OpenAI, Anthropic, Gemini, or Perplexity for photo scanning — or add your AI key for premium photo scanning.`,
+          code: 'provider_not_vision_capable',
+        },
+        { status: 422 }
+      );
+    }
     try {
       const result = await extractMacrosFromImage(
         photo.url,
