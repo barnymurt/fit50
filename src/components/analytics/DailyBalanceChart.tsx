@@ -120,7 +120,7 @@ export default function DailyBalanceChart({
     .filter(({ i }) => i === 0 || i === loggedDays.length - 1 || i % xTickStep === 0);
 
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto" style={{ minWidth: '320px' }}>
       <svg
         viewBox={`0 0 ${W} ${H}`}
         className="w-full block"

@@ -40,10 +40,12 @@ export default function DeficitStreakCalendar({
 
   return (
     <div className="space-y-2">
+      <div className="overflow-x-auto">
       <div
         className="grid gap-1.5"
         style={{
           gridTemplateColumns: `repeat(${cols}, ${CELL_SIZE}px)`,
+          minWidth: `${cols * (CELL_SIZE + 6)}px`,
         }}
       >
         {Array.from({ length: rows * cols }).map((_, idx) => {
@@ -65,6 +67,7 @@ export default function DeficitStreakCalendar({
             />
           );
         })}
+      </div>
       </div>
       <div className="flex gap-4 flex-wrap">
         <span className="flex items-center gap-1.5">
