@@ -342,6 +342,7 @@ export default function AccountPage() {
                 { id: 'food-database', label: 'Foods' },
                 { id: 'todo', label: 'To-do' },
                 { id: 'board', label: 'Board' },
+                { id: 'analytics', label: 'Analytics' },
               ]
             : []),
         ]}
@@ -353,7 +354,7 @@ export default function AccountPage() {
           // Premium-only sections stay hidden (not just unrendered)
           // for free users so the layout doesn't waste a render slot.
           if (!profile?.is_premium) {
-            return !['hydration', 'food-database', 'todo', 'board', 'timer'].includes(id);
+            return !['hydration', 'food-database', 'todo', 'board', 'timer', 'analytics'].includes(id);
           }
           return true;
         })
