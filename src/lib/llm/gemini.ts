@@ -18,6 +18,24 @@ interface ExtractArgs {
   apiKey: string;
 }
 
+// Photo path — supply an image instead of (or alongside) text.
+// Gemini vision: image goes in `parts[]` as
+// `{file_data: {fileUri, mime_type}}` — Gemini fetches the URL
+// itself, so the photo route uploads to Supabase Storage first
+// and passes the public URL here. Text parts are siblings in the
+// same `parts[]` array.
+interface ExtractImageArgs {
+  config: LLMConfig;
+  apiKey: string;
+  /** Public URL of the photo on Supabase Storage. */
+  imageUrl: string;
+  /** MIME for logging only — Gemini fetches the URL itself. */
+  mime: 'image/jpeg' | 'image/png' | 'image/webp';
+  /** Optional caption (e.g. "OCR'd text below"). Concatenated as a
+   *  text part before the image so the model uses it as context. */
+  caption?: string;
+}
+
 export async function geminiExtract({
   config,
   description,
@@ -26,6 +44,44 @@ export async function geminiExtract({
   if (description.length > MAX_DESCRIPTION_LEN) {
     throw new Error(`description too long (max ${MAX_DESCRIPTION_LEN} chars).`);
   }
+  return callGemini({
+    config,
+    apiKey,
+    userParts: [{ text: description }],
+  });
+}
+
+export async function geminiExtractImage({
+  config,
+  apiKey,
+  imageUrl,
+  mime,
+  caption,
+}: ExtractImageArgs): Promise<ExtractedFood> {
+  const parts: Array<Record<string, unknown>> = [];
+  if (caption) parts.push({ text: caption });
+  parts.push({
+    file_data: {
+      file_uri: imageUrl,
+      mime_type: mime,
+    },
+  });
+  return callGemini({
+    config,
+    apiKey,
+    userParts: parts,
+  });
+}
+
+async function callGemini({
+  config,
+  apiKey,
+  userParts,
+}: {
+  config: LLMConfig;
+  apiKey: string;
+  userParts: Array<Record<string, unknown>>;
+}): Promise<ExtractedFood> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
@@ -37,9 +93,7 @@ export async function geminiExtract({
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [
-          { role: 'user', parts: [{ text: description }] },
-        ],
+        contents: [{ role: 'user', parts: userParts }],
         systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
         generationConfig: {
           temperature: 0.2,

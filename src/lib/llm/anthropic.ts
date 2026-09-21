@@ -20,6 +20,24 @@ interface ExtractArgs {
   apiKey: string;
 }
 
+// Photo path — supply an image instead of (or alongside) text.
+// Anthropic vision: image goes in `messages[].content` as a
+// `{type: 'image', source: {type: 'url', url}}` block; text goes
+// alongside as `{type: 'text', text}`. The model sees both blocks
+// together. Anthropic fetches the URL itself, so the photo route
+// uploads to Supabase Storage first.
+interface ExtractImageArgs {
+  config: LLMConfig;
+  apiKey: string;
+  /** Public URL of the photo on Supabase Storage. */
+  imageUrl: string;
+  /** MIME for logging only — Anthropic fetches the URL itself. */
+  mime: 'image/jpeg' | 'image/png' | 'image/webp';
+  /** Optional caption (e.g. "OCR'd text below"). Concatenated as a
+   *  text part before the image so the model uses it as context. */
+  caption?: string;
+}
+
 export async function anthropicExtract({
   config,
   description,
@@ -28,6 +46,45 @@ export async function anthropicExtract({
   if (description.length > MAX_DESCRIPTION_LEN) {
     throw new Error(`description too long (max ${MAX_DESCRIPTION_LEN} chars).`);
   }
+  return callAnthropic({
+    config,
+    apiKey,
+    userContent: [{ type: 'text', text: description }],
+  });
+}
+
+export async function anthropicExtractImage({
+  config,
+  apiKey,
+  imageUrl,
+  mime,
+  caption,
+}: ExtractImageArgs): Promise<ExtractedFood> {
+  const content: Array<Record<string, unknown>> = [];
+  if (caption) content.push({ type: 'text', text: caption });
+  content.push({
+    type: 'image',
+    source: {
+      type: 'url',
+      url: imageUrl,
+    },
+  });
+  return callAnthropic({
+    config,
+    apiKey,
+    userContent: content,
+  });
+}
+
+async function callAnthropic({
+  config,
+  apiKey,
+  userContent,
+}: {
+  config: LLMConfig;
+  apiKey: string;
+  userContent: Array<Record<string, unknown>>;
+}): Promise<ExtractedFood> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
@@ -47,7 +104,7 @@ export async function anthropicExtract({
         max_tokens: MAX_TOKENS,
         temperature: 0.2,
         system: SYSTEM_PROMPT,
-        messages: [{ role: 'user', content: description }],
+        messages: [{ role: 'user', content: userContent }],
       }),
       signal: controller.signal,
     });

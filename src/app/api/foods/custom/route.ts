@@ -37,6 +37,10 @@ interface CreateBody {
   aliases?: unknown;
   source?: unknown;
   submit_to_community?: unknown;
+  /** Photo-flow only. Raw OCR text from the label image so the
+   *  user can audit what the model saw when confidence is low.
+   *  Never sent back to the LLM as a prompt. Capped at 4 KB. */
+  description?: unknown;
 }
 
 const MAX_NAME = 120;
@@ -46,6 +50,7 @@ const MAX_SUBCATEGORY = 60;
 const MAX_LABEL = 40;
 const MAX_ALIASES = 12;
 const ALIAS_MAX = 60;
+const MAX_DESCRIPTION = 4096;
 
 function bad(message: string, status = 400) {
   return NextResponse.json({ error: message }, { status });
@@ -115,6 +120,7 @@ export async function POST(req: NextRequest) {
   let aliases: string[];
   let source: 'manual' | 'llm';
   let submitToCommunity: boolean;
+  let description: string | null;
 
   try {
     const n = asString(body.name, MAX_NAME, 'name');
@@ -140,6 +146,10 @@ export async function POST(req: NextRequest) {
     aliases = asAliases(body.aliases);
     source = body.source === 'llm' ? 'llm' : 'manual';
     submitToCommunity = asBool(body.submit_to_community);
+    const descRaw = asString(body.description, MAX_DESCRIPTION, 'description');
+    // Hard-cap the description even when the caller lied about
+    // length — better to truncate than to reject a save.
+    description = descRaw ? descRaw.slice(0, MAX_DESCRIPTION) : null;
   } catch (err) {
     return bad((err as Error).message);
   }
@@ -174,6 +184,7 @@ export async function POST(req: NextRequest) {
       source,
       submission_status,
       submitted_at,
+      description,
     })
     .select('*')
     .single();

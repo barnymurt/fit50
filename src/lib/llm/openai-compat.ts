@@ -18,6 +18,24 @@ interface ExtractArgs {
   apiKey: string;
 }
 
+// Photo path — supply an image instead of (or alongside) the text
+// description. The route uploads the photo to Supabase Storage and
+// passes the public URL here; OpenAI-compat providers all accept
+// `image_url` with a public URL. Any text in `caption` is sent as
+// an extra user-content part (used when the route has both an image
+// and an OCR'd description it wants to feed alongside).
+interface ExtractImageArgs {
+  config: LLMConfig;
+  apiKey: string;
+  /** Public URL of the photo on Supabase Storage. */
+  imageUrl: string;
+  /** MIME for logging only — the provider fetches the URL itself. */
+  mime: 'image/jpeg' | 'image/png' | 'image/webp';
+  /** Optional caption (e.g. "OCR'd text below"). Concatenated as a
+   *  text part before the image so the model uses it as context. */
+  caption?: string;
+}
+
 export async function openaiCompatExtract({
   config,
   description,
@@ -26,6 +44,51 @@ export async function openaiCompatExtract({
   if (description.length > MAX_DESCRIPTION_LEN) {
     throw new Error(`description too long (max ${MAX_DESCRIPTION_LEN} chars).`);
   }
+  return callOpenAICompat({
+    config,
+    apiKey,
+    userContent: [{ type: 'text', text: description }],
+  });
+}
+
+export async function openaiCompatExtractImage({
+  config,
+  apiKey,
+  imageUrl,
+  mime,
+  caption,
+}: ExtractImageArgs): Promise<ExtractedFood> {
+  const content: Array<Record<string, unknown>> = [];
+  if (caption) content.push({ type: 'text', text: caption });
+  content.push({
+    type: 'image_url',
+    image_url: {
+      url: imageUrl,
+      // 'auto' lets the provider pick the best tile size based on
+      // the image dimensions. 'high' would burn more tokens for the
+      // same accuracy on a small nutrition panel.
+      detail: 'auto',
+    },
+  });
+  return callOpenAICompat({
+    config,
+    apiKey,
+    userContent: content,
+  });
+}
+
+// Shared request body / response parsing. Both the text and image
+// paths funnel through here so the JSON sanitiser + error
+// handling is in one place.
+async function callOpenAICompat({
+  config,
+  apiKey,
+  userContent,
+}: {
+  config: LLMConfig;
+  apiKey: string;
+  userContent: Array<Record<string, unknown>>;
+}): Promise<ExtractedFood> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
@@ -43,7 +106,7 @@ export async function openaiCompatExtract({
         response_format: { type: 'json_object' },
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
-          { role: 'user', content: description },
+          { role: 'user', content: userContent },
         ],
       }),
       signal: controller.signal,
