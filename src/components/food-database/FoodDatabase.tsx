@@ -12,8 +12,10 @@ import FoodSearch from './FoodSearch';
 import FoodDetail from './FoodDetail';
 import MyCustomFoodsPanel from './MyCustomFoodsPanel';
 import Modal from '@/components/Modal';
+import AnalyticsScreen from '@/components/analytics/AnalyticsScreen';
+import { useTrackerState } from '@/hooks/useTrackerState';
 
-type FoodTab = 'logged' | 'search' | 'myfoods';
+type FoodTab = 'logged' | 'search' | 'myfoods' | 'analytics';
 
 interface Props {
   targets: MacroTargets | null;
@@ -235,6 +237,7 @@ const MEAL_OPTIONS: { value: Meal; label: string }[] = [
 ];
 
 export default function FoodDatabase({ targets }: Props) {
+  const { startDate } = useTrackerState();
   const {
     todayEntries,
     todayTotals,
@@ -1185,6 +1188,8 @@ export default function FoodDatabase({ targets }: Props) {
           favorites={favoriteIds}
           onPickFood={handlePickFood}
         />
+      ) : tab === 'analytics' ? (
+        <AnalyticsScreen startDate={startDate} />
       ) : (
         <MyCustomFoodsPanel onPickFood={handlePickFood} />
       )}

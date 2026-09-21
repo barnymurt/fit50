@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useFoodAnalytics, type AnalyticsRange } from '@/hooks/useFoodAnalytics';
 import Section from '@/components/Section';
 import RangePicker from '@/components/analytics/RangePicker';
@@ -12,25 +12,13 @@ import WorkoutImpactCard from '@/components/analytics/WorkoutImpactCard';
 import DeficitStreakCalendar from '@/components/analytics/DeficitStreakCalendar';
 import HabitCorrelationCard from '@/components/analytics/HabitCorrelationCard';
 
-export default function AnalyticsScreen() {
+interface AnalyticsScreenProps {
+  startDate?: string | null;
+}
+
+export default function AnalyticsScreen({ startDate: startDateProp }: AnalyticsScreenProps) {
   const [range, setRange] = useState<AnalyticsRange>('30d');
-  const [startDate, setStartDate] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('fit50-tracker-v2');
-      if (stored) {
-        try {
-          const parsed = JSON.parse(stored);
-          if (parsed.data?.startDate) setStartDate(parsed.data.startDate);
-        } catch {
-          // ignore
-        }
-      }
-    }
-  }, []);
-
-  const { loaded, days, totals } = useFoodAnalytics(range, startDate);
+  const { loaded, days, totals } = useFoodAnalytics(range, startDateProp ?? null);
 
   return (
     <div className="space-y-8">
