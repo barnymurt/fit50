@@ -573,22 +573,27 @@ function todayKey() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-const LOCAL_KEY = (date: string) => `fit50-workout-${date}`;
+const LOCAL_KEY = (date: string, grouping: Grouping) => `fit50-workout-${date}-${grouping}`;
 
-function loadWorkoutLocal(date: string) {
+function loadWorkoutLocal(date: string, grouping: Grouping) {
   if (typeof window === 'undefined') return { line: 'A' as Line, sets: {} as Record<string, number> };
   try {
-    const raw = window.localStorage.getItem(LOCAL_KEY(date));
-    if (!raw) return { line: 'A' as Line, sets: {} as Record<string, number> };
-    return JSON.parse(raw);
+    // New key (with grouping) first.
+    const raw = window.localStorage.getItem(LOCAL_KEY(date, grouping));
+    if (raw) return JSON.parse(raw);
+    // Backward-compat: fall back to old date-only key for users who
+    // had data saved before the grouping key was added.
+    const legacy = window.localStorage.getItem(`fit50-workout-${date}`);
+    if (!legacy) return { line: 'A' as Line, sets: {} as Record<string, number> };
+    return JSON.parse(legacy);
   } catch {
     return { line: 'A' as WorkoutKey, sets: {} as Record<string, number> };
   }
 }
 
-function saveWorkoutLocal(date: string, data: { line: WorkoutKey; sets: Record<string, number> }) {
+function saveWorkoutLocal(date: string, grouping: Grouping, data: { line: WorkoutKey; sets: Record<string, number> }) {
   if (typeof window === 'undefined') return;
-  window.localStorage.setItem(LOCAL_KEY(date), JSON.stringify(data));
+  window.localStorage.setItem(LOCAL_KEY(date, grouping), JSON.stringify(data));
 }
 
 async function loadWorkoutRemote(
@@ -638,20 +643,19 @@ async function saveWorkoutRemote(
   if (error) console.error('workout_log upsert failed:', error);
 }
 
-// Random-session persistence. Kept off workout_log because the
-// session spans groupings and would otherwise get split into rows
-// that get clobbered when the user switches equipment. localStorage
-// is enough for a single-day session; the randomise button can
-// always be pressed again to roll a fresh one.
-const RANDOM_SESSION_KEY = (date: string) => `fit50-random-session-${date}`;
+// Random-session persistence. Stored per-grouping so switching
+// equipment doesn't clobber the random session ticks for another
+// grouping. localStorage is enough for a single-day session; the
+// randomise button can always be pressed again to roll a fresh one.
+const RANDOM_SESSION_KEY = (date: string, grouping: Grouping) => `fit50-random-session-${date}-${grouping}`;
 
-function loadRandomSessionLocal(date: string): {
+function loadRandomSessionLocal(date: string, grouping: Grouping): {
   exercises: Exercise[];
   ticks: Record<string, number>;
 } | null {
   if (typeof window === 'undefined') return null;
   try {
-    const raw = window.localStorage.getItem(RANDOM_SESSION_KEY(date));
+    const raw = window.localStorage.getItem(RANDOM_SESSION_KEY(date, grouping));
     if (!raw) return null;
     return JSON.parse(raw);
   } catch {
@@ -661,10 +665,11 @@ function loadRandomSessionLocal(date: string): {
 
 function saveRandomSessionLocal(
   date: string,
+  grouping: Grouping,
   data: { exercises: Exercise[]; ticks: Record<string, number> }
 ) {
   if (typeof window === 'undefined') return;
-  window.localStorage.setItem(RANDOM_SESSION_KEY(date), JSON.stringify(data));
+  window.localStorage.setItem(RANDOM_SESSION_KEY(date, grouping), JSON.stringify(data));
 }
 
 // Pull the user's last 5 days of workout_log rows and collect the
@@ -825,16 +830,16 @@ export default function AccountWorkouts() {
         if (remote) {
           setKey(remote.line);
           setSets(remote.sets);
-          saveWorkoutLocal(k, remote);
+          saveWorkoutLocal(k, grouping, remote);
         } else {
-          const local = loadWorkoutLocal(k);
+          const local = loadWorkoutLocal(k, grouping);
           setKey(local.line);
           setSets(local.sets);
         }
         setHasLoaded(true);
       });
     } else {
-      const local = loadWorkoutLocal(k);
+      const local = loadWorkoutLocal(k, grouping);
       setKey(local.line);
       setSets(local.sets);
       setHasLoaded(true);
@@ -843,7 +848,7 @@ export default function AccountWorkouts() {
 
   useEffect(() => {
     if (!date || !hasLoaded) return;
-    saveWorkoutLocal(date, { line: key, sets });
+    saveWorkoutLocal(date, grouping, { line: key, sets });
     if (user && supabase) {
       saveWorkoutRemote(supabase, user.id, date, {
         line: key,
@@ -876,7 +881,7 @@ export default function AccountWorkouts() {
           grouping,
         });
       } else {
-        saveWorkoutLocal(date, { line: key, sets });
+        saveWorkoutLocal(date, grouping, { line: key, sets });
       }
       setDate(k);
       // Reset local state. The mount-effect will then load
@@ -930,13 +935,31 @@ export default function AccountWorkouts() {
     return out;
   })();
 
+  // Exercise pool scoped to the active grouping only. Used by
+  // rollRandomSession so randomising only picks exercises from
+  // the equipment the user has selected (KB / band / bodyweight).
+  const allExercisesForGrouping: Exercise[] = (() => {
+    const out: Exercise[] = [];
+    const push = (arr: Exercise[]) => arr.forEach((e) => out.push(e));
+    if (grouping === 'bodyweight') {
+      push(workoutLines.A.exercises);
+      push(workoutLines.B.exercises);
+      push(workoutLines.C.exercises);
+      push(workoutLines.D.exercises);
+    } else if (grouping === 'kettlebell') {
+      for (const line of LINES) push(kettlebellLines[line]);
+    } else if (grouping === 'band') {
+      for (const line of LINES) push(bandLines[line]);
+    }
+    return out;
+  })();
+
   // Load the random session + recently-done set on mount + when
-  // the date rolls over. Random-session state lives in localStorage
-  // because it's grouping-agnostic — workout_log is per-grouping
-  // and would clobber it on every equipment switch.
+  // the date rolls over. Random-session state is keyed per-grouping
+  // so switching equipment doesn't clobber another grouping's session.
   useEffect(() => {
     if (!date) return;
-    const local = loadRandomSessionLocal(date);
+    const local = loadRandomSessionLocal(date, grouping);
     if (local) {
       setRandomSession(local.exercises);
       setRandomSessionTicks(local.ticks);
@@ -944,23 +967,23 @@ export default function AccountWorkouts() {
     if (user && supabase) {
       loadRecentlyDoneRemote(supabase, user.id, 5).then(setRecentlyDone);
     }
-  }, [date, user, supabase]);
+  }, [date, user, supabase, grouping]);
 
   // Persist random-session state on every change. No debounce —
   // localStorage writes are cheap and the data is tiny.
   useEffect(() => {
     if (!date || randomSession.length === 0) return;
-    saveRandomSessionLocal(date, {
+    saveRandomSessionLocal(date, grouping, {
       exercises: randomSession,
       ticks: randomSessionTicks,
     });
-  }, [date, randomSession, randomSessionTicks]);
+  }, [date, randomSession, randomSessionTicks, grouping]);
 
   // Roll a fresh 5-exercise session: one exercise per movement
-  // category (push, pull, legs, core, stamina), avoiding any
-  // exercise the user has ticked in the last 5 days. If a category
-  // is empty after filtering, we fall back to the full pool for
-  // that category so the user always gets a 5-exercise session.
+  // category (push, pull, legs, core, stamina) from the ACTIVE
+  // grouping only. Avoids any exercise the user has ticked in the
+  // last 5 days. Falls back to the full active-grouping pool if
+  // a category is wiped — so the user always gets 5 exercises.
   const rollRandomSession = () => {
     const categories: Exercise['category'][] = [
       'push',
@@ -971,18 +994,17 @@ export default function AccountWorkouts() {
     ];
     const picks: Exercise[] = [];
     for (const cat of categories) {
-      const pool = allExercises.filter(
+      const pool = allExercisesForGrouping.filter(
         (e) => e.category === cat && !recentlyDone.has(e.name)
       );
-      // Fall back to the full pool if the filter wiped the
-      // category. Rare — would mean the user has done every
-      // exercise in the category in the last 5 days.
-      const source = pool.length > 0 ? pool : allExercises.filter((e) => e.category === cat);
+      const source =
+        pool.length > 0
+          ? pool
+          : allExercisesForGrouping.filter((e) => e.category === cat);
       if (source.length === 0) continue;
       picks.push(source[Math.floor(Math.random() * source.length)]);
     }
     setRandomSession(picks);
-    // Reset the tick dict — a fresh session starts at zero.
     setRandomSessionTicks({});
   };
 
@@ -1067,15 +1089,17 @@ export default function AccountWorkouts() {
   };
 
   // Auto-tick Move Your Body when the user has 5 distinct
-  // exercises at 5 sets each. Counts across all groupings because
-  // the sets dict is keyed by exercise name and exercise names
-  // don't collide across groupings (KB / band / bodyweight each
-  // have unique names). Fires on every false→true transition; if
-  // the user unticks the tile, the next time they reach 5
-  // exercises it'll re-fire.
+  // exercises at 5 sets each. Counts BOTH the line workout's `sets`
+  // AND the random session's `randomSessionTicks` so completing
+  // exercises entirely through the random session also triggers the
+  // habit. Exercise names are globally unique across groupings so
+  // there's no double-counting risk. Fires on every false→true
+  // transition; if the user unticks the tile, the next time they
+  // reach 5 exercises it'll re-fire.
   useEffect(() => {
     if (!hasLoaded || !user) return;
-    const distinctComplete = Object.values(sets).filter(
+    const allSets = { ...sets, ...randomSessionTicks };
+    const distinctComplete = Object.values(allSets).filter(
       (n) => n >= TOTAL_SETS
     ).length;
     if (
@@ -1096,7 +1120,7 @@ export default function AccountWorkouts() {
     // re-evaluate only when distinct complete count changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    Object.values(sets).filter((n) => n >= TOTAL_SETS).length,
+    Object.values({ ...sets, ...randomSessionTicks }).filter((n) => n >= TOTAL_SETS).length,
     hasLoaded,
     user,
     tracker,
