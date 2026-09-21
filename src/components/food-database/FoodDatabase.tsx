@@ -903,6 +903,18 @@ export default function FoodDatabase({ targets }: Props) {
         >
           My foods
         </button>
+        <button
+          type="button"
+          onClick={() => setTab('analytics')}
+          aria-pressed={tab === 'analytics'}
+          className={`px-4 py-2 font-body text-caption uppercase tracking-widest border-b-2 transition-colors ${
+            tab === 'analytics'
+              ? 'border-coral text-ink'
+              : 'border-transparent text-ink/50 hover:text-ink'
+          }`}
+        >
+          Analytics
+        </button>
       </div>
 
       {tab === 'logged' ? (
