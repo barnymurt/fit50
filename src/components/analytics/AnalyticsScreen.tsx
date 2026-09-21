@@ -38,7 +38,7 @@ export default function AnalyticsScreen({ startDate: startDateProp }: AnalyticsS
 
       {/* Macro breakdown bars */}
       <Section tone="teal" className="py-6">
-        <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-4">
+        <p className="font-body text-caption uppercase tracking-widest text-paper/70 mb-4">
           Macro balance vs target
         </p>
         <MacroBreakdownBars totals={totals} loaded={loaded} />

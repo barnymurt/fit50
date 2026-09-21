@@ -11,7 +11,7 @@ const CELL_SIZE = 20;
 const CELL_GAP = 3;
 
 function getColor(day: AnalyticsDay): string {
-  if (!day.hadLoggedFood) return 'bg-ink/10';
+  if (!day.hadLoggedFood) return 'bg-ink/40';
   if (day.kcalUnderOver > 0) return 'bg-teal';
   if (day.kcalUnderOver < -0) return 'bg-coral';
   return 'bg-cream';
@@ -72,25 +72,25 @@ export default function DeficitStreakCalendar({
       <div className="flex gap-4 flex-wrap">
         <span className="flex items-center gap-1.5">
           <span className="inline-block w-3 h-3 bg-teal" />
-          <span className="font-body text-caption text-ink/50 uppercase tracking-widest">
+          <span className="font-body text-caption text-paper/70 uppercase tracking-widest">
             Under
           </span>
         </span>
         <span className="flex items-center gap-1.5">
           <span className="inline-block w-3 h-3 bg-coral" />
-          <span className="font-body text-caption text-ink/50 uppercase tracking-widest">
+          <span className="font-body text-caption text-paper/70 uppercase tracking-widest">
             Over
           </span>
         </span>
         <span className="flex items-center gap-1.5">
           <span className="inline-block w-3 h-3 bg-cream" />
-          <span className="font-body text-caption text-ink/50 uppercase tracking-widest">
+          <span className="font-body text-caption text-paper/70 uppercase tracking-widest">
             On target
           </span>
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="inline-block w-3 h-3 bg-ink/10" />
-          <span className="font-body text-caption text-ink/50 uppercase tracking-widest">
+          <span className="inline-block w-3 h-3 bg-ink/40" />
+          <span className="font-body text-caption text-paper/70 uppercase tracking-widest">
             No log
           </span>
         </span>

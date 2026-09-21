@@ -3,13 +3,21 @@
 import type { AnalyticsDay, AnalyticsTotals } from '@/hooks/useFoodAnalytics';
 import { formatDateKeyShort } from '@/lib/dates';
 
+const CSS_VAR = {
+  ink: '#1A1A1A',
+  paper: '#FAF6EE',
+  teal: '#4A9B9B',
+  coral: '#E88B5A',
+} as const;
+
 interface DailyBalanceChartProps {
   days: AnalyticsDay[];
   totals: AnalyticsTotals;
   loaded: boolean;
 }
 
-const PADDING = { top: 24, right: 16, bottom: 48, left: 56 };
+const PADDING = { top: 24, right: 16, bottom: 48, left: 64 };
+const LABEL_SIZE = 12;
 
 export default function DailyBalanceChart({
   days,
@@ -65,8 +73,6 @@ export default function DailyBalanceChart({
   ): string {
     const segments: string[] = [];
     let penDown = false;
-    let lastX = 0;
-    let lastY = 0;
 
     for (let i = 0; i < loggedDays.length; i++) {
       const d = loggedDays[i];
@@ -88,8 +94,6 @@ export default function DailyBalanceChart({
           segments.push(`L ${x} ${y}`);
         }
       }
-      lastX = x;
-      lastY = y;
     }
     return segments.join(' ');
   }
@@ -127,8 +131,18 @@ export default function DailyBalanceChart({
         aria-label="Daily calorie balance chart"
         role="img"
       >
+        <style>{`
+          .chart-axis-label { font-family: Inter, sans-serif; fill: ${CSS_VAR.ink}; }
+          .chart-line { stroke: ${CSS_VAR.coral}; stroke-width: 2; fill: none; stroke-linejoin: round; stroke-linecap: round; }
+          .chart-dot { fill: ${CSS_VAR.coral}; }
+          .chart-adjusted { stroke: ${CSS_VAR.teal}; stroke-width: 1.5; fill: none; opacity: 0.55; }
+          .chart-rolling { stroke: ${CSS_VAR.teal}; stroke-width: 2; fill: none; stroke-dasharray: 5 3; opacity: 0.8; }
+          .chart-grid { stroke: ${CSS_VAR.ink}; stroke-width: 0.5; opacity: 0.08; }
+          .chart-axis { stroke: ${CSS_VAR.ink}; stroke-width: 0.5; opacity: 0.3; }
+        `}</style>
+
         {/* Background */}
-        <rect x={0} y={0} width={W} height={H} fill="white" />
+        <rect x={0} y={0} width={W} height={H} fill={CSS_VAR.paper} />
 
         {/* Zero line */}
         <line
@@ -136,23 +150,9 @@ export default function DailyBalanceChart({
           y1={midY}
           x2={W - PADDING.right}
           y2={midY}
-          stroke="#1A1A1A"
-          strokeWidth={1}
+          className="chart-axis"
           strokeDasharray="4 3"
-          opacity={0.2}
         />
-        {/* Zero label */}
-        <text
-          x={PADDING.left - 6}
-          y={midY + 4}
-          textAnchor="end"
-          fontSize={10}
-          fill="#1A1A1A"
-          opacity={0.4}
-          fontFamily="Inter, sans-serif"
-        >
-          0
-        </text>
 
         {/* Y-axis ticks + labels */}
         {yTicksSet.map((tick) => {
@@ -164,18 +164,15 @@ export default function DailyBalanceChart({
                 y1={y}
                 x2={W - PADDING.right}
                 y2={y}
-                stroke="#1A1A1A"
-                strokeWidth={0.5}
-                opacity={0.08}
+                className="chart-grid"
               />
               <text
                 x={PADDING.left - 8}
-                y={y + 4}
+                y={y + LABEL_SIZE / 2 + 1}
                 textAnchor="end"
-                fontSize={10}
-                fill="#1A1A1A"
-                opacity={0.4}
-                fontFamily="Inter, sans-serif"
+                fontSize={LABEL_SIZE}
+                className="chart-axis-label"
+                opacity={0.45}
               >
                 {tick >= 0 ? `+${tick}` : tick}
               </text>
@@ -185,38 +182,18 @@ export default function DailyBalanceChart({
 
         {/* Adjusted line (teal, thinner) */}
         {adjustedPath && (
-          <path
-            d={adjustedPath}
-            stroke="#4A9B9B"
-            strokeWidth={1.5}
-            fill="none"
-            opacity={0.5}
-          />
+          <path d={adjustedPath} className="chart-adjusted" />
         )}
 
         {/* Rolling average (teal dashed) */}
         {rollingPath && (
-          <path
-            d={rollingPath}
-            stroke="#4A9B9B"
-            strokeWidth={2}
-            fill="none"
-            strokeDasharray="5 3"
-            opacity={0.8}
-          />
+          <path d={rollingPath} className="chart-rolling" />
         )}
 
         {/* Daily line (coral) */}
-        <path
-          d={dailyPath}
-          stroke="#E88B5A"
-          strokeWidth={2}
-          fill="none"
-          strokeLinejoin="round"
-          strokeLinecap="round"
-        />
+        <path d={dailyPath} className="chart-line" />
 
-        {/* Data dots + hover labels */}
+        {/* Data dots */}
         {loggedDays.map((d, i) => {
           const x = PADDING.left + xScale(i);
           const y = PADDING.top + yScale(d.kcalUnderOver);
@@ -226,7 +203,7 @@ export default function DailyBalanceChart({
                 cx={x}
                 cy={y}
                 r={3}
-                fill="#E88B5A"
+                className="chart-dot"
               />
               <title>{`${d.day_key}: ${d.kcalUnderOver >= 0 ? '+' : ''}${d.kcalUnderOver} kcal`}</title>
             </g>
@@ -243,18 +220,15 @@ export default function DailyBalanceChart({
                 y1={H - PADDING.bottom}
                 x2={x}
                 y2={H - PADDING.bottom + 5}
-                stroke="#1A1A1A"
-                strokeWidth={0.5}
-                opacity={0.3}
+                className="chart-axis"
               />
               <text
                 x={x}
-                y={H - PADDING.bottom + 16}
+                y={H - PADDING.bottom + LABEL_SIZE + 8}
                 textAnchor="middle"
-                fontSize={10}
-                fill="#1A1A1A"
+                fontSize={LABEL_SIZE}
+                className="chart-axis-label"
                 opacity={0.5}
-                fontFamily="Inter, sans-serif"
               >
                 {formatDateKeyShort(d.day_key)}
               </text>
@@ -264,38 +238,40 @@ export default function DailyBalanceChart({
 
         {/* Y-axis label */}
         <text
-          x={12}
+          x={14}
           y={H / 2}
           textAnchor="middle"
-          fontSize={10}
-          fill="#1A1A1A"
+          fontSize={LABEL_SIZE}
+          className="chart-axis-label"
           opacity={0.4}
-          fontFamily="Inter, sans-serif"
-          transform={`rotate(-90 12 ${H / 2})`}
+          transform={`rotate(-90 14 ${H / 2})`}
         >
-          kcal (under / over)
+          kcal vs budget
         </text>
       </svg>
 
       {/* Legend */}
-      <div className="flex items-center gap-6 mt-2 px-1">
+      <div className="flex items-center gap-4 flex-wrap mt-3 px-1">
         <span className="flex items-center gap-1.5">
           <span className="inline-block w-5 h-0.5 bg-coral" />
           <span className="font-body text-caption text-ink/50 uppercase tracking-widest">
-            Daily
+            Eaten vs budget
           </span>
         </span>
         <span className="flex items-center gap-1.5">
           <span
             className="inline-block w-5 h-0.5"
-            style={{ borderTop: '2px dashed #4A9B9B' }}
+            style={{ borderTop: `2px dashed ${CSS_VAR.teal}` }}
           />
           <span className="font-body text-caption text-ink/50 uppercase tracking-widest">
             7-day avg
           </span>
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="inline-block w-5 h-0.5 bg-ink/20" style={{ borderTop: '1px dashed #1A1A1A' }} />
+          <span
+            className="inline-block w-5 h-0.5"
+            style={{ borderTop: `1px dashed ${CSS_VAR.ink}`, opacity: 0.25 }}
+          />
           <span className="font-body text-caption text-ink/50 uppercase tracking-widest">
             + workout burn
           </span>
