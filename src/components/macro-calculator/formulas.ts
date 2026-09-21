@@ -73,6 +73,49 @@ export function estimateWorkoutKcal(weightKg: number): number {
   return workoutKcal(weightKg);
 }
 
+function calculateBmrMifflinStJeor(
+  age: number,
+  sex: 'male' | 'female',
+  heightCm: number,
+  weightKg: number
+): number {
+  if (sex === 'male') {
+    return 10 * weightKg + 6.25 * heightCm - 5 * age + 5;
+  } else {
+    return 10 * weightKg + 6.25 * heightCm - 5 * age - 161;
+  }
+}
+
+function parseRepsDuration(reps: string): number {
+  const timeMatch = reps.match(/(\d+)\s*[×x]\s*(\d+)s/);
+  if (timeMatch) {
+    const sets = parseInt(timeMatch[1], 10);
+    const seconds = parseInt(timeMatch[2], 10);
+    return sets * seconds;
+  }
+  const match = reps.match(/(\d+)\s*[×x]\s*(\d+)/);
+  if (!match) return 60;
+  const sets = parseInt(match[1], 10);
+  const repsPerSet = parseInt(match[2], 10);
+  const isPerSide = reps.toLowerCase().includes('/side');
+  const totalReps = isPerSide ? sets * repsPerSet * 2 : sets * repsPerSet;
+  return Math.round(totalReps * 3);
+}
+
+export function estimateExerciseKcal(params: {
+  age: number;
+  sex: 'male' | 'female';
+  heightCm: number;
+  weightKg: number;
+  met: number;
+  reps: string;
+}): number {
+  const { age, sex, heightCm, weightKg, met, reps } = params;
+  const bmr = calculateBmrMifflinStJeor(age, sex, heightCm, weightKg);
+  const durationMin = parseRepsDuration(reps) / 60;
+  return Math.round((bmr / 1440) * met * durationMin);
+}
+
 function steps10kKcal(weightKg: number): number {
   const hours = (STEPS_KM_PER_10K / STEPS_KM_PER_HOUR);
   return STEPS_MET * weightKg * hours;

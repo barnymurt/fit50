@@ -20,11 +20,37 @@ interface Exercise {
    *  cardio circuits) but a few (Plank, Russian Twists) sit
    *  better under core; the assignment below is intentional. */
   category: 'push' | 'pull' | 'legs' | 'core' | 'stamina';
+  /** MET value from the 2024 Compendium of Physical Activities.
+   *  Used for per-exercise kcal estimation (BMR-adjusted). */
+  met?: number;
 }
 
-type Line = 'A' | 'B' | 'C' | 'D';
+export const MET_BY_EXERCISE: Record<string, number> = {
+  'Push-ups': 4.0,
+  'Supermans': 4.0,
+  'Bodyweight Squats': 4.5,
+  'Bird Dogs': 3.5,
+  Plank: 3.0,
+  'Wide Push-ups': 3.5,
+  'Reverse Snow Angels': 4.0,
+  Lunges: 4.5,
+  'Plank Shoulder Taps': 4.0,
+  Burpees: 8.0,
+  'Tricep Dips (floor)': 3.5,
+  'Prone Y-Raises': 3.5,
+  'Glute Bridges': 4.0,
+  'Flutter Kicks': 5.0,
+  'Mountain Climbers': 8.0,
+  'Tricep Push-ups': 3.5,
+  'Wall Slides': 2.5,
+  'Single-Leg Glute Bridge': 4.5,
+  'Dead Bugs': 4.0,
+  'Russian Twists': 4.0,
+};
 
-const workoutLines: Record<Line, { name: string; subtitle: string; exercises: Exercise[] }> = {
+export type Line = 'A' | 'B' | 'C' | 'D';
+
+export const workoutLines: Record<Line, { name: string; subtitle: string; exercises: Exercise[] }> = {
   A: {
     name: 'The Base',
     subtitle: 'Foundations',
@@ -34,6 +60,7 @@ const workoutLines: Record<Line, { name: string; subtitle: string; exercises: Ex
         name: 'Push-ups',
         reps: '5 × 10',
         category: 'push',
+        met: 4.0,
         description:
           'Hands shoulder-width, elbows tracking back at ~45°. Lower your chest to the floor with a straight line from head to heels, then press back up. Don\'t let your hips sag or pike up — keep your core braced throughout. Breathe out on the way up.',
       },
@@ -42,6 +69,7 @@ const workoutLines: Record<Line, { name: string; subtitle: string; exercises: Ex
         name: 'Supermans',
         reps: '5 × 10',
         category: 'pull',
+        met: 4.0,
         description:
           'Lie face down, arms extended overhead. Lift your arms, chest, and legs off the floor at the same time, squeezing your lower back and glutes at the top. Hold for a second, then lower with control. Keep your neck neutral — look at the floor, not forward.',
       },
@@ -50,6 +78,7 @@ const workoutLines: Record<Line, { name: string; subtitle: string; exercises: Ex
         name: 'Bodyweight Squats',
         reps: '5 × 10',
         category: 'legs',
+        met: 4.5,
         description:
           'Feet shoulder-width, toes pointed slightly out. Push your hips back like you\'re sitting in a chair, knees tracking over your toes. Go as deep as comfortable — aim for thighs parallel to the floor or lower. Drive through your heels to stand.',
       },
@@ -58,6 +87,7 @@ const workoutLines: Record<Line, { name: string; subtitle: string; exercises: Ex
         name: 'Bird Dogs',
         reps: '5 × 10/side',
         category: 'core',
+        met: 3.5,
         description:
           'On all fours, wrists under shoulders, knees under hips. Extend your right arm forward and left leg back at the same time, keeping your spine neutral and hips level. Hold briefly, return with control. Alternate sides. The slower you go, the harder it works your core.',
       },
@@ -66,6 +96,7 @@ const workoutLines: Record<Line, { name: string; subtitle: string; exercises: Ex
         name: 'Plank',
         reps: '5 × 50s',
         category: 'core',
+        met: 3.0,
         description:
           'Forearms on the floor, elbows under shoulders, toes tucked. Body in a straight line from head to heels — squeeze your glutes, brace your abs, and don\'t let your hips sag or pike up. Hold the position. Breathe shallowly through it.',
       },
@@ -80,6 +111,7 @@ const workoutLines: Record<Line, { name: string; subtitle: string; exercises: Ex
         name: 'Wide Push-ups',
         reps: '5 × 10',
         category: 'push',
+        met: 3.5,
         description:
           'Same as push-ups but with hands placed wider than shoulders. Targets chest more than triceps. Lower with control, press up, keep core braced. If too hard, drop to knees — same movement, less load.',
       },
@@ -88,6 +120,7 @@ const workoutLines: Record<Line, { name: string; subtitle: string; exercises: Ex
         name: 'Reverse Snow Angels',
         reps: '5 × 10',
         category: 'pull',
+        met: 4.0,
         description:
           'Lie face down, arms extended overhead. Lift your arms and legs, then sweep your arms out wide and back down to your sides like making a snow angel. Keep the lift the whole time. Squeeze your back at the bottom of the arc.',
       },
@@ -96,6 +129,7 @@ const workoutLines: Record<Line, { name: string; subtitle: string; exercises: Ex
         name: 'Lunges',
         reps: '5 × 10',
         category: 'legs',
+        met: 4.5,
         description:
           'Step forward with one leg, lower until your back knee nearly touches the floor (front knee at 90°). Push back to standing. Alternate or do all one side then switch. Keep your torso upright and front knee tracking over your toes.',
       },
@@ -104,6 +138,7 @@ const workoutLines: Record<Line, { name: string; subtitle: string; exercises: Ex
         name: 'Plank Shoulder Taps',
         reps: '5 × 10/side',
         category: 'core',
+        met: 4.0,
         description:
           'Hold a high plank position (hands, not forearms). Without rocking your hips, lift one hand and tap the opposite shoulder. Alternate sides. The less you wobble, the harder it works your core — slow and controlled wins.',
       },
@@ -112,6 +147,7 @@ const workoutLines: Record<Line, { name: string; subtitle: string; exercises: Ex
         name: 'Burpees',
         reps: '5 × 50s',
         category: 'stamina',
+        met: 8.0,
         description:
           'Squat down, plant your hands, jump your feet back to a plank. Do a push-up, jump your feet back to your hands, then jump up with arms overhead. One rep. Move at a steady pace for the full 50 seconds.',
       },
@@ -126,6 +162,7 @@ const workoutLines: Record<Line, { name: string; subtitle: string; exercises: Ex
         name: 'Tricep Dips (floor)',
         reps: '5 × 10',
         category: 'push',
+        met: 3.5,
         description:
           'Seated on the floor, hands by your hips, fingers pointing forward. Lift your hips off the floor, lower them by bending your elbows back at 90°, then press up. Keep your back close to the bench or floor, elbows pointing straight back.',
       },
@@ -134,6 +171,7 @@ const workoutLines: Record<Line, { name: string; subtitle: string; exercises: Ex
         name: 'Prone Y-Raises',
         reps: '5 × 10',
         category: 'pull',
+        met: 3.5,
         description:
           'Lie face down, arms extended. Lift your arms into a Y position (45° out), lower, then lift into an R position (90° out). 10 total or 5/5. Squeeze your upper back at the top. Light weight or none.',
       },
@@ -142,6 +180,7 @@ const workoutLines: Record<Line, { name: string; subtitle: string; exercises: Ex
         name: 'Glute Bridges',
         reps: '5 × 10',
         category: 'legs',
+        met: 4.0,
         description:
           'Lie on your back, knees bent, feet flat on the floor hip-width apart. Drive through your heels, lift your hips toward the ceiling, squeeze your glutes hard at the top. Hold a second, lower with control. Don\'t arch your lower back — drive up with the glutes.',
       },
@@ -150,6 +189,7 @@ const workoutLines: Record<Line, { name: string; subtitle: string; exercises: Ex
         name: 'Flutter Kicks',
         reps: '5 × 10',
         category: 'core',
+        met: 5.0,
         description:
           'Lie on your back, hands under your glutes, head and shoulders off the floor. Alternate kicking your legs up and down in small, controlled scissor kicks. Keep your core engaged and lower back pressed into the floor.',
       },
@@ -158,6 +198,7 @@ const workoutLines: Record<Line, { name: string; subtitle: string; exercises: Ex
         name: 'Mountain Climbers',
         reps: '5 × 50s',
         category: 'stamina',
+        met: 8.0,
         description:
           'Start in a high plank. Drive one knee toward your chest, then switch — fast, like running in place horizontally. Keep your hips low and core tight. Move at a steady pace for the full 50 seconds.',
       },
@@ -172,6 +213,7 @@ const workoutLines: Record<Line, { name: string; subtitle: string; exercises: Ex
         name: 'Tricep Push-ups',
         reps: '5 × 10',
         category: 'push',
+        met: 3.5,
         description:
           'Push-ups with hands close together, elbows hugging your ribs. Targets the triceps much more than a standard push-up. Lower with control, full lockout at the top. If your form breaks, drop to knees.',
       },
@@ -180,6 +222,7 @@ const workoutLines: Record<Line, { name: string; subtitle: string; exercises: Ex
         name: 'Wall Slides',
         reps: '5 × 10',
         category: 'pull',
+        met: 2.5,
         description:
           'Stand with your back against a wall, feet about 6 inches out. Press your lower back, upper back, and head into the wall. Slide your arms up the wall in a Y shape, then back down. Keep contact with the wall the entire time. Slow.',
       },
@@ -188,6 +231,7 @@ const workoutLines: Record<Line, { name: string; subtitle: string; exercises: Ex
         name: 'Single-Leg Glute Bridge',
         reps: '5 × 10/leg',
         category: 'legs',
+        met: 4.5,
         description:
           'Lie on your back, knees bent. Lift one leg off the floor. Drive through the heel of the other foot, lift your hips, squeeze the glute hard at the top. Lower with control. Alternate or do all one side then switch.',
       },
@@ -196,6 +240,7 @@ const workoutLines: Record<Line, { name: string; subtitle: string; exercises: Ex
         name: 'Dead Bugs',
         reps: '5 × 10/side',
         category: 'core',
+        met: 4.0,
         description:
           'On your back, arms pointing at the ceiling, knees and hips at 90°. Press your lower back into the floor. Extend your right arm back and left leg out at the same time, then return. Alternate sides. The lower back stays glued to the floor — no arching.',
       },
@@ -204,6 +249,7 @@ const workoutLines: Record<Line, { name: string; subtitle: string; exercises: Ex
         name: 'Russian Twists',
         reps: '5 × 50s',
         category: 'core',
+        met: 4.0,
         description:
           'Sit on the floor, knees bent, lean back about 45°. Lift your feet off the floor for harder, leave them down for easier. Twist your torso side to side, tapping the floor beside your hips. Keep your core braced, move from the torso, not the arms.',
       },
@@ -211,7 +257,7 @@ const workoutLines: Record<Line, { name: string; subtitle: string; exercises: Ex
   },
 };
 
-const TOTAL_SETS = 5;
+export const TOTAL_SETS = 5;
 const LINES: Line[] = ['A', 'B', 'C', 'D'];
 const GROUPINGS = ['bodyweight', 'kettlebell', 'band'] as const;
 type Grouping = (typeof GROUPINGS)[number];

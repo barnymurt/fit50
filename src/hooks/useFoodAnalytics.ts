@@ -4,12 +4,27 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { createClient } from '@/lib/supabase';
 import { dateKeyLocal, dayIndexFromStart, parseDateKey } from '@/lib/dates';
-import { estimateWorkoutKcal } from '@/components/macro-calculator/formulas';
+import { estimateExerciseKcal } from '@/components/macro-calculator/formulas';
+import { workoutLines, type Line } from '@/components/AccountWorkouts';
 import type { FoodLogEntry } from '@/components/food-database/types';
 
 const WORKOUT_EXERCISES_PER_LINE = 5;
 const WORKOUT_SETS_PER_EXERCISE = 5;
 const DEFAULT_FIBER_TARGET = 30;
+
+function buildMetLookup() {
+  const map: Record<string, { met: number; reps: string }> = {};
+  for (const lineData of Object.values(workoutLines)) {
+    for (const ex of lineData.exercises) {
+      if (ex.met !== undefined) {
+        map[ex.name] = { met: ex.met, reps: ex.reps };
+      }
+    }
+  }
+  return map;
+}
+
+const MET_LOOKUP = buildMetLookup();
 
 export type AnalyticsRange = '7d' | '30d' | 'all';
 
@@ -146,7 +161,7 @@ export function useFoodAnalytics(
           .select('date_key, line, sets')
           .eq('user_id', user.id),
         (supabase.from('macro_profile') as any)
-          .select('results_kcal, results_protein, results_carbs, results_fat, weight_kg')
+          .select('results_kcal, results_protein, results_carbs, results_fat, weight_kg, age, sex, height_cm')
           .eq('user_id', user.id)
           .maybeSingle(),
       ]);
@@ -158,7 +173,11 @@ export function useFoodAnalytics(
       const carbsTarget = Number(profileRes.data?.results_carbs) || 200;
       const fatTarget = Number(profileRes.data?.results_fat) || 70;
       const weightKg = Number(profileRes.data?.weight_kg) || 80;
-      const workoutKcalPerSlot = estimateWorkoutKcal(weightKg);
+      const age = Number(profileRes.data?.age) || 30;
+      const sex = (profileRes.data?.sex === 'male' || profileRes.data?.sex === 'female')
+        ? profileRes.data.sex
+        : 'male';
+      const heightCm = Number(profileRes.data?.height_cm) || 170;
 
       // Group food by day_key
       const foodByDay: Record<string, FoodLogEntry[]> = {};
@@ -212,7 +231,28 @@ export function useFoodAnalytics(
           );
         }).length;
 
-        const workoutKcalEstimate = completedSlots * workoutKcalPerSlot;
+        // Sum per-exercise kcal using BMR-adjusted MET formula
+        let workoutKcalEstimate = 0;
+        for (const w of workouts) {
+          const sets = w.sets || {};
+          const lineData = workoutLines[w.line as Line];
+          if (!lineData) continue;
+          for (const exercise of lineData.exercises) {
+            const setsDone = Number(sets[exercise.name] ?? 0);
+            if (setsDone === 0) continue;
+            const met = exercise.met ?? MET_LOOKUP[exercise.name]?.met;
+            if (met === undefined) continue;
+            const exKcal = estimateExerciseKcal({
+              age,
+              sex: sex as 'male' | 'female',
+              heightCm,
+              weightKg,
+              met,
+              reps: exercise.reps,
+            });
+            workoutKcalEstimate += exKcal * setsDone;
+          }
+        }
         const kcalUnderOver = kcalTarget - kcalActual;
         const kcalUnderOverAdjusted = kcalUnderOver + workoutKcalEstimate;
 
