@@ -629,6 +629,7 @@ function MacroCalculatorInline() {
   const [activity, setActivity] = useState<Activity | null>(null);
   const [goal, setGoal] = useState<Goal>('loss');
   const [diet, setDiet] = useState<Diet>('balanced');
+  const [kbWeight, setKbWeight] = useState('');
   const [results, setResults] = useState<ReturnType<typeof calculateMacros> | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -648,6 +649,9 @@ function MacroCalculatorInline() {
     setActivity(savedProfile.activity);
     setGoal(savedProfile.goal);
     setDiet(savedProfile.diet);
+    if (savedProfile.kettlebell_weight_kg != null) {
+      setKbWeight(String(savedProfile.kettlebell_weight_kg));
+    }
     if (!results) {
       // Burn estimates depend only on weight — recompute from the
       // saved profile so the "Daily activity burn" section shows
@@ -721,6 +725,7 @@ function MacroCalculatorInline() {
         goal,
         diet,
         results: r,
+        kettlebell_weight_kg: kbWeight ? parseFloat(kbWeight) : null,
       });
       if (!saved.ok) {
         setSaveError(saved.error || 'Could not save profile.');
@@ -755,6 +760,28 @@ function MacroCalculatorInline() {
           diet={diet}
           setDiet={setDiet}
         />
+        <div>
+          <label className="block font-body text-caption uppercase tracking-widest text-ink/50 mb-1.5">
+            Kettlebell weight
+          </label>
+          <div className="flex items-center border border-ink/20 bg-paper px-3 py-2 focus-within:border-ink/60">
+            <input
+              type="number"
+              min="1"
+              max="50"
+              step="0.5"
+              value={kbWeight}
+              onChange={(e) => setKbWeight(e.target.value)}
+              placeholder="e.g. 16"
+              className="flex-1 bg-transparent outline-none font-body text-body text-ink placeholder:text-ink/30"
+            />
+            <span className="font-body text-caption text-ink/40 ml-2">kg</span>
+          </div>
+          <p className="mt-1 font-body text-caption text-ink/40">
+            Used for KB exercise kcal estimates.{' '}
+            <span className="text-ink/30">Leave blank for bodyweight only.</span>
+          </p>
+        </div>
       </div>
 
       <div className="flex justify-center md:justify-end mb-6">

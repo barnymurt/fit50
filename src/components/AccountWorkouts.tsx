@@ -272,346 +272,418 @@ type WorkoutKey = Line;
 // either dropped or used as the stamina finisher).
 // Bodyweight keeps its current 4-line A/B/C/D structure (the
 // free-tier taster); the new equipment programs sit alongside it.
-const kettlebellLines: Record<Line, Exercise[]> = {
-  A: [
-    {
-      slot: '01',
-      name: 'KB Floor Press',
-      reps: '5 × 10',
-      category: 'push',
-      description:
-        'Lie on your back with a kettlebell in each hand at shoulder height. Press straight up until your arms lock, lower under control. Switch sides halfway through each set so each arm gets the same volume.',
-    },
-    {
-      slot: '02',
-      name: 'KB Strict Press',
-      reps: '5 × 10',
-      category: 'push',
-      description:
-        'KB racked at shoulder height, elbows tucked. Press straight overhead without leaning back. Lower under control to the shoulder. Keep your ribs down — don\'t flare your lower back.',
-    },
-    {
-      slot: '03',
-      name: 'KB Push Press',
-      reps: '5 × 10',
-      category: 'push',
-      description:
-        'KB racked at shoulder. Small dip through knees, drive up hard, press overhead using leg drive. Lower controlled. Switch sides.',
-    },
-    {
-      slot: '04',
-      name: 'KB Z Press',
-      reps: '5 × 10',
-      category: 'push',
-      description:
-        'Sit on floor, legs straight in front. KB racked at shoulder. Press overhead without leaning back. Lower slow. Switch sides.',
-    },
-    {
-      slot: '05',
-      name: 'KB Halo',
-      reps: '5 × 50s',
-      category: 'core',
-      description:
-        'KB held by the horns at chest height. Circle it around your head, close to your skull. Brace your core, no leaning. Alternate direction each rep. Slow tempo — KB swings are too ballistic for novice users, so halos give a similar shoulder-rotation stimulus at low load.',
-    },
-  ],
-  B: [
-    {
-      slot: '01',
-      name: 'KB Bent-Over Row',
-      reps: '5 × 10',
-      category: 'pull',
-      description:
-        'Hinge hips back, flat back, KB hanging one hand. Row to hip, squeeze shoulder blade, lower slow. Switch sides halfway.',
-    },
-    {
-      slot: '02',
-      name: 'KB Single-Arm Row',
-      reps: '5 × 10',
-      category: 'pull',
-      description:
-        'Split stance, hand on knee for support. Row KB to hip, elbow tight, squeeze back. Lower slow. Switch sides.',
-    },
-    {
-      slot: '03',
-      name: 'KB High Pull',
-      reps: '5 × 10',
-      category: 'pull',
-      description:
-        'KB between feet, hinge down. Explosively pull up to chin, elbows high and wide. Reverse under control to start.',
-    },
-    {
-      slot: '04',
-      name: 'KB Gorilla Row',
-      reps: '5 × 10',
-      category: 'pull',
-      description:
-        'Two KBs between feet, wide sumo stance, hinge down. Row one KB to hip while other rests, alternate arms each rep.',
-    },
-    {
-      slot: '05',
-      name: 'KB Goblet Squat Pulses',
-      reps: '5 × 50s',
-      category: 'stamina',
-      description:
-        'Hold KB at chest, squat to parallel and pulse in the bottom third. Chest up, breath steady.',
-    },
-  ],
-  C: [
-    {
-      slot: '01',
-      name: 'KB Goblet Squat',
-      reps: '5 × 10',
-      category: 'legs',
-      description:
-        'Hold KB at chest, elbows tucked. Squat until thighs parallel or lower, chest up. Drive through heels to stand.',
-    },
-    {
-      slot: '02',
-      name: 'KB Romanian Deadlift',
-      reps: '5 × 10',
-      category: 'legs',
-      description:
-        'KB in both hands. Push hips back, slight knee bend, KB slides down shins. Squeeze glutes to stand tall.',
-    },
-    {
-      slot: '03',
-      name: 'KB Reverse Lunge',
-      reps: '5 × 10',
-      category: 'legs',
-      description:
-        'Hold KB goblet at chest. Step back, drop back knee toward floor, drive front heel to return. Alternate legs each rep.',
-    },
-    {
-      slot: '04',
-      name: 'KB Cossack Squat',
-      reps: '5 × 10',
-      category: 'legs',
-      description:
-        'KB goblet at chest, wide stance. Shift weight fully into one leg, squat deep, other leg straight. Return, switch sides.',
-    },
-    {
-      slot: '05',
-      name: "KB Farmer's Carry",
-      reps: '5 × 50s',
-      category: 'stamina',
-      description:
-        'One heavy KB per side, or one loaded. Walk with tall posture, ribs down, crushing grip. Turn, return.',
-    },
-  ],
-  D: [
-    {
-      slot: '01',
-      name: 'KB Clean and Press',
-      reps: '5 × 10',
-      category: 'pull',
-      description:
-        'KB between feet. Pull up to racked shoulder position, press overhead, reverse to floor. Switch sides halfway.',
-    },
-    {
-      slot: '02',
-      name: 'KB Thruster',
-      reps: '5 × 10',
-      category: 'legs',
-      description:
-        'KB goblet at chest. Squat deep, then drive up and press KB overhead in one motion. Lower and repeat smoothly.',
-    },
-    {
-      slot: '03',
-      name: 'KB Snatch',
-      reps: '5 × 10',
-      category: 'pull',
-      description:
-        'KB between feet. Pull up in one motion, punch hand through overhead, lock out arm. Reverse to floor. Switch sides.',
-    },
-    {
-      slot: '04',
-      name: 'KB Clean',
-      reps: '5 × 10',
-      category: 'pull',
-      description:
-        'KB between feet. Pull explosively to racked shoulder position, elbow tight to ribs. Lower to floor under control. Switch sides.',
-    },
-    {
-      slot: '05',
-      name: 'KB Snatches',
-      reps: '5 × 50s',
-      category: 'stamina',
-      description:
-        'As Day 3 snatch but for time. Alternate sides every few reps, breath sharp, hips do the work — not the arm.',
-    },
-  ],
+export const kettlebellLines: Record<Line, { name: string; subtitle: string; exercises: Exercise[] }> = {
+  A: {
+    name: 'KB Pressing',
+    subtitle: 'Chest & shoulders',
+    exercises: [
+      {
+        slot: '01',
+        name: 'KB Floor Press',
+        reps: '5 × 10',
+        category: 'push',
+        met: 4.5,
+        description:
+          'Lie on your back with a kettlebell in each hand at shoulder height. Press straight up until your arms lock, lower under control. Switch sides halfway through each set so each arm gets the same volume.',
+      },
+      {
+        slot: '02',
+        name: 'KB Strict Press',
+        reps: '5 × 10',
+        category: 'push',
+        met: 4.5,
+        description:
+          'KB racked at shoulder height, elbows tucked. Press straight overhead without leaning back. Lower under control to the shoulder. Keep your ribs down — don\'t flare your lower back.',
+      },
+      {
+        slot: '03',
+        name: 'KB Push Press',
+        reps: '5 × 10',
+        category: 'push',
+        met: 5.0,
+        description:
+          'KB racked at shoulder. Small dip through knees, drive up hard, press overhead using leg drive. Lower controlled. Switch sides.',
+      },
+      {
+        slot: '04',
+        name: 'KB Z Press',
+        reps: '5 × 10',
+        category: 'push',
+        met: 4.5,
+        description:
+          'Sit on floor, legs straight in front. KB racked at shoulder. Press overhead without leaning back. Lower slow. Switch sides.',
+      },
+      {
+        slot: '05',
+        name: 'KB Halo',
+        reps: '5 × 50s',
+        category: 'core',
+        met: 3.5,
+        description:
+          'KB held by the horns at chest height. Circle it around your head, close to your skull. Brace your core, no leaning. Alternate direction each rep. Slow tempo — KB swings are too ballistic for novice users, so halos give a similar shoulder-rotation stimulus at low load.',
+      },
+    ],
+  },
+  B: {
+    name: 'KB Pulling',
+    subtitle: 'Back & grip',
+    exercises: [
+      {
+        slot: '01',
+        name: 'KB Bent-Over Row',
+        reps: '5 × 10',
+        category: 'pull',
+        met: 5.0,
+        description:
+          'Hinge hips back, flat back, KB hanging one hand. Row to hip, squeeze shoulder blade, lower slow. Switch sides halfway.',
+      },
+      {
+        slot: '02',
+        name: 'KB Single-Arm Row',
+        reps: '5 × 10',
+        category: 'pull',
+        met: 5.0,
+        description:
+          'Split stance, hand on knee for support. Row KB to hip, elbow tight, squeeze back. Lower slow. Switch sides.',
+      },
+      {
+        slot: '03',
+        name: 'KB High Pull',
+        reps: '5 × 10',
+        category: 'pull',
+        met: 6.0,
+        description:
+          'KB between feet, hinge down. Explosively pull up to chin, elbows high and wide. Reverse under control to start.',
+      },
+      {
+        slot: '04',
+        name: 'KB Gorilla Row',
+        reps: '5 × 10',
+        category: 'pull',
+        met: 6.0,
+        description:
+          'Two KBs between feet, wide sumo stance, hinge down. Row one KB to hip while other rests, alternate arms each rep.',
+      },
+      {
+        slot: '05',
+        name: 'KB Goblet Squat Pulses',
+        reps: '5 × 50s',
+        category: 'stamina',
+        met: 5.5,
+        description:
+          'Hold KB at chest, squat to parallel and pulse in the bottom third. Chest up, breath steady.',
+      },
+    ],
+  },
+  C: {
+    name: 'KB Legs',
+    subtitle: 'Quads, hammies & glutes',
+    exercises: [
+      {
+        slot: '01',
+        name: 'KB Goblet Squat',
+        reps: '5 × 10',
+        category: 'legs',
+        met: 5.0,
+        description:
+          'Hold KB at chest, elbows tucked. Squat until thighs parallel or lower, chest up. Drive through heels to stand.',
+      },
+      {
+        slot: '02',
+        name: 'KB Romanian Deadlift',
+        reps: '5 × 10',
+        category: 'legs',
+        met: 5.5,
+        description:
+          'KB in both hands. Push hips back, slight knee bend, KB slides down shins. Squeeze glutes to stand tall.',
+      },
+      {
+        slot: '03',
+        name: 'KB Reverse Lunge',
+        reps: '5 × 10',
+        category: 'legs',
+        met: 5.0,
+        description:
+          'Hold KB goblet at chest. Step back, drop back knee toward floor, drive front heel to return. Alternate legs each rep.',
+      },
+      {
+        slot: '04',
+        name: 'KB Cossack Squat',
+        reps: '5 × 10',
+        category: 'legs',
+        met: 5.5,
+        description:
+          'KB goblet at chest, wide stance. Shift weight fully into one leg, squat deep, other leg straight. Return, switch sides.',
+      },
+      {
+        slot: '05',
+        name: "KB Farmer's Carry",
+        reps: '5 × 50s',
+        category: 'stamina',
+        met: 5.0,
+        description:
+          'One heavy KB per side, or one loaded. Walk with tall posture, ribs down, crushing grip. Turn, return.',
+      },
+    ],
+  },
+  D: {
+    name: 'KB Power',
+    subtitle: 'Explosive & full body',
+    exercises: [
+      {
+        slot: '01',
+        name: 'KB Clean and Press',
+        reps: '5 × 10',
+        category: 'pull',
+        met: 6.0,
+        description:
+          'KB between feet. Pull up to racked shoulder position, press overhead, reverse to floor. Switch sides halfway.',
+      },
+      {
+        slot: '02',
+        name: 'KB Thruster',
+        reps: '5 × 10',
+        category: 'legs',
+        met: 5.5,
+        description:
+          'KB goblet at chest. Squat deep, then drive up and press KB overhead in one motion. Lower and repeat smoothly.',
+      },
+      {
+        slot: '03',
+        name: 'KB Snatch',
+        reps: '5 × 10',
+        category: 'pull',
+        met: 6.5,
+        description:
+          'KB between feet. Pull up in one motion, punch hand through overhead, lock out arm. Reverse to floor. Switch sides.',
+      },
+      {
+        slot: '04',
+        name: 'KB Clean',
+        reps: '5 × 10',
+        category: 'pull',
+        met: 5.5,
+        description:
+          'KB between feet. Pull explosively to racked shoulder position, elbow tight to ribs. Lower to floor under control. Switch sides.',
+      },
+      {
+        slot: '05',
+        name: 'KB Snatches',
+        reps: '5 × 50s',
+        category: 'stamina',
+        met: 6.5,
+        description:
+          'As Day 3 snatch but for time. Alternate sides every few reps, breath sharp, hips do the work — not the arm.',
+      },
+    ],
+  },
 };
 
-const bandLines: Record<Line, Exercise[]> = {
-  A: [
-    {
-      slot: '01',
-      name: 'RB Chest Press',
-      reps: '5 × 10',
-      category: 'push',
-      description:
-        'Anchor band behind you at chest height. Handles in hands, press forward until arms lock, return slowly with control.',
-    },
-    {
-      slot: '02',
-      name: 'RB Overhead Press',
-      reps: '5 × 10',
-      category: 'push',
-      description:
-        'Stand on band centre, handles at shoulders. Press straight up, lock out overhead, lower under control.',
-    },
-    {
-      slot: '03',
-      name: 'RB Chest Fly',
-      reps: '5 × 10',
-      category: 'push',
-      description:
-        'Anchor band behind at chest height. Arms wide, slight elbow bend. Bring hands together in front, control the stretch back.',
-    },
-    {
-      slot: '04',
-      name: 'RB Lateral Raise',
-      reps: '5 × 10',
-      category: 'push',
-      description:
-        'Stand on band, handles at sides. Raise arms out to shoulder height, slight elbow bend, lower under control.',
-    },
-    {
-      slot: '05',
-      name: 'Banded High Knees',
-      reps: '5 × 50s',
-      category: 'stamina',
-      description:
-        'Band above knees. Drive knees up alternately at pace, arms pumping, stay light on the balls of your feet.',
-    },
-  ],
-  B: [
-    {
-      slot: '01',
-      name: 'RB Seated Row',
-      reps: '5 × 10',
-      category: 'pull',
-      description:
-        'Sit, legs straight, band round feet. Pull handles to lower ribs, elbows tight, squeeze back. Release slow.',
-    },
-    {
-      slot: '02',
-      name: 'RB Bent-Over Row',
-      reps: '5 × 10',
-      category: 'pull',
-      description:
-        'Stand on band, hinge at hips, flat back. Row handles to lower ribs, squeeze shoulder blades, lower slow.',
-    },
-    {
-      slot: '03',
-      name: 'RB Face Pull',
-      reps: '5 × 10',
-      category: 'pull',
-      description:
-        'Anchor band at head height. Pull handles towards forehead, elbows flaring wide, thumbs pointing back. Pause, return slow.',
-    },
-    {
-      slot: '04',
-      name: 'RB Bicep Curl',
-      reps: '5 × 10',
-      category: 'pull',
-      description:
-        'Stand on band, handles in hands, palms up. Curl to shoulders, elbows glued to ribs, lower slow with tension.',
-    },
-    {
-      slot: '05',
-      name: 'Banded Jumping Jacks',
-      reps: '5 × 50s',
-      category: 'stamina',
-      description:
-        'Band above knees. Jump feet wide and narrow, arms swinging overhead. Keep band taut throughout, land softly.',
-    },
-  ],
-  C: [
-    {
-      slot: '01',
-      name: 'RB Banded Squat',
-      reps: '5 × 10',
-      category: 'legs',
-      description:
-        'Band above knees. Squat down, actively push knees out against band. Stand, keep tension throughout.',
-    },
-    {
-      slot: '02',
-      name: 'RB Banded Deadlift',
-      reps: '5 × 10',
-      category: 'legs',
-      description:
-        'Stand on band, handles in hands. Hinge hips back, slight knee bend, drive through heels to stand tall, squeeze glutes.',
-    },
-    {
-      slot: '03',
-      name: 'RB Lateral Band Walk',
-      reps: '5 × 10',
-      category: 'legs',
-      description:
-        'Band above knees, half-squat. Step sideways ten paces, keeping tension, return the other way. Chest up, feet parallel.',
-    },
-    {
-      slot: '04',
-      name: 'RB Glute Kickback',
-      reps: '5 × 10',
-      category: 'legs',
-      description:
-        'Band around ankles, on all fours. Kick one leg straight back, squeeze glute, control return. Switch sides halfway.',
-    },
-    {
-      slot: '05',
-      name: 'Banded Skater Jumps',
-      reps: '5 × 50s',
-      category: 'stamina',
-      description:
-        'Band above knees. Bound side to side, land soft on outside leg, tap opposite foot behind. Stay low.',
-    },
-  ],
-  D: [
-    {
-      slot: '01',
-      name: 'RB Thruster',
-      reps: '5 × 10',
-      category: 'legs',
-      description:
-        'Stand on band, handles at shoulders. Squat deep, drive up and press overhead in one motion. Return, repeat.',
-    },
-    {
-      slot: '02',
-      name: 'RB Burpee',
-      reps: '5 × 10',
-      category: 'stamina',
-      description:
-        'Loop band round shoulders and under feet. Drop to plank, jump feet in, stand, small hop. Repeat with band tension.',
-    },
-    {
-      slot: '03',
-      name: 'RB Clean and Press',
-      reps: '5 × 10',
-      category: 'push',
-      description:
-        'Stand on band. Pull handles from hips to shoulders in one motion, press overhead, reverse under control.',
-    },
-    {
-      slot: '04',
-      name: 'RB Renegade Row',
-      reps: '5 × 10',
-      category: 'core',
-      description:
-        'Plank position, one handle in each hand, band anchored ahead. Row one arm to ribs, alternate, hips stay square.',
-    },
-    {
+export const bandLines: Record<Line, { name: string; subtitle: string; exercises: Exercise[] }> = {
+  A: {
+    name: 'RB Pressing',
+    subtitle: 'Chest & shoulders',
+    exercises: [
+      {
+        slot: '01',
+        name: 'RB Chest Press',
+        reps: '5 × 10',
+        category: 'push',
+        met: 4.0,
+        description:
+          'Anchor band behind you at chest height. Handles in hands, press forward until arms lock, return slowly with control.',
+      },
+      {
+        slot: '02',
+        name: 'RB Overhead Press',
+        reps: '5 × 10',
+        category: 'push',
+        met: 4.0,
+        description:
+          'Stand on band centre, handles at shoulders. Press straight up, lock out overhead, lower under control.',
+      },
+      {
+        slot: '03',
+        name: 'RB Chest Fly',
+        reps: '5 × 10',
+        category: 'push',
+        met: 3.5,
+        description:
+          'Anchor band behind at chest height. Arms wide, slight elbow bend. Bring hands together in front, control the stretch back.',
+      },
+      {
+        slot: '04',
+        name: 'RB Lateral Raise',
+        reps: '5 × 10',
+        category: 'push',
+        met: 3.5,
+        description:
+          'Stand on band, handles at sides. Raise arms out to shoulder height, slight elbow bend, lower under control.',
+      },
+      {
+        slot: '05',
+        name: 'Banded High Knees',
+        reps: '5 × 50s',
+        category: 'stamina',
+        met: 6.0,
+        description:
+          'Band above knees. Drive knees up alternately at pace, arms pumping, stay light on the balls of your feet.',
+      },
+    ],
+  },
+  B: {
+    name: 'RB Pulling',
+    subtitle: 'Back & biceps',
+    exercises: [
+      {
+        slot: '01',
+        name: 'RB Seated Row',
+        reps: '5 × 10',
+        category: 'pull',
+        met: 4.5,
+        description:
+          'Sit, legs straight, band round feet. Pull handles to lower ribs, elbows tight, squeeze back. Release slow.',
+      },
+      {
+        slot: '02',
+        name: 'RB Bent-Over Row',
+        reps: '5 × 10',
+        category: 'pull',
+        met: 4.5,
+        description:
+          'Stand on band, hinge at hips, flat back. Row handles to lower ribs, squeeze shoulder blades, lower slow.',
+      },
+      {
+        slot: '03',
+        name: 'RB Face Pull',
+        reps: '5 × 10',
+        category: 'pull',
+        met: 3.5,
+        description:
+          'Anchor band at head height. Pull handles towards forehead, elbows flaring wide, thumbs pointing back. Pause, return slow.',
+      },
+      {
+        slot: '04',
+        name: 'RB Bicep Curl',
+        reps: '5 × 10',
+        category: 'pull',
+        met: 3.0,
+        description:
+          'Stand on band, handles in hands, palms up. Curl to shoulders, elbows glued to ribs, lower slow with tension.',
+      },
+      {
+        slot: '05',
+        name: 'Banded Jumping Jacks',
+        reps: '5 × 50s',
+        category: 'stamina',
+        met: 6.0,
+        description:
+          'Band above knees. Jump feet wide and narrow, arms swinging overhead. Keep band taut throughout, land softly.',
+      },
+    ],
+  },
+  C: {
+    name: 'RB Legs',
+    subtitle: 'Quads, hammies & glutes',
+    exercises: [
+      {
+        slot: '01',
+        name: 'RB Banded Squat',
+        reps: '5 × 10',
+        category: 'legs',
+        met: 4.5,
+        description:
+          'Band above knees. Squat down, actively push knees out against band. Stand, keep tension throughout.',
+      },
+      {
+        slot: '02',
+        name: 'RB Banded Deadlift',
+        reps: '5 × 10',
+        category: 'legs',
+        met: 4.5,
+        description:
+          'Stand on band, handles in hands. Hinge hips back, slight knee bend, drive through heels to stand tall, squeeze glutes.',
+      },
+      {
+        slot: '03',
+        name: 'RB Lateral Band Walk',
+        reps: '5 × 10',
+        category: 'legs',
+        met: 4.0,
+        description:
+          'Band above knees, half-squat. Step sideways ten paces, keeping tension, return the other way. Chest up, feet parallel.',
+      },
+      {
+        slot: '04',
+        name: 'RB Glute Kickback',
+        reps: '5 × 10',
+        category: 'legs',
+        met: 3.5,
+        description:
+          'Band around ankles, on all fours. Kick one leg straight back, squeeze glute, control return. Switch sides halfway.',
+      },
+      {
+        slot: '05',
+        name: 'Banded Skater Jumps',
+        reps: '5 × 50s',
+        category: 'stamina',
+        met: 6.5,
+        description:
+          'Band above knees. Bound side to side, land soft on outside leg, tap opposite foot behind. Stay low.',
+      },
+    ],
+  },
+  D: {
+    name: 'RB Power',
+    subtitle: 'Full body & cardio',
+    exercises: [
+      {
+        slot: '01',
+        name: 'RB Thruster',
+        reps: '5 × 10',
+        category: 'legs',
+        met: 5.0,
+        description:
+          'Stand on band, handles at shoulders. Squat deep, drive up and press overhead in one motion. Return, repeat.',
+      },
+      {
+        slot: '02',
+        name: 'RB Burpee',
+        reps: '5 × 10',
+        category: 'stamina',
+        met: 8.0,
+        description:
+          'Loop band round shoulders and under feet. Drop to plank, jump feet in, stand, small hop. Repeat with band tension.',
+      },
+      {
+        slot: '03',
+        name: 'RB Clean and Press',
+        reps: '5 × 10',
+        category: 'push',
+        met: 5.5,
+        description:
+          'Stand on band. Pull handles from hips to shoulders in one motion, press overhead, reverse under control.',
+      },
+      {
+        slot: '04',
+        name: 'RB Renegade Row',
+        reps: '5 × 10',
+        category: 'core',
+        met: 5.0,
+        description:
+          'Plank position, one handle in each hand, band anchored ahead. Row one arm to ribs, alternate, hips stay square.',
+      },
+      {
       slot: '05',
       name: 'Banded Fast Punches',
       reps: '5 × 50s',
       category: 'stamina',
+      met: 5.5,
       description:
         'Anchor band behind you. Handles at chest, punch forward alternating hands as fast as form allows. Rotate through hips.',
     },
-  ],
+    ],
+  },
 };
 
 function todayKey() {
@@ -957,9 +1029,9 @@ export default function AccountWorkouts() {
     if (grouping === 'bodyweight')
       return workoutLines[key as Line]?.exercises ?? [];
     if (grouping === 'kettlebell')
-      return kettlebellLines[key as Line] ?? [];
+      return kettlebellLines[key as Line]?.exercises ?? [];
     if (grouping === 'band')
-      return bandLines[key as Line] ?? [];
+      return bandLines[key as Line]?.exercises ?? [];
     return [];
   })();
   const totalCompleted = exercises.reduce((sum, ex) => sum + (sets[ex.name] || 0), 0);
@@ -975,8 +1047,8 @@ export default function AccountWorkouts() {
     pushBw(workoutLines.C.exercises);
     pushBw(workoutLines.D.exercises);
     for (const line of LINES) {
-      pushBw(kettlebellLines[line]);
-      pushBw(bandLines[line]);
+      pushBw(kettlebellLines[line]?.exercises ?? []);
+      pushBw(bandLines[line]?.exercises ?? []);
     }
     return out;
   })();
@@ -993,9 +1065,9 @@ export default function AccountWorkouts() {
       push(workoutLines.C.exercises);
       push(workoutLines.D.exercises);
     } else if (grouping === 'kettlebell') {
-      for (const line of LINES) push(kettlebellLines[line]);
+      for (const line of LINES) push(kettlebellLines[line]?.exercises ?? []);
     } else if (grouping === 'band') {
-      for (const line of LINES) push(bandLines[line]);
+      for (const line of LINES) push(bandLines[line]?.exercises ?? []);
     }
     return out;
   })();
@@ -1435,9 +1507,9 @@ export default function AccountWorkouts() {
             const label = (() => {
               if (grouping === 'bodyweight') return workoutLines[l].name;
               if (grouping === 'kettlebell')
-                return kettlebellLines[l][0]?.name?.split(' ')[0] ?? '';
+                return kettlebellLines[l]?.name ?? '';
               if (grouping === 'band')
-                return bandLines[l][0]?.name?.split(' ')[0] ?? '';
+                return bandLines[l]?.name ?? '';
               return '';
             })();
             return (

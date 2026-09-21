@@ -4,27 +4,42 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { createClient } from '@/lib/supabase';
 import { dateKeyLocal, dayIndexFromStart, parseDateKey } from '@/lib/dates';
-import { estimateExerciseKcal } from '@/components/macro-calculator/formulas';
-import { workoutLines, type Line } from '@/components/AccountWorkouts';
+import { estimateExerciseKcal, adjustMetForLoad } from '@/components/macro-calculator/formulas';
+import { workoutLines, kettlebellLines, bandLines, type Line } from '@/components/AccountWorkouts';
 import type { FoodLogEntry } from '@/components/food-database/types';
 
 const WORKOUT_EXERCISES_PER_LINE = 5;
 const WORKOUT_SETS_PER_EXERCISE = 5;
 const DEFAULT_FIBER_TARGET = 30;
 
-function buildMetLookup() {
+type AllLines = typeof workoutLines | typeof kettlebellLines | typeof bandLines;
+
+function buildMetLookup(
+  weightKg: number,
+  kbWeightKg: number | null
+) {
   const map: Record<string, { met: number; reps: string }> = {};
-  for (const lineData of Object.values(workoutLines)) {
-    for (const ex of lineData.exercises) {
-      if (ex.met !== undefined) {
-        map[ex.name] = { met: ex.met, reps: ex.reps };
+
+  function addLine(lines: AllLines) {
+    for (const lineData of Object.values(lines)) {
+      for (const ex of lineData.exercises) {
+        if (ex.met === undefined) continue;
+        // For KB exercises, apply load adjustment based on user KB weight
+        const isKb = ex.name.startsWith('KB ');
+        const met = isKb
+          ? adjustMetForLoad(ex.met, kbWeightKg)
+          : ex.met;
+        map[ex.name] = { met, reps: ex.reps };
       }
     }
   }
+
+  addLine(workoutLines);
+  addLine(kettlebellLines);
+  addLine(bandLines);
+  void weightKg; // available for future load-based adjustments
   return map;
 }
-
-const MET_LOOKUP = buildMetLookup();
 
 export type AnalyticsRange = '7d' | '30d' | 'all';
 
@@ -158,10 +173,10 @@ export function useFoodAnalytics(
           .eq('user_id', user.id)
           .order('day_key', { ascending: true }),
         (supabase.from('workout_log') as any)
-          .select('date_key, line, sets')
+          .select('date_key, line, sets, grouping')
           .eq('user_id', user.id),
         (supabase.from('macro_profile') as any)
-          .select('results_kcal, results_protein, results_carbs, results_fat, weight_kg, age, sex, height_cm')
+          .select('results_kcal, results_protein, results_carbs, results_fat, weight_kg, age, sex, height_cm, kettlebell_weight_kg')
           .eq('user_id', user.id)
           .maybeSingle(),
       ]);
@@ -178,6 +193,11 @@ export function useFoodAnalytics(
         ? profileRes.data.sex
         : 'male';
       const heightCm = Number(profileRes.data?.height_cm) || 170;
+      const kbWeightKg = profileRes.data?.kettlebell_weight_kg != null
+        ? Number(profileRes.data.kettlebell_weight_kg)
+        : null;
+
+      const MET_LOOKUP = buildMetLookup(weightKg, kbWeightKg);
 
       // Group food by day_key
       const foodByDay: Record<string, FoodLogEntry[]> = {};
@@ -187,10 +207,14 @@ export function useFoodAnalytics(
       }
 
       // Group workouts by date_key
-      const workoutByDay: Record<string, { line: string; sets: Record<string, number> }[]> = {};
+      const workoutByDay: Record<string, { line: string; grouping: string; sets: Record<string, number> }[]> = {};
       for (const row of workoutsRes.data || []) {
         if (!workoutByDay[row.date_key]) workoutByDay[row.date_key] = [];
-        workoutByDay[row.date_key].push({ line: row.line, sets: row.sets || {} });
+        workoutByDay[row.date_key].push({
+          line: row.line,
+          grouping: row.grouping || 'bodyweight',
+          sets: row.sets || {},
+        });
       }
 
       // Build the day list from the food log keys (or filtered range)
@@ -235,12 +259,18 @@ export function useFoodAnalytics(
         let workoutKcalEstimate = 0;
         for (const w of workouts) {
           const sets = w.sets || {};
-          const lineData = workoutLines[w.line as Line];
+          const linesByGroup: Record<string, AllLines> = {
+            bodyweight: workoutLines,
+            kettlebell: kettlebellLines,
+            band: bandLines,
+          };
+          const lines = linesByGroup[w.grouping] ?? workoutLines;
+          const lineData = lines[w.line as Line];
           if (!lineData) continue;
           for (const exercise of lineData.exercises) {
             const setsDone = Number(sets[exercise.name] ?? 0);
             if (setsDone === 0) continue;
-            const met = exercise.met ?? MET_LOOKUP[exercise.name]?.met;
+            const met = MET_LOOKUP[exercise.name]?.met;
             if (met === undefined) continue;
             const exKcal = estimateExerciseKcal({
               age,
