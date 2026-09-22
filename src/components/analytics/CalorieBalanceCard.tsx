@@ -24,7 +24,7 @@ export default function CalorieBalanceCard({
     );
   }
 
-  const { totalKcalEaten, totalWorkoutKcal, daysLogged } = totals;
+  const { totalKcalEaten, totalWorkoutKcal, daysLogged, totalWorkoutDays } = totals;
   const netDeficit = totalKcalEaten - totalWorkoutKcal;
 
   const kcalEatenDisplay = totalKcalEaten.toLocaleString();
@@ -54,7 +54,7 @@ export default function CalorieBalanceCard({
           <p className="font-display text-h2 text-ink tabular-nums leading-none">
             {kcalEatenDisplay}
           </p>
-          <p className="font-body text-caption text-ink/40 mt-0.5">kcal</p>
+          <p className="font-body text-caption text-ink/40 mt-0.5">kcal total</p>
         </div>
 
         {/* Burned */}
@@ -90,10 +90,22 @@ export default function CalorieBalanceCard({
         </div>
       </div>
 
-      <p className="font-body text-caption text-ink/40 leading-relaxed">
-        Totals across {daysLogged > 0 ? `${daysLogged} logged day${daysLogged === 1 ? '' : 's'}` : 'this period'}.
-        Workout burn is estimated from your FIT50 sessions using metabolic equivalents — actual calories vary.
-      </p>
+      <details className="space-y-1">
+        <summary className="font-body text-caption text-ink/40 cursor-pointer hover:text-ink/60 transition-colors list-none">
+          How are these calculated?
+        </summary>
+        <div className="pt-2 space-y-2 border-t border-ink/10">
+          <p className="font-body text-caption text-ink/50 leading-relaxed">
+            <strong className="text-ink">Eaten</strong> — sum of all calories logged in your food diary across {daysLogged} day{daysLogged === 1 ? '' : 's'} in this period.
+          </p>
+          <p className="font-body text-caption text-ink/50 leading-relaxed">
+            <strong className="text-ink">Burned</strong> — estimated calorie burn from your FIT50 workouts using metabolic equivalents (MET). Each exercise has a MET value scaled to your body metrics (age, sex, height, weight). Sessions on days with or without food logged are both counted here ({totalWorkoutDays} workout day{totalWorkoutDays === 1 ? '' : 's'}).
+          </p>
+          <p className="font-body text-caption text-ink/50 leading-relaxed">
+            <strong className="text-ink">Net deficit</strong> — Eaten minus Burned. A positive number means you ate less than you burned (good for fat loss). A negative number means you ate more than you burned (caloric surplus). These totals cover all days with activity in this period — some days may have only food, some only workouts.
+          </p>
+        </div>
+      </details>
     </div>
   );
 }

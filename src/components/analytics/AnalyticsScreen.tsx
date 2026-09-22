@@ -36,7 +36,7 @@ export default function AnalyticsScreen({ startDate: startDateProp }: AnalyticsS
         <p className="font-body text-sm text-ink/40 mb-4">
           Your calorie balance each day. The dashed teal line adds back workout burn — use it to see your real energy position if you train hard and want to account for what you burned.
         </p>
-        <DailyBalanceChart days={days} totals={totals} loaded={loaded} />
+        <DailyBalanceChart days={days} loaded={loaded} />
       </Section>
 
       {/* Macro breakdown bars */}
