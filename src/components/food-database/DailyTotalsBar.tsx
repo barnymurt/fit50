@@ -80,18 +80,12 @@ const BARS: { key: 'kcal' | 'protein' | 'carbs' | 'fat'; label: string; unit: st
   { key: 'fat', label: 'Fat', unit: 'g' },
 ];
 
-// Bar visualises 0% to TRACK_MAX (105%) of target. Shaded zones
-// sit inside that range — there's no plain-grey track beyond
-// 105% of target for the user to second-guess when they're under
-// 100%. The fill grows from 0 up to FILL_CAP (110% of target) and
-// is allowed to overflow past the right edge of the bar track so
-// the user sees they've blown past 105%. Past the cap, the bar
-// stops extending visually while the % label keeps climbing
-// uncapped.
-const TRACK_MAX = 1.05;
-const FILL_CAP = 1.10;
-const TEAL_THRESHOLD = 0.95;
-const CORAL_THRESHOLD = 1.05;
+// Bar stops at 105% of target. If the user exceeds 105%,
+// the bar stays at the end and the % label shows the overage
+// (e.g. 115% if they ate 115% of target).
+const FILL_CAP = 1.05;
+const TEAL_THRESHOLD = 0.95; // 95% of target = teal band start
+const CORAL_THRESHOLD = 1.00; // 100% of target = bar end
 
 function BarView({
   totals,
@@ -127,17 +121,10 @@ function BarView({
         const status: 'on-track' | 'over' = ratio > 1 ? 'over' : 'on-track';
         const fillPctLabel = Math.round(ratio * 100); // uncapped
 
-        // Track positions (as % of bar width). The track itself
-        // represents 0–105% of target, so 100% of target sits at
-        // 100/105 ≈ 95.24% of bar width.
-        const tealStartPct =
-          (TEAL_THRESHOLD / TRACK_MAX) * 100; // ≈90.48
-        const tealEndPct = (1.0 / TRACK_MAX) * 100; // ≈95.24
-        const coralEndPct = (CORAL_THRESHOLD / TRACK_MAX) * 100; // 100
-        const targetLinePct = tealEndPct; // 100% of target
-        const fillCapPct = (FILL_CAP / TRACK_MAX) * 100; // ≈104.76
-        const fillBarPct =
-          (Math.min(value / target, FILL_CAP) / TRACK_MAX) * 100;
+        // Bar positions relative to FILL_CAP (110% of target = 100% of bar width)
+        const tealStartPct = (TEAL_THRESHOLD / FILL_CAP) * 100; // ≈86.4
+        const tealEndPct = (CORAL_THRESHOLD / FILL_CAP) * 100; // ≈90.9
+        const fillBarPct = Math.min(ratio / FILL_CAP, 1) * 100;
 
         return (
           <div key={key} className="relative pb-6 pt-5">
@@ -156,15 +143,8 @@ function BarView({
                 </span>
               </span>
             </div>
-            {/* Bar wrapper: contains the labels above the tick
-                marks, the bar track itself, and the fill-% label
-                below. pt-5 on the parent gives the labels above
-                room without colliding with the header. */}
             <div className="relative">
-              {/* Tick labels above the bar. Pinned to the same
-                  percentages as the tick marks underneath so the
-                  95 / 100 / 105 numbers visually anchor to the
-                  thresholds. */}
+              {/* Tick labels above the bar */}
               <span
                 className="absolute top-0 -translate-x-1/2 -translate-y-full font-body text-[10px] uppercase tracking-widest text-ink/40 whitespace-nowrap"
                 style={{ left: `${tealStartPct}%` }}
@@ -174,27 +154,23 @@ function BarView({
               </span>
               <span
                 className="absolute top-0 -translate-x-1/2 -translate-y-full font-body text-[10px] uppercase tracking-widest text-ink font-semibold whitespace-nowrap"
-                style={{ left: `${targetLinePct}%` }}
+                style={{ left: `${tealEndPct}%` }}
                 aria-hidden
               >
                 100%
               </span>
               <span
                 className="absolute top-0 -translate-x-1/2 -translate-y-full font-body text-[10px] uppercase tracking-widest text-coral whitespace-nowrap"
-                style={{ left: `${coralEndPct}%` }}
+                style={{ left: '100%' }}
                 aria-hidden
               >
                 105%
               </span>
-              {/* Track ends at the right edge (105% of target). No
-                  overflow-hidden so the fill can run past the edge
-                  when value > 105% — past that there's no grey
-                  background, just the fill running into empty paper. */}
               <div
-                className="h-4 bg-ink/10 relative"
+                className="h-4 bg-ink/10 relative overflow-hidden"
                 aria-label={`${label} ${fillPctLabel}% of target ${Math.round(target)} ${unit}`}
               >
-                {/* Teal band: 95–100% of target. "Approaching target". */}
+                {/* Teal band: 95–100% of target */}
                 <div
                   className="absolute inset-y-0 bg-teal/30"
                   style={{
@@ -203,21 +179,18 @@ function BarView({
                   }}
                   aria-hidden
                 />
-                {/* Coral band: 100–105% of target. "Over budget". */}
+                {/* Coral band: 100–105% of target */}
                 <div
                   className="absolute inset-y-0 bg-coral/30"
                   style={{
                     left: `${tealEndPct}%`,
-                    width: `${coralEndPct - tealEndPct}%`,
+                    width: `${100 - tealEndPct}%`,
                   }}
                   aria-hidden
                 />
-                {/* Fill: solid teal under 100% of target, solid coral
-                    once over. Allowed to overflow the right edge
-                    up to FILL_CAP (110% of target). The % label
-                    below keeps climbing past the cap. */}
+                {/* Fill: bar stops at 100% width (105% of target value) */}
                 <div
-                  className="absolute inset-y-0 left-0"
+                  className="absolute inset-y-0 left-0 overflow-hidden"
                   style={{ width: `${fillBarPct}%` }}
                 >
                   <div
@@ -226,9 +199,7 @@ function BarView({
                     }`}
                   />
                 </div>
-                {/* Tick marks at 95 / 100 / 105 (inside the track) and
-                    a dashed tick at 110 (overflow position) marking
-                    where the fill visually caps. */}
+                {/* Tick marks */}
                 <div
                   className="absolute inset-y-0 w-px bg-ink/30"
                   style={{ left: `${tealStartPct}%` }}
@@ -236,35 +207,29 @@ function BarView({
                 />
                 <div
                   className="absolute inset-y-0 w-0.5 bg-ink"
-                  style={{ left: `${targetLinePct}%` }}
-                  aria-hidden
-                />
-                <div
-                  className="absolute inset-y-0 w-px bg-ink/30"
-                  style={{ left: `${coralEndPct}%` }}
+                  style={{ left: `${tealEndPct}%` }}
                   aria-hidden
                 />
                 <div
                   className="absolute inset-y-0 w-px border-l border-dashed border-ink/40"
-                  style={{ left: `${fillCapPct}%` }}
+                  style={{ left: '100%' }}
                   aria-hidden
                 />
-                {/* Fill percentage pinned to the leading edge of the
-                    fill. Scales with the bar via percentage
-                    positioning; can extend past the right edge when
-                    value > 105%. */}
-                {ratio > 0 && (
-                  <span
-                    className={`absolute -bottom-5 -translate-x-1/2 font-body text-caption tabular-nums font-semibold whitespace-nowrap ${
-                      status === 'over' ? 'text-coral' : 'text-ink/60'
-                    }`}
-                    style={{ left: `${fillBarPct}%` }}
-                    aria-hidden
-                  >
-                    {fillPctLabel}%
-                  </span>
-                )}
               </div>
+              {/* % label OUTSIDE overflow-hidden container so it's not clipped
+                  when the bar caps at 100%. Anchored to the bar end position;
+                  when bar is at full width the label sits just past the right edge. */}
+              {ratio > 0 && (
+                <span
+                  className={`absolute top-full mt-1 font-body text-caption tabular-nums font-semibold whitespace-nowrap ${
+                    status === 'over' ? 'text-coral' : 'text-ink/60'
+                  } ${fillBarPct >= 100 ? 'right-0' : ''}`}
+                  style={fillBarPct < 100 ? { left: `${fillBarPct}%`, transform: 'translateX(-50%)' } : {}}
+                  aria-hidden
+                >
+                  {fillPctLabel}%
+                </span>
+              )}
             </div>
           </div>
         );

@@ -2,11 +2,21 @@
 // providers (OpenAI, DeepSeek, Mistral, Perplexity, OpenRouter, …)
 // share the same adapter — only the baseUrl and model id change.
 // Anthropic and Gemini have their own adapters because their
-// request/response shapes differ.
+// request/response shapes differ. Groq is server-side-only (premium
+// fallback) and not shown in the user-facing provider dropdown.
 
 import type { LLMConfig, LLMProvider } from './types';
 
 export type { LLMProvider } from './types';
+
+const GROQ_CONFIG: LLMConfig = {
+  id: 'groq',
+  name: 'Groq',
+  baseUrl: 'https://api.groq.com/openai/v1',
+  model: 'llama-3.1-8b-instant',
+  authHeader: 'Authorization',
+  authPrefix: 'Bearer ',
+};
 
 export const PROVIDERS: Record<LLMProvider, LLMConfig> = {
   openai: {
@@ -45,7 +55,7 @@ export const PROVIDERS: Record<LLMProvider, LLMConfig> = {
     id: 'anthropic',
     name: 'Anthropic',
     baseUrl: 'https://api.anthropic.com/v1',
-    model: 'claude-3-5-haiku-latest',
+    model: 'claude-haiku-4-5-20251001',
     authHeader: 'x-api-key',
     authPrefix: '',
   },
@@ -57,7 +67,12 @@ export const PROVIDERS: Record<LLMProvider, LLMConfig> = {
     authHeader: '',
     authPrefix: '',
   },
+  groq: GROQ_CONFIG,
 };
+
+// Server-side-only key for the premium photo-scan fallback.
+// Stored in env vars, never sent to the client.
+export const GROQ_SERVER_KEY = process.env.GROQ_API_KEY ?? null;
 
 // Order matters: the first matching prefix wins. sk-ant-* and pplx-*
 // are checked before the generic sk-* rule (which is OpenAI by

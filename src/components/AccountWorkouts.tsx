@@ -20,11 +20,37 @@ interface Exercise {
    *  cardio circuits) but a few (Plank, Russian Twists) sit
    *  better under core; the assignment below is intentional. */
   category: 'push' | 'pull' | 'legs' | 'core' | 'stamina';
+  /** MET value from the 2024 Compendium of Physical Activities.
+   *  Used for per-exercise kcal estimation (BMR-adjusted). */
+  met?: number;
 }
 
-type Line = 'A' | 'B' | 'C' | 'D';
+export const MET_BY_EXERCISE: Record<string, number> = {
+  'Push-ups': 4.0,
+  'Supermans': 4.0,
+  'Bodyweight Squats': 4.5,
+  'Bird Dogs': 3.5,
+  Plank: 3.0,
+  'Wide Push-ups': 3.5,
+  'Reverse Snow Angels': 4.0,
+  Lunges: 4.5,
+  'Plank Shoulder Taps': 4.0,
+  Burpees: 8.0,
+  'Tricep Dips (floor)': 3.5,
+  'Prone Y-Raises': 3.5,
+  'Glute Bridges': 4.0,
+  'Flutter Kicks': 5.0,
+  'Mountain Climbers': 8.0,
+  'Tricep Push-ups': 3.5,
+  'Wall Slides': 2.5,
+  'Single-Leg Glute Bridge': 4.5,
+  'Dead Bugs': 4.0,
+  'Russian Twists': 4.0,
+};
 
-const workoutLines: Record<Line, { name: string; subtitle: string; exercises: Exercise[] }> = {
+export type Line = 'A' | 'B' | 'C' | 'D';
+
+export const workoutLines: Record<Line, { name: string; subtitle: string; exercises: Exercise[] }> = {
   A: {
     name: 'The Base',
     subtitle: 'Foundations',
@@ -34,6 +60,7 @@ const workoutLines: Record<Line, { name: string; subtitle: string; exercises: Ex
         name: 'Push-ups',
         reps: '5 × 10',
         category: 'push',
+        met: 4.0,
         description:
           'Hands shoulder-width, elbows tracking back at ~45°. Lower your chest to the floor with a straight line from head to heels, then press back up. Don\'t let your hips sag or pike up — keep your core braced throughout. Breathe out on the way up.',
       },
@@ -42,6 +69,7 @@ const workoutLines: Record<Line, { name: string; subtitle: string; exercises: Ex
         name: 'Supermans',
         reps: '5 × 10',
         category: 'pull',
+        met: 4.0,
         description:
           'Lie face down, arms extended overhead. Lift your arms, chest, and legs off the floor at the same time, squeezing your lower back and glutes at the top. Hold for a second, then lower with control. Keep your neck neutral — look at the floor, not forward.',
       },
@@ -50,6 +78,7 @@ const workoutLines: Record<Line, { name: string; subtitle: string; exercises: Ex
         name: 'Bodyweight Squats',
         reps: '5 × 10',
         category: 'legs',
+        met: 4.5,
         description:
           'Feet shoulder-width, toes pointed slightly out. Push your hips back like you\'re sitting in a chair, knees tracking over your toes. Go as deep as comfortable — aim for thighs parallel to the floor or lower. Drive through your heels to stand.',
       },
@@ -58,6 +87,7 @@ const workoutLines: Record<Line, { name: string; subtitle: string; exercises: Ex
         name: 'Bird Dogs',
         reps: '5 × 10/side',
         category: 'core',
+        met: 3.5,
         description:
           'On all fours, wrists under shoulders, knees under hips. Extend your right arm forward and left leg back at the same time, keeping your spine neutral and hips level. Hold briefly, return with control. Alternate sides. The slower you go, the harder it works your core.',
       },
@@ -66,6 +96,7 @@ const workoutLines: Record<Line, { name: string; subtitle: string; exercises: Ex
         name: 'Plank',
         reps: '5 × 50s',
         category: 'core',
+        met: 3.0,
         description:
           'Forearms on the floor, elbows under shoulders, toes tucked. Body in a straight line from head to heels — squeeze your glutes, brace your abs, and don\'t let your hips sag or pike up. Hold the position. Breathe shallowly through it.',
       },
@@ -80,6 +111,7 @@ const workoutLines: Record<Line, { name: string; subtitle: string; exercises: Ex
         name: 'Wide Push-ups',
         reps: '5 × 10',
         category: 'push',
+        met: 3.5,
         description:
           'Same as push-ups but with hands placed wider than shoulders. Targets chest more than triceps. Lower with control, press up, keep core braced. If too hard, drop to knees — same movement, less load.',
       },
@@ -88,6 +120,7 @@ const workoutLines: Record<Line, { name: string; subtitle: string; exercises: Ex
         name: 'Reverse Snow Angels',
         reps: '5 × 10',
         category: 'pull',
+        met: 4.0,
         description:
           'Lie face down, arms extended overhead. Lift your arms and legs, then sweep your arms out wide and back down to your sides like making a snow angel. Keep the lift the whole time. Squeeze your back at the bottom of the arc.',
       },
@@ -96,6 +129,7 @@ const workoutLines: Record<Line, { name: string; subtitle: string; exercises: Ex
         name: 'Lunges',
         reps: '5 × 10',
         category: 'legs',
+        met: 4.5,
         description:
           'Step forward with one leg, lower until your back knee nearly touches the floor (front knee at 90°). Push back to standing. Alternate or do all one side then switch. Keep your torso upright and front knee tracking over your toes.',
       },
@@ -104,6 +138,7 @@ const workoutLines: Record<Line, { name: string; subtitle: string; exercises: Ex
         name: 'Plank Shoulder Taps',
         reps: '5 × 10/side',
         category: 'core',
+        met: 4.0,
         description:
           'Hold a high plank position (hands, not forearms). Without rocking your hips, lift one hand and tap the opposite shoulder. Alternate sides. The less you wobble, the harder it works your core — slow and controlled wins.',
       },
@@ -112,6 +147,7 @@ const workoutLines: Record<Line, { name: string; subtitle: string; exercises: Ex
         name: 'Burpees',
         reps: '5 × 50s',
         category: 'stamina',
+        met: 8.0,
         description:
           'Squat down, plant your hands, jump your feet back to a plank. Do a push-up, jump your feet back to your hands, then jump up with arms overhead. One rep. Move at a steady pace for the full 50 seconds.',
       },
@@ -126,6 +162,7 @@ const workoutLines: Record<Line, { name: string; subtitle: string; exercises: Ex
         name: 'Tricep Dips (floor)',
         reps: '5 × 10',
         category: 'push',
+        met: 3.5,
         description:
           'Seated on the floor, hands by your hips, fingers pointing forward. Lift your hips off the floor, lower them by bending your elbows back at 90°, then press up. Keep your back close to the bench or floor, elbows pointing straight back.',
       },
@@ -134,6 +171,7 @@ const workoutLines: Record<Line, { name: string; subtitle: string; exercises: Ex
         name: 'Prone Y-Raises',
         reps: '5 × 10',
         category: 'pull',
+        met: 3.5,
         description:
           'Lie face down, arms extended. Lift your arms into a Y position (45° out), lower, then lift into an R position (90° out). 10 total or 5/5. Squeeze your upper back at the top. Light weight or none.',
       },
@@ -142,6 +180,7 @@ const workoutLines: Record<Line, { name: string; subtitle: string; exercises: Ex
         name: 'Glute Bridges',
         reps: '5 × 10',
         category: 'legs',
+        met: 4.0,
         description:
           'Lie on your back, knees bent, feet flat on the floor hip-width apart. Drive through your heels, lift your hips toward the ceiling, squeeze your glutes hard at the top. Hold a second, lower with control. Don\'t arch your lower back — drive up with the glutes.',
       },
@@ -150,6 +189,7 @@ const workoutLines: Record<Line, { name: string; subtitle: string; exercises: Ex
         name: 'Flutter Kicks',
         reps: '5 × 10',
         category: 'core',
+        met: 5.0,
         description:
           'Lie on your back, hands under your glutes, head and shoulders off the floor. Alternate kicking your legs up and down in small, controlled scissor kicks. Keep your core engaged and lower back pressed into the floor.',
       },
@@ -158,6 +198,7 @@ const workoutLines: Record<Line, { name: string; subtitle: string; exercises: Ex
         name: 'Mountain Climbers',
         reps: '5 × 50s',
         category: 'stamina',
+        met: 8.0,
         description:
           'Start in a high plank. Drive one knee toward your chest, then switch — fast, like running in place horizontally. Keep your hips low and core tight. Move at a steady pace for the full 50 seconds.',
       },
@@ -172,6 +213,7 @@ const workoutLines: Record<Line, { name: string; subtitle: string; exercises: Ex
         name: 'Tricep Push-ups',
         reps: '5 × 10',
         category: 'push',
+        met: 3.5,
         description:
           'Push-ups with hands close together, elbows hugging your ribs. Targets the triceps much more than a standard push-up. Lower with control, full lockout at the top. If your form breaks, drop to knees.',
       },
@@ -180,6 +222,7 @@ const workoutLines: Record<Line, { name: string; subtitle: string; exercises: Ex
         name: 'Wall Slides',
         reps: '5 × 10',
         category: 'pull',
+        met: 2.5,
         description:
           'Stand with your back against a wall, feet about 6 inches out. Press your lower back, upper back, and head into the wall. Slide your arms up the wall in a Y shape, then back down. Keep contact with the wall the entire time. Slow.',
       },
@@ -188,6 +231,7 @@ const workoutLines: Record<Line, { name: string; subtitle: string; exercises: Ex
         name: 'Single-Leg Glute Bridge',
         reps: '5 × 10/leg',
         category: 'legs',
+        met: 4.5,
         description:
           'Lie on your back, knees bent. Lift one leg off the floor. Drive through the heel of the other foot, lift your hips, squeeze the glute hard at the top. Lower with control. Alternate or do all one side then switch.',
       },
@@ -196,6 +240,7 @@ const workoutLines: Record<Line, { name: string; subtitle: string; exercises: Ex
         name: 'Dead Bugs',
         reps: '5 × 10/side',
         category: 'core',
+        met: 4.0,
         description:
           'On your back, arms pointing at the ceiling, knees and hips at 90°. Press your lower back into the floor. Extend your right arm back and left leg out at the same time, then return. Alternate sides. The lower back stays glued to the floor — no arching.',
       },
@@ -204,6 +249,7 @@ const workoutLines: Record<Line, { name: string; subtitle: string; exercises: Ex
         name: 'Russian Twists',
         reps: '5 × 50s',
         category: 'core',
+        met: 4.0,
         description:
           'Sit on the floor, knees bent, lean back about 45°. Lift your feet off the floor for harder, leave them down for easier. Twist your torso side to side, tapping the floor beside your hips. Keep your core braced, move from the torso, not the arms.',
       },
@@ -211,7 +257,7 @@ const workoutLines: Record<Line, { name: string; subtitle: string; exercises: Ex
   },
 };
 
-const TOTAL_SETS = 5;
+export const TOTAL_SETS = 5;
 const LINES: Line[] = ['A', 'B', 'C', 'D'];
 const GROUPINGS = ['bodyweight', 'kettlebell', 'band'] as const;
 type Grouping = (typeof GROUPINGS)[number];
@@ -226,346 +272,418 @@ type WorkoutKey = Line;
 // either dropped or used as the stamina finisher).
 // Bodyweight keeps its current 4-line A/B/C/D structure (the
 // free-tier taster); the new equipment programs sit alongside it.
-const kettlebellLines: Record<Line, Exercise[]> = {
-  A: [
-    {
-      slot: '01',
-      name: 'KB Floor Press',
-      reps: '5 × 10',
-      category: 'push',
-      description:
-        'Lie on your back with a kettlebell in each hand at shoulder height. Press straight up until your arms lock, lower under control. Switch sides halfway through each set so each arm gets the same volume.',
-    },
-    {
-      slot: '02',
-      name: 'KB Strict Press',
-      reps: '5 × 10',
-      category: 'push',
-      description:
-        'KB racked at shoulder height, elbows tucked. Press straight overhead without leaning back. Lower under control to the shoulder. Keep your ribs down — don\'t flare your lower back.',
-    },
-    {
-      slot: '03',
-      name: 'KB Push Press',
-      reps: '5 × 10',
-      category: 'push',
-      description:
-        'KB racked at shoulder. Small dip through knees, drive up hard, press overhead using leg drive. Lower controlled. Switch sides.',
-    },
-    {
-      slot: '04',
-      name: 'KB Z Press',
-      reps: '5 × 10',
-      category: 'push',
-      description:
-        'Sit on floor, legs straight in front. KB racked at shoulder. Press overhead without leaning back. Lower slow. Switch sides.',
-    },
-    {
-      slot: '05',
-      name: 'KB Halo',
-      reps: '5 × 50s',
-      category: 'core',
-      description:
-        'KB held by the horns at chest height. Circle it around your head, close to your skull. Brace your core, no leaning. Alternate direction each rep. Slow tempo — KB swings are too ballistic for novice users, so halos give a similar shoulder-rotation stimulus at low load.',
-    },
-  ],
-  B: [
-    {
-      slot: '01',
-      name: 'KB Bent-Over Row',
-      reps: '5 × 10',
-      category: 'pull',
-      description:
-        'Hinge hips back, flat back, KB hanging one hand. Row to hip, squeeze shoulder blade, lower slow. Switch sides halfway.',
-    },
-    {
-      slot: '02',
-      name: 'KB Single-Arm Row',
-      reps: '5 × 10',
-      category: 'pull',
-      description:
-        'Split stance, hand on knee for support. Row KB to hip, elbow tight, squeeze back. Lower slow. Switch sides.',
-    },
-    {
-      slot: '03',
-      name: 'KB High Pull',
-      reps: '5 × 10',
-      category: 'pull',
-      description:
-        'KB between feet, hinge down. Explosively pull up to chin, elbows high and wide. Reverse under control to start.',
-    },
-    {
-      slot: '04',
-      name: 'KB Gorilla Row',
-      reps: '5 × 10',
-      category: 'pull',
-      description:
-        'Two KBs between feet, wide sumo stance, hinge down. Row one KB to hip while other rests, alternate arms each rep.',
-    },
-    {
-      slot: '05',
-      name: 'KB Goblet Squat Pulses',
-      reps: '5 × 50s',
-      category: 'stamina',
-      description:
-        'Hold KB at chest, squat to parallel and pulse in the bottom third. Chest up, breath steady.',
-    },
-  ],
-  C: [
-    {
-      slot: '01',
-      name: 'KB Goblet Squat',
-      reps: '5 × 10',
-      category: 'legs',
-      description:
-        'Hold KB at chest, elbows tucked. Squat until thighs parallel or lower, chest up. Drive through heels to stand.',
-    },
-    {
-      slot: '02',
-      name: 'KB Romanian Deadlift',
-      reps: '5 × 10',
-      category: 'legs',
-      description:
-        'KB in both hands. Push hips back, slight knee bend, KB slides down shins. Squeeze glutes to stand tall.',
-    },
-    {
-      slot: '03',
-      name: 'KB Reverse Lunge',
-      reps: '5 × 10',
-      category: 'legs',
-      description:
-        'Hold KB goblet at chest. Step back, drop back knee toward floor, drive front heel to return. Alternate legs each rep.',
-    },
-    {
-      slot: '04',
-      name: 'KB Cossack Squat',
-      reps: '5 × 10',
-      category: 'legs',
-      description:
-        'KB goblet at chest, wide stance. Shift weight fully into one leg, squat deep, other leg straight. Return, switch sides.',
-    },
-    {
-      slot: '05',
-      name: "KB Farmer's Carry",
-      reps: '5 × 50s',
-      category: 'stamina',
-      description:
-        'One heavy KB per side, or one loaded. Walk with tall posture, ribs down, crushing grip. Turn, return.',
-    },
-  ],
-  D: [
-    {
-      slot: '01',
-      name: 'KB Clean and Press',
-      reps: '5 × 10',
-      category: 'pull',
-      description:
-        'KB between feet. Pull up to racked shoulder position, press overhead, reverse to floor. Switch sides halfway.',
-    },
-    {
-      slot: '02',
-      name: 'KB Thruster',
-      reps: '5 × 10',
-      category: 'legs',
-      description:
-        'KB goblet at chest. Squat deep, then drive up and press KB overhead in one motion. Lower and repeat smoothly.',
-    },
-    {
-      slot: '03',
-      name: 'KB Snatch',
-      reps: '5 × 10',
-      category: 'pull',
-      description:
-        'KB between feet. Pull up in one motion, punch hand through overhead, lock out arm. Reverse to floor. Switch sides.',
-    },
-    {
-      slot: '04',
-      name: 'KB Clean',
-      reps: '5 × 10',
-      category: 'pull',
-      description:
-        'KB between feet. Pull explosively to racked shoulder position, elbow tight to ribs. Lower to floor under control. Switch sides.',
-    },
-    {
-      slot: '05',
-      name: 'KB Snatches',
-      reps: '5 × 50s',
-      category: 'stamina',
-      description:
-        'As Day 3 snatch but for time. Alternate sides every few reps, breath sharp, hips do the work — not the arm.',
-    },
-  ],
+export const kettlebellLines: Record<Line, { name: string; subtitle: string; exercises: Exercise[] }> = {
+  A: {
+    name: 'KB Pressing',
+    subtitle: 'Chest & shoulders',
+    exercises: [
+      {
+        slot: '01',
+        name: 'KB Floor Press',
+        reps: '5 × 10',
+        category: 'push',
+        met: 4.5,
+        description:
+          'Lie on your back with a kettlebell in each hand at shoulder height. Press straight up until your arms lock, lower under control. Switch sides halfway through each set so each arm gets the same volume.',
+      },
+      {
+        slot: '02',
+        name: 'KB Strict Press',
+        reps: '5 × 10',
+        category: 'push',
+        met: 4.5,
+        description:
+          'KB racked at shoulder height, elbows tucked. Press straight overhead without leaning back. Lower under control to the shoulder. Keep your ribs down — don\'t flare your lower back.',
+      },
+      {
+        slot: '03',
+        name: 'KB Push Press',
+        reps: '5 × 10',
+        category: 'push',
+        met: 5.0,
+        description:
+          'KB racked at shoulder. Small dip through knees, drive up hard, press overhead using leg drive. Lower controlled. Switch sides.',
+      },
+      {
+        slot: '04',
+        name: 'KB Z Press',
+        reps: '5 × 10',
+        category: 'push',
+        met: 4.5,
+        description:
+          'Sit on floor, legs straight in front. KB racked at shoulder. Press overhead without leaning back. Lower slow. Switch sides.',
+      },
+      {
+        slot: '05',
+        name: 'KB Halo',
+        reps: '5 × 50s',
+        category: 'core',
+        met: 3.5,
+        description:
+          'KB held by the horns at chest height. Circle it around your head, close to your skull. Brace your core, no leaning. Alternate direction each rep. Slow tempo — KB swings are too ballistic for novice users, so halos give a similar shoulder-rotation stimulus at low load.',
+      },
+    ],
+  },
+  B: {
+    name: 'KB Pulling',
+    subtitle: 'Back & grip',
+    exercises: [
+      {
+        slot: '01',
+        name: 'KB Bent-Over Row',
+        reps: '5 × 10',
+        category: 'pull',
+        met: 5.0,
+        description:
+          'Hinge hips back, flat back, KB hanging one hand. Row to hip, squeeze shoulder blade, lower slow. Switch sides halfway.',
+      },
+      {
+        slot: '02',
+        name: 'KB Single-Arm Row',
+        reps: '5 × 10',
+        category: 'pull',
+        met: 5.0,
+        description:
+          'Split stance, hand on knee for support. Row KB to hip, elbow tight, squeeze back. Lower slow. Switch sides.',
+      },
+      {
+        slot: '03',
+        name: 'KB High Pull',
+        reps: '5 × 10',
+        category: 'pull',
+        met: 6.0,
+        description:
+          'KB between feet, hinge down. Explosively pull up to chin, elbows high and wide. Reverse under control to start.',
+      },
+      {
+        slot: '04',
+        name: 'KB Gorilla Row',
+        reps: '5 × 10',
+        category: 'pull',
+        met: 6.0,
+        description:
+          'Two KBs between feet, wide sumo stance, hinge down. Row one KB to hip while other rests, alternate arms each rep.',
+      },
+      {
+        slot: '05',
+        name: 'KB Goblet Squat Pulses',
+        reps: '5 × 50s',
+        category: 'stamina',
+        met: 5.5,
+        description:
+          'Hold KB at chest, squat to parallel and pulse in the bottom third. Chest up, breath steady.',
+      },
+    ],
+  },
+  C: {
+    name: 'KB Legs',
+    subtitle: 'Quads, hammies & glutes',
+    exercises: [
+      {
+        slot: '01',
+        name: 'KB Goblet Squat',
+        reps: '5 × 10',
+        category: 'legs',
+        met: 5.0,
+        description:
+          'Hold KB at chest, elbows tucked. Squat until thighs parallel or lower, chest up. Drive through heels to stand.',
+      },
+      {
+        slot: '02',
+        name: 'KB Romanian Deadlift',
+        reps: '5 × 10',
+        category: 'legs',
+        met: 5.5,
+        description:
+          'KB in both hands. Push hips back, slight knee bend, KB slides down shins. Squeeze glutes to stand tall.',
+      },
+      {
+        slot: '03',
+        name: 'KB Reverse Lunge',
+        reps: '5 × 10',
+        category: 'legs',
+        met: 5.0,
+        description:
+          'Hold KB goblet at chest. Step back, drop back knee toward floor, drive front heel to return. Alternate legs each rep.',
+      },
+      {
+        slot: '04',
+        name: 'KB Cossack Squat',
+        reps: '5 × 10',
+        category: 'legs',
+        met: 5.5,
+        description:
+          'KB goblet at chest, wide stance. Shift weight fully into one leg, squat deep, other leg straight. Return, switch sides.',
+      },
+      {
+        slot: '05',
+        name: "KB Farmer's Carry",
+        reps: '5 × 50s',
+        category: 'stamina',
+        met: 5.0,
+        description:
+          'One heavy KB per side, or one loaded. Walk with tall posture, ribs down, crushing grip. Turn, return.',
+      },
+    ],
+  },
+  D: {
+    name: 'KB Power',
+    subtitle: 'Explosive & full body',
+    exercises: [
+      {
+        slot: '01',
+        name: 'KB Clean and Press',
+        reps: '5 × 10',
+        category: 'pull',
+        met: 6.0,
+        description:
+          'KB between feet. Pull up to racked shoulder position, press overhead, reverse to floor. Switch sides halfway.',
+      },
+      {
+        slot: '02',
+        name: 'KB Thruster',
+        reps: '5 × 10',
+        category: 'legs',
+        met: 5.5,
+        description:
+          'KB goblet at chest. Squat deep, then drive up and press KB overhead in one motion. Lower and repeat smoothly.',
+      },
+      {
+        slot: '03',
+        name: 'KB Snatch',
+        reps: '5 × 10',
+        category: 'pull',
+        met: 6.5,
+        description:
+          'KB between feet. Pull up in one motion, punch hand through overhead, lock out arm. Reverse to floor. Switch sides.',
+      },
+      {
+        slot: '04',
+        name: 'KB Clean',
+        reps: '5 × 10',
+        category: 'pull',
+        met: 5.5,
+        description:
+          'KB between feet. Pull explosively to racked shoulder position, elbow tight to ribs. Lower to floor under control. Switch sides.',
+      },
+      {
+        slot: '05',
+        name: 'KB Snatches',
+        reps: '5 × 50s',
+        category: 'stamina',
+        met: 6.5,
+        description:
+          'As Day 3 snatch but for time. Alternate sides every few reps, breath sharp, hips do the work — not the arm.',
+      },
+    ],
+  },
 };
 
-const bandLines: Record<Line, Exercise[]> = {
-  A: [
-    {
-      slot: '01',
-      name: 'RB Chest Press',
-      reps: '5 × 10',
-      category: 'push',
-      description:
-        'Anchor band behind you at chest height. Handles in hands, press forward until arms lock, return slowly with control.',
-    },
-    {
-      slot: '02',
-      name: 'RB Overhead Press',
-      reps: '5 × 10',
-      category: 'push',
-      description:
-        'Stand on band centre, handles at shoulders. Press straight up, lock out overhead, lower under control.',
-    },
-    {
-      slot: '03',
-      name: 'RB Chest Fly',
-      reps: '5 × 10',
-      category: 'push',
-      description:
-        'Anchor band behind at chest height. Arms wide, slight elbow bend. Bring hands together in front, control the stretch back.',
-    },
-    {
-      slot: '04',
-      name: 'RB Lateral Raise',
-      reps: '5 × 10',
-      category: 'push',
-      description:
-        'Stand on band, handles at sides. Raise arms out to shoulder height, slight elbow bend, lower under control.',
-    },
-    {
-      slot: '05',
-      name: 'Banded High Knees',
-      reps: '5 × 50s',
-      category: 'stamina',
-      description:
-        'Band above knees. Drive knees up alternately at pace, arms pumping, stay light on the balls of your feet.',
-    },
-  ],
-  B: [
-    {
-      slot: '01',
-      name: 'RB Seated Row',
-      reps: '5 × 10',
-      category: 'pull',
-      description:
-        'Sit, legs straight, band round feet. Pull handles to lower ribs, elbows tight, squeeze back. Release slow.',
-    },
-    {
-      slot: '02',
-      name: 'RB Bent-Over Row',
-      reps: '5 × 10',
-      category: 'pull',
-      description:
-        'Stand on band, hinge at hips, flat back. Row handles to lower ribs, squeeze shoulder blades, lower slow.',
-    },
-    {
-      slot: '03',
-      name: 'RB Face Pull',
-      reps: '5 × 10',
-      category: 'pull',
-      description:
-        'Anchor band at head height. Pull handles towards forehead, elbows flaring wide, thumbs pointing back. Pause, return slow.',
-    },
-    {
-      slot: '04',
-      name: 'RB Bicep Curl',
-      reps: '5 × 10',
-      category: 'pull',
-      description:
-        'Stand on band, handles in hands, palms up. Curl to shoulders, elbows glued to ribs, lower slow with tension.',
-    },
-    {
-      slot: '05',
-      name: 'Banded Jumping Jacks',
-      reps: '5 × 50s',
-      category: 'stamina',
-      description:
-        'Band above knees. Jump feet wide and narrow, arms swinging overhead. Keep band taut throughout, land softly.',
-    },
-  ],
-  C: [
-    {
-      slot: '01',
-      name: 'RB Banded Squat',
-      reps: '5 × 10',
-      category: 'legs',
-      description:
-        'Band above knees. Squat down, actively push knees out against band. Stand, keep tension throughout.',
-    },
-    {
-      slot: '02',
-      name: 'RB Banded Deadlift',
-      reps: '5 × 10',
-      category: 'legs',
-      description:
-        'Stand on band, handles in hands. Hinge hips back, slight knee bend, drive through heels to stand tall, squeeze glutes.',
-    },
-    {
-      slot: '03',
-      name: 'RB Lateral Band Walk',
-      reps: '5 × 10',
-      category: 'legs',
-      description:
-        'Band above knees, half-squat. Step sideways ten paces, keeping tension, return the other way. Chest up, feet parallel.',
-    },
-    {
-      slot: '04',
-      name: 'RB Glute Kickback',
-      reps: '5 × 10',
-      category: 'legs',
-      description:
-        'Band around ankles, on all fours. Kick one leg straight back, squeeze glute, control return. Switch sides halfway.',
-    },
-    {
-      slot: '05',
-      name: 'Banded Skater Jumps',
-      reps: '5 × 50s',
-      category: 'stamina',
-      description:
-        'Band above knees. Bound side to side, land soft on outside leg, tap opposite foot behind. Stay low.',
-    },
-  ],
-  D: [
-    {
-      slot: '01',
-      name: 'RB Thruster',
-      reps: '5 × 10',
-      category: 'legs',
-      description:
-        'Stand on band, handles at shoulders. Squat deep, drive up and press overhead in one motion. Return, repeat.',
-    },
-    {
-      slot: '02',
-      name: 'RB Burpee',
-      reps: '5 × 10',
-      category: 'stamina',
-      description:
-        'Loop band round shoulders and under feet. Drop to plank, jump feet in, stand, small hop. Repeat with band tension.',
-    },
-    {
-      slot: '03',
-      name: 'RB Clean and Press',
-      reps: '5 × 10',
-      category: 'push',
-      description:
-        'Stand on band. Pull handles from hips to shoulders in one motion, press overhead, reverse under control.',
-    },
-    {
-      slot: '04',
-      name: 'RB Renegade Row',
-      reps: '5 × 10',
-      category: 'core',
-      description:
-        'Plank position, one handle in each hand, band anchored ahead. Row one arm to ribs, alternate, hips stay square.',
-    },
-    {
+export const bandLines: Record<Line, { name: string; subtitle: string; exercises: Exercise[] }> = {
+  A: {
+    name: 'RB Pressing',
+    subtitle: 'Chest & shoulders',
+    exercises: [
+      {
+        slot: '01',
+        name: 'RB Chest Press',
+        reps: '5 × 10',
+        category: 'push',
+        met: 4.0,
+        description:
+          'Anchor band behind you at chest height. Handles in hands, press forward until arms lock, return slowly with control.',
+      },
+      {
+        slot: '02',
+        name: 'RB Overhead Press',
+        reps: '5 × 10',
+        category: 'push',
+        met: 4.0,
+        description:
+          'Stand on band centre, handles at shoulders. Press straight up, lock out overhead, lower under control.',
+      },
+      {
+        slot: '03',
+        name: 'RB Chest Fly',
+        reps: '5 × 10',
+        category: 'push',
+        met: 3.5,
+        description:
+          'Anchor band behind at chest height. Arms wide, slight elbow bend. Bring hands together in front, control the stretch back.',
+      },
+      {
+        slot: '04',
+        name: 'RB Lateral Raise',
+        reps: '5 × 10',
+        category: 'push',
+        met: 3.5,
+        description:
+          'Stand on band, handles at sides. Raise arms out to shoulder height, slight elbow bend, lower under control.',
+      },
+      {
+        slot: '05',
+        name: 'Banded High Knees',
+        reps: '5 × 50s',
+        category: 'stamina',
+        met: 6.0,
+        description:
+          'Band above knees. Drive knees up alternately at pace, arms pumping, stay light on the balls of your feet.',
+      },
+    ],
+  },
+  B: {
+    name: 'RB Pulling',
+    subtitle: 'Back & biceps',
+    exercises: [
+      {
+        slot: '01',
+        name: 'RB Seated Row',
+        reps: '5 × 10',
+        category: 'pull',
+        met: 4.5,
+        description:
+          'Sit, legs straight, band round feet. Pull handles to lower ribs, elbows tight, squeeze back. Release slow.',
+      },
+      {
+        slot: '02',
+        name: 'RB Bent-Over Row',
+        reps: '5 × 10',
+        category: 'pull',
+        met: 4.5,
+        description:
+          'Stand on band, hinge at hips, flat back. Row handles to lower ribs, squeeze shoulder blades, lower slow.',
+      },
+      {
+        slot: '03',
+        name: 'RB Face Pull',
+        reps: '5 × 10',
+        category: 'pull',
+        met: 3.5,
+        description:
+          'Anchor band at head height. Pull handles towards forehead, elbows flaring wide, thumbs pointing back. Pause, return slow.',
+      },
+      {
+        slot: '04',
+        name: 'RB Bicep Curl',
+        reps: '5 × 10',
+        category: 'pull',
+        met: 3.0,
+        description:
+          'Stand on band, handles in hands, palms up. Curl to shoulders, elbows glued to ribs, lower slow with tension.',
+      },
+      {
+        slot: '05',
+        name: 'Banded Jumping Jacks',
+        reps: '5 × 50s',
+        category: 'stamina',
+        met: 6.0,
+        description:
+          'Band above knees. Jump feet wide and narrow, arms swinging overhead. Keep band taut throughout, land softly.',
+      },
+    ],
+  },
+  C: {
+    name: 'RB Legs',
+    subtitle: 'Quads, hammies & glutes',
+    exercises: [
+      {
+        slot: '01',
+        name: 'RB Banded Squat',
+        reps: '5 × 10',
+        category: 'legs',
+        met: 4.5,
+        description:
+          'Band above knees. Squat down, actively push knees out against band. Stand, keep tension throughout.',
+      },
+      {
+        slot: '02',
+        name: 'RB Banded Deadlift',
+        reps: '5 × 10',
+        category: 'legs',
+        met: 4.5,
+        description:
+          'Stand on band, handles in hands. Hinge hips back, slight knee bend, drive through heels to stand tall, squeeze glutes.',
+      },
+      {
+        slot: '03',
+        name: 'RB Lateral Band Walk',
+        reps: '5 × 10',
+        category: 'legs',
+        met: 4.0,
+        description:
+          'Band above knees, half-squat. Step sideways ten paces, keeping tension, return the other way. Chest up, feet parallel.',
+      },
+      {
+        slot: '04',
+        name: 'RB Glute Kickback',
+        reps: '5 × 10',
+        category: 'legs',
+        met: 3.5,
+        description:
+          'Band around ankles, on all fours. Kick one leg straight back, squeeze glute, control return. Switch sides halfway.',
+      },
+      {
+        slot: '05',
+        name: 'Banded Skater Jumps',
+        reps: '5 × 50s',
+        category: 'stamina',
+        met: 6.5,
+        description:
+          'Band above knees. Bound side to side, land soft on outside leg, tap opposite foot behind. Stay low.',
+      },
+    ],
+  },
+  D: {
+    name: 'RB Power',
+    subtitle: 'Full body & cardio',
+    exercises: [
+      {
+        slot: '01',
+        name: 'RB Thruster',
+        reps: '5 × 10',
+        category: 'legs',
+        met: 5.0,
+        description:
+          'Stand on band, handles at shoulders. Squat deep, drive up and press overhead in one motion. Return, repeat.',
+      },
+      {
+        slot: '02',
+        name: 'RB Burpee',
+        reps: '5 × 10',
+        category: 'stamina',
+        met: 8.0,
+        description:
+          'Loop band round shoulders and under feet. Drop to plank, jump feet in, stand, small hop. Repeat with band tension.',
+      },
+      {
+        slot: '03',
+        name: 'RB Clean and Press',
+        reps: '5 × 10',
+        category: 'push',
+        met: 5.5,
+        description:
+          'Stand on band. Pull handles from hips to shoulders in one motion, press overhead, reverse under control.',
+      },
+      {
+        slot: '04',
+        name: 'RB Renegade Row',
+        reps: '5 × 10',
+        category: 'core',
+        met: 5.0,
+        description:
+          'Plank position, one handle in each hand, band anchored ahead. Row one arm to ribs, alternate, hips stay square.',
+      },
+      {
       slot: '05',
       name: 'Banded Fast Punches',
       reps: '5 × 50s',
       category: 'stamina',
+      met: 5.5,
       description:
         'Anchor band behind you. Handles at chest, punch forward alternating hands as fast as form allows. Rotate through hips.',
     },
-  ],
+    ],
+  },
 };
 
 function todayKey() {
@@ -573,22 +691,27 @@ function todayKey() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-const LOCAL_KEY = (date: string) => `fit50-workout-${date}`;
+const LOCAL_KEY = (date: string, grouping: Grouping) => `fit50-workout-${date}-${grouping}`;
 
-function loadWorkoutLocal(date: string) {
+function loadWorkoutLocal(date: string, grouping: Grouping) {
   if (typeof window === 'undefined') return { line: 'A' as Line, sets: {} as Record<string, number> };
   try {
-    const raw = window.localStorage.getItem(LOCAL_KEY(date));
-    if (!raw) return { line: 'A' as Line, sets: {} as Record<string, number> };
-    return JSON.parse(raw);
+    // New key (with grouping) first.
+    const raw = window.localStorage.getItem(LOCAL_KEY(date, grouping));
+    if (raw) return JSON.parse(raw);
+    // Backward-compat: fall back to old date-only key for users who
+    // had data saved before the grouping key was added.
+    const legacy = window.localStorage.getItem(`fit50-workout-${date}`);
+    if (!legacy) return { line: 'A' as Line, sets: {} as Record<string, number> };
+    return JSON.parse(legacy);
   } catch {
     return { line: 'A' as WorkoutKey, sets: {} as Record<string, number> };
   }
 }
 
-function saveWorkoutLocal(date: string, data: { line: WorkoutKey; sets: Record<string, number> }) {
+function saveWorkoutLocal(date: string, grouping: Grouping, data: { line: WorkoutKey; sets: Record<string, number> }) {
   if (typeof window === 'undefined') return;
-  window.localStorage.setItem(LOCAL_KEY(date), JSON.stringify(data));
+  window.localStorage.setItem(LOCAL_KEY(date, grouping), JSON.stringify(data));
 }
 
 async function loadWorkoutRemote(
@@ -638,20 +761,19 @@ async function saveWorkoutRemote(
   if (error) console.error('workout_log upsert failed:', error);
 }
 
-// Random-session persistence. Kept off workout_log because the
-// session spans groupings and would otherwise get split into rows
-// that get clobbered when the user switches equipment. localStorage
-// is enough for a single-day session; the randomise button can
-// always be pressed again to roll a fresh one.
-const RANDOM_SESSION_KEY = (date: string) => `fit50-random-session-${date}`;
+// Random-session persistence. Stored per-grouping so switching
+// equipment doesn't clobber the random session ticks for another
+// grouping. localStorage is enough for a single-day session; the
+// randomise button can always be pressed again to roll a fresh one.
+const RANDOM_SESSION_KEY = (date: string, grouping: Grouping) => `fit50-random-session-${date}-${grouping}`;
 
-function loadRandomSessionLocal(date: string): {
+function loadRandomSessionLocal(date: string, grouping: Grouping): {
   exercises: Exercise[];
   ticks: Record<string, number>;
 } | null {
   if (typeof window === 'undefined') return null;
   try {
-    const raw = window.localStorage.getItem(RANDOM_SESSION_KEY(date));
+    const raw = window.localStorage.getItem(RANDOM_SESSION_KEY(date, grouping));
     if (!raw) return null;
     return JSON.parse(raw);
   } catch {
@@ -661,10 +783,11 @@ function loadRandomSessionLocal(date: string): {
 
 function saveRandomSessionLocal(
   date: string,
+  grouping: Grouping,
   data: { exercises: Exercise[]; ticks: Record<string, number> }
 ) {
   if (typeof window === 'undefined') return;
-  window.localStorage.setItem(RANDOM_SESSION_KEY(date), JSON.stringify(data));
+  window.localStorage.setItem(RANDOM_SESSION_KEY(date, grouping), JSON.stringify(data));
 }
 
 // Pull the user's last 5 days of workout_log rows and collect the
@@ -825,16 +948,16 @@ export default function AccountWorkouts() {
         if (remote) {
           setKey(remote.line);
           setSets(remote.sets);
-          saveWorkoutLocal(k, remote);
+          saveWorkoutLocal(k, grouping, remote);
         } else {
-          const local = loadWorkoutLocal(k);
+          const local = loadWorkoutLocal(k, grouping);
           setKey(local.line);
           setSets(local.sets);
         }
         setHasLoaded(true);
       });
     } else {
-      const local = loadWorkoutLocal(k);
+      const local = loadWorkoutLocal(k, grouping);
       setKey(local.line);
       setSets(local.sets);
       setHasLoaded(true);
@@ -843,7 +966,7 @@ export default function AccountWorkouts() {
 
   useEffect(() => {
     if (!date || !hasLoaded) return;
-    saveWorkoutLocal(date, { line: key, sets });
+    saveWorkoutLocal(date, grouping, { line: key, sets });
     if (user && supabase) {
       saveWorkoutRemote(supabase, user.id, date, {
         line: key,
@@ -876,7 +999,7 @@ export default function AccountWorkouts() {
           grouping,
         });
       } else {
-        saveWorkoutLocal(date, { line: key, sets });
+        saveWorkoutLocal(date, grouping, { line: key, sets });
       }
       setDate(k);
       // Reset local state. The mount-effect will then load
@@ -906,9 +1029,9 @@ export default function AccountWorkouts() {
     if (grouping === 'bodyweight')
       return workoutLines[key as Line]?.exercises ?? [];
     if (grouping === 'kettlebell')
-      return kettlebellLines[key as Line] ?? [];
+      return kettlebellLines[key as Line]?.exercises ?? [];
     if (grouping === 'band')
-      return bandLines[key as Line] ?? [];
+      return bandLines[key as Line]?.exercises ?? [];
     return [];
   })();
   const totalCompleted = exercises.reduce((sum, ex) => sum + (sets[ex.name] || 0), 0);
@@ -924,19 +1047,37 @@ export default function AccountWorkouts() {
     pushBw(workoutLines.C.exercises);
     pushBw(workoutLines.D.exercises);
     for (const line of LINES) {
-      pushBw(kettlebellLines[line]);
-      pushBw(bandLines[line]);
+      pushBw(kettlebellLines[line]?.exercises ?? []);
+      pushBw(bandLines[line]?.exercises ?? []);
+    }
+    return out;
+  })();
+
+  // Exercise pool scoped to the active grouping only. Used by
+  // rollRandomSession so randomising only picks exercises from
+  // the equipment the user has selected (KB / band / bodyweight).
+  const allExercisesForGrouping: Exercise[] = (() => {
+    const out: Exercise[] = [];
+    const push = (arr: Exercise[]) => arr.forEach((e) => out.push(e));
+    if (grouping === 'bodyweight') {
+      push(workoutLines.A.exercises);
+      push(workoutLines.B.exercises);
+      push(workoutLines.C.exercises);
+      push(workoutLines.D.exercises);
+    } else if (grouping === 'kettlebell') {
+      for (const line of LINES) push(kettlebellLines[line]?.exercises ?? []);
+    } else if (grouping === 'band') {
+      for (const line of LINES) push(bandLines[line]?.exercises ?? []);
     }
     return out;
   })();
 
   // Load the random session + recently-done set on mount + when
-  // the date rolls over. Random-session state lives in localStorage
-  // because it's grouping-agnostic — workout_log is per-grouping
-  // and would clobber it on every equipment switch.
+  // the date rolls over. Random-session state is keyed per-grouping
+  // so switching equipment doesn't clobber another grouping's session.
   useEffect(() => {
     if (!date) return;
-    const local = loadRandomSessionLocal(date);
+    const local = loadRandomSessionLocal(date, grouping);
     if (local) {
       setRandomSession(local.exercises);
       setRandomSessionTicks(local.ticks);
@@ -944,23 +1085,23 @@ export default function AccountWorkouts() {
     if (user && supabase) {
       loadRecentlyDoneRemote(supabase, user.id, 5).then(setRecentlyDone);
     }
-  }, [date, user, supabase]);
+  }, [date, user, supabase, grouping]);
 
   // Persist random-session state on every change. No debounce —
   // localStorage writes are cheap and the data is tiny.
   useEffect(() => {
     if (!date || randomSession.length === 0) return;
-    saveRandomSessionLocal(date, {
+    saveRandomSessionLocal(date, grouping, {
       exercises: randomSession,
       ticks: randomSessionTicks,
     });
-  }, [date, randomSession, randomSessionTicks]);
+  }, [date, randomSession, randomSessionTicks, grouping]);
 
   // Roll a fresh 5-exercise session: one exercise per movement
-  // category (push, pull, legs, core, stamina), avoiding any
-  // exercise the user has ticked in the last 5 days. If a category
-  // is empty after filtering, we fall back to the full pool for
-  // that category so the user always gets a 5-exercise session.
+  // category (push, pull, legs, core, stamina) from the ACTIVE
+  // grouping only. Avoids any exercise the user has ticked in the
+  // last 5 days. Falls back to the full active-grouping pool if
+  // a category is wiped — so the user always gets 5 exercises.
   const rollRandomSession = () => {
     const categories: Exercise['category'][] = [
       'push',
@@ -971,18 +1112,17 @@ export default function AccountWorkouts() {
     ];
     const picks: Exercise[] = [];
     for (const cat of categories) {
-      const pool = allExercises.filter(
+      const pool = allExercisesForGrouping.filter(
         (e) => e.category === cat && !recentlyDone.has(e.name)
       );
-      // Fall back to the full pool if the filter wiped the
-      // category. Rare — would mean the user has done every
-      // exercise in the category in the last 5 days.
-      const source = pool.length > 0 ? pool : allExercises.filter((e) => e.category === cat);
+      const source =
+        pool.length > 0
+          ? pool
+          : allExercisesForGrouping.filter((e) => e.category === cat);
       if (source.length === 0) continue;
       picks.push(source[Math.floor(Math.random() * source.length)]);
     }
     setRandomSession(picks);
-    // Reset the tick dict — a fresh session starts at zero.
     setRandomSessionTicks({});
   };
 
@@ -1067,15 +1207,17 @@ export default function AccountWorkouts() {
   };
 
   // Auto-tick Move Your Body when the user has 5 distinct
-  // exercises at 5 sets each. Counts across all groupings because
-  // the sets dict is keyed by exercise name and exercise names
-  // don't collide across groupings (KB / band / bodyweight each
-  // have unique names). Fires on every false→true transition; if
-  // the user unticks the tile, the next time they reach 5
-  // exercises it'll re-fire.
+  // exercises at 5 sets each. Counts BOTH the line workout's `sets`
+  // AND the random session's `randomSessionTicks` so completing
+  // exercises entirely through the random session also triggers the
+  // habit. Exercise names are globally unique across groupings so
+  // there's no double-counting risk. Fires on every false→true
+  // transition; if the user unticks the tile, the next time they
+  // reach 5 exercises it'll re-fire.
   useEffect(() => {
     if (!hasLoaded || !user) return;
-    const distinctComplete = Object.values(sets).filter(
+    const allSets = { ...sets, ...randomSessionTicks };
+    const distinctComplete = Object.values(allSets).filter(
       (n) => n >= TOTAL_SETS
     ).length;
     if (
@@ -1096,7 +1238,7 @@ export default function AccountWorkouts() {
     // re-evaluate only when distinct complete count changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    Object.values(sets).filter((n) => n >= TOTAL_SETS).length,
+    Object.values({ ...sets, ...randomSessionTicks }).filter((n) => n >= TOTAL_SETS).length,
     hasLoaded,
     user,
     tracker,
@@ -1365,9 +1507,9 @@ export default function AccountWorkouts() {
             const label = (() => {
               if (grouping === 'bodyweight') return workoutLines[l].name;
               if (grouping === 'kettlebell')
-                return kettlebellLines[l][0]?.name?.split(' ')[0] ?? '';
+                return kettlebellLines[l]?.name ?? '';
               if (grouping === 'band')
-                return bandLines[l][0]?.name?.split(' ')[0] ?? '';
+                return bandLines[l]?.name ?? '';
               return '';
             })();
             return (

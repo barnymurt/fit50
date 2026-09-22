@@ -9,7 +9,8 @@ export type LLMProvider =
   | 'gemini'
   | 'deepseek'
   | 'minimax'
-  | 'perplexity';
+  | 'perplexity'
+  | 'groq';
 
 export interface LLMConfig {
   /** Display name for the UI. */
@@ -75,4 +76,33 @@ export interface ExtractedFood {
   aliases: string[];
   confidence: 'high' | 'medium' | 'low';
   notes: string | null;
+}
+
+// Per-provider capability flag — used by the photo route to pick
+// between "send the image bytes directly" (vision-capable) and
+// "OCR the image first, then send the text" (text-only providers).
+// Keep this list in lock-step with the actual provider config in
+// providers.ts — add a provider here means its model must accept
+// image inputs.
+export const VISION_CAPABLE_PROVIDERS: ReadonlySet<LLMProvider> = new Set([
+  'openai', // gpt-4o-mini supports image_url content parts
+  'anthropic', // claude-3-5-haiku accepts image source blocks
+  'gemini', // gemini-1.5-flash accepts inline_data parts
+  'perplexity', // sonar accepts image URLs as remote_file inputs
+]);
+
+// HF-hosted OCR — used as the vision fallback for non-vision-capable
+// providers (deepseek, MiniMax, perplexity) and as a safety net when
+// the user's own vision-capable key is missing. GOT-OCR-2.0 reads
+// Western + Chinese + Korean text out of the box and handles dense
+// nutrition panels well.
+export type HFOCRProvider = 'hf-got-ocr-2';
+
+// Result of an OCR pass — raw text + which OCR backend produced it.
+// The photo route forwards `text` into the existing extractMacros()
+// text path so both vision-direct and OCR+vision pipelines share
+// the same JSON sanitiser.
+export interface OCRResult {
+  text: string;
+  provider: HFOCRProvider;
 }

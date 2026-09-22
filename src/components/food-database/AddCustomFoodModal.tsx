@@ -8,7 +8,10 @@ import {
   detectProvider,
   type LLMProvider,
 } from '@/lib/llm/providers';
+import type { ExtractedFood } from '@/lib/llm/types';
+import { VISION_CAPABLE_PROVIDERS } from '@/lib/llm/types';
 import { apiFetch } from '@/lib/api-fetch';
+import PhotoFoodScan from './PhotoFoodScan';
 
 // AddCustomFoodModal — owner-only food entry. On save, posts to
 // /api/foods/custom and on success calls `onCreated` with the new
@@ -100,6 +103,10 @@ interface OpenAiKeyStatus {
   anthropicWorkspaceId: string | null;
 }
 
+const VISION_PROVIDERS = ALL_PROVIDERS.filter((p) =>
+  VISION_CAPABLE_PROVIDERS.has(p)
+);
+
 const CATEGORY_OPTIONS = [
   'Other',
   'Meat & Poultry',
@@ -149,6 +156,11 @@ export default function AddCustomFoodModal({
   const [extractionResult, setExtractionResult] = useState<ExtractionResult | null>(null);
   const [extractionError, setExtractionError] = useState<string | null>(null);
 
+  // Photo-flow state — holds the OCR'd raw text from the last
+  // photo so we can persist it on save (audit trail + debugging
+  // aid when confidence is low). Null for typed-description entries.
+  const [photoOcrText, setPhotoOcrText] = useState<string | null>(null);
+
   // BYOK state — the user's own LLM key + provider. We never display
   // the secret; only whether it's set + a masked preview. If unset,
   // the modal shows an inline "add your key" prompt.
@@ -181,6 +193,7 @@ export default function AddCustomFoodModal({
       setExtracting(false);
       setExtractionResult(null);
       setExtractionError(null);
+      setPhotoOcrText(null);
       // Fetch the user's OpenAI key status. We only show the
       // auto-fill section as fully enabled when a key is on file.
       setKeyStatus(null);
@@ -188,7 +201,11 @@ export default function AddCustomFoodModal({
       setKeyBusy(false);
       setKeyError(null);
       setKeyEditing(false);
-      setPickedProvider('openai');
+      // Don't reset pickedProvider here — the GET below seeds it
+      // from the saved value. Defaulting to 'openai' first then
+      // overriding with the saved provider causes a visible flicker
+      // (and a window where 'openai' is shown even though the user
+      // may have saved MiniMax / Anthropic / Gemini earlier).
       setDetectedProvider(null);
       setAnthropicWorkspaceId('');
       apiFetch('/api/account/llm-key', { method: 'GET' })
@@ -397,7 +414,11 @@ const handleSubmit = async (e: React.FormEvent) => {
         standard_serving_label: form.standardServingLabel,
         aliases,
         submit_to_community: form.submitToCommunity,
-        source: 'manual',
+        // Photo flow: LLM did all the extraction → 'llm'.
+        // Typed description: user wrote the prose → 'manual'.
+        source: photoOcrText ? 'llm' : 'manual',
+        // Only populated for photo entries; null for typed.
+        ...(photoOcrText ? { description: photoOcrText } : {}),
       });
       onCreated?.(created);
       onClose();
@@ -439,6 +460,39 @@ const handleSubmit = async (e: React.FormEvent) => {
               ✕
             </button>
           </div>
+
+          {/* Photo scan — disabled until the user has an LLM key on
+              file. Same gating as the typed-description path below. */}
+          <PhotoFoodScan
+            disabled={keyStatus?.set === false}
+            disabledReason="Add your AI key below to unlock photo scanning."
+            onExtracted={(food, meta) => {
+              setForm((prev) => ({
+                ...prev,
+                name: food.name || prev.name,
+                brand: food.brand ?? '',
+                category: food.category || prev.category,
+                subcategory: food.subcategory ?? '',
+                kcal: String(food.kcal),
+                protein: String(food.protein),
+                carbs: String(food.carbs),
+                fat: String(food.fat),
+                fiber: String(food.fiber),
+                standardServingGrams: food.standard_serving_grams
+                  ? String(food.standard_serving_grams)
+                  : '100',
+                standardServingLabel:
+                  food.standard_serving_label ?? prev.standardServingLabel,
+                aliases: (food.aliases ?? []).join(', '),
+              }));
+              setExtractionResult({
+                confidence: food.confidence,
+                notes: food.notes,
+              });
+              setPhotoOcrText(meta.ocrText);
+              setExtractionError(null);
+            }}
+          />
 
           <div className="mb-4 p-3 bg-cre-30 border border-ink/15">
             <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-2">
@@ -487,10 +541,31 @@ const handleSubmit = async (e: React.FormEvent) => {
                 <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-2">
                   Your LLM key
                 </p>
-                <p className="font-body text-caption text-ink/60 mb-2">
-                  Stored on your profile so the server can call your
-                  provider for you. We never see the secret — only that
-                  it's set. Your key, your bill.
+                <p className="font-body text-sm text-ink/80 mb-2 leading-relaxed">
+                  This is your personal API key from an AI provider (OpenAI,
+                  Anthropic, Google, or Perplexity). Think of it like a
+                  password — only you have it, and we never see it. We just
+                  borrow it on your behalf to look up nutrition facts.
+                </p>
+                <p className="font-body text-sm text-ink/60 mb-3 leading-relaxed">
+                  <span className="font-semibold text-ink">Why bother?</span> No
+                  more squinting at food labels like the macro police. Snap a
+                  photo, let the AI do the number crunching, and get that time
+                  back for something better — like actually eating the food
+                  with friends.
+                </p>
+                <p className="font-body text-sm text-ink/50 mb-3">
+                  Need help finding your key?{' '}
+                  <a
+                    href="https://fit50challenge.io"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-coral underline underline-offset-2"
+                  >
+                    See the setup guide
+                  </a>{' '}
+                  — it takes about 2 minutes. Choose OpenAI or Perplexity for
+                  the smoothest experience.
                 </p>
                 <div className="flex items-center gap-2 flex-wrap mb-2">
                   <label className="font-body text-caption uppercase tracking-widest text-ink/50">
@@ -504,17 +579,23 @@ const handleSubmit = async (e: React.FormEvent) => {
                     aria-label="LLM provider"
                     className="px-2 py-2 bg-paper border-2 border-ink/20 font-body text-sm focus:border-coral outline-none"
                   >
-                    {ALL_PROVIDERS.map((p) => (
+                    {VISION_PROVIDERS.map((p) => (
                       <option key={p} value={p}>
                         {PROVIDERS[p].name}
+                        {p === 'openai' ? ' — popular, great for photos' : ''}
+                        {p === 'perplexity' ? ' — great for photos' : ''}
+                        {p === 'gemini' ? ' — good for photos' : ''}
+                        {p === 'anthropic' ? ' — great for photos' : ''}
                       </option>
                     ))}
                   </select>
-                  {detectedProvider && detectedProvider !== pickedProvider && (
-                    <span className="font-body text-caption text-ink/50">
-                      Detected: {PROVIDERS[detectedProvider].name}
-                    </span>
-                  )}
+                  {detectedProvider &&
+                    detectedProvider !== pickedProvider &&
+                    VISION_CAPABLE_PROVIDERS.has(detectedProvider) && (
+                      <span className="font-body text-caption text-ink/50">
+                        Detected: {PROVIDERS[detectedProvider].name}
+                      </span>
+                    )}
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <input
@@ -523,16 +604,10 @@ const handleSubmit = async (e: React.FormEvent) => {
                     onChange={(e) => {
                       const v = e.target.value;
                       setKeyInput(v);
-                      // Auto-detect provider from the prefix. The
-                      // dropdown follows the detected value so the
-                      // user sees "this looks like X". They can
-                      // still pick a different one if the default
-                      // guess is wrong.
                       const detected = v.trim() ? detectProvider(v) : null;
                       setDetectedProvider(detected);
-                      if (detected) setPickedProvider(detected);
                     }}
-                    placeholder="sk-..."
+                    placeholder="sk-..., sk-ant-..., pp-..., AIza..."
                     autoComplete="off"
                     className="flex-1 min-w-[180px] px-3 py-2 bg-paper border-2 border-ink/20 font-mono text-sm focus:border-coral outline-none"
                   />
@@ -585,9 +660,8 @@ const handleSubmit = async (e: React.FormEvent) => {
                       />
                     </label>
                     <p className="font-body text-caption text-ink/50 mt-1">
-                      Required when your Anthropic key is identity-linked
-                      (Anthropic returns 400 otherwise). Most users can
-                      leave this blank.
+                      Only needed if your organisation has a dedicated
+                      Anthropic account. Most people can leave this blank.
                     </p>
                   </div>
                 )}

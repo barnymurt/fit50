@@ -1,6 +1,6 @@
 import React from 'react';
 
-type Tone = 'paper' | 'white' | 'cream' | 'ink';
+type Tone = 'paper' | 'white' | 'cream' | 'ink' | 'teal' | 'lavender';
 
 interface SectionProps {
   children: React.ReactNode;
@@ -17,6 +17,8 @@ const toneStyles: Record<Tone, string> = {
   white: 'bg-white text-ink',
   cream: 'bg-cream/60 text-ink',
   ink: 'bg-ink text-paper',
+  teal: 'bg-teal text-paper',
+  lavender: 'bg-lavender text-ink',
 };
 
 export default function Section({
