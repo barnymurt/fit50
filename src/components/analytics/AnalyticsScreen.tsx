@@ -76,10 +76,10 @@ export default function AnalyticsScreen({ startDate: startDateProp }: AnalyticsS
 
       {/* Deficit streak calendar */}
       <Section tone="ink" className="py-6">
-        <p className="font-body text-caption uppercase tracking-widest text-paper/50 mb-1">
+        <p className="font-body text-caption uppercase tracking-widest text-paper/80 mb-1">
           Budget calendar
         </p>
-        <p className="font-body text-sm text-paper/40 mb-4">
+        <p className="font-body text-sm text-paper/60 mb-4">
           Each square is one day. Green means you were under your calorie budget — good for a deficit. Orange means you went over. Each colour shift is a day you chose differently.
         </p>
         <DeficitStreakCalendar days={days} loaded={loaded} />

@@ -172,7 +172,7 @@ export default function DailyBalanceChart({
                 textAnchor="end"
                 fontSize={LABEL_SIZE}
                 className="chart-axis-label"
-                opacity={0.45}
+                opacity={0.6}
               >
                 {tick >= 0 ? `+${tick}` : tick}
               </text>
@@ -228,7 +228,7 @@ export default function DailyBalanceChart({
                 textAnchor="middle"
                 fontSize={LABEL_SIZE}
                 className="chart-axis-label"
-                opacity={0.5}
+                opacity={0.7}
               >
                 {formatDateKeyShort(d.day_key)}
               </text>
@@ -254,7 +254,7 @@ export default function DailyBalanceChart({
       <div className="flex items-center gap-4 flex-wrap mt-3 px-1">
         <span className="flex items-center gap-1.5">
           <span className="inline-block w-5 h-0.5 bg-coral" />
-          <span className="font-body text-caption text-ink/50 uppercase tracking-widest">
+          <span className="font-body text-caption text-ink/70 uppercase tracking-widest">
             Eaten vs budget
           </span>
         </span>
@@ -263,16 +263,16 @@ export default function DailyBalanceChart({
             className="inline-block w-5 h-0.5"
             style={{ borderTop: `2px dashed ${CSS_VAR.teal}` }}
           />
-          <span className="font-body text-caption text-ink/50 uppercase tracking-widest">
+          <span className="font-body text-caption text-ink/70 uppercase tracking-widest">
             7-day avg
           </span>
         </span>
         <span className="flex items-center gap-1.5">
           <span
             className="inline-block w-5 h-0.5"
-            style={{ borderTop: `1px dashed ${CSS_VAR.ink}`, opacity: 0.25 }}
+            style={{ borderTop: `1px dashed ${CSS_VAR.ink}`, opacity: 0.4 }}
           />
-          <span className="font-body text-caption text-ink/50 uppercase tracking-widest">
+          <span className="font-body text-caption text-ink/70 uppercase tracking-widest">
             + workout burn
           </span>
         </span>

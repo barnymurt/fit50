@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useCustomFoods, CustomFoodRow } from '@/hooks/useCustomFoods';
+import { useFoodFavorites } from '@/hooks/useFoodFavorites';
 import { Food } from './types';
 import AddCustomFoodModal from './AddCustomFoodModal';
 
@@ -47,6 +48,8 @@ export default function MyCustomFoodsPanel({ onPickFood }: Props) {
     update,
     remove,
   } = useCustomFoods();
+
+  const { isFavorite, toggle } = useFoodFavorites();
 
   const [addOpen, setAddOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
@@ -187,6 +190,18 @@ export default function MyCustomFoodsPanel({ onPickFood }: Props) {
                       Log
                     </button>
                   )}
+                  <button
+                    type="button"
+                    onClick={() => toggle(row.id)}
+                    title={isFavorite(row.id) ? 'Remove from favourites' : 'Add to favourites'}
+                    className={`px-3 py-2 border font-body text-caption uppercase tracking-widest transition-colors ${
+                      isFavorite(row.id)
+                        ? 'border-coral text-coral hover:bg-coral/5'
+                        : 'border-ink/20 text-ink/40 hover:border-ink/50 hover:text-ink'
+                    }`}
+                  >
+                    {isFavorite(row.id) ? '★' : '☆'}
+                  </button>
                   <button
                     type="button"
                     onClick={() => setEditId(row.id)}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useFoodFavorites } from '@/hooks/useFoodFavorites';
 import { Food } from './types';
 import { fetchFoodsByIds } from './search';
@@ -10,9 +10,10 @@ interface Props {
 }
 
 export default function FavoritesPanel({ onPickFood }: Props) {
-  const { favoriteIds, loaded: favsLoaded } = useFoodFavorites();
+  const { favoriteIds, isFavorite, toggle, loaded: favsLoaded } = useFoodFavorites();
   const [foods, setFoods] = useState<Food[]>([]);
   const [loading, setLoading] = useState(false);
+  const [query, setQuery] = useState('');
 
   useEffect(() => {
     if (!favsLoaded || favoriteIds.size === 0) {
@@ -24,6 +25,16 @@ export default function FavoritesPanel({ onPickFood }: Props) {
       .then(setFoods)
       .finally(() => setLoading(false));
   }, [favsLoaded, favoriteIds]);
+
+  const filtered = useMemo(() => {
+    if (!query.trim()) return foods;
+    const q = query.toLowerCase();
+    return foods.filter(
+      (f) =>
+        f.name.toLowerCase().includes(q) ||
+        (f.brand ?? '').toLowerCase().includes(q)
+    );
+  }, [foods, query]);
 
   if (favsLoaded && favoriteIds.size === 0) {
     return (
@@ -54,6 +65,16 @@ export default function FavoritesPanel({ onPickFood }: Props) {
         </span>
       </div>
 
+      <div className="px-6 py-3 border-b border-ink/10">
+        <input
+          type="search"
+          placeholder="Search favourites…"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          className="w-full px-3 py-2 border border-ink/20 bg-paper font-body text-body text-ink placeholder-ink/40 focus:border-ink/60 outline-none"
+        />
+      </div>
+
       {loading && (
         <p className="px-6 py-4 font-body text-caption text-ink/50">Loading…</p>
       )}
@@ -64,37 +85,60 @@ export default function FavoritesPanel({ onPickFood }: Props) {
         </p>
       )}
 
-      {foods.length > 0 && (
+      {!loading && filtered.length === 0 && query && foods.length > 0 && (
+        <p className="px-6 py-4 font-body text-caption text-ink/50">
+          No results for &ldquo;{query}&rdquo;
+        </p>
+      )}
+
+      {filtered.length > 0 && (
         <ul>
-          {foods.map((food) => (
-            <li
-              key={food.id}
-              className="px-6 py-4 border-b border-ink/10 last:border-b-0 flex items-start gap-4 flex-wrap"
-            >
-              <div className="min-w-0 flex-1">
-                <p className="font-display text-h3 text-ink leading-tight">
-                  {food.name}
-                </p>
-                <p className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums mt-1">
-                  {food.brand ? `${food.brand} · ·` : ''}
-                  {Math.round(food.kcal)} kcal ·
-                  {' '}{Number(food.protein).toFixed(1)}g P ·
-                  {' '}{Number(food.carbs).toFixed(1)}g C ·
-                  {' '}{Number(food.fat).toFixed(1)}g F
-                  {' '}· per {food.standardServingLabel ?? '100g'}
-                </p>
-              </div>
-              {onPickFood && (
-                <button
-                  type="button"
-                  onClick={() => onPickFood(food)}
-                  className="px-3 py-2 border border-ink/20 font-body text-caption uppercase tracking-widest text-ink/70 hover:border-ink hover:text-ink transition-colors shrink-0"
-                >
-                  Log
-                </button>
-              )}
-            </li>
-          ))}
+          {filtered.map((food) => {
+            const fav = isFavorite(food.id);
+            return (
+              <li
+                key={food.id}
+                className="px-6 py-4 border-b border-ink/10 last:border-b-0 flex items-start gap-4 flex-wrap"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="font-display text-h3 text-ink leading-tight">
+                    {food.name}
+                  </p>
+                  <p className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums mt-1">
+                    {food.brand ? `${food.brand} · ·` : ''}
+                    {Math.round(food.kcal)} kcal ·
+                    {' '}{Number(food.protein).toFixed(1)}g P ·
+                    {' '}{Number(food.carbs).toFixed(1)}g C ·
+                    {' '}{Number(food.fat).toFixed(1)}g F
+                    {' '}· per {food.standardServingLabel ?? '100g'}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  {onPickFood && (
+                    <button
+                      type="button"
+                      onClick={() => onPickFood(food)}
+                      className="px-3 py-2 border border-ink/20 font-body text-caption uppercase tracking-widest text-ink/70 hover:border-ink hover:text-ink transition-colors"
+                    >
+                      Log
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => toggle(food.id)}
+                    title={fav ? 'Remove from favourites' : 'Add to favourites'}
+                    className={`px-3 py-2 border font-body text-caption uppercase tracking-widest transition-colors ${
+                      fav
+                        ? 'border-coral text-coral hover:bg-coral/5'
+                        : 'border-ink/20 text-ink/40 hover:border-ink/50 hover:text-ink'
+                    }`}
+                  >
+                    {fav ? '★' : '☆'}
+                  </button>
+                </div>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>
