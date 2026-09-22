@@ -58,7 +58,7 @@ export default function WorkoutImpactCard({
             <span className="text-base text-ink/50 font-body ml-1">kcal/day</span>
           </p>
           <p className="font-body text-xs text-ink/50">
-            Your target minus what you ate.
+            Your daily target minus what you ate. A negative number means you&apos;re in a deficit.
           </p>
         </div>
       )}
@@ -66,14 +66,14 @@ export default function WorkoutImpactCard({
       {loaded && workoutDays > 0 && (
         <div className="p-4 border border-ink/15 bg-ink/[0.03] space-y-2">
           <p className="font-body text-caption uppercase tracking-widest text-ink/60">
-            If you ate back your workouts
+            Adjusted balance (eating back workouts)
           </p>
           <p className="font-display text-h2 text-ink tabular-nums leading-none">
             {adjusted >= 0 ? '+' : ''}{adjusted}
             <span className="text-base text-ink/50 font-body ml-1">kcal/day</span>
           </p>
           <p className="font-body text-xs text-ink/50">
-            Based on {workoutDays} workout day{workoutDays !== 1 ? 's' : ''} totalling ~{totalKcal.toLocaleString()} kcal.
+            Your balance if you ate back the calories burned from {workoutDays} workout day{workoutDays !== 1 ? 's' : ''} (~{totalKcal.toLocaleString()} kcal total). Use this if you train hard and need to refuel.
           </p>
         </div>
       )}

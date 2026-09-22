@@ -11,7 +11,7 @@ const CELL_SIZE = 20;
 const CELL_GAP = 3;
 
 function getColor(day: AnalyticsDay): string {
-  if (!day.hadLoggedFood) return 'bg-ink/40';
+  if (!day.hadLoggedFood) return 'bg-ink/25';
   if (day.kcalUnderOver > 0) return 'bg-teal';
   if (day.kcalUnderOver < -0) return 'bg-coral';
   return 'bg-cream';
@@ -73,13 +73,13 @@ export default function DeficitStreakCalendar({
         <span className="flex items-center gap-1.5">
           <span className="inline-block w-3 h-3 bg-teal" />
           <span className="font-body text-caption text-paper/70 uppercase tracking-widest">
-            Under
+            Under budget
           </span>
         </span>
         <span className="flex items-center gap-1.5">
           <span className="inline-block w-3 h-3 bg-coral" />
           <span className="font-body text-caption text-paper/70 uppercase tracking-widest">
-            Over
+            Over budget
           </span>
         </span>
         <span className="flex items-center gap-1.5">
@@ -89,9 +89,9 @@ export default function DeficitStreakCalendar({
           </span>
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="inline-block w-3 h-3 bg-ink/40" />
+          <span className="inline-block w-3 h-3 bg-ink/25" />
           <span className="font-body text-caption text-paper/70 uppercase tracking-widest">
-            No log
+            No food logged
           </span>
         </span>
       </div>

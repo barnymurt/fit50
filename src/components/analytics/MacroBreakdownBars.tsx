@@ -119,9 +119,8 @@ export default function MacroBreakdownBars({
         />
       ))}
       {loaded && totals.daysLogged > 0 && (
-        <p className="font-body text-caption text-ink/40 pt-2 border-t border-ink/10">
-          Average split across {totals.daysLogged} logged days.
-          Target band is 95–105% of goal (teal).
+        <p className="font-body text-caption text-ink/40 pt-2 border-t border-ink/10 leading-relaxed">
+          Average macro split across {totals.daysLogged} logged days. Teal bar = on target (95–105%). Watch protein — it&apos;s the most important macro for preserving muscle during a deficit.
         </p>
       )}
     </div>
