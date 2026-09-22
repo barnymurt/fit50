@@ -11,11 +11,12 @@ import DailyTotalsBar from './DailyTotalsBar';
 import FoodSearch from './FoodSearch';
 import FoodDetail from './FoodDetail';
 import MyCustomFoodsPanel from './MyCustomFoodsPanel';
+import FavoritesPanel from './FavoritesPanel';
 import Modal from '@/components/Modal';
 import AnalyticsScreen from '@/components/analytics/AnalyticsScreen';
 import { useTrackerState } from '@/hooks/useTrackerState';
 
-type FoodTab = 'logged' | 'search' | 'myfoods' | 'analytics';
+type FoodTab = 'logged' | 'search' | 'customfoods' | 'favorites' | 'analytics';
 
 interface Props {
   targets: MacroTargets | null;
@@ -893,15 +894,27 @@ export default function FoodDatabase({ targets }: Props) {
         </button>
         <button
           type="button"
-          onClick={() => setTab('myfoods')}
-          aria-pressed={tab === 'myfoods'}
+          onClick={() => setTab('customfoods')}
+          aria-pressed={tab === 'customfoods'}
           className={`px-4 py-2 font-body text-caption uppercase tracking-widest border-b-2 transition-colors ${
-            tab === 'myfoods'
+            tab === 'customfoods'
               ? 'border-coral text-ink'
               : 'border-transparent text-ink/50 hover:text-ink'
           }`}
         >
-          My foods
+          Custom foods
+        </button>
+        <button
+          type="button"
+          onClick={() => setTab('favorites')}
+          aria-pressed={tab === 'favorites'}
+          className={`px-4 py-2 font-body text-caption uppercase tracking-widest border-b-2 transition-colors ${
+            tab === 'favorites'
+              ? 'border-coral text-ink'
+              : 'border-transparent text-ink/50 hover:text-ink'
+          }`}
+        >
+          Favourites
         </button>
         <button
           type="button"
@@ -1191,7 +1204,7 @@ export default function FoodDatabase({ targets }: Props) {
               Nothing logged today
             </p>
             <p className="font-body text-sm text-ink/60 mt-2">
-              Switch to Search or My foods to log your first meal.
+              Switch to Search or Custom foods to log your first meal.
             </p>
           </div>
         )
@@ -1200,10 +1213,12 @@ export default function FoodDatabase({ targets }: Props) {
           favorites={favoriteIds}
           onPickFood={handlePickFood}
         />
-      ) : tab === 'analytics' ? (
-        <AnalyticsScreen startDate={startDate} />
-      ) : (
+      ) : tab === 'customfoods' ? (
         <MyCustomFoodsPanel onPickFood={handlePickFood} />
+      ) : tab === 'favorites' ? (
+        <FavoritesPanel onPickFood={handlePickFood} />
+      ) : (
+        <AnalyticsScreen startDate={startDate} />
       )}
 
       {/* Bundle editor / duplicator. Opened by Edit or Duplicate
