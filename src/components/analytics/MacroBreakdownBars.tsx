@@ -7,94 +7,63 @@ interface MacroBreakdownBarsProps {
   loaded: boolean;
 }
 
-interface MacroBar {
+interface MacroDisplay {
   label: string;
   actual: number;
   target: number;
-  unit: string;
 }
 
-function Bar({
+function MacroRow({
   label,
   actual,
   target,
-  unit,
   loaded,
 }: {
   label: string;
   actual: number;
   target: number;
-  unit: string;
   loaded: boolean;
 }) {
-  const pct = target > 0 ? (actual / target) * 100 : 0;
-  const over = pct > 100;
-  const barColor =
-    pct >= 95 && pct <= 105
-      ? 'bg-teal'
-      : pct > 105
-      ? 'bg-coral'
-      : 'bg-ink/30';
+  if (!loaded) {
+    return (
+      <div className="flex items-center gap-4 py-3">
+        <div className="h-4 w-20 bg-paper/10 animate-pulse" />
+        <div className="h-4 w-32 bg-paper/10 animate-pulse" />
+      </div>
+    );
+  }
 
-  const deficit = actual - target;
-  const deficitLabel =
-    over
-      ? `+${Math.round(actual - target)}${unit} over (${Math.round(pct)}% of target)`
-      : deficit > 0
-      ? `+${Math.round(deficit)}${unit}`
-      : `${Math.round(deficit)}${unit}`;
+  const diff = actual - target;
+  const absDiff = Math.abs(diff);
+  const pctOfTarget = target > 0 ? Math.round((actual / target) * 100) : 0;
+  const onTarget = Math.abs(diff) <= 3; // within 3 percentage points
 
   return (
-    <div className="space-y-1.5">
-      <div className="flex items-baseline justify-between">
-        <span className="font-body text-caption uppercase tracking-widest text-paper/80">
-          {label}
+    <div className="flex items-center gap-4 py-3 border-b border-paper/10 last:border-b-0">
+      <span className="font-body text-caption uppercase tracking-widest text-paper/70 w-20">
+        {label}
+      </span>
+      <div className="flex items-baseline gap-1">
+        <span className="font-display text-h2 text-paper tabular-nums">
+          {pctOfTarget}
         </span>
-        {loaded ? (
-          <span className="font-display text-h3 tabular-nums text-paper">
-            {Math.round(actual)}{unit}
-            {over && (
-              <span className="font-body text-caption text-coral ml-1">
-                ({Math.round(pct)}%)
-              </span>
-            )}
-            <span className="font-body text-caption text-paper/50 ml-1">
-              / {Math.round(target)}{unit}
-            </span>
-          </span>
-        ) : (
-          <div className="h-5 w-20 bg-paper/10 animate-pulse" />
-        )}
+        <span className="font-body text-caption text-paper/50">%</span>
       </div>
-      <div className="relative h-3 bg-paper/10 overflow-hidden rounded-none">
-        {/* Target marker at 100% */}
-        <div
-          className="absolute top-0 bottom-0 w-px bg-paper/40"
-          style={{ left: '100%' }}
-        />
-        {loaded ? (
-          <div
-            className={`h-full transition-all duration-300 ${barColor}`}
-            style={{ width: `${Math.min(pct, 100)}%` }}
-          />
+      <span className="font-body text-caption text-paper/40">of {target}% target</span>
+      <div className="ml-auto flex items-center gap-2">
+        {onTarget ? (
+          <span className="text-teal text-lg" title="On target">●</span>
+        ) : diff > 0 ? (
+          <span className="text-coral text-lg" title={`${absDiff}% over target`}>▲</span>
         ) : (
-          <div className="h-full bg-paper/10 animate-pulse" />
+          <span className="text-paper/50 text-lg" title={`${absDiff}% under target`}>▼</span>
         )}
-        {/* Overflow arrow when over 100% */}
-        {over && (
-          <div
-            className="absolute top-0 bottom-0 flex items-center"
-            style={{ left: '100%', transform: 'translateX(-1px)' }}
-          >
-            <span className="text-coral text-xs leading-none">→</span>
-          </div>
-        )}
+        <span className={`font-body text-caption ${
+          onTarget ? 'text-teal' : diff > 0 ? 'text-coral' : 'text-paper/50'
+        }`}>
+          {diff > 0 ? `+${absDiff}%` : diff < 0 ? `-${absDiff}%` : 'on target'}
+        </span>
       </div>
-      {loaded && (
-        <p className="font-body text-caption text-paper/60 tabular-nums text-right">
-          {deficitLabel}
-        </p>
-      )}
     </div>
   );
 }
@@ -104,41 +73,32 @@ export default function MacroBreakdownBars({
   loaded,
 }: MacroBreakdownBarsProps) {
   const avgProtein =
-    totals.daysLogged > 0
-      ? totals.avgMacroSplit.protein
-      : 0;
+    totals.daysLogged > 0 ? totals.avgMacroSplit.protein : 0;
   const avgCarbs =
-    totals.daysLogged > 0
-      ? totals.avgMacroSplit.carbs
-      : 0;
+    totals.daysLogged > 0 ? totals.avgMacroSplit.carbs : 0;
   const avgFat =
-    totals.daysLogged > 0
-      ? totals.avgMacroSplit.fat
-      : 0;
+    totals.daysLogged > 0 ? totals.avgMacroSplit.fat : 0;
 
-  // Recompute raw g/day averages from totals (for target comparison)
-  // These come from the totals which store avg actuals per logged day
-  const macros: MacroBar[] = [
-    { label: 'Protein', actual: avgProtein, target: 33, unit: '%' },
-    { label: 'Carbs', actual: avgCarbs, target: 40, unit: '%' },
-    { label: 'Fat', actual: avgFat, target: 27, unit: '%' },
+  const macros: MacroDisplay[] = [
+    { label: 'Protein', actual: avgProtein, target: 33 },
+    { label: 'Carbs', actual: avgCarbs, target: 40 },
+    { label: 'Fat', actual: avgFat, target: 27 },
   ];
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-2">
       {macros.map((m) => (
-        <Bar
+        <MacroRow
           key={m.label}
           label={m.label}
           actual={m.actual}
           target={m.target}
-          unit={m.unit}
           loaded={loaded}
         />
       ))}
       {loaded && totals.daysLogged > 0 && (
-        <p className="font-body text-caption text-ink/70 pt-2 border-t border-ink/10 leading-relaxed">
-          Average macro split across {totals.daysLogged} logged days. Teal bar = on target (95–105%). Watch protein — it&apos;s the most important macro for preserving muscle during a deficit.
+        <p className="font-body text-caption text-paper/50 pt-3 border-t border-paper/10 leading-relaxed">
+          Average macro split across {totals.daysLogged} logged days. ● on target = within 3% of goal. Protein is the priority — it preserves muscle during a deficit.
         </p>
       )}
     </div>

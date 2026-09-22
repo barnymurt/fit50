@@ -127,10 +127,10 @@ export default function FavoritesPanel({ onPickFood }: Props) {
                     type="button"
                     onClick={() => toggle(food.id)}
                     title={fav ? 'Remove from favourites' : 'Add to favourites'}
-                    className={`px-3 py-2 border font-body text-caption uppercase tracking-widest transition-colors ${
+                    className={`min-w-[44px] min-h-[44px] flex items-center justify-center text-3xl leading-none transition-colors ${
                       fav
-                        ? 'border-coral text-coral hover:bg-coral/5'
-                        : 'border-ink/20 text-ink/40 hover:border-ink/50 hover:text-ink'
+                        ? 'text-coral'
+                        : 'text-ink/30 hover:text-coral'
                     }`}
                   >
                     {fav ? '★' : '☆'}

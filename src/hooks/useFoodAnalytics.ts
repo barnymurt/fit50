@@ -78,7 +78,10 @@ export interface AnalyticsTotals {
   avgKcalTarget: number;
   avgUnderOver: number;
   avgUnderOverAdjusted: number;
+  /** Sum of all workout kcal across ALL workout days in range (not just food-logged days) */
   totalWorkoutKcal: number;
+  /** Total kcal eaten across ALL food-logged days in range */
+  totalKcalEaten: number;
   avgMacroSplit: { protein: number; carbs: number; fat: number };
   longestUnderStreak: number;
   longestOverStreak: number;
@@ -101,6 +104,7 @@ const empty: AnalyticsTotals = {
   avgUnderOver: 0,
   avgUnderOverAdjusted: 0,
   totalWorkoutKcal: 0,
+  totalKcalEaten: 0,
   avgMacroSplit: { protein: 0, carbs: 0, fat: 0 },
   longestUnderStreak: 0,
   longestOverStreak: 0,
@@ -377,8 +381,14 @@ export function useFoodAnalytics(
           ? loggedDays.reduce((s, d) => s + d.workoutKcalEstimate, 0) /
             loggedDays.length
           : 0);
-      const totalWorkoutKcal = loggedDays.reduce(
+      // Sum workout kcal across ALL workout days in range (not just food-logged days)
+      const totalWorkoutKcal = builtDays.reduce(
         (s, d) => s + d.workoutKcalEstimate,
+        0
+      );
+      // Sum kcal eaten across all food-logged days in range
+      const totalKcalEaten = loggedDays.reduce(
+        (s, d) => s + d.kcalActual,
         0
       );
 
@@ -431,6 +441,7 @@ export function useFoodAnalytics(
         avgUnderOver,
         avgUnderOverAdjusted,
         totalWorkoutKcal,
+        totalKcalEaten,
         avgMacroSplit,
         longestUnderStreak,
         longestOverStreak,

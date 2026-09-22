@@ -10,7 +10,7 @@ import MacroBreakdownBars from '@/components/analytics/MacroBreakdownBars';
 import MacroSplitDonut from '@/components/analytics/MacroSplitDonut';
 import WorkoutImpactCard from '@/components/analytics/WorkoutImpactCard';
 import DeficitStreakCalendar from '@/components/analytics/DeficitStreakCalendar';
-import WorkoutStatsCard from '@/components/analytics/WorkoutStatsCard';
+import CalorieBalanceCard from '@/components/analytics/CalorieBalanceCard';
 
 interface AnalyticsScreenProps {
   startDate?: string | null;
@@ -45,7 +45,7 @@ export default function AnalyticsScreen({ startDate: startDateProp }: AnalyticsS
           Macro balance vs target
         </p>
         <p className="font-body text-sm text-paper/50 mb-4">
-          Protein, carbs and fat as a percentage of your total calories. The goal band (95–105%) is marked in teal. Protein is the priority — it&apos;s what keeps your muscle while you cut.
+          Your average macro split compared to the FIT50 targets (Protein 33%, Carbs 40%, Fat 27%). ● means you are within 3% of the target.
         </p>
         <MacroBreakdownBars totals={totals} loaded={loaded} />
       </Section>
@@ -58,7 +58,7 @@ export default function AnalyticsScreen({ startDate: startDateProp }: AnalyticsS
               Average macro split
             </p>
             <p className="font-body text-sm text-ink/40 mb-4">
-              How your protein, carbs and fat actually split across logged days — compared to your macro target. The donut shows the ratio; the bars above show how close you are to each gram target.
+              How your protein, carbs and fat actually split across logged days — compared to your macro target. The donut shows the ratio.
             </p>
             <MacroSplitDonut totals={totals} loaded={loaded} />
           </div>
@@ -85,19 +85,15 @@ export default function AnalyticsScreen({ startDate: startDateProp }: AnalyticsS
         <DeficitStreakCalendar days={days} loaded={loaded} />
       </Section>
 
-      {/* Workout consistency */}
+      {/* Calorie balance: eaten vs burned */}
       <Section tone="paper" className="py-6">
         <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-1">
-          Workout consistency
+          Energy balance
         </p>
         <p className="font-body text-sm text-ink/40 mb-4">
-          Your FIT50 workout log for this period. Tracks completed sessions and rows — every session completed brings you closer to the finish.
+          Total calories eaten from food vs total calories burned through FIT50 workouts in this period. Use this to understand whether you are in a net deficit or surplus.
         </p>
-        <WorkoutStatsCard
-          totals={totals}
-          loaded={loaded}
-          currentDay={startDateProp ? Math.ceil((Date.now() - new Date(startDateProp).getTime()) / 86400000) + 1 : null}
-        />
+        <CalorieBalanceCard totals={totals} loaded={loaded} />
       </Section>
     </div>
   );
