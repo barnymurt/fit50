@@ -179,7 +179,7 @@ function BarView({
                   }}
                   aria-hidden
                 />
-                {/* Coral band: 100–110% of target */}
+                {/* Coral band: 100–105% of target */}
                 <div
                   className="absolute inset-y-0 bg-coral/30"
                   style={{
@@ -188,7 +188,7 @@ function BarView({
                   }}
                   aria-hidden
                 />
-                {/* Fill: bar stops at 100% width (110% of target value) */}
+                {/* Fill: bar stops at 100% width (105% of target value) */}
                 <div
                   className="absolute inset-y-0 left-0 overflow-hidden"
                   style={{ width: `${fillBarPct}%` }}
@@ -215,19 +215,21 @@ function BarView({
                   style={{ left: '100%' }}
                   aria-hidden
                 />
-                {/* % label pinned to bar edge, caps at bar end */}
-                {ratio > 0 && (
-                  <span
-                    className={`absolute -bottom-5 -translate-x-1/2 font-body text-caption tabular-nums font-semibold whitespace-nowrap ${
-                      status === 'over' ? 'text-coral' : 'text-ink/60'
-                    }`}
-                    style={{ left: `${Math.min(fillBarPct, 100)}%` }}
-                    aria-hidden
-                  >
-                    {fillPctLabel}%
-                  </span>
-                )}
               </div>
+              {/* % label OUTSIDE overflow-hidden container so it's not clipped
+                  when the bar caps at 100%. Anchored to the bar end position;
+                  when bar is at full width the label sits just past the right edge. */}
+              {ratio > 0 && (
+                <span
+                  className={`absolute top-full mt-1 font-body text-caption tabular-nums font-semibold whitespace-nowrap ${
+                    status === 'over' ? 'text-coral' : 'text-ink/60'
+                  } ${fillBarPct >= 100 ? 'right-0' : ''}`}
+                  style={fillBarPct < 100 ? { left: `${fillBarPct}%`, transform: 'translateX(-50%)' } : {}}
+                  aria-hidden
+                >
+                  {fillPctLabel}%
+                </span>
+              )}
             </div>
           </div>
         );
