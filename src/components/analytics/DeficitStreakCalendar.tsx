@@ -10,11 +10,18 @@ interface DeficitStreakCalendarProps {
 const CELL_SIZE = 20;
 const CELL_GAP = 3;
 
+const COLORS = {
+  noLog: 'rgba(26, 26, 26, 0.25)', // ink at 25%
+  under: '#4A9B9B', // teal
+  over: '#E88B5A', // coral
+  onTarget: '#F2D9A2', // cream
+} as const;
+
 function getColor(day: AnalyticsDay): string {
-  if (!day.hadLoggedFood) return 'bg-ink/25';
-  if (day.kcalUnderOver > 0) return 'bg-teal';
-  if (day.kcalUnderOver < -0) return 'bg-coral';
-  return 'bg-cream';
+  if (!day.hadLoggedFood) return COLORS.noLog;
+  if (day.kcalUnderOver > 0) return COLORS.under;
+  if (day.kcalUnderOver < 0) return COLORS.over;
+  return COLORS.onTarget;
 }
 
 export default function DeficitStreakCalendar({

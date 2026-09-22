@@ -80,12 +80,10 @@ const BARS: { key: 'kcal' | 'protein' | 'carbs' | 'fat'; label: string; unit: st
   { key: 'fat', label: 'Fat', unit: 'g' },
 ];
 
-// Bar visualises 0% to FILL_CAP (110%) of target. The bar itself
-// stops at 100% width (which represents 110% of target value).
-// The % label above the bar keeps climbing so the user always
-// knows how far over they are, but the bar fill never extends
-// past the end of the track.
-const FILL_CAP = 1.10;
+// Bar stops at 105% of target. If the user exceeds 105%,
+// the bar stays at the end and the % label shows the overage
+// (e.g. 115% if they ate 115% of target).
+const FILL_CAP = 1.05;
 const TEAL_THRESHOLD = 0.95; // 95% of target = teal band start
 const CORAL_THRESHOLD = 1.00; // 100% of target = bar end
 
@@ -166,7 +164,7 @@ function BarView({
                 style={{ left: '100%' }}
                 aria-hidden
               >
-                110%
+                105%
               </span>
               <div
                 className="h-4 bg-ink/10 relative overflow-hidden"
