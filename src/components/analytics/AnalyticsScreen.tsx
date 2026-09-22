@@ -10,7 +10,7 @@ import MacroBreakdownBars from '@/components/analytics/MacroBreakdownBars';
 import MacroSplitDonut from '@/components/analytics/MacroSplitDonut';
 import WorkoutImpactCard from '@/components/analytics/WorkoutImpactCard';
 import DeficitStreakCalendar from '@/components/analytics/DeficitStreakCalendar';
-import HabitCorrelationCard from '@/components/analytics/HabitCorrelationCard';
+import WorkoutStatsCard from '@/components/analytics/WorkoutStatsCard';
 
 interface AnalyticsScreenProps {
   startDate?: string | null;
@@ -85,15 +85,19 @@ export default function AnalyticsScreen({ startDate: startDateProp }: AnalyticsS
         <DeficitStreakCalendar days={days} loaded={loaded} />
       </Section>
 
-      {/* Habit correlation */}
+      {/* Workout consistency */}
       <Section tone="paper" className="py-6">
         <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-1">
-          Workout correlation
+          Workout consistency
         </p>
         <p className="font-body text-sm text-ink/40 mb-4">
-          Whether your calorie balance tends to be better on days you workout vs rest days. A positive number means workouts are associated with better deficit days.
+          Your FIT50 workout log for this period. Tracks completed sessions and rows — every session completed brings you closer to the finish.
         </p>
-        <HabitCorrelationCard days={days} loaded={loaded} />
+        <WorkoutStatsCard
+          totals={totals}
+          loaded={loaded}
+          currentDay={startDateProp ? Math.ceil((Date.now() - new Date(startDateProp).getTime()) / 86400000) + 1 : null}
+        />
       </Section>
     </div>
   );

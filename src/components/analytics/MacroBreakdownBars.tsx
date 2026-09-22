@@ -28,7 +28,6 @@ function Bar({
   loaded: boolean;
 }) {
   const pct = target > 0 ? (actual / target) * 100 : 0;
-  const cappedPct = Math.min(pct, 150);
   const barColor =
     pct >= 95 && pct <= 105
       ? 'bg-teal'
@@ -49,6 +48,11 @@ function Bar({
         {loaded ? (
           <span className="font-display text-h3 tabular-nums text-ink">
             {Math.round(actual)}{unit}
+            {pct > 100 && (
+              <span className="font-body text-caption text-coral ml-1">
+                ({Math.round(pct)}%)
+              </span>
+            )}
             <span className="font-body text-caption text-ink/40 ml-1">
               / {Math.round(target)}{unit}
             </span>
@@ -61,12 +65,12 @@ function Bar({
         {/* Target marker */}
         <div
           className="absolute top-0 bottom-0 w-px bg-ink/40"
-          style={{ left: `${Math.min((100 / 150) * 100, 100)}%` }}
+          style={{ left: '100%' }}
         />
         {loaded ? (
           <div
             className={`h-full transition-all duration-300 ${barColor}`}
-            style={{ width: `${cappedPct}%` }}
+            style={{ width: `${Math.min(pct, 100)}%` }}
           />
         ) : (
           <div className="h-full bg-ink/10 animate-pulse" />

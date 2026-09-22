@@ -41,7 +41,11 @@ function buildMetLookup(
   return map;
 }
 
-export type AnalyticsRange = '7d' | '30d' | 'all';
+export type AnalyticsRange =
+  | '7d'
+  | '30d'
+  | 'all'
+  | { custom: { start: string; end: string } };
 
 export interface AnalyticsDay {
   day_key: string;
@@ -79,6 +83,10 @@ export interface AnalyticsTotals {
   longestUnderStreak: number;
   longestOverStreak: number;
   rolling7UnderOver: Record<string, number>;
+  /** All workout days in range, regardless of food logging */
+  totalWorkoutDays: number;
+  /** Total FIT50 rows completed across all workout days */
+  totalWorkoutRows: number;
 }
 
 const empty: AnalyticsTotals = {
@@ -97,21 +105,27 @@ const empty: AnalyticsTotals = {
   longestUnderStreak: 0,
   longestOverStreak: 0,
   rolling7UnderOver: {},
+  totalWorkoutDays: 0,
+  totalWorkoutRows: 0,
 };
 
-function getRangeStartKey(range: AnalyticsRange): string | null {
+function getRangeStartKey(range: AnalyticsRange): { start: string | null; end: string | null } {
   const now = new Date();
   if (range === '7d') {
     const d = new Date(now);
     d.setDate(d.getDate() - 6);
-    return dateKeyLocal(d);
+    return { start: dateKeyLocal(d), end: dateKeyLocal(now) };
   }
   if (range === '30d') {
     const d = new Date(now);
     d.setDate(d.getDate() - 29);
-    return dateKeyLocal(d);
+    return { start: dateKeyLocal(d), end: dateKeyLocal(now) };
   }
-  return null;
+  if (range === 'all') {
+    return { start: null, end: null };
+  }
+  // custom range
+  return { start: range.custom.start, end: range.custom.end };
 }
 
 function computeRolling7(
@@ -217,14 +231,21 @@ export function useFoodAnalytics(
         });
       }
 
-      // Build the day list from the food log keys (or filtered range)
-      const allDayKeys = Object.keys(foodByDay);
-      const rangeStartKey = rangeStart;
-      const filteredKeys = rangeStartKey
-        ? allDayKeys.filter((k) => k >= rangeStartKey)
-        : allDayKeys;
+      const { start: rangeStartKey, end: rangeEndKey } = rangeStart;
 
-      const builtDays: AnalyticsDay[] = filteredKeys.map((day_key) => {
+      function inRange(k: string) {
+        if (rangeStartKey && k < rangeStartKey) return false;
+        if (rangeEndKey && k > rangeEndKey) return false;
+        return true;
+      }
+
+      // Build day list from BOTH food-logged days AND workout days in range
+      const allDayKeys = [...new Set([
+        ...Object.keys(foodByDay),
+        ...Object.keys(workoutByDay),
+      ])].filter(inRange).sort();
+
+      const builtDays: AnalyticsDay[] = allDayKeys.map((day_key) => {
         const entries = foodByDay[day_key] || [];
         const hadLoggedFood = entries.length > 0;
         const workouts = workoutByDay[day_key] || [];
@@ -310,7 +331,7 @@ export function useFoodAnalytics(
       });
 
       // Compute rolling 7-day average (only for days with food logged)
-      const rolling7 = computeRolling7(builtDays, rangeStartKey);
+      const rolling7 = computeRolling7(builtDays, rangeStart?.start ?? null);
 
       // Compute totals (only for days with food logged)
       const loggedDays = builtDays.filter((d) => d.hadLoggedFood);
@@ -323,6 +344,23 @@ export function useFoodAnalytics(
       ).length;
       const daysOnTarget = loggedDays.length - daysUnderBudget - daysOverBudget;
       const daysWorkedOut = loggedDays.filter((d) => d.hadWorkout).length;
+
+      // All workout days in the range (not filtered by food log)
+      const allWorkoutDays = builtDays.filter((d) => d.hadWorkout);
+      const totalWorkoutDays = allWorkoutDays.length;
+
+      // Count total completed FIT50 rows across all workout days in range
+      let totalWorkoutRows = 0;
+      for (const [dayKey, dayWorkouts] of Object.entries(workoutByDay)) {
+        if (!inRange(dayKey)) continue;
+        for (const w of dayWorkouts) {
+          const sets = w.sets || {};
+          const isComplete =
+            Object.keys(sets).length >= WORKOUT_EXERCISES_PER_LINE &&
+            Object.values(sets).every((n) => Number(n) >= WORKOUT_SETS_PER_EXERCISE);
+          if (isComplete) totalWorkoutRows++;
+        }
+      }
 
       const avgKcalActual =
         loggedDays.length > 0
@@ -397,6 +435,8 @@ export function useFoodAnalytics(
         longestUnderStreak,
         longestOverStreak,
         rolling7UnderOver: rolling7,
+        totalWorkoutDays,
+        totalWorkoutRows,
       });
       setLoaded(true);
     };
