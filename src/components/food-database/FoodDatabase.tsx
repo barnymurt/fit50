@@ -105,7 +105,7 @@ function BundleTile({
       onDragLeave={onDragLeave}
       onDrop={onDrop}
       onDragEnd={onDragEnd}
-      className={`aspect-square border ${tint} transition-colors flex flex-col cursor-grab active:cursor-grabbing ${
+      className={`h-full min-h-[160px] border ${tint} transition-colors flex flex-col cursor-grab active:cursor-grabbing ${
         isDragging
           ? 'opacity-40 border-dashed border-ink/40'
           : isDropTarget
@@ -126,30 +126,25 @@ function BundleTile({
           }
         }}
         aria-label={`Log meal bundle ${bundle.name}`}
-        className="flex-1 min-h-0 p-2 text-left flex flex-col gap-1 disabled:opacity-50 cursor-pointer"
+        className="flex-1 min-h-0 p-2 text-left flex flex-col gap-1 disabled:opacity-50 cursor-pointer overflow-hidden"
         disabled={logging}
       >
         <p className="font-body text-sm text-ink leading-tight line-clamp-2">
           {bundle.name}
         </p>
-        {/* Meal caption: truncate so a long meal name ('Breakfast')
-            can't bleed past the tile on a narrow 2-col mobile grid. */}
         {mealLabel && (
           <p className="font-body text-[9px] sm:text-[10px] uppercase tracking-widest text-ink/50 leading-none truncate">
             {mealLabel}
           </p>
         )}
-        {/* Item list — desktop only. Mobile keeps the count + kcal
-            line below so the cramped 2-col grid doesn't try to
-            cram 3-5 food names into a ~140 px square tile. */}
+        {/* Item list — capped at 6 so a 7+ item bundle doesn't
+            push the count + kcal summary off the bottom of the
+            button. Tiles stretch vertically (no aspect-square)
+            so title, items, summary, and actions are all visible
+            on mobile even for busy bundles. */}
         {bundle.items.length > 0 && (
           <ul className="space-y-0.5 text-left w-full">
             {(() => {
-              // Cap the items list at 6 so the tile never overruns
-              // its aspect-square on mobile — a 7+ item bundle would
-              // push the count + kcal summary off the bottom of the
-              // button and clip the meal caption (Lunch / Dinner /
-              // Snack). Show a "+N more" line when we truncated.
               const MAX_VISIBLE = 6;
               const visible = bundle.items.slice(0, MAX_VISIBLE);
               const remaining = bundle.items.length - visible.length;
@@ -173,12 +168,9 @@ function BundleTile({
             })()}
           </ul>
         )}
-        {/* Items + kcal on one line. mt-auto pushes it to the
-            bottom of the button so multi-line names + the meal
-            caption stay vertically aligned across tiles. On
-            desktop the items list above already gives detail; we
-            keep this summary line so mobile still gets the kcal +
-            count in a single glance. */}
+        {/* Summary line — pinned to the bottom of the button so
+            the meal caption + item list always push it down even
+            if the title is one line. */}
         <p className="font-body text-[10px] sm:text-caption uppercase tracking-widest text-ink/40 tabular-nums leading-none truncate mt-auto">
           {bundle.items.length}{' '}
           {bundle.items.length === 1 ? 'item' : 'items'}
@@ -186,7 +178,7 @@ function BundleTile({
           {kcal != null ? `${kcal} kcal` : '—'}
         </p>
       </button>
-      <div className="px-2 py-1 border-t border-ink/15 flex items-center gap-1 text-ink/60">
+      <div className="shrink-0 px-2 py-1 border-t border-ink/15 flex items-center gap-1 text-ink/60">
         <span
           aria-hidden
           className="px-1 py-0.5 select-none"

@@ -45,9 +45,12 @@ export default function CalorieBalanceCard({
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-3 gap-3">
+      {/* Stacked single-column on mobile so 'kcal from FIT50' and
+          other captions don't overflow into neighbouring tiles.
+          2-col on small tablets, 3-col on desktop. */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
         {/* Eaten */}
-        <div className="px-4 py-4 border border-ink/15 bg-ink/[0.03]">
+        <div className="min-w-0 px-4 py-4 border border-ink/15 bg-ink/[0.03]">
           <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-1">
             Eaten
           </p>
@@ -58,7 +61,7 @@ export default function CalorieBalanceCard({
         </div>
 
         {/* Burned */}
-        <div className="px-4 py-4 border border-ink/15 bg-ink/[0.03]">
+        <div className="min-w-0 px-4 py-4 border border-ink/15 bg-ink/[0.03]">
           <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-1">
             Burned
           </p>
@@ -70,7 +73,7 @@ export default function CalorieBalanceCard({
 
         {/* Net */}
         <div
-          className={`px-4 py-4 border ${
+          className={`min-w-0 px-4 py-4 border sm:col-span-2 md:col-span-1 ${
             netDeficit >= 0 ? 'border-teal/40 bg-teal/5' : 'border-coral/40 bg-coral/5'
           }`}
         >
