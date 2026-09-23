@@ -8,7 +8,12 @@
 // models (3.5+) comply reliably; we JSON.parse the text and surface
 // a clear error if the model added prose.
 
-import { SYSTEM_PROMPT, type ExtractedFood, type LLMConfig } from './types';
+import {
+  SYSTEM_PROMPT,
+  LABEL_SYSTEM_PROMPT,
+  type ExtractedFood,
+  type LLMConfig,
+} from './types';
 
 const MAX_DESCRIPTION_LEN = 1000;
 const REQUEST_TIMEOUT_MS = 30_000;
@@ -18,6 +23,9 @@ interface ExtractArgs {
   config: LLMConfig;
   description: string;
   apiKey: string;
+  /** Override the system prompt — used by the photo path's
+   *  OCR-then-text branch to swap in LABEL_SYSTEM_PROMPT. */
+  systemPrompt?: string;
 }
 
 // Photo path — supply an image instead of (or alongside) text.
@@ -42,6 +50,7 @@ export async function anthropicExtract({
   config,
   description,
   apiKey,
+  systemPrompt = SYSTEM_PROMPT,
 }: ExtractArgs): Promise<ExtractedFood> {
   if (description.length > MAX_DESCRIPTION_LEN) {
     throw new Error(`description too long (max ${MAX_DESCRIPTION_LEN} chars).`);
@@ -49,6 +58,7 @@ export async function anthropicExtract({
   return callAnthropic({
     config,
     apiKey,
+    systemPrompt,
     userContent: [{ type: 'text', text: description }],
   });
 }
@@ -72,6 +82,7 @@ export async function anthropicExtractImage({
   return callAnthropic({
     config,
     apiKey,
+    systemPrompt: LABEL_SYSTEM_PROMPT,
     userContent: content,
   });
 }
@@ -79,10 +90,14 @@ export async function anthropicExtractImage({
 async function callAnthropic({
   config,
   apiKey,
+  systemPrompt = SYSTEM_PROMPT,
   userContent,
 }: {
   config: LLMConfig;
   apiKey: string;
+  /** Override the system prompt — passed when the caller wants a
+   *  specialist prompt (e.g. LABEL_SYSTEM_PROMPT for label photos). */
+  systemPrompt?: string;
   userContent: Array<Record<string, unknown>>;
 }): Promise<ExtractedFood> {
   const controller = new AbortController();
@@ -103,7 +118,7 @@ async function callAnthropic({
         model: config.model,
         max_tokens: MAX_TOKENS,
         temperature: 0.2,
-        system: SYSTEM_PROMPT,
+        system: systemPrompt,
         messages: [{ role: 'user', content: userContent }],
       }),
       signal: controller.signal,

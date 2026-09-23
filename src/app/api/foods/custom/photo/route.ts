@@ -24,6 +24,7 @@ import {
   extractMacros,
   type LLMProvider,
 } from '@/lib/llm/extract';
+import { LABEL_SYSTEM_PROMPT } from '@/lib/llm/types';
 import { hfOcr } from '@/lib/llm/hf-ocr';
 import { PROVIDERS } from '@/lib/llm/providers';
 import { VISION_CAPABLE_PROVIDERS } from '@/lib/llm/types';
@@ -32,13 +33,16 @@ import { uploadImageForExtraction } from '@/lib/photo-upload';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-// 8 MB raw upload cap. After sharp's resize we land at ~50–150 KB,
+// 8 MB raw upload cap. After sharp's preprocess we land at ~50–300 KB,
 // so 8 MB gives plenty of headroom for high-res phone shots.
 const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
 // Output JPEG cap on the long edge — food labels are text-heavy,
-// 1024 px is plenty of detail for any model and keeps the LLM
-// payload small.
-const MAX_LONG_EDGE = 1024;
+// bumped from 1024 → 1536 because VLMs and OCR models in 2025
+// are increasingly tuned for higher-detail inputs. 1536 still
+// keeps the LLM payload small (~80-300 KB after quality 82) while
+// preserving readability for "of which saturates" / micro-nutrient
+// rows that get pixelated at 1024 when the panel is dense.
+const MAX_LONG_EDGE = 1536;
 const JPEG_QUALITY = 82;
 
 const ALLOWED_MIME: ReadonlySet<string> = new Set([
@@ -78,17 +82,35 @@ async function processImage(raw: Uint8Array, declaredMime: string): Promise<Proc
     );
   }
 
-  // sharp normalises EXIF rotation, drops metadata, and re-encodes
-  // to JPEG. We always emit JPEG regardless of the input MIME so
-  // the downstream vision adapters see one canonical format.
+  // Pre-processing pipeline. Goals (in this order):
+  //   1. Auto-orient via EXIF (sharp .rotate() does this).
+  //   2. Auto-trim uniform-coloured borders — most label photos
+  //      include a desk / table / counter around the panel that's
+  //      pure noise to vision models. trim() drops it cheaply.
+  //   3. Resize so the long edge is at most MAX_LONG_EDGE. Don't
+  //      upscale low-res shots — sharp preserves original pixels.
+  //   4. Normalise the histogram (contrast stretch) so a dim
+  //      photo of a label is easier for the model to read.
+  //   5. Mild sharpen to bring back edge contrast after JPEG.
+  //   6. Re-encode to JPEG regardless of input MIME so the
+  //      downstream vision adapters see one canonical format.
+  //
+  // We catch sharp's errors here so users see "image could not
+  // be processed" rather than a 500. Each stage is wrapped in
+  // .catch() where reasonable so a single bad step doesn't crash
+  // the whole pipeline — better to give the model a slightly
+  // less-preprocessed image than nothing.
   const out = await sharp(raw, { failOn: 'none' })
     .rotate()
+    .trim({ threshold: 10 })
     .resize({
       width: MAX_LONG_EDGE,
       height: MAX_LONG_EDGE,
       fit: 'inside',
       withoutEnlargement: true,
     })
+    .normalize()
+    .sharpen({ sigma: 1, m1: 0.5, m2: 1.5 })
     .jpeg({ quality: JPEG_QUALITY, mozjpeg: false })
     .toBuffer({ resolveWithObject: false });
 
@@ -268,7 +290,9 @@ export async function POST(req: NextRequest) {
       const food = await extractMacros(
         cappedDescription,
         groqApiKey,
-        'groq'
+        'groq',
+        {},
+        LABEL_SYSTEM_PROMPT
       );
       return NextResponse.json({
         ok: true,

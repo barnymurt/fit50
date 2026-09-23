@@ -25,6 +25,8 @@ import { anthropicExtract, anthropicExtractImage } from './anthropic';
 import { geminiExtract, geminiExtractImage } from './gemini';
 import { hfOcr } from './hf-ocr';
 import {
+  SYSTEM_PROMPT,
+  LABEL_SYSTEM_PROMPT,
   VISION_CAPABLE_PROVIDERS,
   type HFOCRProvider,
 } from './types';
@@ -41,7 +43,13 @@ export async function extractMacros(
   description: string,
   apiKey: string,
   provider: LLMProvider,
-  extras: ExtractExtras = {}
+  extras: ExtractExtras = {},
+  /** Override the system prompt. Used by the photo path: when the
+   *  description is OCR'd label text we want LABEL_SYSTEM_PROMPT,
+   *  not the generic "free-text description" prompt. Defaults to
+   *  SYSTEM_PROMPT so existing typed-description callers keep their
+   *  original behaviour. */
+  systemPrompt: string = SYSTEM_PROMPT
 ): Promise<ExtractedFood> {
   const config = { ...PROVIDERS[provider] };
   if (provider === 'anthropic' && extras.anthropicWorkspaceId) {
@@ -56,13 +64,28 @@ export async function extractMacros(
     provider === 'minimax' ||
     provider === 'perplexity'
   ) {
-    return openaiCompatExtract({ config, description, apiKey });
+    return openaiCompatExtract({
+      config,
+      description,
+      apiKey,
+      systemPrompt,
+    });
   }
   if (provider === 'anthropic') {
-    return anthropicExtract({ config, description, apiKey });
+    return anthropicExtract({
+      config,
+      description,
+      apiKey,
+      systemPrompt,
+    });
   }
   if (provider === 'gemini') {
-    return geminiExtract({ config, description, apiKey });
+    return geminiExtract({
+      config,
+      description,
+      apiKey,
+      systemPrompt,
+    });
   }
   throw new Error(`Provider ${provider} is not wired up.`);
 }
@@ -117,7 +140,7 @@ export async function extractMacrosFromImage(
       `Provider ${provider} doesn't support image inputs and no HF_API_KEY is configured for the OCR fallback. Add an OpenAI / Anthropic / Gemini key, or contact support.`
     );
   }
-  const ocr = await hfOcr(imageUrl, hfApiKey);
+const ocr = await hfOcr(imageUrl, hfApiKey);
   // Cap the OCR'd text at the same 1000-char limit the typed path
   // enforces — long OCR transcripts can blow past the LLM context
   // window. Trim from the start if it overshoots (the nutrition
@@ -125,11 +148,17 @@ export async function extractMacrosFromImage(
   const cappedDescription = ocr.text.length > 1000
     ? ocr.text.slice(-1000)
     : ocr.text;
+  // The OCR'd text IS a nutrition label transcription, so use the
+  // label-aware prompt instead of the generic "free-text food"
+  // prompt. The model needs label-specific instructions (per-100g
+  // vs per-serving columns, kJ conversion, multi-language headers)
+  // to recover the macros faithfully from the noisy OCR transcript.
   const food = await extractMacros(
     cappedDescription,
     apiKey,
-  provider,
-    extras
+    provider,
+    extras,
+    LABEL_SYSTEM_PROMPT
   );
   return { food, path: 'ocr-then-text', ocr };
 }

@@ -7,7 +7,12 @@
 // for JSON-mode. We set it anyway; if the provider ignores it, the
 // JSON.parse below fails and the route returns 502.
 
-import { SYSTEM_PROMPT, type ExtractedFood, type LLMConfig } from './types';
+import {
+  SYSTEM_PROMPT,
+  LABEL_SYSTEM_PROMPT,
+  type ExtractedFood,
+  type LLMConfig,
+} from './types';
 
 const MAX_DESCRIPTION_LEN = 1000;
 const REQUEST_TIMEOUT_MS = 30_000;
@@ -16,6 +21,9 @@ interface ExtractArgs {
   config: LLMConfig;
   description: string;
   apiKey: string;
+  /** Override the system prompt — used by the photo path's
+   *  OCR-then-text branch to swap in LABEL_SYSTEM_PROMPT. */
+  systemPrompt?: string;
 }
 
 // Photo path — supply an image instead of (or alongside) the text
@@ -40,6 +48,7 @@ export async function openaiCompatExtract({
   config,
   description,
   apiKey,
+  systemPrompt = SYSTEM_PROMPT,
 }: ExtractArgs): Promise<ExtractedFood> {
   if (description.length > MAX_DESCRIPTION_LEN) {
     throw new Error(`description too long (max ${MAX_DESCRIPTION_LEN} chars).`);
@@ -47,6 +56,7 @@ export async function openaiCompatExtract({
   return callOpenAICompat({
     config,
     apiKey,
+    systemPrompt,
     userContent: [{ type: 'text', text: description }],
   });
 }
@@ -73,6 +83,7 @@ export async function openaiCompatExtractImage({
   return callOpenAICompat({
     config,
     apiKey,
+    systemPrompt: LABEL_SYSTEM_PROMPT,
     userContent: content,
   });
 }
@@ -83,10 +94,14 @@ export async function openaiCompatExtractImage({
 async function callOpenAICompat({
   config,
   apiKey,
+  systemPrompt = SYSTEM_PROMPT,
   userContent,
 }: {
   config: LLMConfig;
   apiKey: string;
+  /** Override the system prompt — passed when the caller wants a
+   *  specialist prompt (e.g. LABEL_SYSTEM_PROMPT for label photos). */
+  systemPrompt?: string;
   userContent: Array<Record<string, unknown>>;
 }): Promise<ExtractedFood> {
   const controller = new AbortController();

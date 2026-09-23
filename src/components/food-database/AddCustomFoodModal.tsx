@@ -752,59 +752,94 @@ const handleSubmit = async (e: React.FormEvent) => {
               />
             </Field>
 
-            <p className="font-body text-caption uppercase tracking-widest text-ink/40 pt-2">
-              Macros per 100 g
-            </p>
-            <div className="grid grid-cols-5 gap-2">
-              <MacroInput
-                label="kcal"
-                value={form.kcal}
-                onChange={(v) => update('kcal', v)}
-              />
-              <MacroInput
-                label="P"
-                value={form.protein}
-                onChange={(v) => update('protein', v)}
-              />
-              <MacroInput
-                label="C"
-                value={form.carbs}
-                onChange={(v) => update('carbs', v)}
-              />
-              <MacroInput
-                label="F"
-                value={form.fat}
-                onChange={(v) => update('fat', v)}
-              />
-              <MacroInput
-                label="Fib"
-                value={form.fiber}
-                onChange={(v) => update('fiber', v)}
-              />
+            {/* Macros per 100g — the single source of truth for this
+                food's nutrition. Scaling to any portion happens via
+                (logged grams / 100) × these values. The header
+                explicitly states what these numbers represent so
+                users don't conflate them with the default-portion
+                fields below. */}
+            <div className="pt-2">
+              <p className="font-body text-caption uppercase tracking-widest text-ink/60">
+                Macros per 100 g
+              </p>
+              <p className="font-body text-xs text-ink/50 mt-1 mb-3 leading-relaxed">
+                These are the values on the nutrition label. We scale to whatever
+                portion you log (e.g. log 50 g, you get half of these).
+              </p>
+              <div className="grid grid-cols-5 gap-2">
+                <MacroInput
+                  label="kcal"
+                  value={form.kcal}
+                  onChange={(v) => update('kcal', v)}
+                />
+                <MacroInput
+                  label="P"
+                  value={form.protein}
+                  onChange={(v) => update('protein', v)}
+                />
+                <MacroInput
+                  label="C"
+                  value={form.carbs}
+                  onChange={(v) => update('carbs', v)}
+                />
+                <MacroInput
+                  label="F"
+                  value={form.fat}
+                  onChange={(v) => update('fat', v)}
+                />
+                <MacroInput
+                  label="Fib"
+                  value={form.fiber}
+                  onChange={(v) => update('fiber', v)}
+                />
+              </div>
             </div>
 
-            <p className="font-body text-caption uppercase tracking-widest text-ink/40 pt-2">
-              Standard serving
-            </p>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Grams">
-                <input
-                  type="number"
-                  min={1}
-                  value={form.standardServingGrams}
-                  onChange={(e) => update('standardServingGrams', e.target.value)}
-                  placeholder="100"
-                  className="w-full px-3 py-2 bg-paper border-2 border-ink/20 font-body focus:border-coral outline-none"
-                />
-              </Field>
-              <Field label="Label">
-                <input
-                  value={form.standardServingLabel}
-                  onChange={(e) => update('standardServingLabel', e.target.value)}
-                  placeholder="100 g"
-                  className="w-full px-3 py-2 bg-paper border-2 border-ink/20 font-body focus:border-coral outline-none"
-                />
-              </Field>
+            {/* Default portion — what pre-fills the log modal when you
+                tap this food. Doesn't change the per-100g values
+                above; it just tells us what a typical serving is. The
+                live preview line below scales the per-100g macros to
+                the chosen portion so the connection is visible. */}
+            <div className="pt-4 border-t border-ink/10">
+              <p className="font-body text-caption uppercase tracking-widest text-ink/60">
+                Default portion (optional)
+              </p>
+              <p className="font-body text-xs text-ink/50 mt-1 mb-3 leading-relaxed">
+                Pre-fills the portion picker when you log this food. Leave on the
+                defaults if you're not sure — it falls back to 100 g.
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Portion weight (g)">
+                  <input
+                    type="number"
+                    min={1}
+                    value={form.standardServingGrams}
+                    onChange={(e) => update('standardServingGrams', e.target.value)}
+                    placeholder="100"
+                    className="w-full px-3 py-2 bg-paper border-2 border-ink/20 font-body focus:border-coral outline-none"
+                  />
+                </Field>
+                <Field label="Display label">
+                  <input
+                    value={form.standardServingLabel}
+                    onChange={(e) => update('standardServingLabel', e.target.value)}
+                    placeholder="e.g. 1 biscuit, 1 scoop, 100 g"
+                    className="w-full px-3 py-2 bg-paper border-2 border-ink/20 font-body focus:border-coral outline-none"
+                  />
+                </Field>
+              </div>
+              {/* Live preview — exactly what one default portion will
+                  log as. Closes the loop between "macros per 100g" and
+                  "default portion grams". Hidden when calories are
+                  empty (nothing to scale yet). */}
+              <DefaultPortionPreview
+                kcalPer100={form.kcal}
+                proteinPer100={form.protein}
+                carbsPer100={form.carbs}
+                fatPer100={form.fat}
+                portionGrams={form.standardServingGrams}
+                portionLabel={form.standardServingLabel}
+              />
             </div>
 
             <Field label="Aliases (comma-separated, optional)">
@@ -900,5 +935,70 @@ function MacroInput({
         className="w-full min-w-0 px-1.5 md:px-2 py-2 bg-paper border-2 border-ink/20 font-body text-sm focus:border-coral outline-none"
       />
     </label>
+  );
+}
+
+// Live preview of one default portion. Closes the loop between the
+// per-100g macros above and the default-portion fields by showing
+// exactly what the food will log as when the user opens it later.
+// Hidden when calories are empty (nothing to scale yet) or the
+// portion weight is invalid.
+function DefaultPortionPreview({
+  kcalPer100,
+  proteinPer100,
+  carbsPer100,
+  fatPer100,
+  portionGrams,
+  portionLabel,
+}: {
+  kcalPer100: string;
+  proteinPer100: string;
+  carbsPer100: string;
+  fatPer100: string;
+  portionGrams: string;
+  portionLabel: string;
+}) {
+  const kcal = Number(kcalPer100);
+  const protein = Number(proteinPer100);
+  const carbs = Number(carbsPer100);
+  const fat = Number(fatPer100);
+  const grams = Number(portionGrams);
+  if (
+    !Number.isFinite(kcal) ||
+    kcal <= 0 ||
+    !Number.isFinite(grams) ||
+    grams <= 0
+  ) {
+    return null;
+  }
+  const ratio = grams / 100;
+  const portionKcal = Math.round(kcal * ratio);
+  const portionP = Math.round(protein * ratio * 10) / 10;
+  const portionC = Math.round(carbs * ratio * 10) / 10;
+  const portionF = Math.round(fat * ratio * 10) / 10;
+  const displayLabel = portionLabel.trim() || `${grams} g`;
+  return (
+    <p className="font-body text-caption text-ink/50 mt-2 leading-relaxed">
+      <span className="text-ink/70">One {displayLabel} logs as:</span>{' '}
+      <span className="tabular-nums text-ink">{portionKcal} kcal</span>
+      {Number.isFinite(protein) && protein > 0 && (
+        <>
+          {' · '}
+          <span className="tabular-nums text-ink">{portionP}g P</span>
+        </>
+      )}
+      {Number.isFinite(carbs) && carbs > 0 && (
+        <>
+          {' · '}
+          <span className="tabular-nums text-ink">{portionC}g C</span>
+        </>
+      )}
+      {Number.isFinite(fat) && fat > 0 && (
+        <>
+          {' · '}
+          <span className="tabular-nums text-ink">{portionF}g F</span>
+        </>
+      )}
+    </p>
   );
 }

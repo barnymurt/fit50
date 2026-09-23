@@ -7,7 +7,12 @@
 // responseMimeType='application/json' forces JSON output on models
 // that support it (gemini-1.5-flash does).
 
-import { SYSTEM_PROMPT, type ExtractedFood, type LLMConfig } from './types';
+import {
+  SYSTEM_PROMPT,
+  LABEL_SYSTEM_PROMPT,
+  type ExtractedFood,
+  type LLMConfig,
+} from './types';
 
 const MAX_DESCRIPTION_LEN = 1000;
 const REQUEST_TIMEOUT_MS = 30_000;
@@ -16,6 +21,9 @@ interface ExtractArgs {
   config: LLMConfig;
   description: string;
   apiKey: string;
+  /** Override the system prompt — used by the photo path's
+   *  OCR-then-text branch to swap in LABEL_SYSTEM_PROMPT. */
+  systemPrompt?: string;
 }
 
 // Photo path — supply an image instead of (or alongside) text.
@@ -40,6 +48,7 @@ export async function geminiExtract({
   config,
   description,
   apiKey,
+  systemPrompt = SYSTEM_PROMPT,
 }: ExtractArgs): Promise<ExtractedFood> {
   if (description.length > MAX_DESCRIPTION_LEN) {
     throw new Error(`description too long (max ${MAX_DESCRIPTION_LEN} chars).`);
@@ -47,6 +56,7 @@ export async function geminiExtract({
   return callGemini({
     config,
     apiKey,
+    systemPrompt,
     userParts: [{ text: description }],
   });
 }
@@ -69,6 +79,7 @@ export async function geminiExtractImage({
   return callGemini({
     config,
     apiKey,
+    systemPrompt: LABEL_SYSTEM_PROMPT,
     userParts: parts,
   });
 }
@@ -76,10 +87,14 @@ export async function geminiExtractImage({
 async function callGemini({
   config,
   apiKey,
+  systemPrompt = SYSTEM_PROMPT,
   userParts,
 }: {
   config: LLMConfig;
   apiKey: string;
+  /** Override the system prompt — passed when the caller wants a
+   *  specialist prompt (e.g. LABEL_SYSTEM_PROMPT for label photos). */
+  systemPrompt?: string;
   userParts: Array<Record<string, unknown>>;
 }): Promise<ExtractedFood> {
   const controller = new AbortController();
@@ -94,7 +109,7 @@ async function callGemini({
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ role: 'user', parts: userParts }],
-        systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+        systemInstruction: { parts: [{ text: systemPrompt }] },
         generationConfig: {
           temperature: 0.2,
           responseMimeType: 'application/json',
