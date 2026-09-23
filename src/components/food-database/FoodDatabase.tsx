@@ -858,79 +858,85 @@ export default function FoodDatabase({ targets }: Props) {
       )}
 
       {/* Tab block. Five tabs: Logged today, Search, Custom foods,
-          Favourites, Analytics. flex-wrap so they reflow into
-          multiple rows on narrow screens instead of bleeding off
-          the edge. Tighter padding on mobile, comfortable on
-          desktop. min-h-[44px] guarantees an adequate touch
-          target even when the row is dense. The bottom border on
-          the wrapper stays one continuous rule regardless of how
-          many rows the tabs wrap into. */}
-      <div className="flex flex-wrap items-stretch gap-x-1 gap-y-0 border-b border-ink/10 mb-4">
-        <button
-          type="button"
-          onClick={() => setTab('logged')}
-          aria-pressed={tab === 'logged'}
-          className={`min-h-[44px] px-3 md:px-4 py-2 font-body text-caption uppercase tracking-widest border-b-2 transition-colors ${
-            tab === 'logged'
-              ? 'border-coral text-ink'
-              : 'border-transparent text-ink/50 hover:text-ink'
-          }`}
-        >
-          Logged today
-          {todayEntries.length > 0 && (
-            <span className="ml-2 text-ink/40 tabular-nums">
-              {todayEntries.length}
-            </span>
-          )}
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab('search')}
-          aria-pressed={tab === 'search'}
-          className={`min-h-[44px] px-3 md:px-4 py-2 font-body text-caption uppercase tracking-widest border-b-2 transition-colors ${
-            tab === 'search'
-              ? 'border-coral text-ink'
-              : 'border-transparent text-ink/50 hover:text-ink'
-          }`}
-        >
-          Search
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab('customfoods')}
-          aria-pressed={tab === 'customfoods'}
-          className={`min-h-[44px] px-3 md:px-4 py-2 font-body text-caption uppercase tracking-widest border-b-2 transition-colors ${
-            tab === 'customfoods'
-              ? 'border-coral text-ink'
-              : 'border-transparent text-ink/50 hover:text-ink'
-          }`}
-        >
-          Custom foods
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab('favorites')}
-          aria-pressed={tab === 'favorites'}
-          className={`min-h-[44px] px-3 md:px-4 py-2 font-body text-caption uppercase tracking-widest border-b-2 transition-colors ${
-            tab === 'favorites'
-              ? 'border-coral text-ink'
-              : 'border-transparent text-ink/50 hover:text-ink'
-          }`}
-        >
-          Favourites
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab('analytics')}
-          aria-pressed={tab === 'analytics'}
-          className={`min-h-[44px] px-3 md:px-4 py-2 font-body text-caption uppercase tracking-widest border-b-2 transition-colors ${
-            tab === 'analytics'
-              ? 'border-coral text-ink'
-              : 'border-transparent text-ink/50 hover:text-ink'
-          }`}
-        >
-          Analytics
-        </button>
+          Favourites, Analytics. Wrapped in a paper-bordered panel
+          so the row reads as deliberate UI (not floating text).
+          Each tab is a bordered square button — same pattern as
+          the Bar/Pie toggle in DailyTotalsBar — with the active
+          tab filled in coral. flex-wrap so they reflow into
+          multiple rows on narrow screens. min-h-[44px] keeps the
+          touch target compliant; gaps keep buttons distinct when
+          wrapped. */}
+      <div className="bg-paper border border-ink/15 p-2 mb-4">
+        <p className="font-body text-caption uppercase tracking-widest text-ink/50 px-2 pt-1 pb-2">
+          Foods
+        </p>
+        <div className="flex flex-wrap gap-1.5">
+          <button
+            type="button"
+            onClick={() => setTab('logged')}
+            aria-pressed={tab === 'logged'}
+            className={`min-h-[44px] px-4 py-2 font-body text-caption uppercase tracking-widest border transition-colors ${
+              tab === 'logged'
+                ? 'border-coral bg-coral text-paper'
+                : 'border-ink/20 bg-paper text-ink/60 hover:border-ink/50 hover:text-ink'
+            }`}
+          >
+            Logged today
+            {todayEntries.length > 0 && (
+              <span className={`ml-2 tabular-nums ${tab === 'logged' ? 'text-paper/80' : 'text-ink/40'}`}>
+                {todayEntries.length}
+              </span>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab('search')}
+            aria-pressed={tab === 'search'}
+            className={`min-h-[44px] px-4 py-2 font-body text-caption uppercase tracking-widest border transition-colors ${
+              tab === 'search'
+                ? 'border-coral bg-coral text-paper'
+                : 'border-ink/20 bg-paper text-ink/60 hover:border-ink/50 hover:text-ink'
+            }`}
+          >
+            Search
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab('customfoods')}
+            aria-pressed={tab === 'customfoods'}
+            className={`min-h-[44px] px-4 py-2 font-body text-caption uppercase tracking-widest border transition-colors ${
+              tab === 'customfoods'
+                ? 'border-coral bg-coral text-paper'
+                : 'border-ink/20 bg-paper text-ink/60 hover:border-ink/50 hover:text-ink'
+            }`}
+          >
+            Custom foods
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab('favorites')}
+            aria-pressed={tab === 'favorites'}
+            className={`min-h-[44px] px-4 py-2 font-body text-caption uppercase tracking-widest border transition-colors ${
+              tab === 'favorites'
+                ? 'border-coral bg-coral text-paper'
+                : 'border-ink/20 bg-paper text-ink/60 hover:border-ink/50 hover:text-ink'
+            }`}
+          >
+            Favourites
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab('analytics')}
+            aria-pressed={tab === 'analytics'}
+            className={`min-h-[44px] px-4 py-2 font-body text-caption uppercase tracking-widest border transition-colors ${
+              tab === 'analytics'
+                ? 'border-coral bg-coral text-paper'
+                : 'border-ink/20 bg-paper text-ink/60 hover:border-ink/50 hover:text-ink'
+            }`}
+          >
+            Analytics
+          </button>
+        </div>
       </div>
 
       {tab === 'logged' ? (
