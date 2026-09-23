@@ -67,6 +67,27 @@ export interface AnalyticsDay {
   kcalUnderOverAdjusted: number;
 }
 
+/** A single weight reading entered by the user. */
+export interface WeightReading {
+  day_key: string;
+  weight_kg: number;
+  notes: string | null;
+}
+
+/** Per-day projection point — one row per day in range. The chart
+ *  draws actual readings as solid dots over this dashed line. */
+export interface WeightProjectionPoint {
+  day_key: string;
+  /** Predicted weight (kg) for this day from kcal balance. NaN if no
+   *  baseline weight was set yet (no readings and no fallback). */
+  projected: number | null;
+  /** 7-day trailing average of `projected` to smooth single-day
+   *  noise from how much the user ate. */
+  projectedSmoothed: number | null;
+  /** Actual reading if the user logged one this day, else null. */
+  actual: number | null;
+}
+
 export interface AnalyticsTotals {
   daysInRange: number;
   daysLogged: number;
@@ -166,11 +187,19 @@ export function useFoodAnalytics(
   loaded: boolean;
   days: AnalyticsDay[];
   totals: AnalyticsTotals;
+  weightReadings: WeightReading[];
+  weightProjection: WeightProjectionPoint[];
+  weightBaseline: number | null;
 } {
   const { user } = useAuth();
   const supabase = createClient();
   const [days, setDays] = useState<AnalyticsDay[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const [weightReadings, setWeightReadings] = useState<WeightReading[]>([]);
+  const [weightProjection, setWeightProjection] = useState<
+    WeightProjectionPoint[]
+  >([]);
+  const [weightBaseline, setWeightBaseline] = useState<number | null>(null);
   const [totals, setTotals] = useState<AnalyticsTotals>(empty);
 
   useEffect(() => {
@@ -179,13 +208,16 @@ export function useFoodAnalytics(
       if (!user || !supabase) {
         setDays([]);
         setTotals(empty);
+        setWeightReadings([]);
+        setWeightProjection([]);
+        setWeightBaseline(null);
         setLoaded(false);
         return;
       }
 
       const rangeStart = getRangeStartKey(range);
 
-      const [foodRes, workoutsRes, profileRes] = await Promise.all([
+      const [foodRes, workoutsRes, profileRes, weightRes] = await Promise.all([
         (supabase.from('food_log') as any)
           .select('day_key, kcal, protein, carbs, fat, fiber')
           .eq('user_id', user.id)
@@ -197,6 +229,15 @@ export function useFoodAnalytics(
           .select('results_kcal, results_protein, results_carbs, results_fat, weight_kg, age, sex, height_cm, kettlebell_weight_kg')
           .eq('user_id', user.id)
           .maybeSingle(),
+        // Pull all the user's weight readings (small list, bounded by
+        // their actual weigh-in cadence). The chart filters by range
+        // client-side using the day_key. We fetch all rather than only
+        // the visible range so the baseline can come from earlier days
+        // if the user weighed in before the range started.
+        (supabase.from('weight_log') as any)
+          .select('day_key, weight_kg, notes')
+          .eq('user_id', user.id)
+          .order('day_key', { ascending: true }),
       ]);
 
       if (cancelled) return;
@@ -428,6 +469,100 @@ export function useFoodAnalytics(
 
       if (cancelled) return;
 
+      // -------- Weight projection ----------
+      // Pull the user's weight readings. We have all of them above
+      // (no range filter on the query), so `weightReadings` covers
+      // every weigh-in the user has logged. The "baseline" is the
+      // most recent reading on or before the range start — that's
+      // the weight we project forward from. If none exists in range
+      // we fall back to the latest reading anywhere; if still none,
+      // we fall back to the macro_profile.weight_kg so the chart has
+      // a sensible starting point even with zero weigh-ins.
+      const allReadings: WeightReading[] = (((weightRes as any)?.data ??
+        []) as Array<Record<string, unknown>>).map((r) => ({
+        day_key: r.day_key as string,
+        weight_kg: Number(r.weight_kg),
+        notes: (r.notes as string | null) ?? null,
+      }));
+
+      // Pick baseline: latest reading on or before range start, else
+      // latest reading anywhere, else the macro profile snapshot.
+      const readingsBeforeStart = allReadings.filter(
+        (r) =>
+          !rangeStartKey ||
+          r.day_key <= rangeStartKey
+      );
+      const fallbackLatest = allReadings[allReadings.length - 1];
+      const baselineReading =
+        readingsBeforeStart[readingsBeforeStart.length - 1] ??
+        fallbackLatest ??
+        null;
+      const baselineKg = baselineReading
+        ? baselineReading.weight_kg
+        : weightKg > 0
+          ? weightKg
+          : null;
+
+      // Build per-day projection. For each day in `builtDays` we
+      // calculate the cumulative weight change since baseline by
+      // summing each day's (kcal_intake - kcal_target - workout_burn)
+      // / 7700 kcal per kg of body fat. Negatives (deficit) drop
+      // weight; positives (surplus) add.
+      //
+      // Then apply a 7-day trailing average to the projected line so
+      // single-day swings (which can be +/- 1kg just from water) don't
+      // make the chart look chaotic.
+      const CAL_PER_KG = 7700;
+      const projection: WeightProjectionPoint[] = [];
+      let cumulative = 0;
+      for (const d of builtDays) {
+        // Deficit = target - actual - workout. Positive = losing
+        // weight (consumed less than burnt); negative = gaining.
+        const dayDeficit =
+          (d.kcalTarget ?? 0) - (d.kcalActual ?? 0) - (d.workoutKcalEstimate ?? 0);
+        cumulative += dayDeficit / CAL_PER_KG;
+        const projectedKg = baselineKg != null ? baselineKg + cumulative : null;
+        const actualReading = allReadings.find(
+          (r) => r.day_key === d.day_key
+        );
+        projection.push({
+          day_key: d.day_key,
+          projected: projectedKg,
+          projectedSmoothed: null, // filled below
+          actual: actualReading?.weight_kg ?? null,
+        });
+      }
+      // 7-day trailing average of `projected`. For the first 6 days
+      // the window is shorter (days from start..i). Smoothed value is
+      // null if projection was null.
+      for (let i = 0; i < projection.length; i++) {
+        const start = Math.max(0, i - 6);
+        const window = projection.slice(start, i + 1);
+        const validValues = window
+          .map((p) => p.projected)
+          .filter((v): v is number => v != null);
+        if (validValues.length === 0) {
+          projection[i].projectedSmoothed = null;
+        } else {
+          projection[i].projectedSmoothed =
+            validValues.reduce((s, v) => s + v, 0) / validValues.length;
+        }
+      }
+
+      // Filter weightReadings to the visible range so the UI doesn't
+      // render 2-year-old readings on the 30d chart. Keep at least
+      // the baseline reading so the projection line has a visible
+      // anchor even if it's outside the chart range.
+      const visibleReadings = allReadings.filter(
+        (r) => inRange(r.day_key)
+      );
+      if (
+        baselineReading &&
+        !visibleReadings.some((r) => r.day_key === baselineReading.day_key)
+      ) {
+        visibleReadings.unshift(baselineReading);
+      }
+
       setDays(builtDays);
       setTotals({
         daysInRange: builtDays.length,
@@ -449,6 +584,9 @@ export function useFoodAnalytics(
         totalWorkoutDays,
         totalWorkoutRows,
       });
+      setWeightReadings(visibleReadings);
+      setWeightProjection(projection);
+      setWeightBaseline(baselineKg);
       setLoaded(true);
     };
 
@@ -458,5 +596,12 @@ export function useFoodAnalytics(
     };
   }, [user, supabase, range, startDate]);
 
-  return { loaded, days, totals };
+  return {
+    loaded,
+    days,
+    totals,
+    weightReadings,
+    weightProjection,
+    weightBaseline,
+  };
 }
