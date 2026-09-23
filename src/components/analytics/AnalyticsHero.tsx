@@ -15,26 +15,29 @@ function StatTile({
   loaded,
 }: {
   label: string;
-  value: string | number;
+  /** Either a plain string/number or JSX for tiles that need a
+   *  structured value (e.g. a big number on one line + a small
+   *  per-day caption on the next). */
+  value: string | number | React.ReactNode;
   suffix?: string;
   description?: string;
   loaded: boolean;
 }) {
   return (
-    <div className="px-5 py-5 border border-ink/15 bg-ink/[0.03]">
+    <div className="px-5 py-5 border border-ink/15 bg-ink/[0.03] min-w-0 overflow-hidden">
       <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-2">
         {label}
       </p>
       {loaded ? (
         <>
-          <p className="font-display text-h1 text-ink leading-none tabular-nums">
+          <div className="font-display text-h1 text-ink leading-none tabular-nums">
             {value}
             {suffix && (
               <span className="text-base text-ink/50 font-body font-normal ml-1.5">
                 {suffix}
               </span>
             )}
-          </p>
+          </div>
           {description && (
             <p className="font-body text-caption text-ink/40 mt-2 leading-relaxed">
               {description}
@@ -60,7 +63,7 @@ export default function AnalyticsHero({ totals, loaded }: AnalyticsHeroProps) {
       : 0;
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 min-w-0">
       <StatTile
         label="Days under budget"
         value={loaded ? `${deficitDays}/${totals.daysLogged}` : '—'}
@@ -86,9 +89,18 @@ export default function AnalyticsHero({ totals, loaded }: AnalyticsHeroProps) {
       <StatTile
         label="Workouts burned"
         value={
-          loaded
-            ? `${workoutKcal} kcal${workoutPerDay > 0 ? ` (≈${workoutPerDay}/day)` : ''}`
-            : '—'
+          loaded ? (
+            <>
+              <span className="block">{workoutKcal} kcal</span>
+              {workoutPerDay > 0 && (
+                <span className="block text-base text-ink/50 font-body font-normal mt-1">
+                  ≈{workoutPerDay}/day
+                </span>
+              )}
+            </>
+          ) : (
+            '—'
+          )
         }
         description="Estimated calories burned through FIT50 workouts. This is already factored into your adjusted balance below."
         loaded={loaded}

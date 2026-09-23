@@ -79,7 +79,7 @@ export default function MyCustomFoodsPanel({ onPickFood }: Props) {
 
   if (loading && rows.length === 0) {
     return (
-      <div className="bg-paper border border-ink/15 p-6">
+      <div className="bg-paper border border-ink/15 p-4 md:p-6">
         <p className="font-body text-caption uppercase tracking-widest text-ink/50">
           My foods
         </p>
@@ -90,7 +90,7 @@ export default function MyCustomFoodsPanel({ onPickFood }: Props) {
 
   return (
     <div className="bg-paper border border-ink/15">
-      <div className="px-6 py-4 border-b border-ink/10 flex items-baseline justify-between gap-3 flex-wrap">
+      <div className="px-4 md:px-6 py-4 border-b border-ink/10 flex items-baseline justify-between gap-3 flex-wrap">
         <div>
           <p className="font-body text-caption uppercase tracking-widest text-ink/50">
             My foods
@@ -100,14 +100,14 @@ export default function MyCustomFoodsPanel({ onPickFood }: Props) {
             community.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <span className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums">
             {rows.length} {rows.length === 1 ? 'item' : 'items'}
           </span>
           <button
             type="button"
             onClick={() => setAddOpen(true)}
-            className="px-3 py-2 bg-coral text-paper font-body text-caption uppercase tracking-widest hover:bg-coral/85 transition-colors"
+            className="px-3 py-2 bg-coral text-paper font-body text-caption uppercase tracking-widest hover:bg-coral/85 transition-colors whitespace-nowrap"
           >
             + Add custom food
           </button>
@@ -115,13 +115,13 @@ export default function MyCustomFoodsPanel({ onPickFood }: Props) {
       </div>
 
       {error && (
-        <p className="px-6 py-3 font-body text-caption text-coral border-b border-ink/10">
+        <p className="px-4 md:px-6 py-3 font-body text-caption text-coral border-b border-ink/10">
           {error} <button onClick={refresh} className="underline ml-2">Retry</button>
         </p>
       )}
 
       {rows.length === 0 ? (
-        <div className="px-6 py-10 text-center">
+        <div className="px-4 md:px-6 py-10 text-center">
           <p className="font-body text-base text-ink/70">
             You haven't added any foods yet.
           </p>
@@ -134,7 +134,7 @@ export default function MyCustomFoodsPanel({ onPickFood }: Props) {
       ) : (
         <ul>
           {rowError && (
-            <li className="px-6 py-2 font-body text-caption text-coral border-b border-ink/10">
+            <li className="px-4 md:px-6 py-2 font-body text-caption text-coral border-b border-ink/10">
               {rowError}
             </li>
           )}
@@ -146,7 +146,7 @@ export default function MyCustomFoodsPanel({ onPickFood }: Props) {
             return (
               <li
                 key={row.id}
-                className="px-6 py-4 border-b border-ink/10 last:border-b-0 flex items-start gap-4 flex-wrap"
+                className="px-4 md:px-6 py-4 border-b border-ink/10 last:border-b-0 flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4"
               >
                 <div className="min-w-0 flex-1">
                   <div className="flex items-baseline gap-2 flex-wrap">
@@ -180,7 +180,12 @@ export default function MyCustomFoodsPanel({ onPickFood }: Props) {
                   )}
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                {/* Action group: stacks vertically on mobile, flows
+                    horizontally on sm+. Each button has its own
+                    min-width so the group never needs to wrap
+                    inside itself, and items-center justifies the
+                    group against the row. */}
+                <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto sm:shrink-0">
                   {food && onPickFood && (
                     <button
                       type="button"
