@@ -556,7 +556,7 @@ function BuddyDetailModal({
       aria-label={`Buddy detail: ${card.name}`}
     >
       <div
-        className="bg-paper w-full md:max-w-lg border border-ink/15 max-h-[90vh] overflow-y-auto pb-[max(1rem,env(safe-area-inset-bottom))]"
+        className="bg-paper w-full md:max-w-lg border border-ink/15 max-h-[90vh] overflow-x-hidden overflow-y-auto pb-[max(1rem,env(safe-area-inset-bottom))]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-6 pt-6 pb-2">

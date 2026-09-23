@@ -91,7 +91,7 @@ export default function FoodDetail({ food, initialGrams, onAdd, onClose }: Props
         role="dialog"
         aria-modal="true"
         aria-label={`${food.name} portion`}
-        className="bg-paper w-full md:max-w-lg border border-ink/15 max-h-[90vh] md:max-h-[90vh] overflow-y-auto animate-sheet-up rounded-t-2xl md:rounded pb-[max(1rem,env(safe-area-inset-bottom))]"
+        className="bg-paper w-full md:max-w-lg border border-ink/15 max-h-[90vh] md:max-h-[90vh] overflow-x-hidden overflow-y-auto animate-sheet-up rounded-t-2xl md:rounded pb-[max(1rem,env(safe-area-inset-bottom))]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Drag handle — mobile only */}

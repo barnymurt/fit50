@@ -377,10 +377,10 @@ function EditCustomFoodModal({
       aria-modal="true"
     >
       <div
-        className="bg-paper w-full md:max-w-md border border-ink/15 max-h-[90vh] overflow-y-auto pb-[max(1rem,env(safe-area-inset-bottom))]"
+        className="bg-paper w-full md:max-w-md border border-ink/15 max-h-[90vh] overflow-x-hidden overflow-y-auto pb-[max(1rem,env(safe-area-inset-bottom))]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="px-6 pt-6 pb-2">
+        <div className="px-4 md:px-6 pt-5 md:pt-6 pb-2">
           <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-1">
             Edit
           </p>

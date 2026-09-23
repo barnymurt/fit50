@@ -437,11 +437,14 @@ const handleSubmit = async (e: React.FormEvent) => {
       aria-modal="true"
       aria-label="Add a custom food"
     >
+      {/* overflow-x-hidden is a safety net so a wide child (a long
+          select option, a font-mono key, etc.) can't push the modal
+          wider than the viewport and force horizontal page scroll. */}
       <div
-        className="bg-paper w-full md:max-w-lg border border-ink/15 max-h-[90vh] overflow-y-auto pb-[max(1rem,env(safe-area-inset-bottom))]"
+        className="bg-paper w-full md:max-w-lg border border-ink/15 max-h-[90vh] overflow-x-hidden overflow-y-auto pb-[max(1rem,env(safe-area-inset-bottom))]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="px-6 pt-6 pb-2">
+        <div className="px-4 md:px-6 pt-5 md:pt-6 pb-2">
           <div className="flex items-start justify-between gap-4 mb-3">
             <div>
               <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-1">
@@ -494,7 +497,7 @@ const handleSubmit = async (e: React.FormEvent) => {
             }}
           />
 
-          <div className="mb-4 p-3 bg-cre-30 border border-ink/15">
+          <div className="mb-4 p-3 bg-cream/30 border border-ink/15">
             <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-2">
               Or describe it
             </p>
@@ -567,7 +570,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                   — it takes about 2 minutes. Choose OpenAI or Perplexity for
                   the smoothest experience.
                 </p>
-                <div className="flex items-center gap-2 flex-wrap mb-2">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:flex-wrap mb-2">
                   <label className="font-body text-caption uppercase tracking-widest text-ink/50">
                     Provider
                   </label>
@@ -577,7 +580,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                       setPickedProvider(e.target.value as LLMProvider)
                     }
                     aria-label="LLM provider"
-                    className="px-2 py-2 bg-paper border-2 border-ink/20 font-body text-sm focus:border-coral outline-none"
+                    className="w-full sm:w-auto sm:max-w-[200px] px-2 py-2 bg-paper border-2 border-ink/20 font-body text-sm focus:border-coral outline-none"
                   >
                     {VISION_PROVIDERS.map((p) => (
                       <option key={p} value={p}>
@@ -597,7 +600,10 @@ const handleSubmit = async (e: React.FormEvent) => {
                       </span>
                     )}
                 </div>
-                <div className="flex items-center gap-2 flex-wrap">
+                {/* Key input full-width on its own row. Buttons stack
+                    full-width below on mobile so a long key + 3
+                    buttons never overflow the modal width. */}
+                <div className="flex flex-col gap-2">
                   <input
                     type="password"
                     value={keyInput}
@@ -609,37 +615,39 @@ const handleSubmit = async (e: React.FormEvent) => {
                     }}
                     placeholder="sk-..., sk-ant-..., pp-..., AIza..."
                     autoComplete="off"
-                    className="flex-1 min-w-[180px] px-3 py-2 bg-paper border-2 border-ink/20 font-mono text-sm focus:border-coral outline-none"
+                    className="w-full min-w-0 px-3 py-2 bg-paper border-2 border-ink/20 font-mono text-sm focus:border-coral outline-none"
                   />
-                  <button
-                    type="button"
-                    onClick={handleSaveKey}
-                    disabled={keyBusy || !keyInput.trim()}
-                    className="px-3 py-2 bg-ink text-paper font-body text-caption uppercase tracking-widest disabled:opacity-50"
-                  >
-                    {keyBusy ? 'Saving…' : 'Save key'}
-                  </button>
-                  {keyStatus?.set && (
+                  <div className="flex flex-col sm:flex-row gap-2">
                     <button
                       type="button"
-                      onClick={handleClearKey}
-                      disabled={keyBusy}
-                      className="px-3 py-2 border border-ink/20 font-body text-caption uppercase tracking-widest text-ink/60 hover:border-ink hover:text-ink transition-colors disabled:opacity-50"
+                      onClick={handleSaveKey}
+                      disabled={keyBusy || !keyInput.trim()}
+                      className="sm:flex-1 px-3 py-2 bg-ink text-paper font-body text-caption uppercase tracking-widest disabled:opacity-50"
                     >
-                      Remove
+                      {keyBusy ? 'Saving…' : 'Save key'}
                     </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setKeyEditing(false);
-                      setKeyInput('');
-                      setKeyError(null);
-                    }}
-                    className="px-3 py-2 font-body text-caption uppercase tracking-widest text-ink/40 hover:text-ink transition-colors"
-                  >
-                    Cancel
-                  </button>
+                    {keyStatus?.set && (
+                      <button
+                        type="button"
+                        onClick={handleClearKey}
+                        disabled={keyBusy}
+                        className="sm:flex-1 px-3 py-2 border border-ink/20 font-body text-caption uppercase tracking-widest text-ink/60 hover:border-ink hover:text-ink transition-colors disabled:opacity-50"
+                      >
+                        Remove
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setKeyEditing(false);
+                        setKeyInput('');
+                        setKeyError(null);
+                      }}
+                      className="sm:flex-1 px-3 py-2 font-body text-caption uppercase tracking-widest text-ink/40 hover:text-ink transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </div>
                 {pickedProvider === 'anthropic' && (
                   <div className="mt-3">
@@ -889,7 +897,7 @@ function MacroInput({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder="0"
-        className="w-full px-2 py-2 bg-paper border-2 border-ink/20 font-body text-sm focus:border-coral outline-none"
+        className="w-full min-w-0 px-1.5 md:px-2 py-2 bg-paper border-2 border-ink/20 font-body text-sm focus:border-coral outline-none"
       />
     </label>
   );
