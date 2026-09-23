@@ -857,17 +857,20 @@ export default function FoodDatabase({ targets }: Props) {
         </div>
       )}
 
-      {/* Tab block. The "food panel" has three tabs: Logged today,
-          Search, My foods. Each tab's content renders its own
-          bordered panel below the tab nav. Logged today is the
-          default — when the user opens the foods section they see
-          what they've already eaten before they start searching. */}
-      <div className="flex items-center gap-1 border-b border-ink/10 mb-4">
+      {/* Tab block. Five tabs: Logged today, Search, Custom foods,
+          Favourites, Analytics. flex-wrap so they reflow into
+          multiple rows on narrow screens instead of bleeding off
+          the edge. Tighter padding on mobile, comfortable on
+          desktop. min-h-[44px] guarantees an adequate touch
+          target even when the row is dense. The bottom border on
+          the wrapper stays one continuous rule regardless of how
+          many rows the tabs wrap into. */}
+      <div className="flex flex-wrap items-stretch gap-x-1 gap-y-0 border-b border-ink/10 mb-4">
         <button
           type="button"
           onClick={() => setTab('logged')}
           aria-pressed={tab === 'logged'}
-          className={`px-4 py-2 font-body text-caption uppercase tracking-widest border-b-2 transition-colors ${
+          className={`min-h-[44px] px-3 md:px-4 py-2 font-body text-caption uppercase tracking-widest border-b-2 transition-colors ${
             tab === 'logged'
               ? 'border-coral text-ink'
               : 'border-transparent text-ink/50 hover:text-ink'
@@ -884,7 +887,7 @@ export default function FoodDatabase({ targets }: Props) {
           type="button"
           onClick={() => setTab('search')}
           aria-pressed={tab === 'search'}
-          className={`px-4 py-2 font-body text-caption uppercase tracking-widest border-b-2 transition-colors ${
+          className={`min-h-[44px] px-3 md:px-4 py-2 font-body text-caption uppercase tracking-widest border-b-2 transition-colors ${
             tab === 'search'
               ? 'border-coral text-ink'
               : 'border-transparent text-ink/50 hover:text-ink'
@@ -896,7 +899,7 @@ export default function FoodDatabase({ targets }: Props) {
           type="button"
           onClick={() => setTab('customfoods')}
           aria-pressed={tab === 'customfoods'}
-          className={`px-4 py-2 font-body text-caption uppercase tracking-widest border-b-2 transition-colors ${
+          className={`min-h-[44px] px-3 md:px-4 py-2 font-body text-caption uppercase tracking-widest border-b-2 transition-colors ${
             tab === 'customfoods'
               ? 'border-coral text-ink'
               : 'border-transparent text-ink/50 hover:text-ink'
@@ -908,7 +911,7 @@ export default function FoodDatabase({ targets }: Props) {
           type="button"
           onClick={() => setTab('favorites')}
           aria-pressed={tab === 'favorites'}
-          className={`px-4 py-2 font-body text-caption uppercase tracking-widest border-b-2 transition-colors ${
+          className={`min-h-[44px] px-3 md:px-4 py-2 font-body text-caption uppercase tracking-widest border-b-2 transition-colors ${
             tab === 'favorites'
               ? 'border-coral text-ink'
               : 'border-transparent text-ink/50 hover:text-ink'
@@ -920,7 +923,7 @@ export default function FoodDatabase({ targets }: Props) {
           type="button"
           onClick={() => setTab('analytics')}
           aria-pressed={tab === 'analytics'}
-          className={`px-4 py-2 font-body text-caption uppercase tracking-widest border-b-2 transition-colors ${
+          className={`min-h-[44px] px-3 md:px-4 py-2 font-body text-caption uppercase tracking-widest border-b-2 transition-colors ${
             tab === 'analytics'
               ? 'border-coral text-ink'
               : 'border-transparent text-ink/50 hover:text-ink'
