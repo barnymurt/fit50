@@ -302,16 +302,18 @@ const latestProjection = [...projection]
         </div>
         {forecastEndKg != null && forecastStartKg != null ? (
           <p className="font-body text-caption text-ink/60 leading-relaxed">
-            <span className="text-ink">At your current pace</span>{' '}
-            ({avgDailyNetKcal >= 0 ? '+' : ''}
-            {Math.round(avgDailyNetKcal)} kcal/day
-            {avgDailyNetKcal === 0 && ', no change'}, trend-based estimate),{' '}
-            you'd weigh{' '}
+            <span className="text-ink">Based on your weigh-ins</span>{' '}
+            <span className="text-ink/50">
+              ({avgDailyNetKcal >= 0 ? '+' : ''}
+              {Math.round(Math.abs(avgDailyNetKcal))} kcal/day trend
+              {avgDailyNetKcal === 0 ? ', not enough readings yet' : ''})
+            </span>
+            , you'd weigh{' '}
             <span className="font-display text-base text-ink">
               {formatWeight(forecastEndKg, unit)}
             </span>{' '}
             in {forwardDays} days
-            {forecastDelta != null && (
+            {forecastDelta != null && Math.abs(forecastDelta) > 0.01 && (
               <span className="text-ink/60">
                 {' '}
                 ({forecastDelta >= 0 ? '+' : ''}
@@ -321,7 +323,7 @@ const latestProjection = [...projection]
           </p>
         ) : (
           <p className="font-body text-caption text-ink/50 italic">
-            Add a starting weight and log a few days of food + workouts to unlock the forecast.
+            Log at least two weigh-ins a few days apart to unlock the forecast.
           </p>
         )}
       </div>

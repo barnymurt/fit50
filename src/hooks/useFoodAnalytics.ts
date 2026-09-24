@@ -510,29 +510,60 @@ export function useFoodAnalytics(
           ? weightKg
           : null;
 
-      // Build per-day projection. For each day in `builtDays` we
-      // calculate the cumulative weight change since baseline by
-      // summing each day's NET SURPLUS / 7700 kcal per kg of body
-      // fat. Net surplus = (actual + workout - target). Positive
-      // means surplus → weight gain; negative means deficit →
-      // weight loss.
+      // Build per-day projection. The user's WEIGHT READINGS are the
+      // source of truth for the historical line — the kcal model
+      // drifts from reality because logged food is rarely exact,
+// so showing a "model" line that disagrees with the user's
+      // weigh-ins is more confusing than informative.
       //
-      // We also sum net surplus across the whole range to expose
-      // an "average per day" rate that powers the forward-
-      // projection forecast ("at this pace, you'll weigh X kg by
-      // the end of the 30-day window").
+      // For each day in `builtDays`, the projected value is:
+      //   - the actual reading if one was logged on that day
+      //   - linear interpolation between the two surrounding
+      //     readings if there's one on each side
+      //   - the nearest reading's value if all readings are on
+      //     one side of the day
+      //   - null if there are no readings at all
+      //
+      // `avgDailyNetKcal` is derived from the OBSERVED
+      // weight-change rate between first and last reading
+      // (e.g., lost 4.3 kg over 38 days ≈ −871 kcal/day). The
+      // forward forecast uses this rate, not the kcal model,
+      // so it agrees with the user's scale instead of the
+      // daily-calorie log.
       const CAL_PER_KG = 7700;
-      let totalNetKcal = 0;
+
+      // Helper: project-line value at a given day_key, based
+      // solely on actual readings.
+      function projectedAtDay(dayKey: string): number | null {
+        if (allReadings.length === 0) return null;
+        const exact = allReadings.find((r) => r.day_key === dayKey);
+        if (exact) return exact.weight_kg;
+        // Surrounding readings.
+        let prev: typeof allReadings[number] | undefined;
+        let next: typeof allReadings[number] | undefined;
+        for (const r of allReadings) {
+          if (r.day_key <= dayKey) prev = r;
+          if (r.day_key >= dayKey && !next) next = r;
+        }
+        if (prev && next && prev !== next) {
+          const a = parseDateKey(prev.day_key).getTime();
+          const b = parseDateKey(next.day_key).getTime();
+          const t = parseDateKey(dayKey).getTime();
+          const span = b - a;
+          if (span === 0) return next.weight_kg;
+          return (
+            prev.weight_kg +
+            ((next.weight_kg - prev.weight_kg) * (t - a)) / span
+          );
+        }
+        if (prev) return prev.weight_kg;
+        if (next) return next.weight_kg;
+        return null;
+      }
+
       const projection: WeightProjectionPoint[] = [];
-      let cumulative = 0;
       for (const d of builtDays) {
-        const netSurplusKcal =
-          (d.kcalActual ?? 0) +
-          (d.workoutKcalEstimate ?? 0) -
-          (d.kcalTarget ?? 0);
-        totalNetKcal += netSurplusKcal;
-        cumulative += netSurplusKcal / CAL_PER_KG;
-        const projectedKg = baselineKg != null ? baselineKg + cumulative : null;
+        const projectedKg = projectedAtDay(d.day_key);
         const actualReading = allReadings.find(
           (r) => r.day_key === d.day_key
         );
@@ -543,9 +574,10 @@ export function useFoodAnalytics(
           actual: actualReading?.weight_kg ?? null,
         });
       }
-      // 7-day trailing average of `projected`. For the first 6 days
-      // the window is shorter (days from start..i). Smoothed value is
-      // null if projection was null.
+
+      // 7-day trailing average of `projected` (readings-aware),
+      // so the chart line doesn't bounce between widely-spaced
+      // weigh-ins but stays anchored to each actual reading.
       for (let i = 0; i < projection.length; i++) {
         const start = Math.max(0, i - 6);
         const window = projection.slice(start, i + 1);
@@ -557,6 +589,28 @@ export function useFoodAnalytics(
         } else {
           projection[i].projectedSmoothed =
             validValues.reduce((s, v) => s + v, 0) / validValues.length;
+        }
+      }
+
+      // Net kcal-equivalent per day, derived from the OBSERVED
+      // weight-change rate between first and last readings. This
+      // is what the forward forecast multiplies days by. Using
+      // readings instead of the kcal model means the forecast
+      // agrees with the scale (e.g. "at this pace" really means
+      // "at the pace your readings show", not "at the pace your
+      // food log suggests").
+      let avgDailyNetKcalFromReadings = 0;
+      if (allReadings.length >= 2) {
+        const first = allReadings[0];
+        const last = allReadings[allReadings.length - 1];
+        const daySpanMs =
+          parseDateKey(last.day_key).getTime() -
+          parseDateKey(first.day_key).getTime();
+        const daySpan = daySpanMs / 86_400_000;
+        if (daySpan > 0) {
+          const kgPerDay =
+            (last.weight_kg - first.weight_kg) / daySpan;
+          avgDailyNetKcalFromReadings = kgPerDay * CAL_PER_KG;
         }
       }
 
@@ -598,9 +652,7 @@ export function useFoodAnalytics(
       setWeightReadings(visibleReadings);
       setWeightProjection(projection);
       setWeightBaseline(baselineKg);
-      setAvgDailyNetKcal(
-        builtDays.length > 0 ? totalNetKcal / builtDays.length : 0
-      );
+      setAvgDailyNetKcal(avgDailyNetKcalFromReadings);
       setLoaded(true);
     };
 
