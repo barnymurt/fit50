@@ -190,6 +190,11 @@ export function useFoodAnalytics(
   weightReadings: WeightReading[];
   weightProjection: WeightProjectionPoint[];
   weightBaseline: number | null;
+  /** Average net surplus per day in the loaded range (kcal). Negative
+   *  means average deficit (weight loss trend); positive means
+   *  average surplus (weight gain trend). Used by the weight chart's
+   *  forward projection ("at this rate, you'll weigh X kg by Y"). */
+  avgDailyNetKcal: number;
 } {
   const { user } = useAuth();
   const supabase = createClient();
@@ -200,6 +205,7 @@ export function useFoodAnalytics(
     WeightProjectionPoint[]
   >([]);
   const [weightBaseline, setWeightBaseline] = useState<number | null>(null);
+  const [avgDailyNetKcal, setAvgDailyNetKcal] = useState<number>(0);
   const [totals, setTotals] = useState<AnalyticsTotals>(empty);
 
   useEffect(() => {
@@ -211,6 +217,7 @@ export function useFoodAnalytics(
         setWeightReadings([]);
         setWeightProjection([]);
         setWeightBaseline(null);
+        setAvgDailyNetKcal(0);
         setLoaded(false);
         return;
       }
@@ -505,22 +512,26 @@ export function useFoodAnalytics(
 
       // Build per-day projection. For each day in `builtDays` we
       // calculate the cumulative weight change since baseline by
-      // summing each day's (kcal_intake - kcal_target - workout_burn)
-      // / 7700 kcal per kg of body fat. Negatives (deficit) drop
-      // weight; positives (surplus) add.
+      // summing each day's NET SURPLUS / 7700 kcal per kg of body
+      // fat. Net surplus = (actual + workout - target). Positive
+      // means surplus → weight gain; negative means deficit →
+      // weight loss.
       //
-      // Then apply a 7-day trailing average to the projected line so
-      // single-day swings (which can be +/- 1kg just from water) don't
-      // make the chart look chaotic.
+      // We also sum net surplus across the whole range to expose
+      // an "average per day" rate that powers the forward-
+      // projection forecast ("at this pace, you'll weigh X kg by
+      // the end of the 30-day window").
       const CAL_PER_KG = 7700;
+      let totalNetKcal = 0;
       const projection: WeightProjectionPoint[] = [];
       let cumulative = 0;
       for (const d of builtDays) {
-        // Deficit = target - actual - workout. Positive = losing
-        // weight (consumed less than burnt); negative = gaining.
-        const dayDeficit =
-          (d.kcalTarget ?? 0) - (d.kcalActual ?? 0) - (d.workoutKcalEstimate ?? 0);
-        cumulative += dayDeficit / CAL_PER_KG;
+        const netSurplusKcal =
+          (d.kcalActual ?? 0) +
+          (d.workoutKcalEstimate ?? 0) -
+          (d.kcalTarget ?? 0);
+        totalNetKcal += netSurplusKcal;
+        cumulative += netSurplusKcal / CAL_PER_KG;
         const projectedKg = baselineKg != null ? baselineKg + cumulative : null;
         const actualReading = allReadings.find(
           (r) => r.day_key === d.day_key
@@ -587,6 +598,9 @@ export function useFoodAnalytics(
       setWeightReadings(visibleReadings);
       setWeightProjection(projection);
       setWeightBaseline(baselineKg);
+      setAvgDailyNetKcal(
+        builtDays.length > 0 ? totalNetKcal / builtDays.length : 0
+      );
       setLoaded(true);
     };
 
@@ -603,5 +617,6 @@ export function useFoodAnalytics(
     weightReadings,
     weightProjection,
     weightBaseline,
+    avgDailyNetKcal,
   };
 }
