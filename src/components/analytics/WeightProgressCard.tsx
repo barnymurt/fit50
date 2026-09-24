@@ -349,7 +349,7 @@ function QuickAddForm({
           value={dayKey}
           max={dateKeyLocal(new Date())}
           onChange={(e) => setDayKey(e.target.value)}
-          className="w-full px-3 py-2 bg-paper border-2 border-ink/20 font-body focus:border-coral outline-none"
+          className="w-full px-3 py-2 bg-paper text-ink border-2 border-ink/20 font-body focus:border-coral outline-none"
         />
       </label>
       <label className={`block ${compact ? 'flex-1' : ''}`}>
@@ -365,7 +365,7 @@ function QuickAddForm({
           value={value}
           onChange={(e) => setValue(e.target.value)}
           placeholder={unit === 'kg' ? 'e.g. 75.5' : 'e.g. 166.5'}
-          className="w-full px-3 py-2 bg-paper border-2 border-ink/20 font-body focus:border-coral outline-none"
+          className="w-full px-3 py-2 bg-paper text-ink border-2 border-ink/20 font-body focus:border-coral outline-none"
         />
       </label>
       <div className={`flex ${compact ? 'gap-2' : 'flex-col'} ${compact ? 'sm:flex-col sm:gap-2' : ''}`}>
