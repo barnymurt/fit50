@@ -19,8 +19,16 @@ interface AnalyticsScreenProps {
 
 export default function AnalyticsScreen({ startDate: startDateProp }: AnalyticsScreenProps) {
   const [range, setRange] = useState<AnalyticsRange>('30d');
-  const { loaded, days, totals, weightReadings, weightProjection, weightBaseline, avgDailyNetKcal } =
-    useFoodAnalytics(range, startDateProp ?? null);
+  const {
+  loaded,
+  days,
+  totals,
+  weightReadings,
+  weightProjection,
+  weightBaseline,
+  avgDailyNetKcal,
+  avgDailyNetKcalFromLog,
+} = useFoodAnalytics(range, startDateProp ?? null);
 
   return (
     <div className="space-y-8">
@@ -113,6 +121,7 @@ export default function AnalyticsScreen({ startDate: startDateProp }: AnalyticsS
           projection={weightProjection}
           baseline={weightBaseline}
           avgDailyNetKcal={avgDailyNetKcal}
+          avgDailyNetKcalFromLog={avgDailyNetKcalFromLog}
           loaded={loaded}
         />
       </Section>

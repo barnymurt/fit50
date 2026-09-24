@@ -16,10 +16,13 @@ interface WeightProgressCardProps {
   projection: WeightProjectionPoint[];
   /** Whichever the hook resolved as the starting weight, in kg. */
   baseline: number | null;
-  /** Avg net surplus per day (kcal) over the loaded range. Negative
-   *  means average deficit (weight loss trend); positive means
-   *  average surplus. Powers the forward projection forecast. */
+  /** Avg net surplus per day (kcal) derived from OBSERVED weight
+   *  readings. Powers the primary "Based on weigh-ins" forecast. */
   avgDailyNetKcal: number;
+  /** Same metric but derived from the FOOD + WORKOUT log minus
+   *  kcal target. Used for the secondary "From food log" forecast
+   *  so the user can see both projections side by side. */
+  avgDailyNetKcalFromLog: number;
   /** True once the hook has finished loading data. */
   loaded: boolean;
   /** Chip / tag the parent uses to give this card its tone. */
@@ -42,6 +45,7 @@ export default function WeightProgressCard({
   projection,
   baseline,
   avgDailyNetKcal,
+  avgDailyNetKcalFromLog,
   loaded,
   // tone is purely a design-handoff prop; the parent (AnalyticsScreen)
   // owns the Section wrapper, so we don't apply a background here.
@@ -111,11 +115,22 @@ export default function WeightProgressCard({
     return points;
   }, [forecastStartKg, forwardDays, avgDailyNetKcal]);
   const forecastEndKg = forwardProjection[forwardProjection.length - 1]?.projected ?? null;
+  // Second forecast from the kcal log itself (ignores weigh-ins).
+  // When the two forecasts diverge noticeably that's the user
+  // signal that the food log is missing entries.
+  const forecastEndFromLogKg =
+    forecastStartKg != null
+      ? forecastStartKg + (avgDailyNetKcalFromLog * forwardDays) / CAL_PER_KG
+      : null;
   // Offset from baseline at the chosen horizon — gives the user a
   // quick "how many kg by then" glance next to the chart.
   const forecastDelta =
     forecastStartKg != null && forecastEndKg != null
       ? forecastEndKg - forecastStartKg
+      : null;
+  const forecastDeltaFromLog =
+    forecastStartKg != null && forecastEndFromLogKg != null
+      ? forecastEndFromLogKg - forecastStartKg
       : null;
 
   // For the "current" tile we want the most recent reading. For the
@@ -301,26 +316,61 @@ const latestProjection = [...projection]
           </div>
         </div>
         {forecastEndKg != null && forecastStartKg != null ? (
-          <p className="font-body text-caption text-ink/60 leading-relaxed">
-            <span className="text-ink">Based on your weigh-ins</span>{' '}
-            <span className="text-ink/50">
-              ({avgDailyNetKcal >= 0 ? '+' : ''}
-              {Math.round(Math.abs(avgDailyNetKcal))} kcal/day trend
-              {avgDailyNetKcal === 0 ? ', not enough readings yet' : ''})
-            </span>
-            , you'd weigh{' '}
-            <span className="font-display text-base text-ink">
-              {formatWeight(forecastEndKg, unit)}
-            </span>{' '}
-            in {forwardDays} days
-            {forecastDelta != null && Math.abs(forecastDelta) > 0.01 && (
-              <span className="text-ink/60">
-                {' '}
-                ({forecastDelta >= 0 ? '+' : ''}
-                {formatWeight(forecastDelta, unit)}).
+          <div className="space-y-1.5">
+            <p className="font-body text-caption text-ink/70 leading-relaxed">
+              <span className="text-ink">By your weigh-ins</span>
+              <span className="text-ink/50">
+                {' '}({avgDailyNetKcal >= 0 ? '+' : ''}
+                {Math.round(Math.abs(avgDailyNetKcal))} kcal/day trend
+                {avgDailyNetKcal === 0 ? ', not enough readings yet' : ''})
               </span>
-            )}
-          </p>
+              : you'd weigh{' '}
+              <span className="font-display text-base text-ink">
+                {formatWeight(forecastEndKg, unit)}
+              </span>{' '}
+              in {forwardDays} days
+              {forecastDelta != null && Math.abs(forecastDelta) > 0.01 && (
+                <span className="text-ink/60">
+                  {' '}({forecastDelta >= 0 ? '+' : ''}
+                  {formatWeight(forecastDelta, unit)}).
+                </span>
+              )}
+            </p>
+            {forecastEndFromLogKg != null &&
+              Math.abs(
+                (avgDailyNetKcalFromLog === 0 ? 0 : 1) -
+                  (avgDailyNetKcalFromLog / (avgDailyNetKcal || 1))
+              ) > 0.1 && (
+                <p className="font-body text-caption text-ink/60 leading-relaxed">
+                  <span className="text-ink">By your food log</span>
+                  <span className="text-ink/50">
+                    {' '}({avgDailyNetKcalFromLog >= 0 ? '+' : ''}
+                    {Math.round(Math.abs(avgDailyNetKcalFromLog))} kcal/day
+                    from calorie + workout)
+                  </span>
+                  : {formatWeight(forecastEndFromLogKg, unit)}
+                  {forecastDeltaFromLog != null &&
+                    Math.abs(forecastDeltaFromLog) > 0.01 && (
+                      <span className="text-ink/60">
+                        {' '}({forecastDeltaFromLog >= 0 ? '+' : ''}
+                        {formatWeight(forecastDeltaFromLog, unit)}).
+                      </span>
+                    )}
+                </p>
+              )}
+            {forecastEndFromLogKg != null &&
+              avgDailyNetKcal !== 0 &&
+              Math.sign(avgDailyNetKcal) !== Math.sign(avgDailyNetKcalFromLog) &&
+              Math.abs(avgDailyNetKcal) > 50 && (
+                <p className="font-body text-[11px] text-ink/50 italic leading-relaxed">
+                  The two forecasts diverge — your weigh-ins and your
+                  food log disagree. Most often that means something is
+                  missing from the log (a snack, a cooking ingredient,
+                  a workout). They agree closely when the log is
+                  complete.
+                </p>
+              )}
+          </div>
         ) : (
           <p className="font-body text-caption text-ink/50 italic">
             Log at least two weigh-ins a few days apart to unlock the forecast.

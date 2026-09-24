@@ -195,6 +195,11 @@ export function useFoodAnalytics(
    *  average surplus (weight gain trend). Used by the weight chart's
    *  forward projection ("at this rate, you'll weigh X kg by Y"). */
   avgDailyNetKcal: number;
+  /** Same idea but DERIVED from the kcal model only (each day's
+   *  logged intake + workout burn − target), so the UI can show a
+   *  second forecast that ignores weigh-ins entirely. When the
+   *  two diverge, the food log is over- or under-counting. */
+  avgDailyNetKcalFromLog: number;
 } {
   const { user } = useAuth();
   const supabase = createClient();
@@ -206,6 +211,8 @@ export function useFoodAnalytics(
   >([]);
   const [weightBaseline, setWeightBaseline] = useState<number | null>(null);
   const [avgDailyNetKcal, setAvgDailyNetKcal] = useState<number>(0);
+  const [avgDailyNetKcalFromLog, setAvgDailyNetKcalFromLog] =
+    useState<number>(0);
   const [totals, setTotals] = useState<AnalyticsTotals>(empty);
 
   useEffect(() => {
@@ -218,6 +225,7 @@ export function useFoodAnalytics(
         setWeightProjection([]);
         setWeightBaseline(null);
         setAvgDailyNetKcal(0);
+        setAvgDailyNetKcalFromLog(0);
         setLoaded(false);
         return;
       }
@@ -614,6 +622,23 @@ export function useFoodAnalytics(
         }
       }
 
+      // Also expose the kcal-model-derived net surplus so the UI
+      // can show a SECOND forecast computed from the food+workout
+      // log. When the two forecasts diverge significantly it
+      // signals that the food log is missing entries (or the
+      // target was set wrong) — useful diagnostics for the user.
+      let avgDailyNetKcalFromLog = 0;
+      if (builtDays.length > 0) {
+        let totalLogNet = 0;
+        for (const d of builtDays) {
+          totalLogNet +=
+            (d.kcalActual ?? 0) +
+            (d.workoutKcalEstimate ?? 0) -
+            (d.kcalTarget ?? 0);
+        }
+        avgDailyNetKcalFromLog = totalLogNet / builtDays.length;
+      }
+
       // Filter weightReadings to the visible range so the UI doesn't
       // render 2-year-old readings on the 30d chart. Keep at least
       // the baseline reading so the projection line has a visible
@@ -653,6 +678,7 @@ export function useFoodAnalytics(
       setWeightProjection(projection);
       setWeightBaseline(baselineKg);
       setAvgDailyNetKcal(avgDailyNetKcalFromReadings);
+      setAvgDailyNetKcalFromLog(avgDailyNetKcalFromLog);
       setLoaded(true);
     };
 
@@ -670,5 +696,6 @@ export function useFoodAnalytics(
     weightProjection,
     weightBaseline,
     avgDailyNetKcal,
+    avgDailyNetKcalFromLog,
   };
 }
