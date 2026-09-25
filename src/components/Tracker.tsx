@@ -10,7 +10,7 @@ import ConfirmDialog from './ConfirmDialog';
 import BuddyCard from './BuddyCard';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTrackerState, TrackerDay } from '@/hooks/useTrackerState';
-import { useStreakProtection } from '@/hooks/useStreakProtection';
+import { getWeekStart } from '@/hooks/useStreakProtection';
 import { usePremium } from '@/hooks/usePremium';
 import { dateKeyLocal, formatDateKeyShort, dayKeyFromStart, CHALLENGE_DAYS } from '@/lib/dates';
 import { HABIT_IDS, HABIT_COUNT } from '@/lib/habits';
@@ -252,7 +252,15 @@ export default function Tracker({ hideMarquee = false }: { hideMarquee?: boolean
   const { user, loading: authLoading } = useAuth();
   const { isPremium } = usePremium();
   const tracker = useTrackerState();
-  const { hasProtectionForWeek } = useStreakProtection();
+  // Read streak-protection state from the v2 local store so the
+  // card flips to "Used this week" the instant the user clicks —
+  // no round-trip through useStreakProtection's Supabase-backed
+  // state (which can lag or silently skip its event listener if
+  // the hook's `isPremium`/`user` are stale at event time).
+  const weekKeyForToday = getWeekStart(new Date());
+  const protectionUsedThisWeek = tracker.data.streakUsedWeekKeys.includes(
+    weekKeyForToday
+  );
 
   const [pulsingHabit, setPulsingHabit] = useState<string | null>(null);
   const [confettiKey, setConfettiKey] = useState(0);
@@ -329,10 +337,27 @@ export default function Tracker({ hideMarquee = false }: { hideMarquee?: boolean
     tracker.toggleHabitForDay(editingDay, habitId);
   };
 
+  const [streakSaving, setStreakSaving] = useState(false);
+  const [streakMessage, setStreakMessage] = useState<string | null>(null);
   const handleUseStreakProtection = async () => {
-    if (!isPremium) return;
-    if (hasProtectionForWeek(new Date())) return;
-    await tracker.useStreakProtectionForWeek();
+    if (!isPremium || streakSaving) return;
+    if (protectionUsedThisWeek) return;
+    setStreakSaving(true);
+    setStreakMessage(null);
+    try {
+      const success = await tracker.useStreakProtectionForWeek();
+      if (success) {
+        setStreakMessage("✓ Today's streak protected. Carry on.");
+      } else {
+        setStreakMessage("Protection didn't take — please try again.");
+      }
+    } catch (err) {
+      setStreakMessage(
+        err instanceof Error ? err.message : 'Could not save the protection.'
+      );
+    } finally {
+      setStreakSaving(false);
+    }
   };
 
   const handleStart = async (iso?: string) => {
@@ -485,23 +510,40 @@ export default function Tracker({ hideMarquee = false }: { hideMarquee?: boolean
                   🛡 Streak protection
                 </p>
                 <p className="font-display text-h3 text-ink leading-tight mb-2">
-                  {hasProtectionForWeek(new Date())
+                  {protectionUsedThisWeek
                     ? 'Used this week.'
                     : 'One free pass this week.'}
                 </p>
                 <p className="font-body text-sm text-ink/70">
-                  {hasProtectionForWeek(new Date())
+                  {protectionUsedThisWeek
                     ? 'Resets Sunday midnight. Miss a day with no penalty.'
                     : 'Use it before midnight Sunday if you miss a day.'}
                 </p>
-                {!hasProtectionForWeek(new Date()) && (
+                {!protectionUsedThisWeek && (
                   <button
                     type="button"
                     onClick={handleUseStreakProtection}
-                    className="mt-3 inline-flex items-center justify-center bg-coral hover:bg-coral/85 transition-colors px-5 py-2.5 font-body text-caption uppercase tracking-widest text-paper"
+                    disabled={streakSaving}
+                    aria-label="Use streak protection for this week"
+                    className="mt-3 inline-flex items-center justify-center bg-coral hover:bg-coral/85 transition-colors px-5 py-2.5 font-body text-caption uppercase tracking-widest text-paper disabled:opacity-60 disabled:cursor-not-allowed"
                   >
-                    Use my streak protection
+                    {streakSaving
+                      ? 'Saving…'
+                      : 'Use my streak protection'}
                   </button>
+                )}
+                {streakMessage && (
+                  <p
+                    className={`mt-3 font-body text-caption ${
+                      streakMessage.startsWith('✓')
+                        ? 'text-teal'
+                        : 'text-coral'
+                    }`}
+                    role="status"
+                    aria-live="polite"
+                  >
+                    {streakMessage}
+                  </p>
                 )}
               </div>
             </div>

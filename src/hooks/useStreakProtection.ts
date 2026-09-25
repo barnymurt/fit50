@@ -15,7 +15,7 @@ interface Protection {
   redeemed_day: number;
 }
 
-function getWeekStart(date: Date): string {
+export function getWeekStart(date: Date): string {
   const d = new Date(date);
   const day = d.getUTCDay();
   const diff = d.getUTCDate() - day;
