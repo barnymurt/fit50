@@ -345,15 +345,13 @@ export default function Tracker({ hideMarquee = false }: { hideMarquee?: boolean
     setStreakSaving(true);
     setStreakMessage(null);
     try {
-      const success = await tracker.useStreakProtectionForWeek();
-      if (success) {
-        setStreakMessage("✓ Today's streak protected. Carry on.");
-      } else {
-        setStreakMessage("Protection didn't take — please try again.");
-      }
+      await tracker.useStreakProtectionForWeek();
+      setStreakMessage("✓ Today's streak protected. Carry on.");
     } catch (err) {
+      // Specific reason from the hook's typed errors. Fall back to
+      // a generic message only when the throw is non-Error.
       setStreakMessage(
-        err instanceof Error ? err.message : 'Could not save the protection.'
+        err instanceof Error ? err.message : 'Could not save the protection. Try again.'
       );
     } finally {
       setStreakSaving(false);

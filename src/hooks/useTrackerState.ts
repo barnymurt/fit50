@@ -857,9 +857,24 @@ export function useTrackerState() {
   );
 
   const useStreakProtectionForWeek = useCallback(async () => {
-    if (!startDate || !user) return false;
+    // Throw specific errors on each failure path so the calling UI
+    // can surface a useful message instead of a vague "didn't take"
+    // (which the user previously had to debug blind).
+    if (!user) {
+      throw new Error('Sign in first');
+    }
+    if (!startDate) {
+      throw new Error('Start the 50-day challenge first');
+    }
+    if (!supabase) {
+      throw new Error('Connection not ready — try again in a moment');
+    }
+
     const weekKey = weekKeyForDate(new Date());
-    if (data.streakUsedWeekKeys.includes(weekKey)) return false;
+    if (data.streakUsedWeekKeys.includes(weekKey)) {
+      throw new Error("You've already used this week's protection");
+    }
+
     // Persist WHICH day was protected (not just the week) so the
     // day's status can be flagged as 'protected' in the days[]
     // memo. Without this the streak would reset at the protected
@@ -876,23 +891,48 @@ export function useTrackerState() {
       persistAnon(updated);
       return updated;
     });
-    if (supabase) {
-      try {
-        await (supabase.from('streak_protections') as any).upsert({
-          user_id: user.id,
-          week_start_date: weekKey,
-          redeemed_day: currentDay,
-        }, { onConflict: 'user_id,week_start_date' });
-      } catch (err) {
-        console.error('streak_protections insert failed:', err);
-      }
+
+    // Write to Supabase. If this fails we ROLL BACK the local
+    // update so the user's card flips back to "One free pass"
+    // and they know to retry — rather than seeing the card flip
+    // and then later discovering server state is out of sync.
+    try {
+      const { error } = await (supabase.from('streak_protections') as any)
+        .upsert(
+          {
+            user_id: user.id,
+            week_start_date: weekKey,
+            redeemed_day: currentDay,
+          },
+          { onConflict: 'user_id,week_start_date' }
+        );
+      if (error) throw error;
+    } catch (err) {
+      // Roll back the optimistic local update.
+      setData((prev) => {
+        const restored: TrackerDataV2 = {
+          ...prev,
+          streakUsedWeekKeys: prev.streakUsedWeekKeys.filter((k) => k !== weekKey),
+          protectedDays: Object.fromEntries(
+            Object.entries(prev.protectedDays).filter(([k]) => k !== weekKey)
+          ),
+        };
+        persistAnon(restored);
+        return restored;
+      });
+      const detail = err instanceof Error ? err.message : 'unknown error';
+      console.error('streak_protections upsert failed:', err);
+      throw new Error(
+        `Couldn't save to your account (${detail}). ` +
+          `Your local data was restored — try again in a moment.`
+      );
     }
+
     // Tell the streak-protection hook to refresh from the server
     // so the "Used this week" indicator flips immediately.
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent(STREAK_PROTECTION_USED_EVENT));
     }
-    return true;
   }, [data.streakUsedWeekKeys, persistAnon, startDate, user, supabase, currentDay]);
 
   const reset = useCallback(async () => {
