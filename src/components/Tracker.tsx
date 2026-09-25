@@ -51,7 +51,11 @@ function calculateStreak(days: TrackerDay[]): {
   let longest = 0;
   let current = 0;
   for (const day of days) {
-    if (day.status === 'complete') {
+    // 'protected' counts the same as 'complete' because the user
+    // used their streak protection to keep the streak alive on
+    // this day (they didn't finish every habit, but they don't
+    // lose the streak for it).
+    if (day.status === 'complete' || day.status === 'protected') {
       current++;
     } else if (day.status === 'past-incomplete') {
       longest = Math.max(longest, current);
@@ -192,13 +196,17 @@ function ChipStrip({ days, startDate, onEditDay }: ChipStripProps) {
         {days.map((day) => {
           const isToday = day.status === 'today';
           const isComplete = day.status === 'complete';
+          const isProtected = day.status === 'protected';
           const isPast = day.status === 'past-incomplete';
           const isFuture = day.status === 'future';
           const dateKey = dayKeyFromStart(startDate, day.dayNumber);
           // Past days (closed or incomplete) are clickable to let
           // users backfill forgotten tasks. Today is not — use the
           // grid below to mark today. Future days are locked.
-          const editable = isPast || isComplete;
+          // Protected days stay clickable too — opening one lets
+          // the user back-fill on top of a used streak protection
+          // (the protection just keeps the streak alive).
+          const editable = isPast || isComplete || isProtected;
           return (
             <button
               key={day.dayNumber}
@@ -208,6 +216,8 @@ function ChipStrip({ days, startDate, onEditDay }: ChipStripProps) {
               className={`flex flex-col items-center justify-center w-10 h-10 rounded-md font-body text-caption tabular-nums flex-shrink-0 transition-transform ${
                 isToday
                   ? 'bg-coral text-paper ring-2 ring-coral/40 ring-offset-2 ring-offset-paper'
+                  : isProtected
+                  ? 'bg-cream text-ink border border-coral/40'
                   : isComplete
                   ? 'bg-coral/15 text-coral border border-coral/40'
                   : isPast
@@ -217,15 +227,19 @@ function ChipStrip({ days, startDate, onEditDay }: ChipStripProps) {
               title={
                 editable
                   ? `Day ${day.dayNumber} — ${formatDateKeyShort(dateKey)} — ${day.completedCount}/9 (click to edit)`
-                  : `Day ${day.dayNumber} — ${formatDateKeyShort(dateKey)} — ${day.completedCount}/9`
+                  : isProtected
+                    ? `Day ${day.dayNumber} — ${formatDateKeyShort(dateKey)} — streak protection saved this day 🍌`
+                    : `Day ${day.dayNumber} — ${formatDateKeyShort(dateKey)} — ${day.completedCount}/9`
               }
               aria-label={
                 editable
                   ? `Day ${day.dayNumber}, ${formatDateKeyShort(dateKey)}, ${day.completedCount} of 9 complete. Click to edit.`
-                  : `Day ${day.dayNumber}, ${formatDateKeyShort(dateKey)}, ${day.completedCount} of 9 complete`
+                  : isProtected
+                    ? `Day ${day.dayNumber}, ${formatDateKeyShort(dateKey)}, streak protection used.`
+                    : `Day ${day.dayNumber}, ${formatDateKeyShort(dateKey)}, ${day.completedCount} of 9 complete`
               }
             >
-              {isComplete ? '✓' : day.dayNumber}
+              {isProtected ? '🍌' : isComplete ? '✓' : day.dayNumber}
             </button>
           );
         })}

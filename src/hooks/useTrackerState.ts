@@ -47,13 +47,18 @@ const TICKER_INTERVAL_MS = 60_000;
  * refetch their Supabase caches instead of showing stale data.
  */
 export const TRACKER_RESET_EVENT = 'fit50-tracker-reset';
+export const STREAK_PROTECTION_USED_EVENT = 'fit50-streak-protection-used';
 
 export interface TrackerDay {
   dayNumber: number;
   dateKey: string;
   taps: Record<string, boolean>;
   completedCount: number;
-  status: 'future' | 'today' | 'past-incomplete' | 'complete';
+  /** 'protected' = streak protection was used for this day so
+   *  the streak continues past it without counting as a complete
+   *  day. Renders as a banana icon in the chip strip; counted as
+   *  continuing in `calculateStreak`. */
+  status: 'future' | 'today' | 'past-incomplete' | 'complete' | 'protected';
 }
 
 function localDateKey(): string {
@@ -532,6 +537,7 @@ export function useTrackerState() {
         pendingTaps: mergedPending,
         closedDays: mergedClosed,
         streakUsedWeekKeys: localStreakKeys,
+        protectedDays: localLoaded?.protectedDays ?? {},
         waterByDate: localWater,
         pendingSync: localLoaded?.pendingSync ?? [],
       };
@@ -719,8 +725,16 @@ export function useTrackerState() {
         ? { ...closed, ...todayTaps }
         : closed;
       const completedCount = Object.values(taps).filter(Boolean).length;
+      // Which day inside the current calendar week was protected?
+      // The map is week-keyed because premium streak protection is
+      // sold as "1 per week" — so only one day per week can be
+      // protected.
+      const protectedDay = Object.entries(data.protectedDays).find(
+        ([, d]) => d === i
+      )?.[0];
       let status: TrackerDay['status'];
       if (isFuture) status = 'future';
+      else if (protectedDay) status = 'protected';
       else if (isToday) status = 'today';
       else if (completedCount >= HABIT_COUNT) status = 'complete';
       else status = 'past-incomplete';
@@ -733,7 +747,7 @@ export function useTrackerState() {
       });
     }
     return out;
-  }, [startDate, currentDay, data.closedDays, todayTaps, todayKey]);
+  }, [startDate, currentDay, data.closedDays, todayTaps, todayKey, data.protectedDays]);
 
   // ---------- Mutations ----------
 
@@ -846,10 +860,18 @@ export function useTrackerState() {
     if (!startDate || !user) return false;
     const weekKey = weekKeyForDate(new Date());
     if (data.streakUsedWeekKeys.includes(weekKey)) return false;
+    // Persist WHICH day was protected (not just the week) so the
+    // day's status can be flagged as 'protected' in the days[]
+    // memo. Without this the streak would reset at the protected
+    // day because the day still shows as past-incomplete.
     setData((prev) => {
       const updated: TrackerDataV2 = {
         ...prev,
         streakUsedWeekKeys: [...prev.streakUsedWeekKeys, weekKey],
+        protectedDays: {
+          ...prev.protectedDays,
+          [weekKey]: currentDay,
+        },
       };
       persistAnon(updated);
       return updated;
@@ -864,6 +886,11 @@ export function useTrackerState() {
       } catch (err) {
         console.error('streak_protections insert failed:', err);
       }
+    }
+    // Tell the streak-protection hook to refresh from the server
+    // so the "Used this week" indicator flips immediately.
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent(STREAK_PROTECTION_USED_EVENT));
     }
     return true;
   }, [data.streakUsedWeekKeys, persistAnon, startDate, user, supabase, currentDay]);

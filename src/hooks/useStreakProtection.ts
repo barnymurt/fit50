@@ -4,7 +4,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePremium } from './usePremium';
 import { createClient } from '@/lib/supabase';
-import { TRACKER_RESET_EVENT } from './useTrackerState';
+import {
+  STREAK_PROTECTION_USED_EVENT,
+  TRACKER_RESET_EVENT,
+} from './useTrackerState';
 
 interface Protection {
   id: string;
@@ -59,14 +62,28 @@ export function useStreakProtection() {
   // been wiped but our local `protections` cache hasn't refreshed.
   // The streak card was reporting 'Used this week.' until the user
   // logged out and back in. Listen for the reset event and refetch.
+  //
+  // Also listen for STREAK_PROTECTION_USED_EVENT so the "Used this
+  // week" indicator flips immediately after the user clicks the
+  // button — without this the hook would show stale data until the
+  // next mount.
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    const onRefresh = () => {
+      if (!user || !isPremium) return;
+      fetchProtections();
+    };
     const onReset = () => {
       if (!user || !isPremium) return;
       fetchProtections();
     };
     window.addEventListener(TRACKER_RESET_EVENT, onReset);
-    return () => window.removeEventListener(TRACKER_RESET_EVENT, onReset);
+    window.addEventListener(STREAK_PROTECTION_USED_EVENT, onRefresh);
+    return () => {
+      window.removeEventListener(TRACKER_RESET_EVENT, onReset);
+      window.removeEventListener(STREAK_PROTECTION_USED_EVENT, onRefresh);
+    };
   }, [user, isPremium, fetchProtections]);
 
   const hasProtectionForWeek = useCallback(
