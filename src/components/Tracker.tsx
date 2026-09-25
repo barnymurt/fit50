@@ -12,7 +12,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTrackerState, TrackerDay } from '@/hooks/useTrackerState';
 import { getWeekStart } from '@/hooks/useStreakProtection';
 import { usePremium } from '@/hooks/usePremium';
-import { dateKeyLocal, formatDateKeyShort, dayKeyFromStart, CHALLENGE_DAYS } from '@/lib/dates';
+import { dateKeyLocal, parseDateKey, formatDateKeyShort, dayKeyFromStart, CHALLENGE_DAYS } from '@/lib/dates';
 import { HABIT_IDS, HABIT_COUNT } from '@/lib/habits';
 import Link from 'next/link';
 
@@ -345,8 +345,10 @@ export default function Tracker({ hideMarquee = false }: { hideMarquee?: boolean
     setStreakSaving(true);
     setStreakMessage(null);
     try {
-      await tracker.useStreakProtectionForWeek();
-      setStreakMessage("✓ Today's streak protected. Carry on.");
+      await tracker.useStreakProtectionForDay(tracker.currentDay);
+setStreakMessage(
+        `✓ Day ${tracker.currentDay} protected. Your streak carries on.`
+      );
     } catch (err) {
       // Specific reason from the hook's typed errors. Fall back to
       // a generic message only when the throw is non-Error.
@@ -355,6 +357,48 @@ export default function Tracker({ hideMarquee = false }: { hideMarquee?: boolean
       );
     } finally {
       setStreakSaving(false);
+    }
+  };
+
+  // Per-day streak protection — invoked from the day-editor modal
+  // when the user is backfilling a past day that's incomplete. Lets
+  // them protect THAT day (not today) so the streak calc recognises
+  // it and the chip 🍌 appears on the specific day they missed.
+  const [pastStreakSaving, setPastStreakSaving] = useState(false);
+  const [pastStreakMessage, setPastStreakMessage] = useState<string | null>(null);
+  const handleProtectPastDay = async (targetDay: number) => {
+    if (!isPremium || pastStreakSaving) return;
+    if (!tracker.startDate) return;
+    // Compute the week key for THIS day (not today) so the
+    // per-week guard sees the right "week" of the past day.
+    const targetDayDateKey = dayKeyFromStart(tracker.startDate, targetDay);
+    const targetWeekKey = getWeekStart(parseDateKey(targetDayDateKey));
+    const alreadyUsed = tracker.data.streakUsedWeekKeys.includes(targetWeekKey);
+    if (alreadyUsed) {
+      // Don't even try — surface it as a friendly message instead
+      // of throwing on the hook side. The hook would throw the
+      // same message; doing it client-side keeps the UI snappy.
+      const priorDay = tracker.data.protectedDays[targetWeekKey];
+      setPastStreakMessage(
+        priorDay
+          ? `Already used on day ${priorDay} this week.`
+          : "Already used this week's protection."
+      );
+      return;
+    }
+    setPastStreakSaving(true);
+    setPastStreakMessage(null);
+    try {
+      await tracker.useStreakProtectionForDay(targetDay);
+      setPastStreakMessage(
+        `✓ Day ${targetDay} protected. Your streak carries on.`
+      );
+    } catch (err) {
+      setPastStreakMessage(
+        err instanceof Error ? err.message : 'Could not save the protection. Try again.'
+      );
+    } finally {
+      setPastStreakSaving(false);
     }
   };
 
@@ -715,6 +759,80 @@ export default function Tracker({ hideMarquee = false }: { hideMarquee?: boolean
                   );
                 })}
               </div>
+
+              {/* Per-day streak protection row — premium only.
+                  The card above ("Use my streak protection") always
+                  acts on TODAY. This row inside the day-editor lets
+                  the user apply protection to the SPECIFIC past day
+                  they're backfilling, which is the actual use case. */}
+              {isPremium && tracker.startDate && (() => {
+                // Find which day in this past day EDITOR's week
+                // already has protection, if any.
+                const targetDayDateKey = dayKeyFromStart(
+                  tracker.startDate,
+                  editingDay
+                );
+                const targetWeekKey = getWeekStart(
+                  parseDateKey(targetDayDateKey)
+                );
+                const protectedDayInWeek =
+                  tracker.data.protectedDays[targetWeekKey];
+                const thisDayIsProtected =
+                  protectedDayInWeek === editingDay;
+                const weekUsedOnDifferentDay =
+                  protectedDayInWeek != null &&
+                  protectedDayInWeek !== editingDay;
+                return (
+                  <div className="border border-coral/30 bg-coral/10 p-4 mb-4">
+                    <p className="font-body text-caption uppercase tracking-widest text-coral mb-2">
+                      🍌 Streak protection
+                    </p>
+                    {thisDayIsProtected ? (
+                      <p className="font-body text-sm text-ink/80">
+                        Day {editingDay} is already protected (🍌). Your
+                        streak carries through this day.
+                      </p>
+                    ) : weekUsedOnDifferentDay ? (
+                      <p className="font-body text-sm text-ink/80">
+                        Already used this week's protection on day{' '}
+                        {protectedDayInWeek}. Only one pass per week.
+                      </p>
+                    ) : (
+                      <>
+                        <p className="font-body text-sm text-ink/80 mb-3">
+                          Missed this day? Protect it for free (1 per
+                          week). The streak continues past this day.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => handleProtectPastDay(editingDay)}
+                          disabled={pastStreakSaving}
+                          aria-label="Use streak protection for this day"
+                          className="w-full bg-coral hover:bg-coral/85 transition-colors px-5 py-2.5 font-body text-caption uppercase tracking-widest text-paper disabled:opacity-60 disabled:cursor-not-allowed"
+                        >
+                          {pastStreakSaving
+                            ? 'Saving…'
+                            : `Use my streak protection for day ${editingDay}`}
+                        </button>
+                      </>
+                    )}
+                    {pastStreakMessage && (
+                      <p
+                        className={`mt-3 font-body text-caption ${
+                          pastStreakMessage.startsWith('✓')
+                            ? 'text-teal'
+                            : 'text-coral'
+                        }`}
+                        role="status"
+                        aria-live="polite"
+                      >
+                        {pastStreakMessage}
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
+
               <button
                 type="button"
                 onClick={() => setEditingDay(null)}
