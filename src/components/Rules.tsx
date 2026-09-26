@@ -40,14 +40,14 @@ const rules: Rule[] = [
     id: 4,
     icon: 'crispy-clarity',
     title: 'Crispy Clarity',
-    description: 'No alcohol for 50 days. Full sobriety, no exceptions.',
+    description: 'No alcohol for 50 days. Full sobriety your body will thank you later.',
     tip: 'Fifty zero-proof recipes in the drinks library so "no" never feels like a punishment. The friendships worth keeping don\'t need a round to hold them up.',
   },
   {
     id: 5,
     icon: 'fresh-lungs',
     title: 'Fresh Lungs',
-    description: 'No smoking or vaping. Zero nicotine for 50 days.',
+    description: "No smoking, no vaping. Find your nicotine by healhier means for 50 days.",
     tip: 'Cravings pass in five minutes — grab water, walk, or open your project. The quit list has 40 free cessation services if you want backup.',
   },
   {
