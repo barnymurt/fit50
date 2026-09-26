@@ -253,14 +253,24 @@ export default function Tracker({ hideMarquee = false }: { hideMarquee?: boolean
   const { isPremium } = usePremium();
   const tracker = useTrackerState();
   // Read streak-protection state from the v2 local store so the
-  // card flips to "Used this week" the instant the user clicks —
-  // no round-trip through useStreakProtection's Supabase-backed
-  // state (which can lag or silently skip its event listener if
-  // the hook's `isPremium`/`user` are stale at event time).
-  const weekKeyForToday = getWeekStart(new Date());
-  const protectionUsedThisWeek = tracker.data.streakUsedWeekKeys.includes(
-    weekKeyForToday
-  );
+  // card flips the instant the user clicks — no round-trip
+  // through useStreakProtection's Supabase-backed state (which can
+  // lag or silently skip its event listener if the hook's
+  // `isPremium`/`user` are stale at event time).
+  //
+  // Model: premium users get 1 streak protection, then wait 25
+  // days for another. Free users get 0. `lastProtectionDay` is
+  // the day number of the most recent redemption (null if never
+  // redeemed).
+  const lastProtectionDay = tracker.data.lastProtectionDay ?? null;
+  const protectionAvailable =
+    isPremium &&
+    (lastProtectionDay == null ||
+      tracker.currentDay - lastProtectionDay >= 25);
+  const cooldownDaysLeft =
+    lastProtectionDay != null && !protectionAvailable
+      ? Math.max(0, 25 - (tracker.currentDay - lastProtectionDay))
+      : 0;
 
   const [pulsingHabit, setPulsingHabit] = useState<string | null>(null);
   const [confettiKey, setConfettiKey] = useState(0);
@@ -341,12 +351,12 @@ export default function Tracker({ hideMarquee = false }: { hideMarquee?: boolean
   const [streakMessage, setStreakMessage] = useState<string | null>(null);
   const handleUseStreakProtection = async () => {
     if (!isPremium || streakSaving) return;
-    if (protectionUsedThisWeek) return;
+    if (!protectionAvailable) return;
     setStreakSaving(true);
     setStreakMessage(null);
     try {
       await tracker.useStreakProtectionForDay(tracker.currentDay);
-setStreakMessage(
+      setStreakMessage(
         `✓ Day ${tracker.currentDay} protected. Your streak carries on.`
       );
     } catch (err) {
@@ -369,20 +379,14 @@ setStreakMessage(
   const handleProtectPastDay = async (targetDay: number) => {
     if (!isPremium || pastStreakSaving) return;
     if (!tracker.startDate) return;
-    // Compute the week key for THIS day (not today) so the
-    // per-week guard sees the right "week" of the past day.
-    const targetDayDateKey = dayKeyFromStart(tracker.startDate, targetDay);
-    const targetWeekKey = getWeekStart(parseDateKey(targetDayDateKey));
-    const alreadyUsed = tracker.data.streakUsedWeekKeys.includes(targetWeekKey);
-    if (alreadyUsed) {
-      // Don't even try — surface it as a friendly message instead
-      // of throwing on the hook side. The hook would throw the
-      // same message; doing it client-side keeps the UI snappy.
-      const priorDay = tracker.data.protectedDays[targetWeekKey];
+    // Cooldown check mirrors what the hook enforces, but we
+    // surface it client-side for instant UI feedback rather than
+    // letting the hook throw.
+    const last = tracker.data.lastProtectionDay ?? null;
+    if (last != null && targetDay - last < 25) {
+      const daysLeft = 25 - (targetDay - last);
       setPastStreakMessage(
-        priorDay
-          ? `Already used on day ${priorDay} this week.`
-          : "Already used this week's protection."
+        `Wait ${daysLeft} more day${daysLeft === 1 ? '' : 's'}. Last protection was on day ${last}.`
       );
       return;
     }
@@ -552,21 +556,23 @@ setStreakMessage(
                   🛡 Streak protection
                 </p>
                 <p className="font-display text-h3 text-ink leading-tight mb-2">
-                  {protectionUsedThisWeek
-                    ? 'Used this week.'
-                    : 'One free pass this week.'}
+                  {!protectionAvailable
+                    ? 'Used.'
+                    : '1 protection available.'}
                 </p>
                 <p className="font-body text-sm text-ink/70">
-                  {protectionUsedThisWeek
-                    ? 'Resets Sunday midnight. Miss a day with no penalty.'
-                    : 'Use it before midnight Sunday if you miss a day.'}
+                  {!protectionAvailable
+                    ? cooldownDaysLeft > 0
+                      ? `Resets in ${cooldownDaysLeft} day${cooldownDaysLeft === 1 ? '' : 's'} (last used on day ${lastProtectionDay}). Use on a specific past day below to keep your streak alive through missed days.`
+                      : 'Resets in a moment. Use on a specific past day below to keep your streak alive through missed days.'
+                    : 'Premium perk: protect any day you missed and your streak carries on. 1 protection, then a 25-day cooldown.'}
                 </p>
-                {!protectionUsedThisWeek && (
+                {protectionAvailable && (
                   <button
                     type="button"
                     onClick={handleUseStreakProtection}
                     disabled={streakSaving}
-                    aria-label="Use streak protection for this week"
+                    aria-label="Use streak protection for today"
                     className="mt-3 inline-flex items-center justify-center bg-coral hover:bg-coral/85 transition-colors px-5 py-2.5 font-body text-caption uppercase tracking-widest text-paper disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     {streakSaving
@@ -779,9 +785,13 @@ setStreakMessage(
                   tracker.data.protectedDays[targetWeekKey];
                 const thisDayIsProtected =
                   protectedDayInWeek === editingDay;
-                const weekUsedOnDifferentDay =
-                  protectedDayInWeek != null &&
-                  protectedDayInWeek !== editingDay;
+                // 25-day cooldown from the most recent protection.
+                const lastDay = tracker.data.lastProtectionDay ?? null;
+                const cooldownActive =
+                  lastDay != null && editingDay - lastDay < 25;
+                const cooldownDaysLeft = cooldownActive
+                  ? Math.max(0, 25 - (editingDay - lastDay!))
+                  : 0;
                 return (
                   <div className="border border-coral/30 bg-coral/10 p-4 mb-4">
                     <p className="font-body text-caption uppercase tracking-widest text-coral mb-2">
@@ -792,16 +802,20 @@ setStreakMessage(
                         Day {editingDay} is already protected (🍌). Your
                         streak carries through this day.
                       </p>
-                    ) : weekUsedOnDifferentDay ? (
+                    ) : cooldownActive ? (
                       <p className="font-body text-sm text-ink/80">
-                        Already used this week's protection on day{' '}
-                        {protectedDayInWeek}. Only one pass per week.
+                        Wait {cooldownDaysLeft} more day{cooldownDaysLeft === 1 ? '' : 's'}
+                        {lastDay != null
+                          ? ` — last used on day ${lastDay}`
+                          : ''}.
+                        Premium: 1 protection every 25 days.
                       </p>
                     ) : (
                       <>
                         <p className="font-body text-sm text-ink/80 mb-3">
-                          Missed this day? Protect it for free (1 per
-                          week). The streak continues past this day.
+                          Missed this day? Protect it for free and the
+                          streak continues past this day. (Premium: 1
+                          protection every 25 days.)
                         </p>
                         <button
                           type="button"

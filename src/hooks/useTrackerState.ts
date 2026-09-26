@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePremium } from './usePremium';
 import { createClient } from '@/lib/supabase';
 import {
   CHALLENGE_DAYS,
@@ -175,6 +176,7 @@ function reconcileStalePendingTaps(
  */
 export function useTrackerState() {
   const { user, loading: authLoading } = useAuth();
+  const { isPremium } = usePremium();
   const supabase = createClient();
 
   const [data, setData] = useState<TrackerDataV2>(() => emptyTrackerV2());
@@ -366,7 +368,7 @@ export function useTrackerState() {
       // before signup).
       const localLoaded = loadTrackerV2(new Date());
       const localPending = localLoaded?.pendingTaps ?? {};
-      const localStreakKeys = localLoaded?.streakUsedWeekKeys ?? [];
+      const localLastProtectionDay = localLoaded?.lastProtectionDay ?? null;
       const localPendingDateKey = localLoaded?.pendingTapsDateKey ?? null;
       const localWater = localLoaded?.waterByDate ?? {};
       const localClosedDays: Record<number, Record<string, boolean>> =
@@ -574,8 +576,8 @@ export function useTrackerState() {
         pendingTapsDateKey: todayKey,
         pendingTaps: mergedPending,
         closedDays: mergedClosed,
-        streakUsedWeekKeys: localStreakKeys,
         protectedDays: localLoaded?.protectedDays ?? {},
+        lastProtectionDay: localLastProtectionDay,
         waterByDate: localWater,
         pendingSync: localLoaded?.pendingSync ?? [],
       };
@@ -798,6 +800,8 @@ export function useTrackerState() {
           pendingTapsDateKey: next ? localDateKey() : null,
           pendingTaps: {},
           closedDays: {},
+          protectedDays: {},
+          lastProtectionDay: null,
         };
         persistAnon(updated);
         return updated;
@@ -894,6 +898,12 @@ export function useTrackerState() {
     [persistAnon, startDate, drainPendingSync]
   );
 
+// Premium gets 1 streak protection, then must wait 25 days for
+// another. Free users get 0. The 25-day cooldown is enforced
+// client-side from `lastProtectionDay` (the day number of the most
+// recent redemption).
+const STREAK_PROTECTION_COOLDOWN_DAYS = 25;
+
 const useStreakProtectionForDay = useCallback(
     async (dayNumber: number): Promise<void> => {
       // Throw specific errors on each failure path so the calling UI
@@ -914,47 +924,53 @@ const useStreakProtectionForDay = useCallback(
         );
       }
 
-      // Week key for the SPECIFIC day being protected, derived
-      // from that day's date key (NOT today's — that was the old
-      // bug). This means a protection applied to a backfilled day
-      // yesterday still counts as this week's protection today.
+      // Premium gate. Free users can't redeem at all.
+      if (!isPremium) {
+        throw new Error('Streak protection is a premium perk');
+      }
+
+      // 25-day cooldown from the previous redemption. Comparing
+      // day numbers is safe because they're 1..50 unique across the
+      // challenge — no ambiguity about which "day 10" we mean.
+      if (
+        data.lastProtectionDay != null &&
+        dayNumber - data.lastProtectionDay < STREAK_PROTECTION_COOLDOWN_DAYS
+      ) {
+        const daysLeft =
+          STREAK_PROTECTION_COOLDOWN_DAYS -
+          (dayNumber - data.lastProtectionDay);
+        throw new Error(
+          `Wait ${daysLeft} more day${daysLeft === 1 ? '' : 's'}. Last protection was on day ${data.lastProtectionDay}.`
+        );
+      }
+
+      // Week key for the SPECIFIC day being protected, derived from
+      // that day's date key. We still key `protectedDays` by week
+      // so the days[] memo's per-day lookup is unchanged.
       const dateKeyForDay = dayKeyFromStart(startDate, dayNumber);
       const dateForWeek = parseDateKey(dateKeyForDay);
       const weekKey = weekKeyForDate(dateForWeek);
 
-      // If THIS week already has a protection, can't redeem again.
-      // We don't compare day numbers because the model is "1 free
-      // pass per week, on whichever day you choose".
-      if (data.streakUsedWeekKeys.includes(weekKey)) {
-        const prior = data.protectedDays[weekKey];
-        throw new Error(
-          prior
-            ? `Already used this week's protection on day ${prior}`
-            : "You've already used this week's protection"
-        );
-      }
-
-      // Persist WHICH day was protected (not just the week) so the
-      // day's status can be flagged as 'protected' in the days[]
-      // memo. Without this the streak would reset at the protected
+      // Persist WHICH day was protected AND bump the cooldown
+      // tracker. Without this the streak would reset at the protected
       // day because the day still shows as past-incomplete.
       setData((prev) => {
         const updated: TrackerDataV2 = {
           ...prev,
-          streakUsedWeekKeys: [...prev.streakUsedWeekKeys, weekKey],
           protectedDays: {
             ...prev.protectedDays,
             [weekKey]: dayNumber,
           },
+          lastProtectionDay: dayNumber,
         };
         persistAnon(updated);
         return updated;
       });
 
       // Write to Supabase. If this fails we ROLL BACK the optimistic
-      // local update so the user's card flips back to "One free pass"
-      // and they know to retry — rather than seeing the card flip
-      // and then later discovering server state is out of sync.
+      // local update so the user's card flips back and they know to
+      // retry — rather than seeing the card flip and then later
+      // discovering server state is out of sync.
       try {
         const { error } = await (supabase.from('streak_protections') as any)
           .upsert(
@@ -963,7 +979,7 @@ const useStreakProtectionForDay = useCallback(
               week_start_date: weekKey,
               redeemed_day: dayNumber,
             },
-            { onConflict: 'user_id,week_start_date' }
+            { onConflict: 'user_id,redeemed_day' }
           );
         if (error) throw error;
       } catch (err) {
@@ -971,12 +987,10 @@ const useStreakProtectionForDay = useCallback(
         setData((prev) => {
           const restored: TrackerDataV2 = {
             ...prev,
-            streakUsedWeekKeys: prev.streakUsedWeekKeys.filter(
-              (k) => k !== weekKey
-            ),
             protectedDays: Object.fromEntries(
               Object.entries(prev.protectedDays).filter(([k]) => k !== weekKey)
             ),
+            lastProtectionDay: prev.lastProtectionDay,
           };
           persistAnon(restored);
           return restored;
@@ -995,7 +1009,15 @@ const useStreakProtectionForDay = useCallback(
         window.dispatchEvent(new CustomEvent(STREAK_PROTECTION_USED_EVENT));
       }
     },
-    [data.streakUsedWeekKeys, persistAnon, startDate, user, supabase]
+    [
+      data.lastProtectionDay,
+      data.protectedDays,
+      isPremium,
+      persistAnon,
+      startDate,
+      user,
+      supabase,
+    ]
   );
 
   const reset = useCallback(async () => {
