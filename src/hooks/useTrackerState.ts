@@ -28,6 +28,44 @@ import { HABIT_COUNT } from '@/lib/habits';
  * here for environments where it isn't (older Safari, some test
  * runners).
  */
+// Pull a readable description out of any error shape — Supabase
+// errors come back as plain PostgrestError objects with {message,
+// code, details, hint} rather than as Error instances. Earlier
+// we only checked `err instanceof Error`, which produced
+// "unknown error" for every server-side failure and lost the
+// reason the user actually needed to see.
+function describeError(err: unknown): string {
+  if (err == null) return 'no error';
+  if (err instanceof Error) return err.message || err.name || 'Error';
+  if (typeof err === 'string') return err;
+  if (typeof err === 'object') {
+    const e = err as {
+      message?: string;
+      code?: string;
+      details?: string;
+      hint?: string;
+      error_description?: string;
+    };
+    // Postgrest/SQL error message is the most actionable. Include
+    // the SQL code so the user can search for it.
+    const parts: string[] = [];
+    if (e.message) parts.push(e.message);
+    else if (e.details) parts.push(e.details);
+    else if (e.hint) parts.push(e.hint);
+    if (e.code && parts[0] && !parts[0].includes(e.code)) {
+      return `${parts[0]} (code ${e.code})`;
+    }
+    if (parts.length > 0) return parts[0];
+    if (e.error_description) return e.error_description;
+    try {
+      return JSON.stringify(err);
+    } catch {
+      return 'non-serializable error';
+    }
+  }
+  return String(err);
+}
+
 function newPendingSyncId(): string {
   try {
     if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
@@ -943,7 +981,7 @@ const useStreakProtectionForDay = useCallback(
           persistAnon(restored);
           return restored;
         });
-        const detail = err instanceof Error ? err.message : 'unknown error';
+        const detail = describeError(err);
         console.error('streak_protections upsert failed:', err);
         throw new Error(
           `Couldn't save to your account (${detail}). ` +
