@@ -295,19 +295,28 @@ export function useTrackerState() {
 
         let success = false;
         try {
-          await (supabase.from('daily_totals') as any).upsert(
-            deduped.map((e) => ({
-              user_id: user.id,
-              day_number: e.dayNumber,
-              habit_id: e.habitId,
-              completed: e.completed,
-              archived_at: new Date().toISOString(),
-            })),
-            { onConflict: 'user_id,day_number,habit_id' }
-          );
+          const { error } = await (supabase.from('daily_totals') as any)
+            .upsert(
+              deduped.map((e) => ({
+                user_id: user.id,
+                day_number: e.dayNumber,
+                habit_id: e.habitId,
+                completed: e.completed,
+                archived_at: new Date().toISOString(),
+              })),
+              { onConflict: 'user_id,day_number,habit_id' }
+            );
+          if (error) throw error;
           success = true;
         } catch (err) {
           console.error('pendingSync drain failed:', err);
+          // Don't loop forever — surface the error to the user
+          // and break out. The entries stay in pendingSync so a
+          // retry on next interaction will pick them up.
+          throw new Error(
+            `Couldn't sync habit changes to your account (${describeError(err)}). ` +
+              `Tap a habit to retry.`
+          );
         }
         if (!success) break;
 
@@ -891,7 +900,11 @@ export function useTrackerState() {
         // next click) retries — so a tab close mid-request never
         // loses the edit. Other devices see it on their next load
         // via daily_totals.
-        drainPendingSync();
+        drainPendingSync().catch((err) => {
+          // Already logged in drainPendingSync itself; swallow here so
+          // the throw doesn't break the surrounding setData callback.
+          console.error('background drain failed (will retry):', err);
+        });
         return updated;
       });
     },
