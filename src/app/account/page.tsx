@@ -583,9 +583,62 @@ export default function AccountPage() {
               Free tier
             </p>
             <Title tone="dark">Unlock premium.</Title>
-            <p className="font-body text-lg text-paper/70 mt-4 mb-8">
-              Unlock the detailed macro food tracker, streak protection, multi-purpose timer, kanban board, and to-do list. One payment, yours forever.
-            </p>
+            <div className="font-body text-paper/80 mt-6 mb-8 text-left max-w-xl mx-auto space-y-4">
+              <p>
+                <span className="text-paper font-semibold uppercase tracking-widest text-caption">
+                  🍌 1 streak protection
+                </span>
+                <br />
+                <span className="text-paper/70">
+                  banana skin every 25 days — your streak doesn't break when you slip up.
+                </span>
+              </p>
+              <p>
+                <span className="text-paper font-semibold uppercase tracking-widest text-caption">
+                  💪 16 workout variants
+                </span>
+                <br />
+                <span className="text-paper/70">
+                  to keep the workouts interesting — kettlebell + resistance band adaptations of the same FIT50 A, B, C, D rows. Your gear, your routine.
+                </span>
+              </p>
+              <p>
+                <span className="text-paper font-semibold uppercase tracking-widest text-caption">
+                  📊 Weight projection
+                </span>
+                <br />
+                <span className="text-paper/70">
+                  that has your back — actual weight chart vs calorie-based projection side-by-side. Catches your food-log drift before your love handles tell you.
+                </span>
+              </p>
+              <p>
+                <span className="text-paper font-semibold uppercase tracking-widest text-caption">
+                  🥗 AI food scan (beta)
+                </span>
+                <br />
+                <span className="text-paper/70">
+                  photo a label, or describe your food to get the macros. Edit anything that looks off.
+                </span>
+              </p>
+              <p>
+                <span className="text-paper font-semibold uppercase tracking-widest text-caption">
+                  📖 Adaptive macro tracker
+                </span>
+                <br />
+                <span className="text-paper/70">
+                  set at the start and recalibrate as your body changes.
+                </span>
+              </p>
+              <p>
+                <span className="text-paper font-semibold uppercase tracking-widest text-caption">
+                  ✅ Trackers
+                </span>
+                <br />
+                <span className="text-paper/70">
+                  for Hydration, Projects, Reading list, kanban board — yours forever.
+                </span>
+              </p>
+            </div>
             <Link
               href="/upgrade"
               className="inline-flex items-center justify-center bg-coral text-paper font-body text-sm px-10 py-5 uppercase tracking-wider hover:bg-coral/85 transition-colors"
