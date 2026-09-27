@@ -91,17 +91,18 @@ export default function FoodDetail({ food, initialGrams, onAdd, onClose }: Props
         role="dialog"
         aria-modal="true"
         aria-label={`${food.name} portion`}
-        className="bg-paper w-full md:max-w-lg border border-ink/15 max-h-[90vh] md:max-h-[90vh] overflow-x-hidden overflow-y-auto animate-sheet-up rounded-t-2xl md:rounded pb-[max(1rem,env(safe-area-inset-bottom))]"
+        className="bg-paper w-full md:max-w-lg border border-ink/15 max-h-[90vh] md:max-h-[90vh] flex flex-col overflow-hidden animate-sheet-up rounded-t-2xl md:rounded"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Drag handle — mobile only */}
-        <div className="md:hidden pt-3 pb-1 flex justify-center">
-          <div className="w-10 h-1 bg-ink/20 rounded-full" />
-        </div>
-
-        <div className="px-6 pt-4 md:pt-6 pb-2 flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <p className="font-body text-caption uppercase tracking-widest text-ink/50">
+        {/* Header — fixed at top */}
+        <div className="flex-none">
+          {/* Drag handle — mobile only */}
+          <div className="md:hidden pt-3 pb-1 flex justify-center">
+            <div className="w-10 h-1 bg-ink/20 rounded-full" />
+          </div>
+          <div className="px-6 pt-4 md:pt-6 pb-2 flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <p className="font-body text-caption uppercase tracking-widest text-ink/50">
               {food.category}
               {food.preparation ? ` · ${food.preparation}` : ''}
             </p>
@@ -116,9 +117,11 @@ export default function FoodDetail({ food, initialGrams, onAdd, onClose }: Props
           >
             ✕
           </button>
+          </div>
         </div>
 
-        <div className="px-6 py-4 space-y-6">
+        {/* Scrollable body */}
+        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
           <div className="border border-ink/10">
             <div className="px-4 py-2 border-b border-ink/10 flex items-baseline justify-between">
               <span className="font-body text-caption uppercase tracking-widest text-ink/50">
@@ -228,11 +231,14 @@ export default function FoodDetail({ food, initialGrams, onAdd, onClose }: Props
               <p className="font-body text-sm text-ink/80">{error}</p>
             </div>
           )}
+        </div>
 
+        {/* Sticky footer — Add button always visible above the fold. */}
+        <div className="flex-none border-t border-ink/10 bg-paper px-6 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           <button
             onClick={handleAdd}
             disabled={busy || grams <= 0}
-            className="w-full bg-ink text-paper font-body text-sm px-6 py-4 md:py-4 uppercase tracking-wider hover:bg-ink/85 transition-colors disabled:opacity-50"
+            className="w-full bg-ink text-paper font-body text-sm px-6 py-4 uppercase tracking-wider hover:bg-ink/85 transition-colors disabled:opacity-50"
           >
             {busy ? 'Adding…' : `Add ${Math.round(scaled.kcal)} kcal to today`}
           </button>
