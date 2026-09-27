@@ -19,7 +19,7 @@ const rules: Rule[] = [
     id: 1,
     icon: 'feed-brain',
     title: 'Feed Your Brain',
-    description: "Read 5 books in 50 days, or ship 30 minutes a day on a project you've been putting off.",
+    description: "Read 5 books in 50 days, or give 30 minutes a day on a project you've been putting off.",
     tip: 'Walk out of the 50 days with something you can hold, open, or point at. Use the kanban to break the project into daily wins.',
   },
   {
@@ -27,7 +27,7 @@ const rules: Rule[] = [
     icon: 'move-body',
     title: 'Move Your Body',
     description: 'Complete one workout from the four lines (A, B, C, D) every day.',
-    tip: "Rotate through A → B → C → D and repeat. Something every day, even if it's the short version. Motion creates emotion.",
+    tip: "If you get bored of the routine, mix and match the rows. Premium has more Kettlebell and Resistance band options to choose from.",
   },
   {
     id: 3,
@@ -47,7 +47,7 @@ const rules: Rule[] = [
     id: 5,
     icon: 'fresh-lungs',
     title: 'Fresh Lungs',
-    description: "No smoking, no vaping. Find your nicotine by healhier means for 50 days.",
+    description: "No smoking, no vaping. Find your nicotine by healthier means for 50 days.",
     tip: 'Cravings pass in five minutes — grab water, walk, or open your project. The quit list has 40 free cessation services if you want backup.',
   },
   {
