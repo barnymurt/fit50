@@ -411,6 +411,18 @@ export default function AccountPage() {
                     }
                   : undefined
               }
+              onMoveUp={
+                isPremium && idx > 0
+                  ? () => layout.moveSection(idx, idx - 1)
+                  : undefined
+              }
+              onMoveDown={
+                isPremium && idx < layout.order.length - 1
+                  ? () => layout.moveSection(idx, idx + 1)
+                  : undefined
+              }
+              canMoveUp={isPremium && idx > 0}
+              canMoveDown={isPremium && idx < layout.order.length - 1}
             >
               {content}
             </CollapsibleSection>
