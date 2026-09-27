@@ -13,31 +13,34 @@ export interface SixFeaturesItem {
 
 export const SIX_FEATURES: SixFeaturesItem[] = [
   {
-    title: 'Task tracker',
-    description: 'Tap to mark the nine daily habits; streak builds automatically.',
-  },
-  {
     title: 'Streak protection',
     description:
-      'One free pass a week. Miss a day and the streak holds. Each save shows up as a 🍌 on your certificate.',
+      '1 banana skin every 25 days — your streak doesn’t break when you slip up. Each 🍌 shows up on your certificate.',
   },
   {
-    title: 'Water tracker',
-    description: 'Tap to log each glass, target built in.',
-  },
-  {
-    title: 'Macro food tracker',
+    title: '16 workout variants',
     description:
-      'Search over 5,000 foods from an international taste palette, log portions, tag meals, totals against your targets.',
+      'Kettlebell + resistance band adaptations of the same FIT50 A, B, C, D rows. Your gear, your routine.',
   },
   {
-    title: 'Multi-purpose timer',
-    description: 'Reading, meditation, focus blocks, presets included.',
-  },
-  {
-    title: 'Kanban board',
+    title: 'Weight projection',
     description:
-      'Plan the 50 days across To do · In progress · Done.',
+      'Actual weight chart vs calorie-based projection side-by-side. Catches your food-log drift before your love handles tell you.',
+  },
+  {
+    title: 'AI food scan (beta)',
+    description:
+      'Photo a label, or describe your food to get the macros. Edit anything that looks off.',
+  },
+  {
+    title: 'Adaptive macro tracker',
+    description:
+      'Set at the start and recalibrate as your body changes.',
+  },
+  {
+    title: 'All your trackers',
+    description:
+      'Hydration, Projects, Reading list, kanban board — yours forever.',
   },
 ];
 
