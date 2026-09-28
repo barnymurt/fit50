@@ -182,6 +182,22 @@ function rowToFood(row: Record<string, unknown>): Food {
   };
 }
 
+// Same shape as rowToFood but for the user_custom_foods table. Used
+// by fetchFoodsByIds as a fallback for IDs that aren't in public.foods
+// (i.e. user-added foods).
+function customRowToFood(row: Record<string, unknown>): Food {
+  return {
+    ...rowToFood(row),
+    isCustom: true,
+    customSubmissionStatus: row.submission_status as
+      | 'private'
+      | 'pending_review'
+      | 'published'
+      | 'rejected'
+      | undefined,
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Server-side search — the only path used by the UI at scale. Hits the
 // `foods` table's GIN-indexed `search_text` tsvector and respects
@@ -446,6 +462,10 @@ export async function fetchFoodsByIds(ids: string[]): Promise<Food[]> {
   if (ids.length === 0) return [];
   const supabase = createClient();
   if (!supabase) return [];
+  // Public foods first. Anything missing from the result (e.g. a
+  // UUID belonging to user_custom_foods) falls back to a per-user
+  // lookup, which is how favourites and meal bundles render names
+  // for user-added foods.
   const { data, error } = await supabase
     .from('foods')
     .select(FOOD_COLS)
@@ -454,7 +474,24 @@ export async function fetchFoodsByIds(ids: string[]): Promise<Food[]> {
     console.error('fetchFoodsByIds failed:', error);
     return [];
   }
-  return (data ?? []).map(rowToFood);
+  const found: Food[] = (data ?? []).map(rowToFood);
+  const foundIds = new Set(found.map((f) => f.id));
+  const missing = ids.filter((id) => !foundIds.has(id));
+  if (missing.length === 0) return found;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: customRows, error: customErr } = await (supabase
+    .from('user_custom_foods') as any)
+    .select('*')
+    .in('id', missing);
+  if (customErr) {
+    console.error('fetchFoodsByIds custom fallback failed:', customErr);
+    return found;
+  }
+  const customs = ((customRows ?? []) as Array<Record<string, unknown>>).map(
+    customRowToFood
+  );
+  return [...found, ...customs];
 }
 
 // Cache of id→Food for the lifetime of the page. Tiny (only the

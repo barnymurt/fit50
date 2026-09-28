@@ -20,6 +20,7 @@ export interface MacroProfileInput {
   goal: Goal;
   diet: Diet;
   results: MacroResults;
+  kettlebell_weight_kg: number | null;
 }
 
 export interface MacroProfile {
@@ -37,6 +38,7 @@ export interface MacroProfile {
   results_carbs: number;
   results_fat: number;
   results_water: number;
+  kettlebell_weight_kg: number | null;
   calculated_at: string;
 }
 
@@ -90,6 +92,7 @@ export function useMacroProfile() {
           results_carbs: input.results.carbsG,
           results_fat: input.results.fatG,
           results_water: input.results.waterL,
+          kettlebell_weight_kg: input.kettlebell_weight_kg,
           calculated_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         },

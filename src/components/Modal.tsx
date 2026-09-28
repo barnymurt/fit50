@@ -34,7 +34,7 @@ export default function Modal({ open, onClose, title, children, ariaLabel }: Mod
         role="dialog"
         aria-modal="true"
         aria-label={ariaLabel ?? title}
-        className="bg-paper w-full md:max-w-lg border border-ink/15 max-h-[90vh] overflow-y-auto animate-sheet-up rounded-t-2xl md:rounded pb-[max(1rem,env(safe-area-inset-bottom))]"
+        className="bg-paper w-full md:max-w-lg border border-ink/15 max-h-[90vh] overflow-x-hidden overflow-y-auto animate-sheet-up rounded-t-2xl md:rounded pb-[max(1rem,env(safe-area-inset-bottom))]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="md:hidden pt-3 pb-1 flex justify-center">

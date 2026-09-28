@@ -411,6 +411,18 @@ export default function AccountPage() {
                     }
                   : undefined
               }
+              onMoveUp={
+                isPremium && idx > 0
+                  ? () => layout.moveSection(idx, idx - 1)
+                  : undefined
+              }
+              onMoveDown={
+                isPremium && idx < layout.order.length - 1
+                  ? () => layout.moveSection(idx, idx + 1)
+                  : undefined
+              }
+              canMoveUp={isPremium && idx > 0}
+              canMoveDown={isPremium && idx < layout.order.length - 1}
             >
               {content}
             </CollapsibleSection>
@@ -583,9 +595,62 @@ export default function AccountPage() {
               Free tier
             </p>
             <Title tone="dark">Unlock premium.</Title>
-            <p className="font-body text-lg text-paper/70 mt-4 mb-8">
-              Unlock the detailed macro food tracker, streak protection, multi-purpose timer, kanban board, and to-do list. One payment, yours forever.
-            </p>
+            <div className="font-body text-paper/80 mt-6 mb-8 text-left max-w-xl mx-auto space-y-4">
+              <p>
+                <span className="text-paper font-semibold uppercase tracking-widest text-caption">
+                  🍌 1 streak protection
+                </span>
+                <br />
+                <span className="text-paper/70">
+                  banana skin every 25 days — your streak doesn't break when you slip up.
+                </span>
+              </p>
+              <p>
+                <span className="text-paper font-semibold uppercase tracking-widest text-caption">
+                  💪 16 workout variants
+                </span>
+                <br />
+                <span className="text-paper/70">
+                  to keep the workouts interesting — kettlebell + resistance band adaptations of the same FIT50 A, B, C, D rows. Your gear, your routine.
+                </span>
+              </p>
+              <p>
+                <span className="text-paper font-semibold uppercase tracking-widest text-caption">
+                  📊 Weight projection
+                </span>
+                <br />
+                <span className="text-paper/70">
+                  that has your back — actual weight chart vs calorie-based projection side-by-side. Catches your food-log drift before your love handles tell you.
+                </span>
+              </p>
+              <p>
+                <span className="text-paper font-semibold uppercase tracking-widest text-caption">
+                  🥗 AI food scan (beta)
+                </span>
+                <br />
+                <span className="text-paper/70">
+                  photo a label, or describe your food to get the macros. Edit anything that looks off.
+                </span>
+              </p>
+              <p>
+                <span className="text-paper font-semibold uppercase tracking-widest text-caption">
+                  📖 Adaptive macro tracker
+                </span>
+                <br />
+                <span className="text-paper/70">
+                  set at the start and recalibrate as your body changes.
+                </span>
+              </p>
+              <p>
+                <span className="text-paper font-semibold uppercase tracking-widest text-caption">
+                  ✅ Trackers
+                </span>
+                <br />
+                <span className="text-paper/70">
+                  for Hydration, Projects, Reading list, kanban board — yours forever.
+                </span>
+              </p>
+            </div>
             <Link
               href="/upgrade"
               className="inline-flex items-center justify-center bg-coral text-paper font-body text-sm px-10 py-5 uppercase tracking-wider hover:bg-coral/85 transition-colors"
@@ -629,6 +694,7 @@ function MacroCalculatorInline() {
   const [activity, setActivity] = useState<Activity | null>(null);
   const [goal, setGoal] = useState<Goal>('loss');
   const [diet, setDiet] = useState<Diet>('balanced');
+  const [kbWeight, setKbWeight] = useState('');
   const [results, setResults] = useState<ReturnType<typeof calculateMacros> | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -648,6 +714,9 @@ function MacroCalculatorInline() {
     setActivity(savedProfile.activity);
     setGoal(savedProfile.goal);
     setDiet(savedProfile.diet);
+    if (savedProfile.kettlebell_weight_kg != null) {
+      setKbWeight(String(savedProfile.kettlebell_weight_kg));
+    }
     if (!results) {
       // Burn estimates depend only on weight — recompute from the
       // saved profile so the "Daily activity burn" section shows
@@ -721,6 +790,7 @@ function MacroCalculatorInline() {
         goal,
         diet,
         results: r,
+        kettlebell_weight_kg: kbWeight ? parseFloat(kbWeight) : null,
       });
       if (!saved.ok) {
         setSaveError(saved.error || 'Could not save profile.');
@@ -755,6 +825,28 @@ function MacroCalculatorInline() {
           diet={diet}
           setDiet={setDiet}
         />
+        <div>
+          <label className="block font-body text-caption uppercase tracking-widest text-ink/50 mb-1.5">
+            Kettlebell weight
+          </label>
+          <div className="flex items-center border border-ink/20 bg-paper px-3 py-2 focus-within:border-ink/60">
+            <input
+              type="number"
+              min="1"
+              max="50"
+              step="0.5"
+              value={kbWeight}
+              onChange={(e) => setKbWeight(e.target.value)}
+              placeholder="e.g. 16"
+              className="flex-1 bg-transparent outline-none font-body text-body text-ink placeholder:text-ink/30"
+            />
+            <span className="font-body text-caption text-ink/40 ml-2">kg</span>
+          </div>
+          <p className="mt-1 font-body text-caption text-ink/40">
+            Used for KB exercise kcal estimates.{' '}
+            <span className="text-ink/30">Leave blank for bodyweight only.</span>
+          </p>
+        </div>
       </div>
 
       <div className="flex justify-center md:justify-end mb-6">

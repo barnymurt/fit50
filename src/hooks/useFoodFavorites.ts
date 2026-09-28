@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { createClient } from '@/lib/supabase';
 
@@ -15,39 +15,54 @@ export function useFoodFavorites() {
   const supabase = createClient();
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
   const [loaded, setLoaded] = useState(false);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const refetch = useCallback(async () => {
     if (!user || !supabase) {
-      setFavoriteIds(new Set());
+      if (mountedRef.current) {
+        setFavoriteIds(new Set());
+        setLoaded(true);
+      }
       return;
     }
+    if (mountedRef.current) setLoaded(false);
     const { data, error } = await supabase
       .from('food_favorites')
       .select('food_id')
       .eq('user_id', user.id);
+    if (!mountedRef.current) return;
     if (error) {
       console.error('Failed to fetch favorites:', error);
+      setLoaded(true);
       return;
     }
     setFavoriteIds(new Set(((data as FavoriteRow[]) || []).map((r) => r.food_id)));
+    setLoaded(true);
   }, [user, supabase]);
 
   useEffect(() => {
-    setLoaded(false);
-    refetch().then(() => setLoaded(true));
+    refetch();
   }, [refetch]);
 
   const toggle = useCallback(
     async (foodId: string) => {
       if (!user || !supabase) return;
       const isFav = favoriteIds.has(foodId);
-      // optimistic
-      setFavoriteIds((prev) => {
-        const next = new Set(prev);
-        if (isFav) next.delete(foodId);
-        else next.add(foodId);
-        return next;
-      });
+      if (mountedRef.current) {
+        setFavoriteIds((prev) => {
+          const next = new Set(prev);
+          if (isFav) next.delete(foodId);
+          else next.add(foodId);
+          return next;
+        });
+      }
       if (isFav) {
         const { error } = await supabase
           .from('food_favorites')

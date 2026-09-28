@@ -14,6 +14,7 @@ function linkFor(s: NavSection): string {
 
 export default function AccountNav({ sections }: { sections: NavSection[] }) {
   const [activeId, setActiveId] = useState<string>(sections[0]?.id ?? '');
+  const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
     const anchorIds = sections.filter((s) => !s.href).map((s) => s.id);
@@ -61,33 +62,56 @@ export default function AccountNav({ sections }: { sections: NavSection[] }) {
         </div>
       </nav>
 
-      {/* Desktop: fixed vertical menu on the right side */}
+      {/* Desktop: fixed vertical menu on the right side — collapses to a small tab */}
       <nav
         aria-label="Account sections"
-        className="hidden md:block fixed right-6 top-1/2 -translate-y-1/2 z-40 bg-paper border border-ink/10 p-3 max-h-[70vh] overflow-y-auto"
+        className={`hidden md:flex flex-col fixed right-0 top-1/2 -translate-y-1/2 z-40 transition-all duration-200 ${
+          collapsed
+            ? 'bg-paper border border-ink/10 border-r-0 rounded-l-md'
+            : 'bg-paper border border-ink/10 rounded-l-md p-3 max-h-[70vh] overflow-y-auto'
+        }`}
       >
-        <p className="font-body text-caption uppercase tracking-widest text-ink/40 mb-2 px-2">
-          Jump to
-        </p>
-        <ul className="space-y-1">
-          {sections.map((s) => {
-            const isActive = activeId === s.id;
-            return (
-              <li key={s.id}>
-                <a
-                  href={linkFor(s)}
-                  className={`block px-2 py-1 font-body text-caption uppercase tracking-widest transition-colors border-l-2 ${
-                    isActive
-                      ? 'text-coral border-coral'
-                      : 'text-ink/60 border-transparent hover:text-ink hover:border-ink/20'
-                  }`}
-                >
-                  {s.label}
-                </a>
-              </li>
-            );
-          })}
-        </ul>
+        {/* Collapse toggle */}
+        <button
+          onClick={() => setCollapsed((c) => !c)}
+          aria-label={collapsed ? 'Expand menu' : 'Collapse menu'}
+          className={`flex items-center justify-center text-ink/40 hover:text-ink transition-colors shrink-0 ${
+            collapsed ? 'w-8 h-10' : 'w-full mb-2 h-8'
+          }`}
+        >
+          <span className={`transition-transform duration-200 ${collapsed ? '' : 'rotate-180'}`}>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M9 2L4 7L9 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </span>
+        </button>
+
+        {!collapsed && (
+          <>
+            <p className="font-body text-caption uppercase tracking-widest text-ink/40 mb-2 px-2 shrink-0">
+              Jump to
+            </p>
+            <ul className="space-y-1 overflow-y-auto">
+              {sections.map((s) => {
+                const isActive = activeId === s.id;
+                return (
+                  <li key={s.id}>
+                    <a
+                      href={linkFor(s)}
+                      className={`block px-2 py-1 font-body text-caption uppercase tracking-widest transition-colors border-l-2 ${
+                        isActive
+                          ? 'text-coral border-coral'
+                          : 'text-ink/60 border-transparent hover:text-ink hover:border-ink/20'
+                      }`}
+                    >
+                      {s.label}
+                    </a>
+                  </li>
+                );
+              })}
+            </ul>
+          </>
+        )}
       </nav>
     </>
   );

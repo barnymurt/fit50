@@ -1,0 +1,188 @@
+'use client';
+
+// Shared state for the user's custom foods. Used by FoodSearch
+// (merge into ranked results + "Add custom food" button) and by
+// MyCustomFoodsPanel (list + edit/delete/submit/cancel).
+//
+// Reads once when the user signs in; CRUD methods do optimistic
+// updates so the UI feels instant. Each mutation also refetches the
+// single row from the API so we reconcile against the server's
+// version (timestamps, submitted_at, etc.).
+
+import { useCallback, useEffect, useState } from 'react';
+import { createClient } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
+import { apiFetch } from '@/lib/api-fetch';
+import type { Food } from '@/components/food-database/types';
+
+export interface CustomFoodRow {
+  id: string;
+  name: string;
+  brand: string | null;
+  category: string | null;
+  subcategory: string | null;
+  preparation: string | null;
+  state: string | null;
+  type: string | null;
+  kcal: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  fiber: number;
+  serving_basis: string;
+  standard_serving_grams: number | null;
+  standard_serving_label: string | null;
+  aliases: string[];
+  source: 'manual' | 'llm';
+  submission_status: 'private' | 'pending_review' | 'published' | 'rejected';
+  submitted_at: string | null;
+  /** Photo-flow only. Raw OCR text from the label image so the
+   *  user can audit what the model saw when confidence is low.
+   *  Never sent back to the LLM as a prompt. */
+  description: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CustomFoodCreate {
+  name: string;
+  brand?: string | null;
+  category?: string;
+  subcategory?: string | null;
+  preparation?: string | null;
+  state?: string | null;
+  type?: string;
+  kcal?: number | string;
+  protein?: number | string;
+  carbs?: number | string;
+  fat?: number | string;
+  fiber?: number | string;
+  standard_serving_grams?: number | string;
+  standard_serving_label?: string | null;
+  aliases?: string[];
+  submit_to_community?: boolean;
+  source?: 'manual' | 'llm';
+  /** Photo-flow only. OCR'd raw text — persisted so the user
+   *  can audit what the model saw when confidence is low. */
+  description?: string;
+}
+
+export type CustomFoodPatch = Partial<Omit<CustomFoodCreate, 'submit_to_community'>> & {
+  submission_status?: 'private' | 'pending_review' | 'published' | 'rejected';
+};
+
+function rowToFood(row: CustomFoodRow): Food {
+  return {
+    id: row.id,
+    name: row.name,
+    brand: row.brand ?? null,
+    category: row.category ?? 'Other',
+    subcategory: row.subcategory ?? undefined,
+    type: row.type ?? 'ingredient',
+    kcal: Number(row.kcal ?? 0),
+    protein: Number(row.protein ?? 0),
+    carbs: Number(row.carbs ?? 0),
+    fat: Number(row.fat ?? 0),
+    fiber: Number(row.fiber ?? 0),
+    servingBasis: '100g',
+    standardServingGrams:
+      row.standard_serving_grams != null ? Number(row.standard_serving_grams) : undefined,
+    standardServingLabel: row.standard_serving_label ?? undefined,
+    aliases: Array.isArray(row.aliases) ? row.aliases : [],
+    isCustom: true,
+    customSubmissionStatus: row.submission_status,
+  };
+}
+
+export function useCustomFoods() {
+  const { user } = useAuth();
+  const [rows, setRows] = useState<CustomFoodRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const refresh = useCallback(async () => {
+    if (!user) {
+      setRows([]);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    const res = await apiFetch('/api/foods/custom');
+    if (!res.ok) {
+      console.error('custom foods fetch failed:', res.status);
+      setError('Could not load your foods.');
+      setLoading(false);
+      return;
+    }
+    const data = (await res.json()) as { foods?: CustomFoodRow[] };
+    setRows(data.foods ?? []);
+    setError(null);
+    setLoading(false);
+  }, [user]);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  const create = useCallback(
+    async (input: CustomFoodCreate): Promise<CustomFoodRow> => {
+      const res = await apiFetch('/api/foods/custom', {
+        method: 'POST',
+        body: input,
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.error || `HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      const row = data.food as CustomFoodRow;
+      if (!row) throw new Error('Create returned no row.');
+      setRows((prev) =>
+        prev.some((p) => p.id === row.id) ? prev : [row, ...prev]
+      );
+      return row;
+    },
+    []
+  );
+
+  const update = useCallback(
+    async (id: string, patch: CustomFoodPatch): Promise<CustomFoodRow> => {
+      const res = await apiFetch(`/api/foods/custom/${id}`, {
+        method: 'PATCH',
+        body: patch,
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.error || `HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      const row = data.food as CustomFoodRow;
+      if (!row) throw new Error('Update returned no row.');
+      setRows((prev) => prev.map((r) => (r.id === id ? row : r)));
+      return row;
+    },
+    []
+  );
+
+  const remove = useCallback(async (id: string): Promise<void> => {
+    const res = await apiFetch(`/api/foods/custom/${id}`, {
+      method: 'DELETE',
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data?.error || `HTTP ${res.status}`);
+    }
+    setRows((prev) => prev.filter((r) => r.id !== id));
+  }, []);
+
+  return {
+    rows,
+    foods: rows.map(rowToFood),
+    loading,
+    error,
+    refresh,
+    create,
+    update,
+    remove,
+  };
+}

@@ -22,6 +22,14 @@ export interface MealBundleItem {
 export interface MealBundle {
   id: string;
   name: string;
+  /** Meal slot the bundle belongs to: 'breakfast' | 'lunch' |
+   *  'dinner' | 'snack' | null. Drives the tile colour on the
+   *  dashboard — cream / coral / lavender / teal respectively —
+   *  and is inferred at save time from the picked items, then
+   *  editable via the bundle editor. Null for bundles created
+   *  before the meal column shipped. */
+  meal: string | null;
+  position: number;
   created_at: string;
   last_logged_at: string;
   times_logged: number;
@@ -51,8 +59,13 @@ export function useMealBundles() {
         await Promise.all([
           supabase
             .from('meal_bundles')
-            .select('id, name, created_at, last_logged_at, times_logged')
+            .select('id, name, meal, position, created_at, last_logged_at, times_logged')
             .eq('user_id', user.id)
+            // Manual position wins (lower = earlier). Within the same
+            // position value, recent usage sorts first. New bundles
+            // all have position=0 and land at the bottom in usage
+            // order — a reorder bumps them above.
+            .order('position', { ascending: true })
             .order('last_logged_at', { ascending: false }),
           supabase
             .from('meal_bundle_items')
@@ -75,6 +88,8 @@ export function useMealBundles() {
       const merged: MealBundle[] = (bundleRows ?? []).map((b: any) => ({
         id: b.id,
         name: b.name,
+        meal: b.meal ?? null,
+        position: typeof b.position === 'number' ? b.position : 0,
         created_at: b.created_at,
         last_logged_at: b.last_logged_at,
         times_logged: b.times_logged,
@@ -89,16 +104,23 @@ export function useMealBundles() {
   }, [user]);
 
   // Insert a new bundle (with items). Returns the new id, or null on
-  // failure / unauthenticated.
+  // failure / unauthenticated. The `meal` is the slot the bundle
+  // belongs to (breakfast / lunch / dinner / snack) — null means
+  // "no meal type set" and the tile renders with the neutral
+  // accent.
   const createBundle = useCallback(
-    async (name: string, items: { food_id: string; portion_grams: number }[]): Promise<string | null> => {
+    async (
+      name: string,
+      items: { food_id: string; portion_grams: number }[],
+      meal: string | null = null
+    ): Promise<string | null> => {
       if (!user) return null;
       if (!name.trim() || items.length === 0) return null;
       const supabase = createClient();
       if (!supabase) return null;
       const { data, error } = await supabase
         .from('meal_bundles')
-        .insert({ user_id: user.id, name: name.trim() })
+        .insert({ user_id: user.id, name: name.trim(), meal })
         .select('id')
         .single();
       if (error || !data) {
@@ -123,6 +145,8 @@ export function useMealBundles() {
         {
           id,
           name: name.trim(),
+          meal,
+          position: 0,
           created_at: new Date().toISOString(),
           last_logged_at: new Date().toISOString(),
           times_logged: 0,
@@ -168,14 +192,16 @@ export function useMealBundles() {
     []
   );
 
-  // Update a bundle in place: rename it and/or replace its items.
-  // Replaces the items in one transaction by deleting the old ones
-  // and inserting the new set. We update the local state to match.
+  // Update a bundle in place: rename it, replace its items, and
+  // optionally change the meal slot. Replaces the items in one
+  // transaction by deleting the old ones and inserting the new
+  // set. We update the local state to match.
   const updateBundle = useCallback(
     async (
       id: string,
       name: string,
-      items: { food_id: string; portion_grams: number }[]
+      items: { food_id: string; portion_grams: number }[],
+      meal: string | null | undefined = undefined
     ): Promise<{ ok: boolean; error?: string }> => {
       if (!user) return { ok: false, error: 'Not signed in.' };
       const supabase = createClient();
@@ -184,9 +210,15 @@ export function useMealBundles() {
         return { ok: false, error: 'Bundle needs a name and at least one item.' };
       }
       const trimmed = name.trim();
+      // Only push a meal update if the caller explicitly passed one
+      // (or null). Passing undefined means "don't touch the meal
+      // column" — used when the editor is updating items without
+      // changing the meal.
+      const updates: { name: string; meal?: string | null } = { name: trimmed };
+      if (meal !== undefined) updates.meal = meal;
       const { error: nameErr } = await supabase
         .from('meal_bundles')
-        .update({ name: trimmed })
+        .update(updates)
         .eq('id', id)
         .eq('user_id', user.id);
       if (nameErr) {
@@ -221,6 +253,7 @@ export function useMealBundles() {
             ? {
                 ...b,
                 name: trimmed,
+                ...(meal !== undefined ? { meal } : {}),
                 items: items.map((it, idx) => ({
                   food_id: it.food_id,
                   portion_grams: it.portion_grams,
@@ -246,6 +279,62 @@ export function useMealBundles() {
     []
   );
 
+  // Drag-and-drop reorder: move `movedId` so it takes `targetId`'s
+  // slot in the list. Picks a fractional position between the
+  // target's neighbours (or one below the min if dropping on the
+  // first row) so we never have to renumber every row. The DB
+  // touches only the moved row; local state inserts at the target's
+  // index with the same position so the grid reflects the change
+  // instantly.
+  const moveBundleTo = useCallback(
+    async (movedId: string, targetId: string): Promise<void> => {
+      if (!user || movedId === targetId) return;
+      const supabase = createClient();
+      if (!supabase) return;
+      const { data: rows, error } = await supabase
+        .from('meal_bundles')
+        .select('id, position')
+        .eq('user_id', user.id)
+        .order('position', { ascending: true });
+      if (error) {
+        console.error('useMealBundles: move lookup failed', error);
+        return;
+      }
+      const list = (rows ?? []) as { id: string; position: number }[];
+      if (list.find((r) => r.id === movedId) == null) return;
+      if (list.find((r) => r.id === targetId) == null) return;
+      // Build the list without `movedId` and find where to insert it.
+      const without = list.filter((r) => r.id !== movedId);
+      const insertAt = without.findIndex((r) => r.id === targetId);
+      if (insertAt < 0) return;
+      const before = insertAt > 0 ? without[insertAt - 1].position : null;
+      const after = without[insertAt].position;
+      const newPos = before == null ? after - 1 : (before + after) / 2;
+      const { error: updErr } = await supabase
+        .from('meal_bundles')
+        .update({ position: newPos })
+        .eq('id', movedId)
+        .eq('user_id', user.id);
+      if (updErr) {
+        console.error('useMealBundles: move update failed', updErr);
+        return;
+      }
+      setBundles((prev) => {
+        const moved = prev.find((b) => b.id === movedId);
+        if (!moved) return prev;
+        const rest = prev.filter((b) => b.id !== movedId);
+        const idx = rest.findIndex((b) => b.id === targetId);
+        if (idx < 0) return prev;
+        return [
+          ...rest.slice(0, idx),
+          { ...moved, position: newPos },
+          ...rest.slice(idx),
+        ];
+      });
+    },
+    [user]
+  );
+
   return {
     bundles,
     hydrated: bundlesLoaded,
@@ -253,5 +342,6 @@ export function useMealBundles() {
     updateBundle,
     touchBundle,
     deleteBundle,
+    moveBundleTo,
   };
 }

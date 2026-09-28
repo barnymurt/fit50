@@ -12,25 +12,20 @@ import {
   useDebounced,
   RankedFood,
 } from './search';
-import { useStaples } from '@/hooks/useStaples';
-import {
-  useLocalFoods,
-  filterLocalFoods,
-  mergeFoodResults,
-} from '@/hooks/useLocalFoods';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCustomFoods } from '@/hooks/useCustomFoods';
+import AddCustomFoodModal from './AddCustomFoodModal';
 
 interface Props {
   favorites: Set<string>;
   onPickFood: (food: Food) => void;
-  recentlyLoggedFoods: Food[];
 }
 
 const PAGE_SIZE = 30;
 const REGION_KEY = 'fit50-food-region';
 const BRANDED_KEY = 'fit50-food-show-branded';
 
-export default function FoodSearch({ favorites, onPickFood, recentlyLoggedFoods }: Props) {
+export default function FoodSearch({ favorites, onPickFood }: Props) {
   const { user } = useAuth();
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('all');
@@ -53,7 +48,6 @@ export default function FoodSearch({ favorites, onPickFood, recentlyLoggedFoods 
     if (typeof window === 'undefined') return false;
     return window.localStorage.getItem(BRANDED_KEY) === '1';
   });
-  const { staples, loaded: staplesLoaded } = useStaples(region);
   // Tracks which alias variants the last server query expanded to.
   // When non-empty, the UI shows "Also searched: yoghurt, yogourt"
   // under the input so the user understands why the results differ
@@ -83,6 +77,12 @@ export default function FoodSearch({ favorites, onPickFood, recentlyLoggedFoods 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
+
+  // Per-user custom foods. Shared with MyCustomFoodsPanel via the
+  // useCustomFoods hook — that panel can edit/delete while this one
+  // just reads `foods` to merge into the search results.
+  const { foods: customFoods, create: createCustomFood } = useCustomFoods();
+  const [customOpen, setCustomOpen] = useState(false);
 
   // Reset subcategory when the category changes — a category may
   // not have subcategories at all, or the subcategory list might
@@ -190,6 +190,33 @@ function applyFavouritesSort(foods: Food[], favourites: Set<string>): Food[] {
 
   const hasMore = false; // RPC returns up to PAGE_SIZE; pagination not wired yet.
 
+  // Filter the user's custom foods by the current query — match on
+  // name or aliases (case-insensitive substring). Empty query shows
+  // everything. Then promote them to RankedFood with a tier of 1 so
+  // they sort at the top of favourites-first results, and a small
+  // synthetic score so the server-side ranking considers them.
+  const matchedCustom = useMemo(() => {
+    const q = trimmed.toLowerCase();
+    const filtered = q
+      ? customFoods.filter((f) => {
+          if (f.name.toLowerCase().includes(q)) return true;
+          if (f.aliases?.some((a) => a.toLowerCase().includes(q))) return true;
+          return false;
+        })
+      : customFoods;
+    return filtered.slice(0, 10).map(customFoodToRanked);
+  }, [customFoods, trimmed]);
+
+  // Final results = ranked public foods + user's custom foods.
+  // Dedupes by id (public foods take precedence — custom foods are
+  // only added if the id isn't already in the ranked list).
+  const finalResults = useMemo<RankedFood[]>(() => {
+    const seen = new Set(results.map((r) => r.id));
+    const extras = matchedCustom.filter((c) => !seen.has(c.id));
+    if (extras.length === 0) return results;
+    return [...extras, ...results];
+  }, [results, matchedCustom]);
+
   return (
     <div className="bg-paper border border-ink/15">
       {/* Accordion header */}
@@ -214,11 +241,11 @@ function applyFavouritesSort(foods: Food[], favourites: Set<string>): Food[] {
           </p>
         </div>
         <span className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums shrink-0">
-          {loading && results.length === 0
+          {loading && finalResults.length === 0
             ? 'Searching…'
             : trimmed
-              ? `${results.length} result${
-                  results.length === 1 ? '' : 's'
+              ? `${finalResults.length} result${
+                  finalResults.length === 1 ? '' : 's'
                 }`
               : 'Browse the database'}
         </span>
@@ -238,6 +265,15 @@ function applyFavouritesSort(foods: Food[], favourites: Set<string>): Food[] {
           aria-label="Search foods"
           className="w-full px-3 py-3 bg-paper border-2 border-ink/20 font-body focus:border-ink outline-none"
         />
+        {user && (
+          <button
+            type="button"
+            onClick={() => setCustomOpen(true)}
+            className="mt-2 w-full px-3 py-2 border border-coral/40 text-coral font-body text-caption uppercase tracking-widest hover:bg-coral/5 transition-colors"
+          >
+            + Add custom food
+          </button>
+        )}
         {expandedAliases.length > 0 && (
           <p
             className="font-body text-caption text-ink/60 mt-2"
@@ -321,80 +357,23 @@ function applyFavouritesSort(foods: Food[], favourites: Set<string>): Food[] {
 
       {!open ? null : (
         <>
-          {/* Common foods (curated staples). Always shows at the
-              top before any query so the user has instant hits.
-              Filtered by the selected region via the foods_staples
-              table's `regions` column. */}
-          {staplesLoaded && staples.length > 0 && (
-            <div className="px-6 py-4 border-b border-ink/10">
-              <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-2">
-                Common foods
-              </p>
-              <div className="flex gap-2 overflow-x-auto">
-                {staples.map((s) => (
-                  <button
-                    key={s.id}
-                    onClick={() =>
-                      onPickFood({
-                        id: s.id,
-                        name: s.name,
-                        category: s.category,
-                        type: 'ingredient',
-                        kcal: s.kcal,
-                        protein: s.protein,
-                        carbs: s.carbs,
-                        fat: s.fat,
-                        fiber: s.fiber,
-                        servingBasis: s.servingBasis,
-                        standardServingLabel: s.standardServingLabel,
-                        aliases: s.aliases,
-                      })
-                    }
-                    className="shrink-0 px-3 py-2 border border-ink/20 hover:border-coral hover:bg-coral/5 font-body text-caption uppercase tracking-widest text-ink/70 whitespace-nowrap"
-                  >
-                    {s.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {recentlyLoggedFoods.length > 0 && query === '' && (
-            <div className="px-6 py-4 border-b border-ink/10">
-              <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-2">
-                Recently logged
-              </p>
-              <div className="flex gap-2 overflow-x-auto">
-                {recentlyLoggedFoods.map((f) => (
-                  <button
-                    key={f.id}
-                    onClick={() => onPickFood(f)}
-                    className="shrink-0 px-3 py-2 border border-ink/20 hover:border-coral hover:bg-coral/5 font-body text-caption uppercase tracking-widest text-ink/70 whitespace-nowrap"
-                  >
-                    {f.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
           <div>
             <div className="px-6 py-2 border-b border-ink/10 flex items-baseline justify-between">
               <p className="font-body text-caption uppercase tracking-widest text-ink/40">
                 {trimmed
-                  ? `${results.length} result${
-                      results.length === 1 ? '' : 's'
+                  ? `${finalResults.length} result${
+                      finalResults.length === 1 ? '' : 's'
                     } for "${trimmed}"`
                   : loading
                     ? 'Searching…'
-                    : `Showing ${results.length}`}
+                    : `Showing ${finalResults.length}`}
               </p>
             </div>
             {error ? (
               <p className="px-6 py-6 font-body text-caption uppercase text-coral">
                 {error}
               </p>
-            ) : results.length > 0 ? (
+            ) : finalResults.length > 0 ? (
               <div
                 className="max-h-[420px] overflow-y-scroll"
                 style={{ scrollbarWidth: 'none' }}
@@ -404,7 +383,7 @@ function applyFavouritesSort(foods: Food[], favourites: Set<string>): Food[] {
                   .food-search-scroll { scrollbar-width: none; -ms-overflow-style: none; }
                 `}</style>
                 <ul className="food-search-scroll">
-                  {results.map((f, i) => {
+                  {finalResults.map((f, i) => {
                     const std = getStandardServing(f);
                     const m = std.grams / 100;
                     const stdKcal = Math.round(f.kcal * m);
@@ -413,7 +392,7 @@ function applyFavouritesSort(foods: Food[], favourites: Set<string>): Food[] {
                       <li key={f.id}>
                         <button
                           onClick={() => onPickFood(f)}
-                          className="w-full px-6 py-3 border-b border-ink/10 hover:bg-coral/5 text-left flex items-baseline justify-between gap-3"
+                          className="w-full px-6 py-3 border-b border-ink/10 hover:bg-coral/5 text-left flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-3"
                         >
                           <span className="min-w-0 flex-1">
                             <span className="font-body text-sm text-ink truncate block">
@@ -424,17 +403,24 @@ function applyFavouritesSort(foods: Food[], favourites: Set<string>): Food[] {
                                   {f.brand}
                                 </span>
                               )}
+                              {f.isCustom && (
+                                <span className="ml-2 inline-block px-1.5 py-0.5 text-[10px] uppercase tracking-widest bg-coral/15 text-coral border border-coral/40 align-middle">
+                                  My food
+                                </span>
+                              )}
                             </span>
                             <span className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums">
                               {std.label}
                             </span>
                           </span>
-                          <span className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums shrink-0">
-                            {i === 0 && results.length > 1 && f.score > 0 ? (
-                              <span className="text-coral mr-2">Top match</span>
+                          <span className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums sm:shrink-0 flex flex-col sm:flex-row sm:flex-wrap items-baseline sm:justify-end gap-x-2 gap-y-1 max-w-full">
+                            {i === 0 && finalResults.length > 1 && f.score > 0 ? (
+                              <span className="text-coral">Top match</span>
                             ) : null}
-                            {stdKcal} kcal · {stdProtein}g P
-                            {favorites.has(f.id) ? ' · ★' : ''}
+                            <span>
+                              {stdKcal} kcal · {stdProtein}g P
+                              {favorites.has(f.id) ? ' · ★' : ''}
+                            </span>
                           </span>
                         </button>
                       </li>
@@ -446,7 +432,7 @@ function applyFavouritesSort(foods: Food[], favourites: Set<string>): Food[] {
               <p className="px-6 py-6 font-body text-caption uppercase text-ink/40">
                 Searching…
               </p>
-            ) : results.length === 0 && suggestions.length > 0 ? (
+            ) : finalResults.length === 0 && suggestions.length > 0 ? (
               <div className="px-6 py-5">
                 <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-3">
                   Did you mean
@@ -484,6 +470,59 @@ function applyFavouritesSort(foods: Food[], favourites: Set<string>): Food[] {
           </div>
         </>
       )}
+
+      <AddCustomFoodModal
+        open={customOpen}
+        onClose={() => setCustomOpen(false)}
+        onCreate={async (input) => {
+          // The hook inserts into its own state on success and
+          // returns the row. The modal projects the row to the
+          // shared Food shape via onCreated; we close on resolve.
+          const row = await createCustomFood(input);
+          if (!row) throw new Error('Create returned no row.');
+          return {
+            id: row.id,
+            name: row.name,
+            brand: row.brand ?? null,
+            category: row.category ?? 'Other',
+            subcategory: row.subcategory ?? undefined,
+            type: row.type ?? 'ingredient',
+            kcal: Number(row.kcal ?? 0),
+            protein: Number(row.protein ?? 0),
+            carbs: Number(row.carbs ?? 0),
+            fat: Number(row.fat ?? 0),
+            fiber: Number(row.fiber ?? 0),
+            servingBasis: '100g',
+            standardServingGrams:
+              row.standard_serving_grams != null
+                ? Number(row.standard_serving_grams)
+                : undefined,
+            standardServingLabel: row.standard_serving_label ?? undefined,
+            aliases: Array.isArray(row.aliases) ? row.aliases : [],
+            isCustom: true,
+            customSubmissionStatus: row.submission_status,
+          };
+        }}
+        onCreated={() => {
+          // Hook already updated state. No further action needed —
+          // the search panel re-derives on the next render.
+        }}
+      />
     </div>
   );
+}
+
+// Promote a custom Food to RankedFood so it sits in the same list
+// as the public search results. Custom foods skip tier filtering
+// (always visible to the owner) and rank above public foods so the
+// user's own entries are easy to find.
+function customFoodToRanked(food: Food): RankedFood {
+  return {
+    ...food,
+    brand: food.brand ?? null,
+    regions: null,
+    language: null,
+    tier: 1,
+    score: Number.MAX_SAFE_INTEGER, // pin to top of results
+  };
 }

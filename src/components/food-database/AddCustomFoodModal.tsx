@@ -1,0 +1,1004 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { Food } from './types';
+import {
+  ALL_PROVIDERS,
+  PROVIDERS,
+  detectProvider,
+  type LLMProvider,
+} from '@/lib/llm/providers';
+import type { ExtractedFood } from '@/lib/llm/types';
+import { VISION_CAPABLE_PROVIDERS } from '@/lib/llm/types';
+import { apiFetch } from '@/lib/api-fetch';
+import PhotoFoodScan from './PhotoFoodScan';
+
+// AddCustomFoodModal — owner-only food entry. On save, posts to
+// /api/foods/custom and on success calls `onCreated` with the new
+// food (mapped into the shared Food shape so the search panel can
+// merge it into results).
+//
+// The form auto-fills the standard serving (100 g) when the user
+// hasn't typed one. An `submit_to_community` toggle sets the row to
+// pending_review; a follow-up PATCH with submission_status =
+// 'private' withdraws the submission.
+//
+// The "Or describe it" section above wires the OpenAI auto-fill hook
+// (`/api/foods/custom/extract`). The source field is hard-coded to
+// 'manual' here because the user reviews + edits before saving —
+// flipping it to 'llm' would misrepresent a row the user corrected.
+// A separate audit trail (description, confidence, prompt version)
+// could live on the row later.
+
+interface CreateInput {
+  name: string;
+  brand?: string | null;
+  category?: string;
+  subcategory?: string | null;
+  kcal?: number | string;
+  protein?: number | string;
+  carbs?: number | string;
+  fat?: number | string;
+  fiber?: number | string;
+  standard_serving_grams?: number | string;
+  standard_serving_label?: string | null;
+  aliases?: string[];
+  submit_to_community?: boolean;
+  source?: 'manual' | 'llm';
+}
+
+interface Props {
+  open: boolean;
+  onClose: () => void;
+  /** Called after a successful create so the parent can react
+   *  (insert into its own state, close the modal, etc.). */
+  onCreated?: (food: Food) => void;
+  /** Performs the actual create. Returns the saved Food (or throws). */
+  onCreate: (input: CreateInput) => Promise<Food>;
+  defaultCategory?: string;
+}
+
+interface FormState {
+  name: string;
+  brand: string;
+  category: string;
+  subcategory: string;
+  kcal: string;
+  protein: string;
+  carbs: string;
+  fat: string;
+  fiber: string;
+  standardServingGrams: string;
+  standardServingLabel: string;
+  aliases: string;
+  submitToCommunity: boolean;
+}
+
+const DEFAULT_FORM: FormState = {
+  name: '',
+  brand: '',
+  category: 'Other',
+  subcategory: '',
+  kcal: '',
+  protein: '',
+  carbs: '',
+  fat: '',
+  fiber: '',
+  standardServingGrams: '100',
+  standardServingLabel: '100 g',
+  aliases: '',
+  submitToCommunity: false,
+};
+
+interface ExtractionResult {
+  confidence: 'high' | 'medium' | 'low';
+  notes: string | null;
+}
+
+interface OpenAiKeyStatus {
+  set: boolean;
+  masked: string | null;
+  provider: string | null;
+  providerName: string | null;
+  anthropicWorkspaceId: string | null;
+}
+
+const VISION_PROVIDERS = ALL_PROVIDERS.filter((p) =>
+  VISION_CAPABLE_PROVIDERS.has(p)
+);
+
+const CATEGORY_OPTIONS = [
+  'Other',
+  'Meat & Poultry',
+  'Fish & Seafood',
+  'Eggs',
+  'Dairy',
+  'Milk & Milk Alternatives',
+  'Grains',
+  'Bread & Bakery',
+  'Pasta & Noodles',
+  'Rice & Rice Dishes',
+  'Legumes & Beans',
+  'Vegetables',
+  'Fruits',
+  'Nuts & Seeds',
+  'Oils & Fats',
+  'Condiments & Sauces',
+  'Snacks',
+  'Sweets & Desserts',
+  'Breakfast Foods',
+  'Ready Meals',
+  'Soups',
+  'Salads',
+  'Sandwiches & Wraps',
+  'Pizza & Fast Food',
+  'Beverages',
+  'Protein Foods',
+];
+
+export default function AddCustomFoodModal({
+  open,
+  onClose,
+  onCreate,
+  onCreated,
+  defaultCategory = 'Other',
+}: Props) {
+  const [form, setForm] = useState<FormState>(DEFAULT_FORM);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // LLM auto-fill state. The user types a description; we POST it to
+  // /api/foods/custom/extract which calls gpt-4o-mini with the user's
+  // own OpenAI key, and pre-fills the form fields. The user reviews
+  // before saving.
+  const [extractDescription, setExtractDescription] = useState('');
+  const [extracting, setExtracting] = useState(false);
+  const [extractionResult, setExtractionResult] = useState<ExtractionResult | null>(null);
+  const [extractionError, setExtractionError] = useState<string | null>(null);
+
+  // Photo-flow state — holds the OCR'd raw text from the last
+  // photo so we can persist it on save (audit trail + debugging
+  // aid when confidence is low). Null for typed-description entries.
+  const [photoOcrText, setPhotoOcrText] = useState<string | null>(null);
+
+  // BYOK state — the user's own LLM key + provider. We never display
+  // the secret; only whether it's set + a masked preview. If unset,
+  // the modal shows an inline "add your key" prompt.
+  const [keyStatus, setKeyStatus] = useState<OpenAiKeyStatus | null>(null);
+  const [keyInput, setKeyInput] = useState('');
+  const [keyBusy, setKeyBusy] = useState(false);
+  const [keyError, setKeyError] = useState<string | null>(null);
+  const [keyEditing, setKeyEditing] = useState(false);
+  // Provider the user picks in the dropdown. Auto-detected when they
+  // type a key; the user can override by picking a different one.
+  const [pickedProvider, setPickedProvider] =
+    useState<LLMProvider>('openai');
+  // What the current keyInput looks like — drives the 'Detected:
+  // …' hint next to the dropdown. null when the input is empty.
+  const [detectedProvider, setDetectedProvider] =
+    useState<LLMProvider | null>(null);
+  // Optional Anthropic workspace id for identity-linked keys. Only
+  // shown in the UI when the picked provider is Anthropic.
+  const [anthropicWorkspaceId, setAnthropicWorkspaceId] =
+    useState('');
+
+  // Reset the form each time the modal opens so previous entries
+  // don't bleed across.
+  useEffect(() => {
+    if (open) {
+      setForm({ ...DEFAULT_FORM, category: defaultCategory });
+      setError(null);
+      setSubmitting(false);
+      setExtractDescription('');
+      setExtracting(false);
+      setExtractionResult(null);
+      setExtractionError(null);
+      setPhotoOcrText(null);
+      // Fetch the user's OpenAI key status. We only show the
+      // auto-fill section as fully enabled when a key is on file.
+      setKeyStatus(null);
+      setKeyInput('');
+      setKeyBusy(false);
+      setKeyError(null);
+      setKeyEditing(false);
+      // Don't reset pickedProvider here — the GET below seeds it
+      // from the saved value. Defaulting to 'openai' first then
+      // overriding with the saved provider causes a visible flicker
+      // (and a window where 'openai' is shown even though the user
+      // may have saved MiniMax / Anthropic / Gemini earlier).
+      setDetectedProvider(null);
+      setAnthropicWorkspaceId('');
+      apiFetch('/api/account/llm-key', { method: 'GET' })
+        .then((r) => r.json())
+        .then((data) => {
+          if (data && typeof data.set === 'boolean') {
+            setKeyStatus({
+              set: data.set,
+              masked: data.masked ?? null,
+              provider: data.provider ?? null,
+              providerName: data.provider_name ?? null,
+              anthropicWorkspaceId: data.anthropic_workspace_id ?? null,
+            });
+            // Pre-select the saved provider so the dropdown
+            // matches the next edit, but only if it's a real
+            // provider (avoid setting state to null/undefined).
+            if (data.provider) setPickedProvider(data.provider);
+            if (data.anthropic_workspace_id)
+              setAnthropicWorkspaceId(data.anthropic_workspace_id);
+          }
+        })
+        .catch(() => {
+          // Non-fatal: the user can still use the manual form.
+        });
+    }
+  }, [open, defaultCategory]);
+
+  const handleSaveKey = async () => {
+    if (keyBusy) return;
+    const k = keyInput.trim();
+    if (!k) return;
+    setKeyBusy(true);
+    setKeyError(null);
+    try {
+      const res = await apiFetch('/api/account/llm-key', {
+        method: 'POST',
+        body: {
+          api_key: k,
+          provider: pickedProvider,
+          anthropic_workspace_id:
+            pickedProvider === 'anthropic'
+              ? anthropicWorkspaceId.trim() || null
+              : null,
+        },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data?.error || `HTTP ${res.status}`);
+      }
+      setKeyStatus({
+        set: true,
+        masked: data.masked ?? '••••',
+        provider: data.provider ?? null,
+        providerName: data.provider_name ?? null,
+        anthropicWorkspaceId: data.anthropic_workspace_id ?? null,
+      });
+      setKeyInput('');
+      setKeyEditing(false);
+    } catch (err) {
+      setKeyError(err instanceof Error ? err.message : 'Could not save the key.');
+    } finally {
+      setKeyBusy(false);
+    }
+  };
+
+  const handleClearKey = async () => {
+    if (keyBusy) return;
+    if (
+      typeof window !== 'undefined' &&
+      !window.confirm('Remove your LLM key? Auto-fill will stop working until you add a new one.')
+    ) {
+      return;
+    }
+    setKeyBusy(true);
+    setKeyError(null);
+    try {
+      const res = await apiFetch('/api/account/llm-key', { method: 'DELETE' });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.error || `HTTP ${res.status}`);
+      }
+      setKeyStatus({ set: false, masked: null, provider: null, providerName: null, anthropicWorkspaceId: null });
+      setKeyEditing(false);
+    } catch (err) {
+      setKeyError(err instanceof Error ? err.message : 'Could not clear the key.');
+    } finally {
+      setKeyBusy(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  const update = <K extends keyof FormState>(key: K, value: FormState[K]) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleExtract = async () => {
+    if (extracting) return;
+    const desc = extractDescription.trim();
+    if (!desc) {
+      setExtractionError('Type a description first.');
+      return;
+    }
+    setExtracting(true);
+    setExtractionError(null);
+    setExtractionResult(null);
+    try {
+      const res = await apiFetch('/api/foods/custom/extract', {
+        method: 'POST',
+        body: { description: desc },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        // 412 with code='no_llm_key' means the user hasn't added
+        // a key yet. Surface that as the BYOK prompt instead of a
+        // generic extraction error.
+        if (res.status === 412 && data?.code === 'no_llm_key') {
+          setKeyEditing(true);
+          setKeyError('Add your LLM key below to enable auto-fill.');
+          throw new Error('No LLM key on file.');
+        }
+        throw new Error(data?.error || `HTTP ${res.status}`);
+      }
+      const food = data.food as {
+        name: string;
+        brand: string | null;
+        category: string;
+        subcategory: string | null;
+        kcal: number;
+        protein: number;
+        carbs: number;
+        fat: number;
+        fiber: number;
+        serving_basis: '100g' | '100ml';
+        standard_serving_grams: number | null;
+        standard_serving_label: string | null;
+        aliases: string[];
+        confidence: 'high' | 'medium' | 'low';
+        notes: string | null;
+      };
+      // Populate the manual form fields. The user reviews + edits
+      // before saving.
+      setForm((prev) => ({
+        ...prev,
+        name: food.name || prev.name,
+        brand: food.brand ?? '',
+        category: food.category || prev.category,
+        subcategory: food.subcategory ?? '',
+        kcal: String(food.kcal),
+        protein: String(food.protein),
+        carbs: String(food.carbs),
+        fat: String(food.fat),
+        fiber: String(food.fiber),
+        standardServingGrams: food.standard_serving_grams
+          ? String(food.standard_serving_grams)
+          : '100',
+        standardServingLabel:
+          food.standard_serving_label ?? prev.standardServingLabel,
+        aliases: (food.aliases ?? []).join(', '),
+      }));
+      setExtractionResult({
+        confidence: food.confidence,
+        notes: food.notes,
+      });
+    } catch (err) {
+      setExtractionError(
+        err instanceof Error ? err.message : 'Auto-fill failed.'
+      );
+    } finally {
+      setExtracting(false);
+    }
+  };
+
+const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (submitting) return;
+    setError(null);
+
+    const aliases = form.aliases
+      .split(',')
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+
+    setSubmitting(true);
+    try {
+      const created = await onCreate({
+        name: form.name,
+        brand: form.brand || null,
+        category: form.category || 'Other',
+        subcategory: form.subcategory || null,
+        kcal: form.kcal,
+        protein: form.protein,
+        carbs: form.carbs,
+        fat: form.fat,
+        fiber: form.fiber,
+        standard_serving_grams: form.standardServingGrams,
+        standard_serving_label: form.standardServingLabel,
+        aliases,
+        submit_to_community: form.submitToCommunity,
+        // Photo flow: LLM did all the extraction → 'llm'.
+        // Typed description: user wrote the prose → 'manual'.
+        source: photoOcrText ? 'llm' : 'manual',
+        // Only populated for photo entries; null for typed.
+        ...(photoOcrText ? { description: photoOcrText } : {}),
+      });
+      onCreated?.(created);
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-ink/40 flex items-end md:items-center justify-center md:p-4"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Add a custom food"
+    >
+      {/* overflow-x-hidden is a safety net so a wide child (a long
+          select option, a font-mono key, etc.) can't push the modal
+          wider than the viewport and force horizontal page scroll. */}
+      <div
+        className="bg-paper w-full md:max-w-lg border border-ink/15 max-h-[90vh] overflow-x-hidden overflow-y-auto pb-[max(1rem,env(safe-area-inset-bottom))]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="px-4 md:px-6 pt-5 md:pt-6 pb-2">
+          <div className="flex items-start justify-between gap-4 mb-3">
+            <div>
+              <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-1">
+                Add a food
+              </p>
+              <h3 className="font-display text-h2 text-ink leading-tight">
+                Your food, your macros.
+              </h3>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close"
+              className="font-body text-caption uppercase text-ink/40 hover:text-ink px-2 py-1 transition-colors shrink-0"
+            >
+              ✕
+            </button>
+          </div>
+
+          {/* Photo scan — disabled until the user has an LLM key on
+              file. Same gating as the typed-description path below. */}
+          <PhotoFoodScan
+            disabled={keyStatus?.set === false}
+            disabledReason="Add your AI key below to unlock photo scanning."
+            onExtracted={(food, meta) => {
+              setForm((prev) => ({
+                ...prev,
+                name: food.name || prev.name,
+                brand: food.brand ?? '',
+                category: food.category || prev.category,
+                subcategory: food.subcategory ?? '',
+                kcal: String(food.kcal),
+                protein: String(food.protein),
+                carbs: String(food.carbs),
+                fat: String(food.fat),
+                fiber: String(food.fiber),
+                standardServingGrams: food.standard_serving_grams
+                  ? String(food.standard_serving_grams)
+                  : '100',
+                standardServingLabel:
+                  food.standard_serving_label ?? prev.standardServingLabel,
+                aliases: (food.aliases ?? []).join(', '),
+              }));
+              setExtractionResult({
+                confidence: food.confidence,
+                notes: food.notes,
+              });
+              setPhotoOcrText(meta.ocrText);
+              setExtractionError(null);
+            }}
+          />
+
+          <div className="mb-4 p-3 bg-cream/30 border border-ink/15">
+            <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-2">
+              Or describe it
+            </p>
+            <textarea
+              value={extractDescription}
+              onChange={(e) => setExtractDescription(e.target.value)}
+              placeholder="e.g. homemade granola with oats, honey, almonds, and a bit of olive oil"
+              rows={2}
+              className="w-full px-3 py-2 bg-paper border-2 border-ink/20 font-body focus:border-coral outline-none text-sm"
+            />
+            <div className="flex items-center gap-2 mt-2 flex-wrap">
+              <button
+                type="button"
+                onClick={handleExtract}
+                disabled={extracting || !extractDescription.trim() || keyStatus?.set === false}
+                className="px-3 py-2 border border-coral text-coral font-body text-caption uppercase tracking-widest hover:bg-coral/5 transition-colors disabled:opacity-50"
+              >
+                {extracting ? 'Asking AI…' : 'Auto-fill macros'}
+              </button>
+              {keyStatus?.set ? (
+                <span className="font-body text-caption text-ink/40 inline-flex items-center gap-2 flex-wrap">
+                  Uses your {keyStatus.providerName ?? 'LLM'} key ({keyStatus.masked}).
+                  <button
+                    type="button"
+                    onClick={() => setKeyEditing(true)}
+                    className="font-body text-caption uppercase tracking-widest text-coral hover:text-coral/85 underline underline-offset-2"
+                  >
+                    Edit
+                  </button>
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setKeyEditing(true)}
+                  className="font-body text-caption uppercase tracking-widest text-coral hover:text-coral/85 underline underline-offset-2"
+                >
+                  Add your LLM key
+                </button>
+              )}
+            </div>
+
+            {(keyEditing || !keyStatus?.set) && (
+              <div className="mt-3 p-3 border border-ink/15 bg-paper">
+                <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-2">
+                  Your LLM key
+                </p>
+                <p className="font-body text-sm text-ink/80 mb-2 leading-relaxed">
+                  This is your personal API key from an AI provider (OpenAI,
+                  Anthropic, Google, or Perplexity). Think of it like a
+                  password — only you have it, and we never see it. We just
+                  borrow it on your behalf to look up nutrition facts.
+                </p>
+                <p className="font-body text-sm text-ink/60 mb-3 leading-relaxed">
+                  <span className="font-semibold text-ink">Why bother?</span> No
+                  more squinting at food labels like the macro police. Snap a
+                  photo, let the AI do the number crunching, and get that time
+                  back for something better — like actually eating the food
+                  with friends.
+                </p>
+                <p className="font-body text-sm text-ink/50 mb-3">
+                  Need help finding your key?{' '}
+                  <a
+                    href="https://fit50challenge.io"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-coral underline underline-offset-2"
+                  >
+                    See the setup guide
+                  </a>{' '}
+                  — it takes about 2 minutes. Choose OpenAI or Perplexity for
+                  the smoothest experience.
+                </p>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:flex-wrap mb-2">
+                  <label className="font-body text-caption uppercase tracking-widest text-ink/50">
+                    Provider
+                  </label>
+                  <select
+                    value={pickedProvider}
+                    onChange={(e) =>
+                      setPickedProvider(e.target.value as LLMProvider)
+                    }
+                    aria-label="LLM provider"
+                    className="w-full sm:w-auto sm:max-w-[200px] px-2 py-2 bg-paper border-2 border-ink/20 font-body text-sm focus:border-coral outline-none"
+                  >
+                    {VISION_PROVIDERS.map((p) => (
+                      <option key={p} value={p}>
+                        {PROVIDERS[p].name}
+                        {p === 'openai' ? ' — popular, great for photos' : ''}
+                        {p === 'perplexity' ? ' — great for photos' : ''}
+                        {p === 'gemini' ? ' — good for photos' : ''}
+                        {p === 'anthropic' ? ' — great for photos' : ''}
+                      </option>
+                    ))}
+                  </select>
+                  {detectedProvider &&
+                    detectedProvider !== pickedProvider &&
+                    VISION_CAPABLE_PROVIDERS.has(detectedProvider) && (
+                      <span className="font-body text-caption text-ink/50">
+                        Detected: {PROVIDERS[detectedProvider].name}
+                      </span>
+                    )}
+                </div>
+                {/* Key input full-width on its own row. Buttons stack
+                    full-width below on mobile so a long key + 3
+                    buttons never overflow the modal width. */}
+                <div className="flex flex-col gap-2">
+                  <input
+                    type="password"
+                    value={keyInput}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setKeyInput(v);
+                      const detected = v.trim() ? detectProvider(v) : null;
+                      setDetectedProvider(detected);
+                    }}
+                    placeholder="sk-..., sk-ant-..., pp-..., AIza..."
+                    autoComplete="off"
+                    className="w-full min-w-0 px-3 py-2 bg-paper border-2 border-ink/20 font-mono text-sm focus:border-coral outline-none"
+                  />
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <button
+                      type="button"
+                      onClick={handleSaveKey}
+                      disabled={keyBusy || !keyInput.trim()}
+                      className="sm:flex-1 px-3 py-2 bg-ink text-paper font-body text-caption uppercase tracking-widest disabled:opacity-50"
+                    >
+                      {keyBusy ? 'Saving…' : 'Save key'}
+                    </button>
+                    {keyStatus?.set && (
+                      <button
+                        type="button"
+                        onClick={handleClearKey}
+                        disabled={keyBusy}
+                        className="sm:flex-1 px-3 py-2 border border-ink/20 font-body text-caption uppercase tracking-widest text-ink/60 hover:border-ink hover:text-ink transition-colors disabled:opacity-50"
+                      >
+                        Remove
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setKeyEditing(false);
+                        setKeyInput('');
+                        setKeyError(null);
+                      }}
+                      className="sm:flex-1 px-3 py-2 font-body text-caption uppercase tracking-widest text-ink/40 hover:text-ink transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+                {pickedProvider === 'anthropic' && (
+                  <div className="mt-3">
+                    <label className="block">
+                      <span className="font-body text-caption uppercase tracking-widest text-ink/50 mb-1 block">
+                        Anthropic workspace id{' '}
+                        <span className="text-ink/40 normal-case">(optional)</span>
+                      </span>
+                      <input
+                        type="text"
+                        value={anthropicWorkspaceId}
+                        onChange={(e) =>
+                          setAnthropicWorkspaceId(e.target.value)
+                        }
+                        placeholder="ws-..."
+                        autoComplete="off"
+                        className="w-full px-3 py-2 bg-paper border-2 border-ink/20 font-mono text-sm focus:border-coral outline-none"
+                      />
+                    </label>
+                    <p className="font-body text-caption text-ink/50 mt-1">
+                      Only needed if your organisation has a dedicated
+                      Anthropic account. Most people can leave this blank.
+                    </p>
+                  </div>
+                )}
+                {keyError && (
+                  <p className="font-body text-caption text-coral mt-2">
+                    {keyError}
+                  </p>
+                )}
+              </div>
+            )}
+            {extractionError && (
+              <p className="font-body text-caption text-coral mt-2">
+                {extractionError}
+              </p>
+            )}
+            {extractionResult && (
+              <div
+                className={`mt-2 px-3 py-2 border text-sm ${
+                  extractionResult.confidence === 'high'
+                    ? 'border-teal/40 bg-teal/10 text-ink'
+                    : extractionResult.confidence === 'medium'
+                    ? 'border-ink/30 bg-ink/5 text-ink'
+                    : 'border-coral/40 bg-coral/10 text-ink'
+                }`}
+              >
+                <p className="font-body text-caption uppercase tracking-widest text-ink/60">
+                  AI-filled · confidence {extractionResult.confidence}
+                </p>
+                {extractionResult.notes && (
+                  <p className="mt-1 font-body text-ink/80">
+                    {extractionResult.notes}
+                  </p>
+                )}
+                <p className="mt-1 font-body text-caption text-ink/50">
+                  Verify the numbers below — they're best-effort estimates.
+                </p>
+              </div>
+            )}
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <Field label="Name" required>
+              <input
+                value={form.name}
+                onChange={(e) => update('name', e.target.value)}
+                placeholder="e.g. Homemade granola"
+                required
+                className="w-full px-3 py-2 bg-paper border-2 border-ink/20 font-body focus:border-coral outline-none"
+              />
+            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Brand (optional)">
+                <input
+                  value={form.brand}
+                  onChange={(e) => update('brand', e.target.value)}
+                  placeholder="e.g. Backer's"
+                  className="w-full px-3 py-2 bg-paper border-2 border-ink/20 font-body focus:border-coral outline-none"
+                />
+              </Field>
+              <Field label="Category">
+                <select
+                  value={form.category}
+                  onChange={(e) => update('category', e.target.value)}
+                  className="w-full px-3 py-2 bg-paper border-2 border-ink/20 font-body focus:border-coral outline-none"
+                >
+                  {CATEGORY_OPTIONS.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            </div>
+            <Field label="Subcategory (optional)">
+              <input
+                value={form.subcategory}
+                onChange={(e) => update('subcategory', e.target.value)}
+                placeholder="e.g. Cookies"
+                className="w-full px-3 py-2 bg-paper border-2 border-ink/20 font-body focus:border-coral outline-none"
+              />
+            </Field>
+
+            {/* Macros per 100g — the single source of truth for this
+                food's nutrition. Scaling to any portion happens via
+                (logged grams / 100) × these values. The header
+                explicitly states what these numbers represent so
+                users don't conflate them with the default-portion
+                fields below. */}
+            <div className="pt-2">
+              <p className="font-body text-caption uppercase tracking-widest text-ink/60">
+                Macros per 100 g
+              </p>
+              <p className="font-body text-xs text-ink/50 mt-1 mb-3 leading-relaxed">
+                These are the values on the nutrition label. We scale to whatever
+                portion you log (e.g. log 50 g, you get half of these).
+              </p>
+              <div className="grid grid-cols-5 gap-2">
+                <MacroInput
+                  label="kcal"
+                  value={form.kcal}
+                  onChange={(v) => update('kcal', v)}
+                />
+                <MacroInput
+                  label="P"
+                  value={form.protein}
+                  onChange={(v) => update('protein', v)}
+                />
+                <MacroInput
+                  label="C"
+                  value={form.carbs}
+                  onChange={(v) => update('carbs', v)}
+                />
+                <MacroInput
+                  label="F"
+                  value={form.fat}
+                  onChange={(v) => update('fat', v)}
+                />
+                <MacroInput
+                  label="Fib"
+                  value={form.fiber}
+                  onChange={(v) => update('fiber', v)}
+                />
+              </div>
+            </div>
+
+            {/* Default portion — what pre-fills the log modal when you
+                tap this food. Doesn't change the per-100g values
+                above; it just tells us what a typical serving is. The
+                live preview line below scales the per-100g macros to
+                the chosen portion so the connection is visible. */}
+            <div className="pt-4 border-t border-ink/10">
+              <p className="font-body text-caption uppercase tracking-widest text-ink/60">
+                Default portion (optional)
+              </p>
+              <p className="font-body text-xs text-ink/50 mt-1 mb-3 leading-relaxed">
+                Pre-fills the portion picker when you log this food. Leave on the
+                defaults if you're not sure — it falls back to 100 g.
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Portion weight (g)">
+                  <input
+                    type="number"
+                    min={1}
+                    value={form.standardServingGrams}
+                    onChange={(e) => update('standardServingGrams', e.target.value)}
+                    placeholder="100"
+                    className="w-full px-3 py-2 bg-paper border-2 border-ink/20 font-body focus:border-coral outline-none"
+                  />
+                </Field>
+                <Field label="Display label">
+                  <input
+                    value={form.standardServingLabel}
+                    onChange={(e) => update('standardServingLabel', e.target.value)}
+                    placeholder="e.g. 1 biscuit, 1 scoop, 100 g"
+                    className="w-full px-3 py-2 bg-paper border-2 border-ink/20 font-body focus:border-coral outline-none"
+                  />
+                </Field>
+              </div>
+              {/* Live preview — exactly what one default portion will
+                  log as. Closes the loop between "macros per 100g" and
+                  "default portion grams". Hidden when calories are
+                  empty (nothing to scale yet). */}
+              <DefaultPortionPreview
+                kcalPer100={form.kcal}
+                proteinPer100={form.protein}
+                carbsPer100={form.carbs}
+                fatPer100={form.fat}
+                portionGrams={form.standardServingGrams}
+                portionLabel={form.standardServingLabel}
+              />
+            </div>
+
+            <Field label="Aliases (comma-separated, optional)">
+              <input
+                value={form.aliases}
+                onChange={(e) => update('aliases', e.target.value)}
+                placeholder="granola bar, oat clusters"
+                className="w-full px-3 py-2 bg-paper border-2 border-ink/20 font-body focus:border-coral outline-none"
+              />
+            </Field>
+
+            <label className="flex items-center gap-2 pt-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={form.submitToCommunity}
+                onChange={(e) => update('submitToCommunity', e.target.checked)}
+                className="w-4 h-4"
+              />
+              <span className="font-body text-sm text-ink">
+                Submit to the community — admins will review for the
+                shared database.
+              </span>
+            </label>
+
+            {error && (
+              <p className="font-body text-caption text-coral">{error}</p>
+            )}
+
+            <div className="flex flex-col sm:flex-row gap-2 pt-4">
+              <button
+                type="submit"
+                disabled={submitting || !form.name.trim()}
+                className="flex-1 bg-ink text-paper font-body text-caption uppercase tracking-widest px-4 py-3 disabled:opacity-50"
+              >
+                {submitting ? 'Saving…' : 'Save food'}
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="font-body text-caption uppercase tracking-widest text-ink/40 hover:text-ink border border-ink/20 px-4 py-3 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Field({
+  label,
+  required,
+  children,
+}: {
+  label: string;
+  required?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="block">
+      <span className="font-body text-caption uppercase tracking-widest text-ink/50 mb-1 block">
+        {label}
+        {required && <span className="text-coral ml-1">*</span>}
+      </span>
+      {children}
+    </label>
+  );
+}
+
+function MacroInput({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <label className="block">
+      <span className="font-body text-caption uppercase tracking-widest text-ink/50 mb-1 block">
+        {label}
+      </span>
+      <input
+        type="number"
+        min={0}
+        step="0.1"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="0"
+        className="w-full min-w-0 px-1.5 md:px-2 py-2 bg-paper border-2 border-ink/20 font-body text-sm focus:border-coral outline-none"
+      />
+    </label>
+  );
+}
+
+// Live preview of one default portion. Closes the loop between the
+// per-100g macros above and the default-portion fields by showing
+// exactly what the food will log as when the user opens it later.
+// Hidden when calories are empty (nothing to scale yet) or the
+// portion weight is invalid.
+function DefaultPortionPreview({
+  kcalPer100,
+  proteinPer100,
+  carbsPer100,
+  fatPer100,
+  portionGrams,
+  portionLabel,
+}: {
+  kcalPer100: string;
+  proteinPer100: string;
+  carbsPer100: string;
+  fatPer100: string;
+  portionGrams: string;
+  portionLabel: string;
+}) {
+  const kcal = Number(kcalPer100);
+  const protein = Number(proteinPer100);
+  const carbs = Number(carbsPer100);
+  const fat = Number(fatPer100);
+  const grams = Number(portionGrams);
+  if (
+    !Number.isFinite(kcal) ||
+    kcal <= 0 ||
+    !Number.isFinite(grams) ||
+    grams <= 0
+  ) {
+    return null;
+  }
+  const ratio = grams / 100;
+  const portionKcal = Math.round(kcal * ratio);
+  const portionP = Math.round(protein * ratio * 10) / 10;
+  const portionC = Math.round(carbs * ratio * 10) / 10;
+  const portionF = Math.round(fat * ratio * 10) / 10;
+  const displayLabel = portionLabel.trim() || `${grams} g`;
+  return (
+    <p className="font-body text-caption text-ink/50 mt-2 leading-relaxed">
+      <span className="text-ink/70">One {displayLabel} logs as:</span>{' '}
+      <span className="tabular-nums text-ink">{portionKcal} kcal</span>
+      {Number.isFinite(protein) && protein > 0 && (
+        <>
+          {' · '}
+          <span className="tabular-nums text-ink">{portionP}g P</span>
+        </>
+      )}
+      {Number.isFinite(carbs) && carbs > 0 && (
+        <>
+          {' · '}
+          <span className="tabular-nums text-ink">{portionC}g C</span>
+        </>
+      )}
+      {Number.isFinite(fat) && fat > 0 && (
+        <>
+          {' · '}
+          <span className="tabular-nums text-ink">{portionF}g F</span>
+        </>
+      )}
+    </p>
+  );
+}

@@ -40,7 +40,19 @@ export interface TrackerDataV2 {
   pendingTapsDateKey: string | null;
   pendingTaps: Record<string, boolean>;
   closedDays: Record<number, Record<string, boolean>>;
-  streakUsedWeekKeys: string[];
+  /**
+   * Per-week map of the day number that was protected (keyed by
+   * the week-start YYYY-MM-DD). Lets the `days[]` calculation mark a
+   * specific day as `'protected'` so the streak continues past the
+   * protected day instead of resetting.
+   */
+  protectedDays: Record<string, number>;
+  /**
+   * Day number of the most recent streak protection redemption.
+   * Drives the 25-day cooldown — premium users get one protection
+   * per 25 days. Reset on full tracker reset.
+   */
+  lastProtectionDay: number | null;
   waterByDate: Record<string, number>;
   /**
    * Outbox for past-day edits. Every `toggleHabitForDay` appends an
@@ -182,7 +194,8 @@ export function migrateV1ToV2(now: Date = new Date()): TrackerDataV2 | null {
     pendingTapsDateKey: null,
     pendingTaps: {},
     closedDays,
-    streakUsedWeekKeys: [],
+    protectedDays: {},
+    lastProtectionDay: null,
     waterByDate: {},
     pendingSync: [],
   };
@@ -195,7 +208,8 @@ export function emptyTrackerV2(): TrackerDataV2 {
     pendingTapsDateKey: null,
     pendingTaps: {},
     closedDays: {},
-    streakUsedWeekKeys: [],
+    protectedDays: {},
+    lastProtectionDay: null,
     waterByDate: {},
     pendingSync: [],
   };

@@ -73,6 +73,49 @@ export function estimateWorkoutKcal(weightKg: number): number {
   return workoutKcal(weightKg);
 }
 
+function calculateBmrMifflinStJeor(
+  age: number,
+  sex: 'male' | 'female',
+  heightCm: number,
+  weightKg: number
+): number {
+  if (sex === 'male') {
+    return 10 * weightKg + 6.25 * heightCm - 5 * age + 5;
+  } else {
+    return 10 * weightKg + 6.25 * heightCm - 5 * age - 161;
+  }
+}
+
+function parseRepsDuration(reps: string): number {
+  const timeMatch = reps.match(/(\d+)\s*[×x]\s*(\d+)s/);
+  if (timeMatch) {
+    const sets = parseInt(timeMatch[1], 10);
+    const seconds = parseInt(timeMatch[2], 10);
+    return sets * seconds;
+  }
+  const match = reps.match(/(\d+)\s*[×x]\s*(\d+)/);
+  if (!match) return 60;
+  const sets = parseInt(match[1], 10);
+  const repsPerSet = parseInt(match[2], 10);
+  const isPerSide = reps.toLowerCase().includes('/side');
+  const totalReps = isPerSide ? sets * repsPerSet * 2 : sets * repsPerSet;
+  return Math.round(totalReps * 3);
+}
+
+export function estimateExerciseKcal(params: {
+  age: number;
+  sex: 'male' | 'female';
+  heightCm: number;
+  weightKg: number;
+  met: number;
+  reps: string;
+}): number {
+  const { age, sex, heightCm, weightKg, met, reps } = params;
+  const bmr = calculateBmrMifflinStJeor(age, sex, heightCm, weightKg);
+  const durationMin = parseRepsDuration(reps) / 60;
+  return Math.round((bmr / 1440) * met * durationMin);
+}
+
 function steps10kKcal(weightKg: number): number {
   const hours = (STEPS_KM_PER_10K / STEPS_KM_PER_HOUR);
   return STEPS_MET * weightKg * hours;
@@ -166,3 +209,59 @@ export function cmToFtIn(cm: number): { feet: number; inches: number } {
   const inches = Math.round(totalInches - feet * 12);
   return { feet, inches: inches === 12 ? 0 : inches };
 }
+
+const KB_WEIGHT_BASE_KG = 8; // standard reference weight for KB MET values
+const KB_WEIGHT_MAX_MULT = 1.5; // cap the load multiplier
+
+export function adjustMetForLoad(baseMet: number, kbWeightKg: number | null): number {
+  if (kbWeightKg == null || kbWeightKg <= 0) return baseMet;
+  const ratio = kbWeightKg / KB_WEIGHT_BASE_KG;
+  const mult = Math.min(ratio, KB_WEIGHT_MAX_MULT);
+  return baseMet * mult;
+}
+
+export const KB_EXERCISE_MET: Record<string, number> = {
+  'KB Floor Press': 4.5,
+  'KB Strict Press': 4.5,
+  'KB Push Press': 5.0,
+  'KB Z Press': 4.5,
+  'KB Halo': 3.5,
+  'KB Bent-Over Row': 5.0,
+  'KB Single-Arm Row': 5.0,
+  'KB High Pull': 6.0,
+  'KB Gorilla Row': 6.0,
+  'KB Goblet Squat Pulses': 5.5,
+  'KB Goblet Squat': 5.0,
+  'KB Romanian Deadlift': 5.5,
+  'KB Reverse Lunge': 5.0,
+  'KB Cossack Squat': 5.5,
+  "KB Farmer's Carry": 5.0,
+  'KB Clean and Press': 6.0,
+  'KB Thruster': 5.5,
+  'KB Snatch': 6.5,
+  'KB Clean': 5.5,
+  'KB Snatches': 6.5,
+};
+
+export const BAND_EXERCISE_MET: Record<string, number> = {
+  'RB Chest Press': 4.0,
+  'RB Overhead Press': 4.0,
+  'RB Chest Fly': 3.5,
+  'RB Lateral Raise': 3.5,
+  'Banded High Knees': 6.0,
+  'RB Seated Row': 4.5,
+  'RB Bent-Over Row': 4.5,
+  'RB Face Pull': 3.5,
+  'RB Bicep Curl': 3.0,
+  'Banded Jumping Jacks': 6.0,
+  'RB Banded Squat': 4.5,
+  'RB Banded Deadlift': 4.5,
+  'RB Lateral Band Walk': 4.0,
+  'RB Glute Kickback': 3.5,
+  'Banded Skater Jumps': 6.5,
+  'RB Thruster': 5.0,
+  'RB Burpee': 8.0,
+  'RB Clean and Press': 5.5,
+  'RB Renegade Row': 5.0,
+  'Banded Fast Punches': 5.5,
+};

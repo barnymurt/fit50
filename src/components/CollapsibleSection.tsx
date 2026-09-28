@@ -30,6 +30,17 @@ interface CollapsibleSectionProps {
   onDragLeave?: () => void;
   onDrop?: (side: 'before' | 'after') => void;
   onDragEnd?: () => void;
+  /**
+   * Mobile-only fallback. HTML5 drag-and-drop doesn't fire on touch
+   * devices, so on mobile we expose ↑/↓ buttons in the header. Both
+   * fire on every device — the parent is responsible for hiding them
+   * on desktop if it wants to keep the drag-only UX.
+   */
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
+  /** Disable the up/down buttons when at the list edges. */
+  canMoveUp?: boolean;
+  canMoveDown?: boolean;
   children: React.ReactNode;
 }
 
@@ -46,6 +57,10 @@ export default function CollapsibleSection({
   onDragLeave,
   onDrop,
   onDragEnd,
+  onMoveUp,
+  onMoveDown,
+  canMoveUp = true,
+  canMoveDown = true,
   children,
 }: CollapsibleSectionProps) {
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
@@ -103,7 +118,7 @@ export default function CollapsibleSection({
   return (
     <div
       id={id}
-      className={`relative ${isDragging ? 'opacity-40' : ''} transition-opacity`}
+      className={`relative scroll-mt-28 md:scroll-mt-0 ${isDragging ? 'opacity-40' : ''} transition-opacity`}
       data-section-id={id}
       data-section-draggable={draggable ? 'true' : undefined}
     >
@@ -140,10 +155,41 @@ export default function CollapsibleSection({
           <span
             aria-hidden="true"
             data-drag-handle="true"
-            className="font-body text-ink/50 text-lg leading-none select-none px-1"
+            className="font-body text-ink/50 text-lg leading-none select-none px-1 hidden md:inline"
           >
             ≡
           </span>
+        )}
+        {/* Mobile-only up/down reorder. HTML5 drag-and-drop
+            doesn't fire on touch devices, so we expose these tap
+            targets instead. Hidden on md+ where drag works. */}
+        {draggable && (onMoveUp || onMoveDown) && (
+          <div className="flex items-center gap-1 md:hidden">
+            {onMoveUp && (
+              <button
+                type="button"
+                onClick={onMoveUp}
+                disabled={!canMoveUp}
+                aria-label={`Move ${title} up`}
+                title={canMoveUp ? 'Move up' : 'Already at top'}
+                className="font-body text-ink/60 hover:text-coral disabled:opacity-30 disabled:cursor-not-allowed text-base leading-none px-2 py-1 transition-colors"
+              >
+                ↑
+              </button>
+            )}
+            {onMoveDown && (
+              <button
+                type="button"
+                onClick={onMoveDown}
+                disabled={!canMoveDown}
+                aria-label={`Move ${title} down`}
+                title={canMoveDown ? 'Move down' : 'Already at bottom'}
+                className="font-body text-ink/60 hover:text-coral disabled:opacity-30 disabled:cursor-not-allowed text-base leading-none px-2 py-1 transition-colors"
+              >
+                ↓
+              </button>
+            )}
+          </div>
         )}
         <button
           type="button"

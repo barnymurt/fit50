@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePremium } from './usePremium';
 import { createClient } from '@/lib/supabase';
 import {
   CHALLENGE_DAYS,
@@ -28,6 +29,44 @@ import { HABIT_COUNT } from '@/lib/habits';
  * here for environments where it isn't (older Safari, some test
  * runners).
  */
+// Pull a readable description out of any error shape — Supabase
+// errors come back as plain PostgrestError objects with {message,
+// code, details, hint} rather than as Error instances. Earlier
+// we only checked `err instanceof Error`, which produced
+// "unknown error" for every server-side failure and lost the
+// reason the user actually needed to see.
+function describeError(err: unknown): string {
+  if (err == null) return 'no error';
+  if (err instanceof Error) return err.message || err.name || 'Error';
+  if (typeof err === 'string') return err;
+  if (typeof err === 'object') {
+    const e = err as {
+      message?: string;
+      code?: string;
+      details?: string;
+      hint?: string;
+      error_description?: string;
+    };
+    // Postgrest/SQL error message is the most actionable. Include
+    // the SQL code so the user can search for it.
+    const parts: string[] = [];
+    if (e.message) parts.push(e.message);
+    else if (e.details) parts.push(e.details);
+    else if (e.hint) parts.push(e.hint);
+    if (e.code && parts[0] && !parts[0].includes(e.code)) {
+      return `${parts[0]} (code ${e.code})`;
+    }
+    if (parts.length > 0) return parts[0];
+    if (e.error_description) return e.error_description;
+    try {
+      return JSON.stringify(err);
+    } catch {
+      return 'non-serializable error';
+    }
+  }
+  return String(err);
+}
+
 function newPendingSyncId(): string {
   try {
     if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
@@ -47,13 +86,18 @@ const TICKER_INTERVAL_MS = 60_000;
  * refetch their Supabase caches instead of showing stale data.
  */
 export const TRACKER_RESET_EVENT = 'fit50-tracker-reset';
+export const STREAK_PROTECTION_USED_EVENT = 'fit50-streak-protection-used';
 
 export interface TrackerDay {
   dayNumber: number;
   dateKey: string;
   taps: Record<string, boolean>;
   completedCount: number;
-  status: 'future' | 'today' | 'past-incomplete' | 'complete';
+  /** 'protected' = streak protection was used for this day so
+   *  the streak continues past it without counting as a complete
+   *  day. Renders as a banana icon in the chip strip; counted as
+   *  continuing in `calculateStreak`. */
+  status: 'future' | 'today' | 'past-incomplete' | 'complete' | 'protected';
 }
 
 function localDateKey(): string {
@@ -132,6 +176,7 @@ function reconcileStalePendingTaps(
  */
 export function useTrackerState() {
   const { user, loading: authLoading } = useAuth();
+  const { isPremium } = usePremium();
   const supabase = createClient();
 
   const [data, setData] = useState<TrackerDataV2>(() => emptyTrackerV2());
@@ -250,19 +295,28 @@ export function useTrackerState() {
 
         let success = false;
         try {
-          await (supabase.from('daily_totals') as any).upsert(
-            deduped.map((e) => ({
-              user_id: user.id,
-              day_number: e.dayNumber,
-              habit_id: e.habitId,
-              completed: e.completed,
-              archived_at: new Date().toISOString(),
-            })),
-            { onConflict: 'user_id,day_number,habit_id' }
-          );
+          const { error } = await (supabase.from('daily_totals') as any)
+            .upsert(
+              deduped.map((e) => ({
+                user_id: user.id,
+                day_number: e.dayNumber,
+                habit_id: e.habitId,
+                completed: e.completed,
+                archived_at: new Date().toISOString(),
+              })),
+              { onConflict: 'user_id,day_number,habit_id' }
+            );
+          if (error) throw error;
           success = true;
         } catch (err) {
           console.error('pendingSync drain failed:', err);
+          // Don't loop forever — surface the error to the user
+          // and break out. The entries stay in pendingSync so a
+          // retry on next interaction will pick them up.
+          throw new Error(
+            `Couldn't sync habit changes to your account (${describeError(err)}). ` +
+              `Tap a habit to retry.`
+          );
         }
         if (!success) break;
 
@@ -323,7 +377,7 @@ export function useTrackerState() {
       // before signup).
       const localLoaded = loadTrackerV2(new Date());
       const localPending = localLoaded?.pendingTaps ?? {};
-      const localStreakKeys = localLoaded?.streakUsedWeekKeys ?? [];
+      const localLastProtectionDay = localLoaded?.lastProtectionDay ?? null;
       const localPendingDateKey = localLoaded?.pendingTapsDateKey ?? null;
       const localWater = localLoaded?.waterByDate ?? {};
       const localClosedDays: Record<number, Record<string, boolean>> =
@@ -531,7 +585,8 @@ export function useTrackerState() {
         pendingTapsDateKey: todayKey,
         pendingTaps: mergedPending,
         closedDays: mergedClosed,
-        streakUsedWeekKeys: localStreakKeys,
+        protectedDays: localLoaded?.protectedDays ?? {},
+        lastProtectionDay: localLastProtectionDay,
         waterByDate: localWater,
         pendingSync: localLoaded?.pendingSync ?? [],
       };
@@ -719,8 +774,16 @@ export function useTrackerState() {
         ? { ...closed, ...todayTaps }
         : closed;
       const completedCount = Object.values(taps).filter(Boolean).length;
+      // Which day inside the current calendar week was protected?
+      // The map is week-keyed because premium streak protection is
+      // sold as "1 per week" — so only one day per week can be
+      // protected.
+      const protectedDay = Object.entries(data.protectedDays).find(
+        ([, d]) => d === i
+      )?.[0];
       let status: TrackerDay['status'];
       if (isFuture) status = 'future';
+      else if (protectedDay) status = 'protected';
       else if (isToday) status = 'today';
       else if (completedCount >= HABIT_COUNT) status = 'complete';
       else status = 'past-incomplete';
@@ -733,7 +796,7 @@ export function useTrackerState() {
       });
     }
     return out;
-  }, [startDate, currentDay, data.closedDays, todayTaps, todayKey]);
+  }, [startDate, currentDay, data.closedDays, todayTaps, todayKey, data.protectedDays]);
 
   // ---------- Mutations ----------
 
@@ -746,6 +809,8 @@ export function useTrackerState() {
           pendingTapsDateKey: next ? localDateKey() : null,
           pendingTaps: {},
           closedDays: {},
+          protectedDays: {},
+          lastProtectionDay: null,
         };
         persistAnon(updated);
         return updated;
@@ -835,38 +900,138 @@ export function useTrackerState() {
         // next click) retries — so a tab close mid-request never
         // loses the edit. Other devices see it on their next load
         // via daily_totals.
-        drainPendingSync();
+        drainPendingSync().catch((err) => {
+          // Already logged in drainPendingSync itself; swallow here so
+          // the throw doesn't break the surrounding setData callback.
+          console.error('background drain failed (will retry):', err);
+        });
         return updated;
       });
     },
     [persistAnon, startDate, drainPendingSync]
   );
 
-  const useStreakProtectionForWeek = useCallback(async () => {
-    if (!startDate || !user) return false;
-    const weekKey = weekKeyForDate(new Date());
-    if (data.streakUsedWeekKeys.includes(weekKey)) return false;
-    setData((prev) => {
-      const updated: TrackerDataV2 = {
-        ...prev,
-        streakUsedWeekKeys: [...prev.streakUsedWeekKeys, weekKey],
-      };
-      persistAnon(updated);
-      return updated;
-    });
-    if (supabase) {
-      try {
-        await (supabase.from('streak_protections') as any).upsert({
-          user_id: user.id,
-          week_start_date: weekKey,
-          redeemed_day: currentDay,
-        }, { onConflict: 'user_id,week_start_date' });
-      } catch (err) {
-        console.error('streak_protections insert failed:', err);
+// Premium gets 1 streak protection, then must wait 25 days for
+// another. Free users get 0. The 25-day cooldown is enforced
+// client-side from `lastProtectionDay` (the day number of the most
+// recent redemption).
+const STREAK_PROTECTION_COOLDOWN_DAYS = 25;
+
+const useStreakProtectionForDay = useCallback(
+    async (dayNumber: number): Promise<void> => {
+      // Throw specific errors on each failure path so the calling UI
+      // can surface a useful message instead of a vague "didn't take"
+      // (which the user previously had to debug blind).
+      if (!user) {
+        throw new Error('Sign in first');
       }
-    }
-    return true;
-  }, [data.streakUsedWeekKeys, persistAnon, startDate, user, supabase, currentDay]);
+      if (!startDate) {
+        throw new Error('Start the 50-day challenge first');
+      }
+      if (!supabase) {
+        throw new Error('Connection not ready — try again in a moment');
+      }
+      if (dayNumber < 1 || dayNumber > CHALLENGE_DAYS) {
+        throw new Error(
+          `Day ${dayNumber} isn't a valid challenge day`
+        );
+      }
+
+      // Premium gate. Free users can't redeem at all.
+      if (!isPremium) {
+        throw new Error('Streak protection is a premium perk');
+      }
+
+      // 25-day cooldown from the previous redemption. Comparing
+      // day numbers is safe because they're 1..50 unique across the
+      // challenge — no ambiguity about which "day 10" we mean.
+      if (
+        data.lastProtectionDay != null &&
+        dayNumber - data.lastProtectionDay < STREAK_PROTECTION_COOLDOWN_DAYS
+      ) {
+        const daysLeft =
+          STREAK_PROTECTION_COOLDOWN_DAYS -
+          (dayNumber - data.lastProtectionDay);
+        throw new Error(
+          `Wait ${daysLeft} more day${daysLeft === 1 ? '' : 's'}. Last protection was on day ${data.lastProtectionDay}.`
+        );
+      }
+
+      // Week key for the SPECIFIC day being protected, derived from
+      // that day's date key. We still key `protectedDays` by week
+      // so the days[] memo's per-day lookup is unchanged.
+      const dateKeyForDay = dayKeyFromStart(startDate, dayNumber);
+      const dateForWeek = parseDateKey(dateKeyForDay);
+      const weekKey = weekKeyForDate(dateForWeek);
+
+      // Persist WHICH day was protected AND bump the cooldown
+      // tracker. Without this the streak would reset at the protected
+      // day because the day still shows as past-incomplete.
+      setData((prev) => {
+        const updated: TrackerDataV2 = {
+          ...prev,
+          protectedDays: {
+            ...prev.protectedDays,
+            [weekKey]: dayNumber,
+          },
+          lastProtectionDay: dayNumber,
+        };
+        persistAnon(updated);
+        return updated;
+      });
+
+      // Write to Supabase. If this fails we ROLL BACK the optimistic
+      // local update so the user's card flips back and they know to
+      // retry — rather than seeing the card flip and then later
+      // discovering server state is out of sync.
+      try {
+        const { error } = await (supabase.from('streak_protections') as any)
+          .upsert(
+            {
+              user_id: user.id,
+              week_start_date: weekKey,
+              redeemed_day: dayNumber,
+            },
+            { onConflict: 'user_id,redeemed_day' }
+          );
+        if (error) throw error;
+      } catch (err) {
+        // Roll back the optimistic local update.
+        setData((prev) => {
+          const restored: TrackerDataV2 = {
+            ...prev,
+            protectedDays: Object.fromEntries(
+              Object.entries(prev.protectedDays).filter(([k]) => k !== weekKey)
+            ),
+            lastProtectionDay: prev.lastProtectionDay,
+          };
+          persistAnon(restored);
+          return restored;
+        });
+        const detail = describeError(err);
+        console.error('streak_protections upsert failed:', err);
+        throw new Error(
+          `Couldn't save to your account (${detail}). ` +
+            `Your local data was restored — try again in a moment.`
+        );
+      }
+
+      // Tell the streak-protection hook to refresh from the server
+      // so the "Used this week" indicator flips immediately.
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent(STREAK_PROTECTION_USED_EVENT));
+      }
+    },
+    [
+      data.lastProtectionDay,
+      data.protectedDays,
+      isPremium,
+      persistAnon,
+      startDate,
+      user,
+      supabase,
+    ]
+  );
 
   const reset = useCallback(async () => {
     wipeAllTrackerData();
@@ -927,7 +1092,7 @@ export function useTrackerState() {
     updateStartDate,
     toggleHabit,
     toggleHabitForDay,
-    useStreakProtectionForWeek,
+    useStreakProtectionForDay,
     reset,
   };
 }

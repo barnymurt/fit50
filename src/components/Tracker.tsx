@@ -10,9 +10,9 @@ import ConfirmDialog from './ConfirmDialog';
 import BuddyCard from './BuddyCard';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTrackerState, TrackerDay } from '@/hooks/useTrackerState';
-import { useStreakProtection } from '@/hooks/useStreakProtection';
+import { getWeekStart } from '@/hooks/useStreakProtection';
 import { usePremium } from '@/hooks/usePremium';
-import { dateKeyLocal, formatDateKeyShort, dayKeyFromStart, CHALLENGE_DAYS } from '@/lib/dates';
+import { dateKeyLocal, parseDateKey, formatDateKeyShort, dayKeyFromStart, CHALLENGE_DAYS } from '@/lib/dates';
 import { HABIT_IDS, HABIT_COUNT } from '@/lib/habits';
 import Link from 'next/link';
 
@@ -51,7 +51,11 @@ function calculateStreak(days: TrackerDay[]): {
   let longest = 0;
   let current = 0;
   for (const day of days) {
-    if (day.status === 'complete') {
+    // 'protected' counts the same as 'complete' because the user
+    // used their streak protection to keep the streak alive on
+    // this day (they didn't finish every habit, but they don't
+    // lose the streak for it).
+    if (day.status === 'complete' || day.status === 'protected') {
       current++;
     } else if (day.status === 'past-incomplete') {
       longest = Math.max(longest, current);
@@ -192,13 +196,17 @@ function ChipStrip({ days, startDate, onEditDay }: ChipStripProps) {
         {days.map((day) => {
           const isToday = day.status === 'today';
           const isComplete = day.status === 'complete';
+          const isProtected = day.status === 'protected';
           const isPast = day.status === 'past-incomplete';
           const isFuture = day.status === 'future';
           const dateKey = dayKeyFromStart(startDate, day.dayNumber);
           // Past days (closed or incomplete) are clickable to let
           // users backfill forgotten tasks. Today is not — use the
           // grid below to mark today. Future days are locked.
-          const editable = isPast || isComplete;
+          // Protected days stay clickable too — opening one lets
+          // the user back-fill on top of a used streak protection
+          // (the protection just keeps the streak alive).
+          const editable = isPast || isComplete || isProtected;
           return (
             <button
               key={day.dayNumber}
@@ -208,6 +216,8 @@ function ChipStrip({ days, startDate, onEditDay }: ChipStripProps) {
               className={`flex flex-col items-center justify-center w-10 h-10 rounded-md font-body text-caption tabular-nums flex-shrink-0 transition-transform ${
                 isToday
                   ? 'bg-coral text-paper ring-2 ring-coral/40 ring-offset-2 ring-offset-paper'
+                  : isProtected
+                  ? 'bg-cream text-ink border border-coral/40'
                   : isComplete
                   ? 'bg-coral/15 text-coral border border-coral/40'
                   : isPast
@@ -217,15 +227,19 @@ function ChipStrip({ days, startDate, onEditDay }: ChipStripProps) {
               title={
                 editable
                   ? `Day ${day.dayNumber} — ${formatDateKeyShort(dateKey)} — ${day.completedCount}/9 (click to edit)`
-                  : `Day ${day.dayNumber} — ${formatDateKeyShort(dateKey)} — ${day.completedCount}/9`
+                  : isProtected
+                    ? `Day ${day.dayNumber} — ${formatDateKeyShort(dateKey)} — streak protection saved this day 🍌`
+                    : `Day ${day.dayNumber} — ${formatDateKeyShort(dateKey)} — ${day.completedCount}/9`
               }
               aria-label={
                 editable
                   ? `Day ${day.dayNumber}, ${formatDateKeyShort(dateKey)}, ${day.completedCount} of 9 complete. Click to edit.`
-                  : `Day ${day.dayNumber}, ${formatDateKeyShort(dateKey)}, ${day.completedCount} of 9 complete`
+                  : isProtected
+                    ? `Day ${day.dayNumber}, ${formatDateKeyShort(dateKey)}, streak protection used.`
+                    : `Day ${day.dayNumber}, ${formatDateKeyShort(dateKey)}, ${day.completedCount} of 9 complete`
               }
             >
-              {isComplete ? '✓' : day.dayNumber}
+              {isProtected ? '🍌' : isComplete ? '✓' : day.dayNumber}
             </button>
           );
         })}
@@ -238,11 +252,66 @@ export default function Tracker({ hideMarquee = false }: { hideMarquee?: boolean
   const { user, loading: authLoading } = useAuth();
   const { isPremium } = usePremium();
   const tracker = useTrackerState();
-  const { hasProtectionForWeek } = useStreakProtection();
+  // Read streak-protection state from the v2 local store so the
+  // card flips the instant the user clicks — no round-trip
+  // through useStreakProtection's Supabase-backed state (which can
+  // lag or silently skip its event listener if the hook's
+  // `isPremium`/`user` are stale at event time).
+  //
+  // Model: premium users get 1 streak protection, then wait 25
+  // days for another. Free users get 0. `lastProtectionDay` is
+  // the day number of the most recent redemption (null if never
+  // redeemed).
+  const lastProtectionDay = tracker.data.lastProtectionDay ?? null;
+  const protectionAvailable =
+    isPremium &&
+    (lastProtectionDay == null ||
+      tracker.currentDay - lastProtectionDay >= 25);
+  const cooldownDaysLeft =
+    lastProtectionDay != null && !protectionAvailable
+      ? Math.max(0, 25 - (tracker.currentDay - lastProtectionDay))
+      : 0;
 
   const [pulsingHabit, setPulsingHabit] = useState<string | null>(null);
   const [confettiKey, setConfettiKey] = useState(0);
   const [confettiIntensity, setConfettiIntensity] = useState<'small' | 'big'>('small');
+  // Toast queue — bottom-center, fixed, auto-dismiss. Two messages
+  // for the auto-tick flow ("Move Your Body" / hydration goal hit).
+  // Stacks vertically when both fire close together. 4s auto-dismiss.
+  const [toasts, setToasts] = useState<
+    { id: number; kind: 'move-body' | 'hydration'; message: string }[]
+  >([]);
+
+  const pushToast = (kind: 'move-body' | 'hydration', message: string) => {
+    const id = Date.now() + Math.random();
+    setToasts((prev) => [...prev, { id, kind, message }]);
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, 4000);
+  };
+
+  const fireCelebration = (kind: 'move-body' | 'hydration') => {
+    const message =
+      kind === 'move-body'
+        ? 'Get In! Keep it going Legend'
+        : 'Mmmm tasty tasty agua';
+    pushToast(kind, message);
+    setConfettiIntensity('big');
+    setConfettiKey((k) => k + 1);
+  };
+
+  // Listen for auto-tick events from AccountWorkouts and
+  // WaterCounter. The event carries which habit was auto-ticked so
+  // we fire the right toast + confetti.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const ce = e as CustomEvent<{ kind: 'move-body' | 'wet-lips' }>;
+      if (ce.detail?.kind === 'move-body') fireCelebration('move-body');
+      else if (ce.detail?.kind === 'wet-lips') fireCelebration('hydration');
+    };
+    window.addEventListener('fit50:auto-tick', handler);
+    return () => window.removeEventListener('fit50:auto-tick', handler);
+  }, []);
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
   const [editingDay, setEditingDay] = useState<number | null>(null);
 
@@ -278,10 +347,63 @@ export default function Tracker({ hideMarquee = false }: { hideMarquee?: boolean
     tracker.toggleHabitForDay(editingDay, habitId);
   };
 
+  const [streakSaving, setStreakSaving] = useState(false);
+  const [streakMessage, setStreakMessage] = useState<string | null>(null);
   const handleUseStreakProtection = async () => {
-    if (!isPremium) return;
-    if (hasProtectionForWeek(new Date())) return;
-    await tracker.useStreakProtectionForWeek();
+    if (!isPremium || streakSaving) return;
+    if (!protectionAvailable) return;
+    setStreakSaving(true);
+    setStreakMessage(null);
+    try {
+      await tracker.useStreakProtectionForDay(tracker.currentDay);
+      setStreakMessage(
+        `✓ Day ${tracker.currentDay} protected. Your streak carries on.`
+      );
+    } catch (err) {
+      // Specific reason from the hook's typed errors. Fall back to
+      // a generic message only when the throw is non-Error.
+      setStreakMessage(
+        err instanceof Error ? err.message : 'Could not save the protection. Try again.'
+      );
+    } finally {
+      setStreakSaving(false);
+    }
+  };
+
+  // Per-day streak protection — invoked from the day-editor modal
+  // when the user is backfilling a past day that's incomplete. Lets
+  // them protect THAT day (not today) so the streak calc recognises
+  // it and the chip 🍌 appears on the specific day they missed.
+  const [pastStreakSaving, setPastStreakSaving] = useState(false);
+  const [pastStreakMessage, setPastStreakMessage] = useState<string | null>(null);
+  const handleProtectPastDay = async (targetDay: number) => {
+    if (!isPremium || pastStreakSaving) return;
+    if (!tracker.startDate) return;
+    // Cooldown check mirrors what the hook enforces, but we
+    // surface it client-side for instant UI feedback rather than
+    // letting the hook throw.
+    const last = tracker.data.lastProtectionDay ?? null;
+    if (last != null && targetDay - last < 25) {
+      const daysLeft = 25 - (targetDay - last);
+      setPastStreakMessage(
+        `Wait ${daysLeft} more day${daysLeft === 1 ? '' : 's'}. Last protection was on day ${last}.`
+      );
+      return;
+    }
+    setPastStreakSaving(true);
+    setPastStreakMessage(null);
+    try {
+      await tracker.useStreakProtectionForDay(targetDay);
+      setPastStreakMessage(
+        `✓ Day ${targetDay} protected. Your streak carries on.`
+      );
+    } catch (err) {
+      setPastStreakMessage(
+        err instanceof Error ? err.message : 'Could not save the protection. Try again.'
+      );
+    } finally {
+      setPastStreakSaving(false);
+    }
   };
 
   const handleStart = async (iso?: string) => {
@@ -434,23 +556,42 @@ export default function Tracker({ hideMarquee = false }: { hideMarquee?: boolean
                   🛡 Streak protection
                 </p>
                 <p className="font-display text-h3 text-ink leading-tight mb-2">
-                  {hasProtectionForWeek(new Date())
-                    ? 'Used this week.'
-                    : 'One free pass this week.'}
+                  {!protectionAvailable
+                    ? 'Used.'
+                    : '1 protection available.'}
                 </p>
                 <p className="font-body text-sm text-ink/70">
-                  {hasProtectionForWeek(new Date())
-                    ? 'Resets Sunday midnight. Miss a day with no penalty.'
-                    : 'Use it before midnight Sunday if you miss a day.'}
+                  {!protectionAvailable
+                    ? cooldownDaysLeft > 0
+                      ? `Resets in ${cooldownDaysLeft} day${cooldownDaysLeft === 1 ? '' : 's'} (last used on day ${lastProtectionDay}). Use on a specific past day below to keep your streak alive through missed days.`
+                      : 'Resets in a moment. Use on a specific past day below to keep your streak alive through missed days.'
+                    : 'Premium perk: protect any day you missed and your streak carries on. 1 protection, then a 25-day cooldown.'}
                 </p>
-                {!hasProtectionForWeek(new Date()) && (
+                {protectionAvailable && (
                   <button
                     type="button"
                     onClick={handleUseStreakProtection}
-                    className="mt-3 inline-flex items-center justify-center bg-coral hover:bg-coral/85 transition-colors px-5 py-2.5 font-body text-caption uppercase tracking-widest text-paper"
+                    disabled={streakSaving}
+                    aria-label="Use streak protection for today"
+                    className="mt-3 inline-flex items-center justify-center bg-coral hover:bg-coral/85 transition-colors px-5 py-2.5 font-body text-caption uppercase tracking-widest text-paper disabled:opacity-60 disabled:cursor-not-allowed"
                   >
-                    Use my streak protection
+                    {streakSaving
+                      ? 'Saving…'
+                      : 'Use my streak protection'}
                   </button>
+                )}
+                {streakMessage && (
+                  <p
+                    className={`mt-3 font-body text-caption ${
+                      streakMessage.startsWith('✓')
+                        ? 'text-teal'
+                        : 'text-coral'
+                    }`}
+                    role="status"
+                    aria-live="polite"
+                  >
+                    {streakMessage}
+                  </p>
                 )}
               </div>
             </div>
@@ -522,6 +663,45 @@ export default function Tracker({ hideMarquee = false }: { hideMarquee?: boolean
 
       <CellConfetti key={confettiKey} show={confettiKey > 0} intensity={confettiIntensity} />
 
+      {/* Toast stack — bottom-center, fixed. One entry per auto-tick
+          event. Fades in/out, auto-dismisses after 4s. Stacks when
+          multiple fire close together. Brand: square card, 1px ink
+          border on paper background, coral accent. */}
+      {toasts.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2 items-center pointer-events-none">
+          {toasts.map((t) => (
+            <div
+              key={t.id}
+              className="bg-paper border border-ink px-4 py-3 max-w-sm text-center"
+              role="status"
+              aria-live="polite"
+              style={{ animation: 'fit50-toast-in 280ms ease-out' }}
+            >
+              {t.kind === 'move-body' ? (
+                <p className="font-display text-h3 text-coral leading-tight">
+                  Get In! Keep it going Legend
+                </p>
+              ) : (
+                <p className="font-display text-h3 text-teal leading-tight">
+                  Mmmm tasty tasty agua
+                </p>
+              )}
+              <p className="font-body text-caption uppercase tracking-widest text-ink/50 mt-1">
+                {t.kind === 'move-body'
+                  ? '5 exercises logged — Move Your Body done.'
+                  : 'Hydration goal hit — 2.5 L logged.'}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+      <style>{`
+        @keyframes fit50-toast-in {
+          from { opacity: 0; transform: translate(-50%, 8px); }
+          to   { opacity: 1; transform: translate(-50%, 0); }
+        }
+      `}</style>
+
       <ConfirmDialog
         open={resetConfirmOpen}
         onClose={() => setResetConfirmOpen(false)}
@@ -541,7 +721,7 @@ export default function Tracker({ hideMarquee = false }: { hideMarquee?: boolean
           <div
             role="dialog"
             aria-modal="true"
-            className="bg-paper w-full md:max-w-lg border border-ink/15 max-h-[90vh] overflow-y-auto pb-[max(1rem,env(safe-area-inset-bottom))]"
+            className="bg-paper w-full md:max-w-lg border border-ink/15 max-h-[90vh] overflow-x-hidden overflow-y-auto pb-[max(1rem,env(safe-area-inset-bottom))]"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="px-6 pt-6 pb-2">
@@ -585,6 +765,88 @@ export default function Tracker({ hideMarquee = false }: { hideMarquee?: boolean
                   );
                 })}
               </div>
+
+              {/* Per-day streak protection row — premium only.
+                  The card above ("Use my streak protection") always
+                  acts on TODAY. This row inside the day-editor lets
+                  the user apply protection to the SPECIFIC past day
+                  they're backfilling, which is the actual use case. */}
+              {isPremium && tracker.startDate && (() => {
+                // Find which day in this past day EDITOR's week
+                // already has protection, if any.
+                const targetDayDateKey = dayKeyFromStart(
+                  tracker.startDate,
+                  editingDay
+                );
+                const targetWeekKey = getWeekStart(
+                  parseDateKey(targetDayDateKey)
+                );
+                const protectedDayInWeek =
+                  tracker.data.protectedDays[targetWeekKey];
+                const thisDayIsProtected =
+                  protectedDayInWeek === editingDay;
+                // 25-day cooldown from the most recent protection.
+                const lastDay = tracker.data.lastProtectionDay ?? null;
+                const cooldownActive =
+                  lastDay != null && editingDay - lastDay < 25;
+                const cooldownDaysLeft = cooldownActive
+                  ? Math.max(0, 25 - (editingDay - lastDay!))
+                  : 0;
+                return (
+                  <div className="border border-coral/30 bg-coral/10 p-4 mb-4">
+                    <p className="font-body text-caption uppercase tracking-widest text-coral mb-2">
+                      🍌 Streak protection
+                    </p>
+                    {thisDayIsProtected ? (
+                      <p className="font-body text-sm text-ink/80">
+                        Day {editingDay} is already protected (🍌). Your
+                        streak carries through this day.
+                      </p>
+                    ) : cooldownActive ? (
+                      <p className="font-body text-sm text-ink/80">
+                        Wait {cooldownDaysLeft} more day{cooldownDaysLeft === 1 ? '' : 's'}
+                        {lastDay != null
+                          ? ` — last used on day ${lastDay}`
+                          : ''}.
+                        Premium: 1 protection every 25 days.
+                      </p>
+                    ) : (
+                      <>
+                        <p className="font-body text-sm text-ink/80 mb-3">
+                          Missed this day? Protect it for free and the
+                          streak continues past this day. (Premium: 1
+                          protection every 25 days.)
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => handleProtectPastDay(editingDay)}
+                          disabled={pastStreakSaving}
+                          aria-label="Use streak protection for this day"
+                          className="w-full bg-coral hover:bg-coral/85 transition-colors px-5 py-2.5 font-body text-caption uppercase tracking-widest text-paper disabled:opacity-60 disabled:cursor-not-allowed"
+                        >
+                          {pastStreakSaving
+                            ? 'Saving…'
+                            : `Use my streak protection for day ${editingDay}`}
+                        </button>
+                      </>
+                    )}
+                    {pastStreakMessage && (
+                      <p
+                        className={`mt-3 font-body text-caption ${
+                          pastStreakMessage.startsWith('✓')
+                            ? 'text-teal'
+                            : 'text-coral'
+                        }`}
+                        role="status"
+                        aria-live="polite"
+                      >
+                        {pastStreakMessage}
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
+
               <button
                 type="button"
                 onClick={() => setEditingDay(null)}
