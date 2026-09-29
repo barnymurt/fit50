@@ -874,7 +874,28 @@ export default function AccountWorkouts() {
   const [date, setDate] = useState<string>('');
   const [grouping, setGrouping] = useState<Grouping>('bodyweight');
   const [key, setKey] = useState<WorkoutKey>('A');
-  const [sets, setSets] = useState<Record<string, number>>({});
+  // Unified per-grouping today's data. Replaces the previous `sets`
+  // and `randomSessionTicks` state which were scoped to the active
+  // grouping only — that's why switching tabs after tapping some
+  // sets made the Done today panel seem to "lose" entries from the
+  // groupings you weren't currently looking at. With the unified
+  // state we hydrate all 3 groupings on mount, derive `sets` and
+  // `randomSessionTicks` for the active group, and aggregate the
+  // rest for the Done today panel.
+  const [todaysByGrouping, setTodaysByGrouping] = useState<
+    Record<
+      Grouping,
+      { line: Record<string, number>; random: Record<string, number> }
+    >
+  >({
+    bodyweight: { line: {}, random: {} },
+    kettlebell: { line: {}, random: {} },
+    band: { line: {}, random: {} },
+  });
+  // Derived accessors for the active group so existing call sites
+  // (which read `sets[name]` etc.) keep working unchanged.
+  const sets = todaysByGrouping[grouping].line;
+  const randomSessionTicks = todaysByGrouping[grouping].random;
   const [activeIdx, setActiveIdx] = useState<number | null>(null);
   // `hasLoaded` guards the save + rollover effects so they don't
   // run with the default state during the brief window between
@@ -893,9 +914,8 @@ export default function AccountWorkouts() {
   // random session therefore can't live in `sets` (it'd get
   // clobbered) — it persists to its own localStorage key.
   const [randomSession, setRandomSession] = useState<Exercise[]>([]);
-  const [randomSessionTicks, setRandomSessionTicks] = useState<
-    Record<string, number>
-  >({});
+  // randomSessionTicks is derived from todaysByGrouping (above) — the
+  // declared variable on line 898 — so no separate state needed.
   // Exercise names with a non-zero set count in the last 5 days
   // (excluding today). Used by the randomise picker so the user
   // doesn't get the same exercises back-to-back days in a row.
@@ -941,40 +961,101 @@ export default function AccountWorkouts() {
   useEffect(() => {
     const k = todayKey();
     setDate(k);
-    // Try remote first, fall back to local. Loads only the active
-    // grouping — switching groupings triggers a re-load.
+    // Load ALL groupings for today so the Done today panel can show
+    // exercises completed via KB / band paths too — switching tabs
+    // used to "lose" those entries because the load only fetched the
+    // active grouping. Hydrate the unified `todaysByGrouping` map.
     if (user && supabase) {
-      loadWorkoutRemote(supabase, user.id, k, grouping).then((remote) => {
-        if (remote) {
-          setKey(remote.line);
-          setSets(remote.sets);
-          saveWorkoutLocal(k, grouping, remote);
-        } else {
-          const local = loadWorkoutLocal(k, grouping);
-          setKey(local.line);
-          setSets(local.sets);
-        }
-        setHasLoaded(true);
-      });
+      // Active-grouping line for the "back to row X" jump-back UX.
+      loadWorkoutRemote(supabase, user.id, k, grouping)
+        .then((active) => active ?? null)
+        .then((active) => {
+          // Fetch all groupings for today's projection in one query.
+          return Promise.all([
+            Promise.resolve(active),
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (supabase.from('workout_log') as any)
+              .select('grouping, sets')
+              .eq('user_id', user.id)
+              .eq('date_key', k)
+              .in('grouping', GROUPINGS as unknown as string[])
+              .then((res: { data: Array<{ grouping: Grouping; sets: Record<string, number> | null }> | null; error: unknown }) => ({
+                data: ((res.data || []) as Array<{
+                  grouping: Grouping;
+                  sets: Record<string, number> | null;
+                }>).map(
+                  (r) => [r.grouping, r.sets || {}] as const
+                ),
+                error: res.error,
+              })),
+          ]);
+        })
+        .then(([active, remote]) => {
+          const grouped: Record<
+            Grouping,
+            { line: Record<string, number>; random: Record<string, number> }
+          > = Object.fromEntries(
+            GROUPINGS.map((g) => [
+              g,
+              { line: {}, random: {} } as {
+                line: Record<string, number>;
+                random: Record<string, number>;
+              },
+            ])
+          ) as Record<
+            Grouping,
+            { line: Record<string, number>; random: Record<string, number> }
+          >;
+          if (remote.data) {
+            for (const [g, sets] of remote.data as Array<
+              [Grouping, Record<string, number>]
+            >) {
+              grouped[g] = { line: sets, random: grouped[g].random };
+              saveWorkoutLocal(k, g, { line: key, sets });
+            }
+          } else {
+            // Remote fetch failed / empty — fall back to localStorage
+            // for every grouping.
+            for (const g of GROUPINGS) {
+              const local = loadWorkoutLocal(k, g);
+              grouped[g] = { line: local.sets, random: grouped[g].random };
+            }
+          }
+          setTodaysByGrouping(grouped);
+          if (active) {
+            setKey(active.line);
+          }
+          setHasLoaded(true);
+        });
     } else {
-      const local = loadWorkoutLocal(k, grouping);
-      setKey(local.line);
-      setSets(local.sets);
+      // Anon — assemble from localStorage only.
+      const grouped = Object.fromEntries(
+        GROUPINGS.map((g) => {
+          const local = loadWorkoutLocal(k, g);
+          return [g, { line: local.sets, random: {} as Record<string, number> }] as const;
+        })
+      ) as Record<Grouping, { line: Record<string, number>; random: Record<string, number> }>;
+      setTodaysByGrouping(grouped);
       setHasLoaded(true);
     }
   }, [user, supabase, grouping]);
 
   useEffect(() => {
     if (!date || !hasLoaded) return;
-    saveWorkoutLocal(date, grouping, { line: key, sets });
-    if (user && supabase) {
-      saveWorkoutRemote(supabase, user.id, date, {
-        line: key,
-        sets,
-        grouping,
-      });
+    // Persist every grouping separately so the per-(user, date,
+    // grouping) primary key on workout_log stays intact. Iterating
+    // here is cheap; just a few upserts.
+    for (const [g, { line }] of Object.entries(todaysByGrouping)) {
+      saveWorkoutLocal(date, g as Grouping, { line: key, sets: line });
+      if (user && supabase) {
+        saveWorkoutRemote(supabase, user.id, date, {
+          line: key,
+          sets: line,
+          grouping: g as Grouping,
+        });
+      }
     }
-  }, [date, key, sets, user, supabase, grouping]);
+  }, [date, key, todaysByGrouping, user, supabase]);
 
   // Midnight rollover. Without this, a user who leaves the tab open
   // across midnight keeps seeing yesterday's ticked boxes because
@@ -1007,7 +1088,13 @@ export default function AccountWorkouts() {
       // empty for a fresh day, but a previously-saved session
       // would survive).
       setKey('A');
-      setSets({});
+      // Clear all groupings — a fresh day starts at zero across the
+      // board. The next mount-effect re-loads.
+      setTodaysByGrouping({
+        bodyweight: { line: {}, random: {} },
+        kettlebell: { line: {}, random: {} },
+        band: { line: {}, random: {} },
+      });
       setActiveIdx(null);
     };
     const interval = setInterval(checkRollover, 30_000);
@@ -1075,12 +1162,25 @@ export default function AccountWorkouts() {
   // Load the random session + recently-done set on mount + when
   // the date rolls over. Random-session state is keyed per-grouping
   // so switching equipment doesn't clobber another grouping's session.
+  // The random-session list (the rolled exercises) is per-grouping;
+  // we still load the active grouping's exercises on mount/rollover.
+  // The tick counts ride on `todaysByGrouping[g].random` (shared
+  // with the main load) so the Done today panel shows cross-grouping
+  // ticks, but the LIST of rolled exercises is per-grouping (one
+  // session at a time).
   useEffect(() => {
     if (!date) return;
     const local = loadRandomSessionLocal(date, grouping);
     if (local) {
       setRandomSession(local.exercises);
-      setRandomSessionTicks(local.ticks);
+      // Restore tick counts into the unified state for this grouping.
+      setTodaysByGrouping((prev) => ({
+        ...prev,
+        [grouping]: {
+          ...prev[grouping],
+          random: { ...prev[grouping].random, ...local.ticks },
+        },
+      }));
     }
     if (user && supabase) {
       loadRecentlyDoneRemote(supabase, user.id, 5).then(setRecentlyDone);
@@ -1123,73 +1223,131 @@ export default function AccountWorkouts() {
       picks.push(source[Math.floor(Math.random() * source.length)]);
     }
     setRandomSession(picks);
-    setRandomSessionTicks({});
+    // Clear tick counts for this grouping's random session only —
+    // the line workout's ticks remain untouched (separate storage).
+    setTodaysByGrouping((prev) => ({
+      ...prev,
+      [grouping]: {
+        ...prev[grouping],
+        random: {},
+      },
+    }));
   };
 
   const cycleRandomSet = (name: string) => {
-    setRandomSessionTicks((prev) => {
-      const current = prev[name] || 0;
-      const next = current >= TOTAL_SETS ? 0 : current + 1;
-      return { ...prev, [name]: next };
+    setTodaysByGrouping((prev) => {
+      const current = prev[grouping].random[name] || 0;
+      // 0↔TOTAL_SETS toggle — same behaviour as cycleSet without
+      // an index, so the Done today and random session panels share
+      // the same "tap to add, tap again to delete" UX as the row UI.
+      const next = current >= TOTAL_SETS ? 0 : TOTAL_SETS;
+      return {
+        ...prev,
+        [grouping]: {
+          ...prev[grouping],
+          random: { ...prev[grouping].random, [name]: next },
+        },
+      };
     });
   };
 
-  // Quick-add / quick-undo: tap a tick box in the "Done today"
-  // panel to cycle the exercise's sets — same UX as the per-row
-  // tick boxes (tap to fill forward, tap a filled one to untick
-  // down to that position). Routes to the line `sets` dict or the
-  // random-session tick dict based on which pool the exercise
-  // lives in. The optional `index` lets the tick box carry the
-  // tap position through to `cycleSet` / `cycleRandomSet`, which
-  // both honour the same `current` ↔ `index` semantics.
+  // Quick-add / quick-undo from the "Done today" panel. The
+  // entry's grouping + source is looked up in `todaysProgress`
+  // (populated from the unified `todaysByGrouping`), so a tick on
+  // a kettlebell exercise routes to the kettlebell slot and a tick
+  // on a bodyweight exercise routes to the bodyweight slot — even
+  // when the user is viewing a different grouping right now.
+  // Per-set cycle when `index` is provided, otherwise 0↔TOTAL_SETS
+  // toggle for the "tap to add, tap again to delete" UX.
   const cycleTodayProgress = (name: string, index?: number) => {
-    const inRandom = randomSession.some((ex) => ex.name === name);
-    if (inRandom) {
+    const entry = todaysProgress.find((e) => e.name === name);
+    if (!entry) return;
+    const { grouping: g, source } = entry;
+    setTodaysByGrouping((prev) => {
+      const current = prev[g][source][name] || 0;
+      let next: number;
       if (typeof index === 'number') {
-        setRandomSessionTicks((prev) => {
-          const current = prev[name] || 0;
-          const next =
-            index < current ? index : index + 1 > TOTAL_SETS ? TOTAL_SETS : index + 1;
-          return { ...prev, [name]: next };
-        });
+        next = index < current ? index : index + 1 > TOTAL_SETS ? TOTAL_SETS : index + 1;
       } else {
-        cycleRandomSet(name);
+        next = current >= TOTAL_SETS ? 0 : TOTAL_SETS;
       }
-    } else {
-      cycleSet(name, index);
-    }
+      return {
+        ...prev,
+        [g]: {
+          ...prev[g],
+          [source]: { ...prev[g][source], [name]: next },
+        },
+      };
+    });
   };
 
-  // Combined "done today" view: line ticks + random session
-  // ticks. Used by the today's progress panel at the top of the
-  // section. Sorted alphabetically by exercise name for stable
-  // display across re-renders.
-  const todaysProgress: Array<{ name: string; count: number }> = [
-    ...Object.entries(sets)
-      .filter(([, c]) => (c ?? 0) > 0)
-      .map(([name, count]) => ({ name, count })),
-    ...Object.entries(randomSessionTicks)
-      .filter(([name]) => !(sets[name] ?? 0) && (randomSessionTicks[name] ?? 0) > 0)
-      .map(([name, count]) => ({ name, count })),
-  ].sort((a, b) => a.name.localeCompare(b.name));
+  // Combined "done today" view: aggregates line ticks + random
+  // session ticks across ALL groupings. The previous version
+  // only looked at the active grouping's `sets` and
+  // `randomSessionTicks`, which meant switching tabs after
+  // tapping some sets made the Done today panel seem to lose
+  // those entries. Each entry also carries its grouping + source
+  // so the toggle button knows where to write.
+  const todaysProgress: Array<{
+    name: string;
+    count: number;
+    grouping: Grouping;
+    source: 'line' | 'random';
+  }> = (() => {
+    const out: typeof todaysProgress = [];
+    for (const g of GROUPINGS) {
+      const entry = todaysByGrouping[g];
+      for (const [name, count] of Object.entries(entry.line)) {
+        if (count > 0) out.push({ name, count, grouping: g, source: 'line' });
+      }
+      for (const [name, count] of Object.entries(entry.random)) {
+        if (count > 0) out.push({ name, count, grouping: g, source: 'random' });
+      }
+    }
+    // Dedupe by name — line session came first chronologically,
+    // so an exercise completed via the line wins over a random
+    // session tick for the same name.
+    const seen = new Set<string>();
+    return out
+      .filter((e) => (seen.has(e.name) ? false : (seen.add(e.name), true)))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  })();
 
   const cycleSet = (name: string, index?: number) => {
-    setSets((prev) => {
-      const current = prev[name] || 0;
-      // Tap on a specific set: filled if index < current (untick down
-      // to this position), empty if index >= current (tick up to
-      // here). Sets must be ticked in order, so a tap at index 2
-      // with current=0 marks sets 0,1,2 as ticked (count=3).
-      if (typeof index === 'number') {
-        if (index < current) {
-          return { ...prev, [name]: index };
-        }
-        return { ...prev, [name]: index + 1 };
-      }
-      // Tap on the exercise title (no index): cycle 0 → 1 → … →
-      // TOTAL_SETS → 0. Kept for the big "Log set" button.
-      const next = current >= TOTAL_SETS ? 0 : current + 1;
-      return { ...prev, [name]: next };
+    // Tap on a specific tick: filled if index < current (untick down
+    // to this position), empty if index >= current (tick up to
+    // here). Sets must be ticked in order, so a tap at index 2
+    // with current=0 marks sets 0,1,2 as ticked (count=3).
+    // Tap on the exercise title (no index): 0↔TOTAL_SETS toggle — tap
+    // empty tick to mark complete, tap filled tick to clear. This is
+    // what the user wanted ("tap a tick to add tap it again to delete")
+    // — single-tap complete / single-tap uncomplete — instead of the
+    // multi-step per-set cycle that was confusing.
+    if (typeof index === 'number') {
+      setTodaysByGrouping((prev) => {
+        const current = prev[grouping].line[name] || 0;
+        const next =
+          index < current ? index : index + 1 > TOTAL_SETS ? TOTAL_SETS : index + 1;
+        return {
+          ...prev,
+          [grouping]: {
+            ...prev[grouping],
+            line: { ...prev[grouping].line, [name]: next },
+          },
+        };
+      });
+      return;
+    }
+    setTodaysByGrouping((prev) => {
+      const current = prev[grouping].line[name] || 0;
+      const next = current >= TOTAL_SETS ? 0 : TOTAL_SETS;
+      return {
+        ...prev,
+        [grouping]: {
+          ...prev[grouping],
+          line: { ...prev[grouping].line, [name]: next },
+        },
+      };
     });
   };
 
@@ -1207,38 +1365,39 @@ export default function AccountWorkouts() {
   };
 
   // Auto-tick Move Your Body when the user has 5 distinct
-  // exercises at 5 sets each. Counts BOTH the line workout's `sets`
-  // AND the random session's `randomSessionTicks` so completing
-  // exercises entirely through the random session also triggers the
-  // habit. Exercise names are globally unique across groupings so
-  // there's no double-counting risk. Fires on every false→true
+  // exercises at 5 sets each. Counts both the line workout and the
+  // random session across ALL groupings (bodyweight + KB + RB), so
+  // completing exercises in any equipment variant still triggers
+  // the habit. Exercise names are globally unique across groupings
+  // so there's no double-counting risk. Fires on every false→true
   // transition; if the user unticks the tile, the next time they
   // reach 5 exercises it'll re-fire.
   useEffect(() => {
     if (!hasLoaded || !user) return;
-    const allSets = { ...sets, ...randomSessionTicks };
-    const distinctComplete = Object.values(allSets).filter(
-      (n) => n >= TOTAL_SETS
-    ).length;
+    const allCounts: number[] = [];
+    for (const g of GROUPINGS) {
+      const entry = todaysByGrouping[g];
+      for (const count of Object.values(entry.line)) allCounts.push(count);
+      for (const count of Object.values(entry.random)) allCounts.push(count);
+    }
+    const distinctComplete = allCounts.filter((n) => n >= TOTAL_SETS).length;
     if (
       distinctComplete >= 5 &&
       !tracker.todayTaps['move-body']
     ) {
       tracker.toggleHabit('move-body');
-      // Tell Tracker.tsx to fire the celebration (confetti + toast)
-      // — the auto-tick came from this component, not the user.
       window.dispatchEvent(
         new CustomEvent('fit50:auto-tick', {
           detail: { kind: 'move-body' },
         })
       );
     }
-    // We don't watch sets directly with `useEffect([sets])` because
-    // `sets` is a new object reference on every render — we want to
-    // re-evaluate only when distinct complete count changes.
+    // Watch the merged distinct-complete count instead of the raw
+    // `todaysByGrouping` reference so re-evaluations only fire when
+    // the number actually changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    Object.values({ ...sets, ...randomSessionTicks }).filter((n) => n >= TOTAL_SETS).length,
+    todaysProgress.filter((p) => p.count >= TOTAL_SETS).length,
     hasLoaded,
     user,
     tracker,
