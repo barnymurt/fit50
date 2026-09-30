@@ -6,6 +6,7 @@ import Heading from './Heading';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePremium } from '@/hooks/usePremium';
 import { useTrackerState } from '@/hooks/useTrackerState';
+import { useDailySteps, stepsExtraKcal } from '@/hooks/useDailySteps';
 import { createClient } from '@/lib/supabase';
 
 interface Exercise {
@@ -886,6 +887,33 @@ export default function AccountWorkouts() {
     kettlebell: 'A',
     band: 'A',
   });
+  // Today's steps entry + the kcal it contributes. Lives on the
+  // daily_steps table so it survives across devices and feeds the
+  // kcal balance in useFoodAnalytics. Weight is pulled from the
+  // profile for the kcal preview — once the user has entered the
+  // macro calculator, weight_kg is in their profile row.
+  const [profileWeightKg, setProfileWeightKg] = useState<number>(0);
+  useEffect(() => {
+    if (!user || !supabase) return;
+    let cancelled = false;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (supabase.from('profiles') as any)
+      .select('weight_kg')
+      .eq('id', user.id)
+      .maybeSingle()
+      .then((res: { data: { weight_kg: number | null } | null; error: unknown }) => {
+        if (cancelled || res.error) return;
+        const w = Number(res.data?.weight_kg) || 0;
+        setProfileWeightKg(w);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user, supabase]);
+  const { steps, stepsExtraKcal, saveSteps, hydrated: stepsHydrated } = useDailySteps(
+    date || null,
+    profileWeightKg
+  );
   // Unified per-grouping today's data. Replaces the previous `sets`
   // and `randomSessionTicks` state which were scoped to the active
   // grouping only — that's why switching tabs after tapping some
@@ -1557,6 +1585,55 @@ export default function AccountWorkouts() {
             </ul>
           </div>
         )}
+
+        {/* Daily steps entry — only the excess over 10 000 counts as
+            additional kcal on top of the activity baseline (which is
+            already baked into TDEE via ACTIVITY_MULTIPLIER). The
+            preview line shows the kcal contribution so the user can
+            decide whether they need to fuel up. Saved to daily_steps and
+            picked up by useFoodAnalytics for the kcal balance surfaces.
+            */}
+      <div className="mb-6 border border-ink/15 bg-cre-30 p-4">
+        <div className="flex items-baseline justify-between gap-2 mb-3 flex-wrap">
+          <span className="font-body text-caption uppercase tracking-widest text-ink/60">
+            Today's steps
+          </span>
+          {stepsExtraKcal > 0 ? (
+            <span className="font-body text-caption uppercase tracking-widest text-ink/50 tabular-nums">
+              +{stepsExtraKcal} kcal
+            </span>
+          ) : null}
+        </div>
+        <div className="flex items-center gap-2">
+          <input
+            type="number"
+            inputMode="numeric"
+            min={0}
+            max={99999}
+            step={100}
+            disabled={!stepsHydrated}
+            value={steps || ''}
+            onChange={(e) => saveSteps(Number(e.target.value))}
+            placeholder="0"
+            aria-label="Steps today"
+            className="flex-1 min-w-0 px-3 py-2 bg-paper border border-ink/20 font-body focus:border-ink outline-none text-base tabular-nums"
+          />
+          <span className="font-body text-caption uppercase tracking-widest text-ink/50 shrink-0">
+            steps
+          </span>
+        </div>
+        {stepsExtraKcal > 0 ? (
+          <p className="font-body text-caption text-ink/60 mt-2">
+            {steps - 10000} extra steps = <span className="font-semibold">+{stepsExtraKcal} kcal</span> extra burn
+            on top of the 10k activity baseline.
+          </p>
+        ) : steps > 0 ? (
+          <p className="font-body text-caption text-ink/50 mt-2">
+            Below the 10k activity baseline — no extra burn. Log the steps
+            you actually walked to track them across the challenge.
+          </p>
+        ) : null}
+      </div>
 
         {/* Randomise — roll a fresh 5-exercise session: one per
             movement category (push, pull, legs, core, stamina),
