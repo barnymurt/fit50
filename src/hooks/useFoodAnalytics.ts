@@ -180,6 +180,30 @@ function longestStreak(values: boolean[]): number {
   return max;
 }
 
+/**
+ * Steps-extra kcal burn for a single day. Only the excess over
+ * 10 000 contributes additional kcal on top of the activity baseline
+ * (the 10k baseline is already baked into TDEE via ACTIVITY_MULTIPLIER
+ * in the macro profile). Uses the same MET × weight × km/h math as
+ * `steps10kKcal` in `src/components/macro-calculator/formulas.ts`,
+ * but exposed here so the analytics layer doesn't have to depend on
+ * the macro calculator module just for one formula.
+ */
+function stepsExtraKcalForDay(
+  stepsToday: number | undefined,
+  weightKg: number
+): number {
+  if (!stepsToday || stepsToday <= 10000 || !weightKg || weightKg <= 0) {
+    return 0;
+  }
+  const excess = stepsToday - 10000;
+  // Same math as formulas.steps10kKcal — STEPS_MET=3.5, STEPS_KM_PER_10K=7,
+  // STEPS_KM_PER_HOUR=5 → fraction = 7/5 = 1.4 hours per 10k, scaled by
+  // excess/10k.
+  const steps10kKcal = 3.5 * weightKg * (7 / 5);
+  return Math.round((excess / 10000) * steps10kKcal);
+}
+
 export function useFoodAnalytics(
   range: AnalyticsRange,
   startDate: string | null
@@ -232,28 +256,32 @@ export function useFoodAnalytics(
 
       const rangeStart = getRangeStartKey(range);
 
-      const [foodRes, workoutsRes, profileRes, weightRes] = await Promise.all([
-        (supabase.from('food_log') as any)
-          .select('day_key, kcal, protein, carbs, fat, fiber')
-          .eq('user_id', user.id)
-          .order('day_key', { ascending: true }),
-        (supabase.from('workout_log') as any)
-          .select('date_key, line, sets, grouping')
-          .eq('user_id', user.id),
-        (supabase.from('macro_profile') as any)
-          .select('results_kcal, results_protein, results_carbs, results_fat, weight_kg, age, sex, height_cm, kettlebell_weight_kg')
-          .eq('user_id', user.id)
-          .maybeSingle(),
-        // Pull all the user's weight readings (small list, bounded by
-        // their actual weigh-in cadence). The chart filters by range
-        // client-side using the day_key. We fetch all rather than only
-        // the visible range so the baseline can come from earlier days
-        // if the user weighed in before the range started.
-        (supabase.from('weight_log') as any)
-          .select('day_key, weight_kg, notes')
-          .eq('user_id', user.id)
-          .order('day_key', { ascending: true }),
-      ]);
+      const [foodRes, workoutsRes, profileRes, stepsRes, weightRes] =
+        await Promise.all([
+          (supabase.from('food_log') as any)
+            .select('day_key, kcal, protein, carbs, fat, fiber')
+            .eq('user_id', user.id)
+            .order('day_key', { ascending: true }),
+          (supabase.from('workout_log') as any)
+            .select('date_key, line, sets, grouping')
+            .eq('user_id', user.id),
+          (supabase.from('macro_profile') as any)
+            .select('results_kcal, results_protein, results_carbs, results_fat, weight_kg, age, sex, height_cm, kettlebell_weight_kg')
+            .eq('user_id', user.id)
+            .maybeSingle(),
+          (supabase.from('daily_steps') as any)
+            .select('date_key, steps')
+            .eq('user_id', user.id),
+          // Pull all the user's weight readings (small list, bounded by
+          // their actual weigh-in cadence). The chart filters by range
+          // client-side using the day_key. We fetch all rather than only
+          // the visible range so the baseline can come from earlier days
+          // if the user weighed in before the range started.
+          (supabase.from('weight_log') as any)
+            .select('day_key, weight_kg, notes')
+            .eq('user_id', user.id)
+            .order('day_key', { ascending: true }),
+        ]);
 
       if (cancelled) return;
 
@@ -291,6 +319,15 @@ export function useFoodAnalytics(
         });
       }
 
+      // Group daily steps by date_key. Days with steps logged but
+      // neither food nor workout get included below — we still want
+      // them in the day list so the kcal balance reflects the steps.
+      const stepsByDay: Record<string, number> = {};
+      for (const row of stepsRes.data || []) {
+        const count = Number(row.steps) || 0;
+        if (count > 0) stepsByDay[row.date_key] = count;
+      }
+
       const { start: rangeStartKey, end: rangeEndKey } = rangeStart;
 
       function inRange(k: string) {
@@ -299,10 +336,13 @@ export function useFoodAnalytics(
         return true;
       }
 
-      // Build day list from BOTH food-logged days AND workout days in range
+      // Build day list from BOTH food-logged days AND workout days in
+// range. Include any day with a steps entry too, so the steps burn
+// shows up in the kcal balance even when nothing else was logged.
       const allDayKeys = [...new Set([
         ...Object.keys(foodByDay),
         ...Object.keys(workoutByDay),
+        ...Object.keys(stepsByDay),
       ])].filter(inRange).sort();
 
       const builtDays: AnalyticsDay[] = allDayKeys.map((day_key) => {
@@ -365,7 +405,17 @@ export function useFoodAnalytics(
           }
         }
         const kcalUnderOver = kcalTarget - kcalActual;
-        const kcalUnderOverAdjusted = kcalUnderOver + workoutKcalEstimate;
+        // Steps above the 10k baseline count as additional burn.
+        // (The 10k baseline is already baked into TDEE via
+        // ACTIVITY_MULTIPLIER — only extras burn needs cross-
+        // counting.) The hook returns weightKg so we don't have to
+        // plumb it through.
+        const stepsExtra = stepsExtraKcalForDay(
+          stepsByDay[day_key],
+          weightKg
+        );
+        const kcalUnderOverAdjusted =
+          kcalUnderOver + workoutKcalEstimate + stepsExtra;
 
         return {
           day_key,

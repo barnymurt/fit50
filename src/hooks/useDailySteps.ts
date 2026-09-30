@@ -1,0 +1,129 @@
+'use client';
+
+// Daily step counts for the workout section's additional-burn
+// calculator. Stored server-side in `daily_steps` (one row per
+// user + day_key) so the macro analytics can fold the excess over
+// 10k into the day's kcalUnderOverAdjusted.
+//
+// Pattern mirrors useWaterLog:
+//   - Local cache in localStorage for offline / fast-render
+//   - Server upsert in a fire-and-forget effect
+//   - Re-render on save so the UI's kcal preview updates
+
+import { useCallback, useEffect, useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { createClient } from '@/lib/supabase';
+import { loadJson, saveJson } from '@/lib/storage';
+
+const STORAGE_KEY = 'fit50-steps-v1';
+
+interface DaySteps {
+  date: string;
+  steps: number;
+}
+
+export function stepsExtraKcal(steps: number, weightKg: number): number {
+  // Same MET math as the macro calculator's steps10kKcal — only the
+  // excess over the 10k baseline contributes additional burn.
+  // steps10kKcal(W) = 3.5 × W × (7 / 5); we only credit the fraction
+  // over 10k.
+  const excess = Math.max(0, steps - 10000);
+  if (excess <= 0 || !weightKg || weightKg <= 0) return 0;
+  const steps10kKcal = 3.5 * weightKg * (7 / 5);
+  return Math.round((excess / 10000) * steps10kKcal);
+}
+
+export function useDailySteps(dateKey: string | null, weightKg: number | null) {
+  const { user } = useAuth();
+  const supabase = createClient();
+  const [steps, setSteps] = useState<number>(0);
+  const [hydrated, setHydrated] = useState(false);
+
+  // Hydrate from localStorage (immediate) then from Supabase (source
+  // of truth, including cross-device edits).
+  useEffect(() => {
+    if (!dateKey) {
+      setHydrated(true);
+      return;
+    }
+    setHydrated(false);
+    const cached = loadJson<DaySteps[]>(STORAGE_KEY, []);
+    const local = cached.find((d) => d.date === dateKey);
+    if (local) setSteps(local.steps);
+    if (!user || !supabase) {
+      setHydrated(true);
+      return;
+    }
+    let cancelled = false;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (supabase.from('daily_steps') as any)
+      .select('steps')
+      .eq('user_id', user.id)
+      .eq('date_key', dateKey)
+      .maybeSingle()
+      .then((res: { data: { steps: number } | null; error: unknown }) => {
+        if (cancelled) return;
+        if (res.error) {
+          console.error('daily_steps fetch failed:', res.error);
+        } else if (res.data) {
+          setSteps(res.data.steps);
+          // Mirror to local cache.
+          saveJson(
+            STORAGE_KEY,
+            dedupAndSort([...(cached.filter((d) => d.date !== dateKey)), { date: dateKey, steps: res.data.steps }])
+          );
+        }
+        setHydrated(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [dateKey, user, supabase]);
+
+  const saveSteps = useCallback(
+    async (next: number) => {
+      if (!dateKey || !user || !supabase) return;
+      const clamped = Math.max(0, Math.min(99999, Math.floor(next)));
+      // Optimistic local update so the kcal preview reflects the new
+      // count immediately.
+      setSteps(clamped);
+      saveJson(
+        STORAGE_KEY,
+        dedupAndSort([
+          ...loadJson<DaySteps[]>(STORAGE_KEY, []).filter(
+            (d) => d.date !== dateKey
+          ),
+          { date: dateKey, steps: clamped },
+        ])
+      );
+      try {
+        const { error } = await (supabase.from('daily_steps') as any).upsert(
+          {
+            user_id: user.id,
+            date_key: dateKey,
+            steps: clamped,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'user_id,date_key' }
+        );
+        if (error) throw error;
+      } catch (err) {
+        console.error('daily_steps upsert failed:', err);
+      }
+    },
+    [dateKey, user, supabase]
+  );
+
+  return {
+    steps,
+    stepsExtraKcal: stepsExtraKcal(steps, weightKg ?? 0),
+    saveSteps,
+    hydrated,
+  };
+}
+
+function dedupAndSort(entries: DaySteps[]): DaySteps[] {
+  const map = new Map<string, DaySteps>();
+  for (const e of entries) map.set(e.date, e);
+  return Array.from(map.values()).sort((a, b) => a.date.localeCompare(b.date));
+}
