@@ -898,10 +898,19 @@ export default function AccountWorkouts() {
       cancelled = true;
     };
   }, [user, supabase]);
-  const { steps, stepsExtraKcal, saveSteps, hydrated: stepsHydrated } = useDailySteps(
+  const { steps, stepsExtraKcal, saveSteps, history: stepsHistory, hydrated: stepsHydrated } = useDailySteps(
     date || null,
     profileWeightKg
   );
+  // Manual save flow — the input drafts a string until the user
+  // explicitly clicks Save, which avoids accidental write-amplification
+  // (each keystroke today was firing an upsert).
+  const [stepsDraft, setStepsDraft] = useState<string>('');
+  // Keep the draft in sync when today's saved value changes (e.g.
+  // hydration on first render).
+  useEffect(() => {
+    setStepsDraft(String(steps || ''));
+  }, [steps]);
   // Unified per-grouping today's data. Replaces the previous `sets`
   // and `randomSessionTicks` state which were scoped to the active
   // grouping only — that's why switching tabs after tapping some
@@ -1533,55 +1542,6 @@ export default function AccountWorkouts() {
           </div>
         )}
 
-        {/* Daily steps entry — only the excess over 10 000 counts as
-            additional kcal on top of the activity baseline (which is
-            already baked into TDEE via ACTIVITY_MULTIPLIER). The
-            preview line shows the kcal contribution so the user can
-            decide whether they need to fuel up. Saved to daily_steps and
-            picked up by useFoodAnalytics for the kcal balance surfaces.
-            */}
-      <div className="mb-6 border border-ink/15 bg-cre-30 p-4">
-        <div className="flex items-baseline justify-between gap-2 mb-3 flex-wrap">
-          <span className="font-body text-caption uppercase tracking-widest text-ink/60">
-            Today's steps
-          </span>
-          {stepsExtraKcal > 0 ? (
-            <span className="font-body text-caption uppercase tracking-widest text-ink/50 tabular-nums">
-              +{stepsExtraKcal} kcal
-            </span>
-          ) : null}
-        </div>
-        <div className="flex items-center gap-2">
-          <input
-            type="number"
-            inputMode="numeric"
-            min={0}
-            max={99999}
-            step={100}
-            disabled={!stepsHydrated}
-            value={steps || ''}
-            onChange={(e) => saveSteps(Number(e.target.value))}
-            placeholder="0"
-            aria-label="Steps today"
-            className="flex-1 min-w-0 px-3 py-2 bg-paper border border-ink/20 font-body focus:border-ink outline-none text-base tabular-nums"
-          />
-          <span className="font-body text-caption uppercase tracking-widest text-ink/50 shrink-0">
-            steps
-          </span>
-        </div>
-        {stepsExtraKcal > 0 ? (
-          <p className="font-body text-caption text-ink/60 mt-2">
-            {steps - 10000} extra steps = <span className="font-semibold">+{stepsExtraKcal} kcal</span> extra burn
-            on top of the 10k activity baseline.
-          </p>
-        ) : steps > 0 ? (
-          <p className="font-body text-caption text-ink/50 mt-2">
-            Below the 10k activity baseline — no extra burn. Log the steps
-            you actually walked to track them across the challenge.
-          </p>
-        ) : null}
-      </div>
-
         {/* Randomise — roll a fresh 5-exercise session: one per
             movement category (push, pull, legs, core, stamina),
             pulling from any grouping × line × slot. Filters out
@@ -1927,6 +1887,106 @@ export default function AccountWorkouts() {
                 </button>
               </div>
             </div>
+          </div>
+        )}
+      </div>
+
+      {/* Daily steps — manual save + record of the 50 days. The 10k
+          baseline is already baked into TDEE via ACTIVITY_MULTIPLIER,
+          so only the excess over 10k counts as additional burn.
+          Reads the saved value from useDailySteps; the draft is a
+          separate string so each keystroke doesn't trigger an upsert.
+          Below the input is a 50-day record pulled from daily_steps
+          so the user can see their history at a glance. */}
+      <div className="mb-6 border border-ink/15 bg-cre-30 p-4">
+        <div className="flex items-baseline justify-between gap-2 mb-3 flex-wrap">
+          <span className="font-body text-caption uppercase tracking-widest text-ink/60">
+            Today's steps
+          </span>
+          {stepsExtraKcal > 0 ? (
+            <span className="font-body text-caption uppercase tracking-widest text-ink/50 tabular-nums">
+              +{stepsExtraKcal} kcal
+            </span>
+          ) : null}
+        </div>
+        <div className="flex items-center gap-2">
+          <input
+            type="number"
+            inputMode="numeric"
+            min={0}
+            max={99999}
+            step={100}
+            disabled={!stepsHydrated}
+            value={stepsDraft}
+            onChange={(e) => setStepsDraft(e.target.value)}
+            placeholder="0"
+            aria-label="Steps today"
+            className="flex-1 min-w-0 px-3 py-2 bg-paper border border-ink/20 font-body focus:border-ink outline-none text-base tabular-nums"
+          />
+          <span className="font-body text-caption uppercase tracking-widest text-ink/50 shrink-0">
+            steps
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              const n = Number(stepsDraft);
+              if (Number.isFinite(n) && n >= 0) {
+                saveSteps(n);
+              }
+            }}
+            disabled={!stepsHydrated || stepsDraft === String(steps || '')}
+            className="font-body text-caption uppercase tracking-widest bg-ink text-paper px-4 py-2 hover:bg-ink/85 transition-colors disabled:opacity-40"
+          >
+            Save
+          </button>
+        </div>
+        {stepsExtraKcal > 0 ? (
+          <p className="font-body text-caption text-ink/60 mt-2">
+            {steps - 10000} extra steps = <span className="font-semibold">+{stepsExtraKcal} kcal</span> extra burn
+            on top of the 10k activity baseline.
+          </p>
+        ) : steps > 0 ? (
+          <p className="font-body text-caption text-ink/50 mt-2">
+            Below the 10k activity baseline — no extra burn. Log the steps
+            you actually walked to track them across the challenge.
+          </p>
+        ) : null}
+
+        {/* Record of the 50 days — new entries first, kcal contribution
+            alongside so the user can see when they've gone over the
+            10k baseline. */}
+        {stepsHistory.length > 0 && (
+          <div className="mt-4 border-t border-ink/10 pt-3">
+            <div className="flex items-baseline justify-between gap-2 mb-2">
+              <span className="font-body text-caption uppercase tracking-widest text-ink/60">
+                Record of the 50 days
+              </span>
+              <span className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums">
+                {stepsHistory.length} {stepsHistory.length === 1 ? 'entry' : 'entries'}
+              </span>
+            </div>
+            <ul className="divide-y divide-ink/10">
+              {stepsHistory.map((h) => (
+                <li
+                  key={h.date}
+                  className="flex items-center justify-between gap-2 py-2 font-body text-sm"
+                >
+                  <span className="font-display text-base tabular-nums text-ink">
+                    {h.steps.toLocaleString()}
+                  </span>
+                  <span className="font-body text-caption uppercase tracking-widest text-ink/50 tabular-nums">
+                    {h.date}
+                  </span>
+                  <span
+                    className={`font-body text-caption tabular-nums ${
+                      h.extraKcal > 0 ? 'text-coral font-medium' : 'text-ink/40'
+                    }`}
+                  >
+                    {h.extraKcal > 0 ? `+${h.extraKcal} kcal` : '—'}
+                  </span>
+                </li>
+              ))}
+            </ul>
           </div>
         )}
       </div>

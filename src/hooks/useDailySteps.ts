@@ -22,9 +22,13 @@ interface DaySteps {
   steps: number;
 }
 
+export interface StepsHistoryEntry extends DaySteps {
+  extraKcal: number;
+}
+
 export function stepsExtraKcal(steps: number, weightKg: number): number {
   // Same MET math as the macro calculator's steps10kKcal — only the
-  // excess over the 10k baseline contributes additional burn.
+  // excess over 10k baseline contributes additional burn.
   // steps10kKcal(W) = 3.5 × W × (7 / 5); we only credit the fraction
   // over 10k.
   const excess = Math.max(0, steps - 10000);
@@ -33,11 +37,20 @@ export function stepsExtraKcal(steps: number, weightKg: number): number {
   return Math.round((excess / 10000) * steps10kKcal);
 }
 
-export function useDailySteps(dateKey: string | null, weightKg: number | null) {
+export function useDailySteps(
+  dateKey: string | null,
+  weightKg: number | null,
+  historyDays = 50
+) {
   const { user } = useAuth();
   const supabase = createClient();
   const [steps, setSteps] = useState<number>(0);
   const [hydrated, setHydrated] = useState(false);
+  // Most recent N days of step entries, newest first. Each entry's
+  // `extraKcal` is computed locally using the same formula as the
+  // kcal balance so the history list and the kcal balance stay in
+  // sync if the user later changes their weight.
+  const [history, setHistory] = useState<StepsHistoryEntry[]>([]);
 
   // Hydrate from localStorage (immediate) then from Supabase (source
   // of truth, including cross-device edits).
@@ -55,30 +68,62 @@ export function useDailySteps(dateKey: string | null, weightKg: number | null) {
       return;
     }
     let cancelled = false;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (supabase.from('daily_steps') as any)
-      .select('steps')
-      .eq('user_id', user.id)
-      .eq('date_key', dateKey)
-      .maybeSingle()
-      .then((res: { data: { steps: number } | null; error: unknown }) => {
+    // Fetch today's entry + the recent-history window in parallel so
+    // the per-day "Record of the 50 days" list and the today's input
+    // both populate on first paint.
+    const historyCutoff = new Date();
+    historyCutoff.setDate(historyCutoff.getDate() - historyDays);
+    const historyCutoffKey = `${historyCutoff.getFullYear()}-${String(
+      historyCutoff.getMonth() + 1
+    ).padStart(2, '0')}-${String(historyCutoff.getDate()).padStart(2, '0')}`;
+    Promise.all([
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (supabase.from('daily_steps') as any)
+        .select('steps')
+        .eq('user_id', user.id)
+        .eq('date_key', dateKey)
+        .maybeSingle(),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (supabase.from('daily_steps') as any)
+        .select('date_key, steps')
+        .eq('user_id', user.id)
+        .gte('date_key', historyCutoffKey),
+    ]).then(
+      ([todayRes, histRes]: [
+        { data: { steps: number } | null; error: unknown } | null,
+        { data: Array<{ date_key: string; steps: number }> | null; error: unknown } | null
+      ]) => {
         if (cancelled) return;
-        if (res.error) {
-          console.error('daily_steps fetch failed:', res.error);
-        } else if (res.data) {
-          setSteps(res.data.steps);
-          // Mirror to local cache.
+        if (todayRes?.error) {
+          console.error('daily_steps fetch failed:', todayRes.error);
+        } else if (todayRes?.data) {
+          setSteps(todayRes.data.steps);
           saveJson(
             STORAGE_KEY,
-            dedupAndSort([...(cached.filter((d) => d.date !== dateKey)), { date: dateKey, steps: res.data.steps }])
+            dedupAndSort([
+              ...cached.filter((d) => d.date !== dateKey),
+              { date: dateKey, steps: todayRes.data.steps },
+            ])
           );
         }
+        const rows: Array<{ date_key: string; steps: number }> =
+          histRes?.data ?? [];
+        const hist: StepsHistoryEntry[] = rows
+          .filter((r) => r.date_key !== dateKey)
+          .sort((a, b) => b.date_key.localeCompare(a.date_key))
+          .map((r) => ({
+            date: r.date_key,
+            steps: r.steps,
+            extraKcal: stepsExtraKcal(r.steps, weightKg ?? 0),
+          }));
+        setHistory(hist);
         setHydrated(true);
-      });
+      }
+    );
     return () => {
       cancelled = true;
     };
-  }, [dateKey, user, supabase]);
+  }, [dateKey, user, supabase, weightKg, historyDays]);
 
   const saveSteps = useCallback(
     async (next: number) => {
@@ -118,6 +163,7 @@ export function useDailySteps(dateKey: string | null, weightKg: number | null) {
     steps,
     stepsExtraKcal: stepsExtraKcal(steps, weightKg ?? 0),
     saveSteps,
+    history,
     hydrated,
   };
 }
