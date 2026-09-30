@@ -1,6 +1,10 @@
 {
   "crons": [
     {
+      "path": "/api/cron/buddy-expiring-soon",
+      "schedule": "0 4 * * *"
+    },
+    {
       "path": "/api/cron/buddy-expiry",
       "schedule": "0 4 * * *"
     }

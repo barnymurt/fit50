@@ -56,14 +56,11 @@ export function renderBuddyInviteEmail({
       Hi ${escapeHtml(buddyName)},
     </p>
     <p style="margin:0 0 16px 0;font-size:16px;line-height:1.5;">
-      <strong>${escapeHtml(purchaserName)}</strong> has bought you a seat on
-      <strong>FIT50</strong> — a 50-day challenge for people who want to finish with
-      something to show for it. Nine daily disciplines, one project you build,
-      fifty days.
+      <strong>${escapeHtml(purchaserName)} has shouted you a seat on FIT50</strong> — a 50-day challenge for people who want to challenge body and mind whilst also actually finishing with something to show for it. Nine daily disciplines, one project you build, fifty days.
     </p>
     ${personalNoteHtml}
     <p style="margin:0 0 8px 0;font-size:16px;line-height:1.5;">
-      You&apos;ve been given a paid account — no cost to you, they picked up the tab.
+      You&apos;ve been given a <strong>premium</strong> account — no cost to you, your mate picked up the tab.
     </p>
     <p style="margin:0 0 24px 0;font-size:16px;line-height:1.5;">
       You don&apos;t have to start the 50 days today — finish activating, then start
@@ -71,10 +68,10 @@ export function renderBuddyInviteEmail({
     </p>
     ${ctaButton(activationUrl, 'Activate your seat')}
     ${mutedParagraph(
-      `The activation link is open for 14 days. After that, if you haven't activated, the seat becomes a gift code your friend can pass to someone else.`
+      `The activation link is open for 14 days. After that, if you haven't activated, the seat becomes a gift code your mate can pass to someone else.`
     )}
     ${mutedParagraph(
-      `Not interested? Just ignore this email. Nothing else will come from us.`
+      `Not interested? Just ignore this email. But maybe speak to your buddy they chose you for a reason?`
     )}
     <p style="margin:24px 0 0 0;padding-top:16px;border-top:1px solid ${EMAIL_STYLES.border};font-size:11px;line-height:1.5;color:${EMAIL_STYLES.inkMuted};">
       <strong>${escapeHtml(purchaserName)}</strong> (${escapeHtml(purchaserEmail)})
@@ -86,20 +83,19 @@ export function renderBuddyInviteEmail({
 
   const text = `Hi ${buddyName},
 
-${purchaserName} has bought you a seat on FIT50 — a 50-day challenge for people who want to finish with something to show for it. Nine daily disciplines, one project you build, fifty days.
+${purchaserName} has shouted you a seat on FIT50 — a 50-day challenge for people who want to challenge body and mind whilst also actually finishing with something to show for it. Nine daily disciplines, one project you build, fifty days.
 
-${personalNote ? `\nTheir note to you:\n${personalNote}\n` : ''}You've been given a paid account — no cost to you, they picked up the tab. To activate it, click below and set a password.
+${personalNote ? `\nTheir note to you:\n${personalNote}\n` : ''}You've been given a premium account — no cost to you, your mate picked up the tab. To activate it, click below and set a password.
 
 You don't have to start the 50 days today — finish activating, then start whenever you're ready.
 
 Activate your seat: ${activationUrl}
 
-The activation link is open for 14 days. After that, if you haven't activated, the seat becomes a gift code your friend can pass to someone else.
+The activation link is open for 14 days. After that, if you haven't activated, the seat becomes a gift code your mate can pass to someone else.
 
-Not interested? No worries — just ignore this email. Nothing else will come from us if you don't activate.
+Not interested? Just ignore this email. But maybe speak to your buddy they chose you for a reason?
 
-— The FIT50 team
-${purchaserName} (${purchaserEmail}) bought you the seat. Contact them with any questions about it.`;
+${purchaserName} (${purchaserEmail}) bought you this seat. Reply to them with any questions about it.`;
 
   return {
     subject,

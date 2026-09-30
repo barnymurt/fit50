@@ -18,7 +18,6 @@ import {
   ctaButton,
   emailShell,
   escapeHtml,
-  mutedParagraph,
   paragraph,
   replyToFor,
   signature,
@@ -57,19 +56,16 @@ export function renderWelcomeEmail({
     </p>
     <ol style="margin:0 0 24px 0;padding-left:20px;font-size:16px;line-height:1.6;">
       <li style="margin-bottom:8px;">
-        <a href="${escapeHtml(signInUrl)}" style="color:${EMAIL_STYLES.coral};">Sign in</a> and tap the first habit on the tracker. Start whenever you&apos;re ready — but the streak only counts from day one.
+        Sign in and explore the tracker. When you&apos;re ready to start tap the first habit on the tracker. Start whenever you&apos;re ready — the streak only counts from day one.
       </li>
       <li style="margin-bottom:8px;">
-        Pick your buddy. €9.99 for two seats, or €4.00 if you&apos;re already on premium. You&apos;re more likely to finish.
+        When you start the challenge with a buddy, you&apos;re more likely to finish together. Pick your buddy.
       </li>
       <li>
-        If a day slips, you&apos;ve got one free pass a week to protect your streak (premium).
+        Premium is €5.99 once, yours forever: streak protection (1 every 25 days, so a missed day doesn&apos;t kill the run), the macro food database, weight projection that learns from your weigh-ins, and a meal bundle tool to make daily food logs quick and easy.
       </li>
     </ol>
     ${ctaButton(signInUrl, 'Open my tracker')}
-    ${mutedParagraph(
-      `Reply if anything breaks. We read every one.`
-    )}
     ${signature()}
   `;
 
@@ -79,13 +75,11 @@ Welcome to FIT50. Fifty days. Nine daily disciplines. One thing you'll finish. T
 
 Three things to do in the next five minutes:
 
-1. Sign in: ${signInUrl}
-2. Tap the first habit on the tracker to start day one (or wait — start when you're ready, but the streak only counts from day one).
-3. Pick your buddy. Bringing a mate is €9.99 for two seats, or €4.00 if you're already on premium. Either way, you're more likely to finish.
+1. Sign in and explore the tracker. When you're ready to start tap the first habit on the tracker. Start whenever you're ready — the streak only counts from day one.
+2. When you start the challenge with a buddy, you're more likely to finish together. Pick your buddy.
+3. Premium is €5.99 once, yours forever: streak protection (1 every 25 days, so a missed day doesn't kill the run), the macro food database, weight projection that learns from your weigh-ins, and a meal bundle tool to make daily food logs quick and easy.
 
-If a day slips, you've got one free pass a week to protect your streak (premium feature, €5.99 one-time, yours forever).
-
-Reply to this email if anything breaks — we read every one.
+Open my tracker: ${signInUrl}
 
 — Barny (and the FIT50 team)`;
 
@@ -117,7 +111,7 @@ export function renderActivatedEmail({
   accountUrl,
 }: ActivatedArgs): { subject: string; html: string; text: string; replyTo: string } {
   const name = displayName || email.split('@')[0];
-  const subject = `${purchaserName} just bought you a seat — and you're in`;
+  const subject = `${purchaserName} just shouted you a beer — and you're in.`;
   const preheader =
     `${purchaserName} has finished setting up your FIT50 seat — day one starts when you tap the first habit.`;
 
@@ -126,7 +120,7 @@ export function renderActivatedEmail({
       Hi ${escapeHtml(name)},
     </p>
     ${paragraph(
-      `${escapeHtml(purchaserName)} has finished setting up your FIT50 seat — you&apos;re in. They paid, you click. Welcome.`
+      `${escapeHtml(purchaserName)} has finished setting up your FIT50 seat — you&apos;re in!  They chose you as their buddy, Welcome! We thank them for the caneca — pass on the vibe to another mate.`
     )}
     ${paragraph(
       `You don&apos;t have to start the 50 days today. Activate is done, but day one starts when you tap the first habit on the tracker. Start whenever you&apos;re ready.`
@@ -139,34 +133,29 @@ export function renderActivatedEmail({
         You can see each other&apos;s streaks. That&apos;s the whole point of doing this together — one more reason to show up.
       </li>
       <li style="margin-bottom:8px;">
-        You&apos;ve got one free pass a week to protect the streak if you slip. Use it before Sunday midnight.
+        You&apos;ve got 1 streak protection every 25 days if you slip. Use it on a day you can&apos;t log.
       </li>
       <li>
-        The hardest day is day 14, not day 1. Stay close to your buddy.
+        On those days when your motivation is flagging, lean on your buddy — together you can push through, they&apos;ll return the favour down the line.
       </li>
     </ol>
     ${ctaButton(accountUrl, 'Open my tracker')}
-    ${mutedParagraph(
-      `Reply to this email if anything breaks. We read every one.`
-    )}
     ${signature()}
   `;
 
   const text = `Hi ${name},
 
-${purchaserName} has finished setting up your FIT50 seat — you're in. They paid, you click. Welcome.
+${purchaserName} has finished setting up your FIT50 seat — you're in!  They chose you as their buddy, Welcome! We thank them for the caneca — pass on the vibe to another mate.
 
 You don't have to start the 50 days today. Activate is done, but day one starts when you tap the first habit on the tracker. Start whenever you're ready.
 
 Three things to know:
 
 1. You can see each other's streaks. That's the whole point of doing this together — one more reason to show up.
-2. You've got one free pass a week to protect the streak if you slip. Use it before Sunday midnight.
-3. The hardest day is day 14, not day 1. Stay close to your buddy.
+2. You've got 1 streak protection every 25 days if you slip. Use it on a day you can't log.
+3. On those days when your motivation is flagging, lean on your buddy — together you can push through, they'll return the favour down the line.
 
 Open your tracker: ${accountUrl}
-
-Reply to this email if anything breaks — we read every one.
 
 ${emailSignature}`;
 

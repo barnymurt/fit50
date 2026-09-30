@@ -336,9 +336,8 @@ export function renderDayFiftyEmail(args: Args): {
     ${paragraph(
       `When you signed up, you said you wanted to do something specific. Read more. Stop drinking. Move your body. Write. Whatever it was — did it work?`
     )}
-    ${paragraph(`We'd love to hear what you're walking away with. Not the metrics — the thing. Reply to this email and tell us in one paragraph what changed. We'll read every one.`)}
     ${paragraph(
-      `And if you're comfortable, we'll be sharing some of these stories over the coming weeks. Just say the word and we won't use yours.`
+      `Reply and tell us what changed. Not the metrics — the thing. One paragraph is enough. We'll read every one. And if you're comfortable, we'll share some of these stories over the coming weeks — just say the word and we won't use yours.`
     )}
     ${ctaButton(certificateUrl, 'View my certificate')}
     ${mutedParagraph(
@@ -353,9 +352,7 @@ You did it. Fifty days. Nine habits every single day. The certificate is below i
 
 When you signed up, you said you wanted to do something specific. Read more. Stop drinking. Move your body. Write. Whatever it was — did it work?
 
-We'd love to hear what you're walking away with. Not the metrics — the thing. Reply to this email and tell us in one paragraph what changed. We'll read every one.
-
-And if you're comfortable, we'll be sharing some of these stories over the coming weeks. Just say the word and we won't use yours.
+Reply and tell us what changed. Not the metrics — the thing. One paragraph is enough. We'll read every one. And if you're comfortable, we'll share some of these stories over the coming weeks — just say the word and we won't use yours.
 
 View my certificate: ${certificateUrl}
 
