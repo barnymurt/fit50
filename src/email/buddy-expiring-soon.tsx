@@ -50,7 +50,7 @@ export function renderBuddyExpiringSoonEmail({
       `After that the seat becomes a gift code your mate can pass on to someone else, and the activation link stops working.`
     )}
     ${paragraph(
-      `It takes about 60 seconds to set a password and you&apos;re in. Day one starts whenever you tap the first habit.`
+      `It takes about 60 seconds to set a password and you&apos;re in. Drop ${escapeHtml(purchaserName)} a message and pick a start date together — that&apos;s when day one starts.`
     )}
     ${ctaButton(activationUrl, 'Activate my seat')}
     ${signature()}
@@ -62,7 +62,7 @@ ${purchaserName} shouted you a seat on FIT50 — but the activation link expires
 
 After that the seat becomes a gift code your mate can pass on to someone else, and the activation link stops working.
 
-It takes about 60 seconds to set a password and you're in. Day one starts whenever you tap the first habit.
+It takes about 60 seconds to set a password and you're in. Drop ${purchaserName} a message and pick a start date together — that's when day one starts.
 
 Activate my seat: ${activationUrl}
 
