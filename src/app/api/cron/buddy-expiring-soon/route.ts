@@ -1,14 +1,15 @@
 // Cron handler: /api/cron/buddy-expiring-soon
 //
-// Daily Vercel Cron call. Emails the giftee when their seat is
-// 2-3 days from expiring (the "click here before it's too late"
-// nudge). The existing /api/cron/buddy-expiry cron handles day 14
-// (gift-code fallback + gift-code email to the purchaser).
+// Daily Vercel Cron call. Emails the giftee at the **midpoint** of
+// the 14-day activation window (~7 days from expiry) — the "you've
+// still got time, but not loads" nudge. The existing
+// /api/cron/buddy-expiry cron handles day 14 (gift-code fallback +
+// gift-code email to the purchaser).
 //
 // To avoid spamming when the daily cron matches the same purchase
-// for 2-3 days in a row, we use the mid_reminder_sent_at column
+// for several days in a row, we use the mid_reminder_sent_at column
 // (added in migration 0041) as a one-shot flag. The cron only sends
-// when mid_reminder_sent_at IS NULL AND expires_at is in the 48–96h
+// when mid_reminder_sent_at IS NULL AND expires_at is in the 6-8 day
 // window; after sending, it stamps the column so subsequent daily
 // runs skip the same purchase.
 //
@@ -65,15 +66,14 @@ export async function GET(req: NextRequest) {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
-  // Find pending (not-yet-activated) giftees whose seat is 2-3
-  // days from expiring AND we haven't already sent the mid-window
-  // reminder. The `expires_at` window is 48-96 hours from now so
-  // the daily cron hits the row once on each of 2-3 consecutive
-  // days; the `mid_reminder_sent_at IS NULL` gate ensures we only
-  // send once.
+  // Find pending (not-yet-activated) giftees at the midpoint of the
+  // 14-day activation window — 7 days from expiry. The window is
+  // 6-8 days (144-192h) so the daily cron reliably hits each row on
+  // at least one run; the `mid_reminder_sent_at IS NULL` gate
+  // ensures we only send once.
   const now = new Date();
-  const lower = new Date(now.getTime() + 48 * 60 * 60 * 1000).toISOString();
-  const upper = new Date(now.getTime() + 96 * 60 * 60 * 1000).toISOString();
+  const lower = new Date(now.getTime() + 144 * 60 * 60 * 1000).toISOString();
+  const upper = new Date(now.getTime() + 192 * 60 * 60 * 1000).toISOString();
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: expiring, error } = await (admin.from('buddy_purchases') as any)
@@ -121,15 +121,10 @@ export async function GET(req: NextRequest) {
         ? `${origin}/activate/buddy/${gifteeProfile.activation_token}`
         : `${origin}/account`;
 
-      // Days-left rounded up so "expires in 3 days" reads cleanly
-      // when the window opens at 48 hours out.
-      const daysLeft = Math.max(
-        2,
-        Math.ceil(
-          (new Date(p.expires_at).getTime() - now.getTime()) /
-            (24 * 60 * 60 * 1000)
-        )
-      );
+      // Mid-window reminder always reads "7 days" — that's the midpoint
+      // of the 14-day activation window. Clamped to 7 even on the
+      // outer edges of the cron window so the copy stays stable.
+      const daysLeft = 7;
 
       const rendered = renderBuddyExpiringSoonEmail({
         displayName: p.buddy_name,
