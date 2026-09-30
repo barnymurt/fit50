@@ -1,8 +1,9 @@
 // Banana-day emails — the platform's framing for "you slipped".
 // We don't say "you missed a day". We say "you earned a banana
 // day." 🍌 is the streak-protection icon (see Tracker.tsx) and the
-// underlying feature is the one free pass a week that premium users
-// get (see useStreakProtection.ts).
+// underlying feature is one protection every 25 days that premium
+// users get (see useTrackerState.ts → useStreakProtectionForDay and
+// useStreakProtection.ts).
 //
 // Five emails in this file:
 //   1. day slip — premium  ("you have a banana to spend")
@@ -13,6 +14,12 @@
 //
 // (The 30-day quiet email is the soft win-back — separate file
 // would be a stretch, so it lives here too as renderThirtyDayQuiet.)
+//
+// Note on the cooldown: streak protection is **per challenge day**,
+// not per calendar week. The card on the tracker shows the cooldown
+// remaining ("Wait N more days — last used on day X") and the day
+// editor lets the user pick which past day to protect. The old
+// "midnight Sunday / week resets Monday" framing is gone.
 
 import {
   EMAIL_STYLES,
@@ -36,7 +43,9 @@ interface Args {
   hasBuddy: boolean;
   buddyName?: string | null;
   currentDay: number; // the day they're on when this fires
-  hasProtectionForWeek?: boolean; // optional, for premium path
+  lastProtectionDay?: number | null; // for the premium path — if set,
+  // the user is mid-cooldown and the email should say so instead of
+  // nudging them to redeem.
   unsubscribeUrl: string;
 }
 
@@ -60,7 +69,21 @@ export function renderBananaDayPremiumEmail(args: Args): {
   const name = nameOrLocal(args);
   const subject = '🍌 Banana day. Use the pass.';
   const preheader =
-    'You earned a banana day. Tap it before midnight Sunday and the streak holds.';
+    'You earned a banana day. Apply it to the day you missed and the streak holds.';
+
+  // Two premium states: the user has a protection ready, or they're
+  // mid-cooldown from an earlier redemption. The email copy is the
+  // same in both cases; the difference lives in the muted line so the
+  // "Use it" CTA never points at something the user can't actually do.
+  const cooldownActive =
+    args.lastProtectionDay != null &&
+    args.currentDay - args.lastProtectionDay < 25;
+  const cooldownDaysLeft = cooldownActive
+    ? Math.max(0, 25 - (args.currentDay - (args.lastProtectionDay as number)))
+    : 0;
+  const cooldownLine = cooldownActive
+    ? `Wait ${cooldownDaysLeft} more day${cooldownDaysLeft === 1 ? '' : 's'} — last used on day ${args.lastProtectionDay}. Premium: 1 protection every 25 days.`
+    : `Premium: 1 protection every 25 days. If you've already used this run's pass, the link will tell you — no need to remember.`;
 
   const body = `
     <p style="margin:0 0 16px 0;font-family:${EMAIL_STYLES.displayFamily};font-size:24px;line-height:1.2;">
@@ -70,15 +93,10 @@ export function renderBananaDayPremiumEmail(args: Args): {
       `Day ${args.currentDay - 1} slipped. That's a banana day — and you have a banana to spend.`
     )}
     ${paragraph(
-      `Tap the streak protection card on your tracker before midnight Sunday and the streak holds. You'll see the week reset on Monday as if nothing happened.`
+      `Open the day you missed on your tracker, tap the streak protection card for that day, and the streak carries past it. Each 🍌 shows up on your certificate, so the run still reads as fifty.`
     )}
-    ${paragraph(
-      `If you've already used this week's pass, the link will tell you so — no need to remember.`
-    )}
+    ${mutedParagraph(cooldownLine)}
     ${ctaButton(args.trackerUrl, 'Use my streak protection')}
-    ${mutedParagraph(
-      `Banana days exist so a bad day doesn't end the whole run. Use them.`
-    )}
     ${signature()}
   `;
 
@@ -86,13 +104,11 @@ export function renderBananaDayPremiumEmail(args: Args): {
 
 Day ${args.currentDay - 1} slipped. That's a banana day — and you have a banana to spend.
 
-Tap the streak protection card on your tracker before midnight Sunday and the streak holds. You'll see the week reset on Monday as if nothing happened.
+Open the day you missed on your tracker, tap the streak protection card for that day, and the streak carries past it. Each 🍌 shows up on your certificate, so the run still reads as fifty.
 
-If you've already used this week's pass, the link will tell you so — no need to remember.
+${cooldownLine}
 
 Use my streak protection: ${args.trackerUrl}
-
-Banana days exist so a bad day doesn't end the whole run. Use them.
 
 ${emailSignature}`;
 
@@ -134,7 +150,7 @@ export function renderBananaDayFreeEmail(args: Args): {
       `The thing to remember is that this isn't a failure. It's a Tuesday. Tap the same nine habits tomorrow and the run continues from a fresh line.`
     )}
     ${paragraph(
-      `If you'd like the protection pass, it's a one-time €5.99 — yours forever, one banana a week for the rest of the challenge. No subscription, no renewal nonsense.`
+      `If you'd like the protection pass, it's a one-time €5.99 — yours forever, one banana every 25 days for the rest of the challenge. No subscription, no renewal nonsense.`
     )}
     ${ctaButton(args.trackerUrl, 'Open my tracker')}
     ${mutedParagraph(
@@ -149,7 +165,7 @@ You missed a day. That's a banana day. Premium members can spend a banana to kee
 
 The thing to remember is that this isn't a failure. It's a Tuesday. Tap the same nine habits tomorrow and the run continues from a fresh line.
 
-If you'd like the protection pass, it's a one-time €5.99 — yours forever, one banana a week for the rest of the challenge. No subscription, no renewal nonsense.
+If you'd like the protection pass, it's a one-time €5.99 — yours forever, one banana every 25 days for the rest of the challenge. No subscription, no renewal nonsense.
 
 Open my tracker: ${args.trackerUrl}
 
