@@ -65,7 +65,7 @@ export function renderBuddyStartedEmail(args: Args): {
     ${paragraph(
       `You can see each other's days from now on. That's the whole point of doing this together — one more reason to show up.`
     )}
-    ${ctaButton(args.trackerUrl, 'See my tracker')}
+    ${ctaButton(args.trackerUrl, 'Open my tracker')}
     ${mutedParagraph(
       `Reply if anything looks off. We read every one.`
     )}
@@ -78,7 +78,7 @@ ${buddy} just opened their tracker. The seat you bought them is now an actual pe
 
 You can see each other's days from now on. That's the whole point of doing this together — one more reason to show up.
 
-See my tracker: ${args.trackerUrl}
+Open my tracker: ${args.trackerUrl}
 
 Reply if anything looks off. We read every one.
 
@@ -124,7 +124,7 @@ export function renderBuddyFinishedEmail(args: Args): {
       `You probably had something to do with that — having a pair card open on your tracker that you can see every day is real accountability. Don't underestimate what that was worth.`
     )}
     ${paragraph(
-      `If you're still going, keep going. If you've slipped, this is a banana day — and yes, you can use it.`
+      `If you're still going, keep going. If you've slipped, this is a banana day — tomorrow's still day one.`
     )}
     ${ctaButton(args.trackerUrl, 'Open my tracker')}
     ${mutedParagraph(
@@ -139,7 +139,7 @@ ${buddy} finished. Forty-nine days of showing up, then day fifty, and now they'r
 
 You probably had something to do with that — having a pair card open on your tracker that you can see every day is real accountability. Don't underestimate what that was worth.
 
-If you're still going, keep going. If you've slipped, this is a banana day — and yes, you can use it.
+If you're still going, keep going. If you've slipped, this is a banana day — tomorrow's still day one.
 
 Open my tracker: ${args.trackerUrl}
 
