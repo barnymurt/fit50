@@ -874,6 +874,18 @@ export default function AccountWorkouts() {
   const [date, setDate] = useState<string>('');
   const [grouping, setGrouping] = useState<Grouping>('bodyweight');
   const [key, setKey] = useState<WorkoutKey>('A');
+  // Per-grouping line. The save effect was previously saving the
+  // single global `key` as the line ID for every grouping, which
+  // meant switching to kettlebell and back to bodyweight silently
+  // overwrote the bodyweight line ID. Track each grouping's line
+  // separately so the workout_log row stays correct.
+  const [lineByGrouping, setLineByGrouping] = useState<
+    Record<Grouping, WorkoutKey>
+  >({
+    bodyweight: 'A',
+    kettlebell: 'A',
+    band: 'A',
+  });
   // Unified per-grouping today's data. Replaces the previous `sets`
   // and `randomSessionTicks` state which were scoped to the active
   // grouping only — that's why switching tabs after tapping some
@@ -975,16 +987,17 @@ export default function AccountWorkouts() {
             Promise.resolve(active),
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (supabase.from('workout_log') as any)
-              .select('grouping, sets')
+              .select('grouping, sets, line')
               .eq('user_id', user.id)
               .eq('date_key', k)
               .in('grouping', GROUPINGS as unknown as string[])
-              .then((res: { data: Array<{ grouping: Grouping; sets: Record<string, number> | null }> | null; error: unknown }) => ({
+              .then((res: { data: Array<{ grouping: Grouping; sets: Record<string, number> | null; line: WorkoutKey | null }> | null; error: unknown }) => ({
                 data: ((res.data || []) as Array<{
                   grouping: Grouping;
                   sets: Record<string, number> | null;
+                  line: WorkoutKey | null;
                 }>).map(
-                  (r) => [r.grouping, r.sets || {}] as const
+                  (r) => [r.grouping, r.sets || {}, (r.line || 'A') as WorkoutKey] as const
                 ),
                 error: res.error,
               })),
@@ -1007,11 +1020,20 @@ export default function AccountWorkouts() {
             { line: Record<string, number>; random: Record<string, number> }
           >;
           if (remote.data) {
-            for (const [g, sets] of remote.data as Array<
-              [Grouping, Record<string, number>]
+            for (const [g, sets, remoteLine] of remote.data as Array<
+              [Grouping, Record<string, number>, WorkoutKey]
             >) {
               grouped[g] = { line: sets, random: grouped[g].random };
-              saveWorkoutLocal(k, g, { line: key, sets });
+              // Mirror to local with the per-grouping line so the
+              // next offline boot reads it correctly. (Previously
+              // saved with the global `key`, which overwrote the
+              // per-grouping line on every page load.)
+              saveWorkoutLocal(k, g, { line: remoteLine, sets });
+              // Seed lineByGrouping from the server-side line ID
+              // so the next save round-trips correctly.
+              setLineByGrouping((prev) =>
+                prev[g] === remoteLine ? prev : { ...prev, [g]: remoteLine }
+              );
             }
           } else {
             // Remote fetch failed / empty — fall back to localStorage
@@ -1019,11 +1041,19 @@ export default function AccountWorkouts() {
             for (const g of GROUPINGS) {
               const local = loadWorkoutLocal(k, g);
               grouped[g] = { line: local.sets, random: grouped[g].random };
+              setLineByGrouping((prev) =>
+                prev[g] === local.line ? prev : { ...prev, [g]: local.line }
+              );
             }
           }
           setTodaysByGrouping(grouped);
           if (active) {
             setKey(active.line);
+            setLineByGrouping((prev) =>
+              prev[grouping] === active.line
+                ? prev
+                : { ...prev, [grouping]: active.line }
+            );
           }
           setHasLoaded(true);
         });
@@ -1045,17 +1075,35 @@ export default function AccountWorkouts() {
     // Persist every grouping separately so the per-(user, date,
     // grouping) primary key on workout_log stays intact. Iterating
     // here is cheap; just a few upserts.
-    for (const [g, { line }] of Object.entries(todaysByGrouping)) {
-      saveWorkoutLocal(date, g as Grouping, { line: key, sets: line });
+    //
+    // Two fixes vs the previous version:
+    //   1. The `line` ID is per-grouping (via lineByGrouping), not
+    //      the global `key` selector — switching to kettlebell and
+    //      back no longer overwrites bodyweight's line ID.
+    //   2. The line + random set counts are merged before save, so
+    //      ticks the user placed via the "Done today" panel on a
+    //      random-session exercise actually persist (previously
+    //      random ticks only existed in React state — the save
+    //      effect dropped them).
+    for (const [g, { line, random }] of Object.entries(todaysByGrouping)) {
+      const mergedSets: Record<string, number> = { ...line };
+      for (const [name, count] of Object.entries(random)) {
+        // If the same exercise appears in both the line session and
+        // a random session, take the higher count — the user
+        // shouldn't double-count sets they've already done.
+        mergedSets[name] = Math.max(mergedSets[name] || 0, count);
+      }
+      const groupingLine = lineByGrouping[g as Grouping] ?? key;
+      saveWorkoutLocal(date, g as Grouping, { line: groupingLine, sets: mergedSets });
       if (user && supabase) {
         saveWorkoutRemote(supabase, user.id, date, {
-          line: key,
-          sets: line,
+          line: groupingLine,
+          sets: mergedSets,
           grouping: g as Grouping,
         });
       }
     }
-  }, [date, key, todaysByGrouping, user, supabase]);
+  }, [date, key, lineByGrouping, todaysByGrouping, user, supabase]);
 
   // Midnight rollover. Without this, a user who leaves the tab open
   // across midnight keeps seeing yesterday's ticked boxes because
@@ -1087,7 +1135,12 @@ export default function AccountWorkouts() {
       // whatever's in workout_log for the new date (almost always
       // empty for a fresh day, but a previously-saved session
       // would survive).
+      // Reset the global line selector and per-grouping map to
+      // 'A' so the new day starts from a clean slate. The next
+      // mount-effect will repopulate lineByGrouping from whatever
+      // workout_log says for each grouping.
       setKey('A');
+      setLineByGrouping({ bodyweight: 'A', kettlebell: 'A', band: 'A' });
       // Clear all groupings — a fresh day starts at zero across the
       // board. The next mount-effect re-loads.
       setTodaysByGrouping({
@@ -1636,9 +1689,13 @@ export default function AccountWorkouts() {
                   type="button"
                   onClick={() => {
                     setGrouping(g);
-                    // Reset to 'A' when switching groupings so the
-                    // user lands on a sensible default each time.
-                    setKey('A');
+                    // Show the line the user last used for this
+                    // grouping (loaded from server / localStorage),
+                    // not the global `key` — otherwise switching to
+                    // kettlebell and back to bodyweight would clobber
+                    // the bodyweight line ID with whatever the
+                    // user last picked in kettlebell.
+                    setKey(lineByGrouping[g]);
                     setActiveIdx(null);
                   }}
                   aria-pressed={active}
@@ -1676,6 +1733,11 @@ export default function AccountWorkouts() {
                 key={l}
                 onClick={() => {
                   setKey(l);
+                  // Remember this line for the active grouping so the
+                  // next save round-trips it correctly to workout_log.
+                  setLineByGrouping((prev) =>
+                    prev[grouping] === l ? prev : { ...prev, [grouping]: l }
+                  );
                   setActiveIdx(null);
                 }}
                 className={`px-3 py-3 border font-body text-caption uppercase tracking-widest transition-colors ${
@@ -1820,7 +1882,7 @@ export default function AccountWorkouts() {
                     return (
                       <button
                         key={j}
-                        onClick={() => cycleSet(exercises[activeIdx].name)}
+                        onClick={() => cycleSet(exercises[activeIdx].name, j)}
                         aria-label={`Set ${j + 1} ${isFilled ? 'completed, tap to undo' : 'tap to log'}`}
                         className="min-w-[48px] min-h-[48px] flex items-center justify-center"
                       >
