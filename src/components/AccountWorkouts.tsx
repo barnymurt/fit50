@@ -2068,28 +2068,187 @@ export default function AccountWorkouts() {
               </span>
             </div>
             <ul className="divide-y divide-ink/10">
-              {stepsHistory.map((h) => (
-                <li
-                  key={h.date}
-                  className="flex items-center justify-between gap-2 py-2 font-body text-sm"
-                >
-                  <span className="font-display text-base tabular-nums text-ink">
-                    {h.steps.toLocaleString()}
-                  </span>
-                  <span className="font-body text-caption uppercase tracking-widest text-ink/50 tabular-nums">
-                    {h.date}
-                  </span>
-                  <span
-                    className={`font-body text-caption tabular-nums ${
-                      h.extraKcal > 0 ? 'text-coral font-medium' : 'text-ink/40'
-                    }`}
+              {stepsHistory.map((h) => {
+                const isEditing = editingStepsDate === h.date;
+                const edited = Number(editStepsDraft);
+                const dirty =
+                  isEditing &&
+                  Number.isFinite(edited) &&
+                  edited >= 0 &&
+                  edited !== h.steps;
+                if (isEditing) {
+                  return (
+                    <li
+                      key={h.date}
+                      className="flex flex-wrap items-center gap-2 py-2 font-body text-sm"
+                    >
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        min={0}
+                        max={99999}
+                        step={100}
+                        value={editStepsDraft}
+                        onChange={(e) =>
+                          setEditStepsDraft(
+                            e.target.value.replace(/,/g, '')
+                          )
+                        }
+                        aria-label={`Edit steps for ${h.date}`}
+                        className="flex-1 min-w-0 px-2 py-1 bg-paper border border-ink/30 font-body focus:border-ink outline-none text-base tabular-nums"
+                      />
+                      <span className="font-body text-caption uppercase tracking-widest text-ink/50 shrink-0">
+                        steps
+                      </span>
+                      <span className="font-body text-caption uppercase tracking-widest text-ink/50 tabular-nums shrink-0">
+                        {h.date}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          await saveStepsForDate(h.date, edited);
+                          setEditingStepsDate(null);
+                          setEditStepsDraft('');
+                        }}
+                        disabled={!dirty}
+                        className="font-body text-caption uppercase tracking-widest bg-ink text-paper px-3 py-1 hover:bg-ink/85 transition-colors disabled:opacity-40"
+                      >
+                        Save
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingStepsDate(null);
+                          setEditStepsDraft('');
+                        }}
+                        className="font-body text-caption uppercase tracking-widest text-ink/50 hover:text-ink px-2 py-1"
+                      >
+                        Cancel
+                      </button>
+                    </li>
+                  );
+                }
+                return (
+                  <li
+                    key={h.date}
+                    className="flex items-center gap-2 py-2 font-body text-sm"
                   >
-                    {h.extraKcal > 0 ? `+${h.extraKcal} kcal` : '—'}
-                  </span>
-                </li>
-              ))}
+                    <span className="font-display text-base tabular-nums text-ink">
+                      {h.steps.toLocaleString()}
+                    </span>
+                    <span className="font-body text-caption uppercase tracking-widest text-ink/50 tabular-nums">
+                      {h.date}
+                    </span>
+                    <span
+                      className={`font-body text-caption tabular-nums ${
+                        h.extraKcal > 0 ? 'text-coral font-medium' : 'text-ink/40'
+                      }`}
+                    >
+                      {h.extraKcal > 0 ? `+${h.extraKcal} kcal` : '—'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingStepsDate(h.date);
+                        setEditStepsDraft(String(h.steps));
+                        setAddingPastDay(false);
+                      }}
+                      aria-label={`Edit steps for ${h.date}`}
+                      className="ml-auto shrink-0 font-body text-caption uppercase tracking-widest text-ink/40 hover:text-ink px-1"
+                    >
+                      Edit
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           </div>
+        )}
+
+        {/* Add steps for a past day — the user forgot to log, but they
+            have a record of it (e.g. their phone shows the step count).
+            Mutually exclusive with row-edit mode so only one form is
+            open at a time. */}
+        {addingPastDay ? (
+          <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-ink/10 pt-3">
+            <label className="font-body text-caption uppercase tracking-widest text-ink/50 shrink-0">
+              Date
+            </label>
+            <input
+              type="date"
+              value={pastDayDate}
+              max={date || undefined}
+              onChange={(e) => setPastDayDate(e.target.value)}
+              aria-label="Past day date"
+              className="px-2 py-1 bg-paper border border-ink/30 font-body focus:border-ink outline-none text-base"
+            />
+            <label className="font-body text-caption uppercase tracking-widest text-ink/50 shrink-0">
+              Steps
+            </label>
+            <input
+              type="number"
+              inputMode="numeric"
+              min={0}
+              max={99999}
+              step={100}
+              value={pastDayDraft}
+              onChange={(e) =>
+                setPastDayDraft(e.target.value.replace(/,/g, ''))
+              }
+              placeholder="e.g. 12,500"
+              aria-label="Past day steps"
+              className="w-28 px-2 py-1 bg-paper border border-ink/30 font-body focus:border-ink outline-none text-base tabular-nums"
+            />
+            <button
+              type="button"
+              onClick={async () => {
+                if (!pastDayDate) return;
+                const n = Number(pastDayDraft);
+                if (!Number.isFinite(n) || n < 0) return;
+                await saveStepsForDate(pastDayDate, n);
+                setAddingPastDay(false);
+                setPastDayDate('');
+                setPastDayDraft('');
+              }}
+              disabled={
+                !pastDayDate ||
+                !pastDayDraft ||
+                !Number.isFinite(Number(pastDayDraft)) ||
+                Number(pastDayDraft) < 0
+              }
+              className="font-body text-caption uppercase tracking-widest bg-ink text-paper px-3 py-1 hover:bg-ink/85 transition-colors disabled:opacity-40"
+            >
+              Save
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setAddingPastDay(false);
+                setPastDayDate('');
+                setPastDayDraft('');
+              }}
+              className="font-body text-caption uppercase tracking-widest text-ink/50 hover:text-ink px-2 py-1"
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              // Default to yesterday — the most common "I forgot
+              // to log" case. Date input clamps to today via max=.
+              const d = new Date();
+              d.setDate(d.getDate() - 1);
+              const y = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+              setPastDayDate(y);
+              setAddingPastDay(true);
+              setEditingStepsDate(null);
+            }}
+            className="mt-3 font-body text-caption uppercase tracking-widest text-coral hover:text-coral/85"
+          >
+            + Add for past day
+          </button>
         )}
       </div>
     </Section>
