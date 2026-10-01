@@ -910,7 +910,7 @@ export default function AccountWorkouts() {
       cancelled = true;
     };
   }, [user, supabase]);
-  const { steps, stepsExtraKcal, saveSteps, history: stepsHistory, hydrated: stepsHydrated } = useDailySteps(
+  const { steps, stepsExtraKcal, saveSteps, saveStepsForDate, history: stepsHistory, hydrated: stepsHydrated } = useDailySteps(
     date || null,
     profileWeightKg
   );
@@ -918,6 +918,14 @@ export default function AccountWorkouts() {
   // explicitly clicks Save, which avoids accidental write-amplification
   // (each keystroke today was firing an upsert).
   const [stepsDraft, setStepsDraft] = useState<string>('');
+  // Edit + add-past-day state. Only one row can be in edit mode at a
+  // time; the "Add for past day" form is mutually exclusive with the
+  // row-edit form so the user isn't juggling two open inputs.
+  const [editingStepsDate, setEditingStepsDate] = useState<string | null>(null);
+  const [editStepsDraft, setEditStepsDraft] = useState<string>('');
+  const [addingPastDay, setAddingPastDay] = useState(false);
+  const [pastDayDate, setPastDayDate] = useState<string>('');
+  const [pastDayDraft, setPastDayDraft] = useState<string>('');
   // Keep the draft in sync when today's saved value changes (e.g.
   // hydration on first render).
   useEffect(() => {
@@ -1014,6 +1022,17 @@ export default function AccountWorkouts() {
     // exercises completed via KB / band paths too — switching tabs
     // used to "lose" those entries because the load only fetched the
     // active grouping. Hydrate the unified `todaysByGrouping` map.
+    //
+    // Deps deliberately exclude `grouping`. Including `grouping`
+    // here causes a race: switching the equipment tab re-runs this
+    // load, the fresh fetch returns stale data (the save's upsert
+    // for the just-ticked exercise hasn't landed on Supabase yet),
+    // and `setTodaysByGrouping` overwrites the in-memory ticks the
+    // user just made — they vanish from Done today. The grouping
+    // tab handler reads `lineByGrouping` to set the line selector
+    // for the new grouping, and `lineByGrouping` is already
+    // populated by this load on initial mount, so we don't need to
+    // refetch just to know the right line to show.
     if (user && supabase) {
       // Active-grouping line for the "back to row X" jump-back UX.
       loadWorkoutRemote(supabase, user.id, k, grouping)
@@ -1105,7 +1124,7 @@ export default function AccountWorkouts() {
       setTodaysByGrouping(grouped);
       setHasLoaded(true);
     }
-  }, [user, supabase, grouping]);
+  }, [user, supabase]);
 
   useEffect(() => {
     if (!date || !hasLoaded) return;
