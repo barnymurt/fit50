@@ -1963,11 +1963,11 @@ export default function AccountWorkouts() {
       <div className="mb-6 border border-ink/15 bg-cre-30 p-4">
         <div className="flex items-baseline justify-between gap-2 mb-3 flex-wrap">
           <span className="font-body text-caption uppercase tracking-widest text-ink/60">
-            Today's steps
+            Total steps today
           </span>
           {stepsExtraKcal > 0 ? (
-            <span className="font-body text-caption uppercase tracking-widest text-ink/50 tabular-nums">
-              +{stepsExtraKcal} kcal
+            <span className="font-body text-caption uppercase tracking-widest text-coral font-medium tabular-nums">
+              +{stepsExtraKcal} kcal extra burn
             </span>
           ) : null}
         </div>
@@ -1980,9 +1980,14 @@ export default function AccountWorkouts() {
             step={100}
             disabled={!stepsHydrated}
             value={stepsDraft}
-            onChange={(e) => setStepsDraft(e.target.value)}
+            onChange={(e) =>
+              // Strip commas so '12,500' parses as 12500 on some
+              // browsers/locales that accept thousand separators in
+              // number inputs.
+              setStepsDraft(e.target.value.replace(/,/g, ''))
+            }
             placeholder="0"
-            aria-label="Steps today"
+            aria-label="Total steps today"
             className="flex-1 min-w-0 px-3 py-2 bg-paper border border-ink/20 font-body focus:border-ink outline-none text-base tabular-nums"
           />
           <span className="font-body text-caption uppercase tracking-widest text-ink/50 shrink-0">
@@ -2002,15 +2007,31 @@ export default function AccountWorkouts() {
             Save
           </button>
         </div>
+
+        {/* Counter-balance callout — only when over the 10k baseline.
+            This is the part that used to be confusing. "Extra burn"
+            is half the story; the other half is that the user has to
+            actually eat those kcal or their body will pull from muscle.
+            The macro target is already inflated by the extra burn
+            (see useFoodAnalytics → daily_steps join), so this card is
+            just a nudge: "your target includes +N kcal — don't skip
+            the snack." The numbers match the kcal balance surface. */}
         {stepsExtraKcal > 0 ? (
-          <p className="font-body text-caption text-ink/60 mt-2">
-            {steps - 10000} extra steps = <span className="font-semibold">+{stepsExtraKcal} kcal</span> extra burn
-            on top of the 10k activity baseline.
-          </p>
+          <div className="mt-3 border border-coral/40 bg-coral/5 p-3">
+            <p className="font-body text-caption uppercase tracking-widest text-coral font-medium mb-1">
+              Eat an extra {stepsExtraKcal} kcal today
+            </p>
+            <p className="font-body text-sm text-ink/70 leading-snug">
+              {steps - 10000} steps over the 10k baseline = +{stepsExtraKcal} kcal
+              {' '}of extra burn on top of your normal target. Your macro target
+              already includes those {stepsExtraKcal} kcal — skip the snack
+              and your body eats muscle with the fat.
+            </p>
+          </div>
         ) : steps > 0 ? (
           <p className="font-body text-caption text-ink/50 mt-2">
-            Below the 10k activity baseline — no extra burn. Log the steps
-            you actually walked to track them across the challenge.
+            Under the 10k baseline — no extra burn, your normal target
+            covers it. Log the total so we have the full picture.
           </p>
         ) : null}
 
