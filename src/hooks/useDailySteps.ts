@@ -17,6 +17,15 @@ import { loadJson, saveJson } from '@/lib/storage';
 
 const STORAGE_KEY = 'fit50-steps-v1';
 
+// Dispatched after saveSteps / saveStepsForDate write to the
+// local cache + Supabase. Every useDailySteps instance on the page
+// (AccountWorkouts + FoodDatabase are both consumers) listens for
+// this and re-reads its in-memory state from the local cache, so
+// the food tracker's kcal target updates the moment the user saves
+// steps in the workout section — without it, the second instance
+// keeps showing the pre-save value until a full reload.
+export const DAILY_STEPS_CHANGED_EVENT = 'fit50:daily-steps-changed';
+
 interface DaySteps {
   date: string;
   steps: number;
@@ -176,6 +185,30 @@ export function useDailySteps(
     );
   }, [effectiveWeight]);
 
+  // Cross-instance sync. AccountWorkouts and FoodDatabase each
+  // have their own useDailySteps instance, so writing in one
+  // doesn't update the other. saveSteps / saveStepsForDate dispatch
+  // this event after persisting; every instance listens and
+  // re-reads today's entry from the local cache (which saveSteps
+  // already wrote) so the food tracker's kcal target updates
+  // without a Supabase fetch.
+  useEffect(() => {
+    if (!dateKey) return;
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<{ dateKey?: string }>).detail;
+      // Filter: only react to events for our dateKey. If the user
+      // is backfilling a past day, that past-day's hook instance
+      // should refresh; today's instance should ignore.
+      if (detail?.dateKey && detail.dateKey !== dateKey) return;
+      const cached = loadJson<DaySteps[]>(STORAGE_KEY, []);
+      const local = cached.find((d) => d.date === dateKey);
+      if (local) setSteps(local.steps);
+    };
+    window.addEventListener(DAILY_STEPS_CHANGED_EVENT, handler);
+    return () =>
+      window.removeEventListener(DAILY_STEPS_CHANGED_EVENT, handler);
+  }, [dateKey]);
+
   const saveSteps = useCallback(
     async (next: number) => {
       if (!dateKey || !user || !supabase) return;
@@ -191,6 +224,15 @@ export function useDailySteps(
           ),
           { date: dateKey, steps: clamped },
         ])
+      );
+      // Broadcast so other useDailySteps instances on the page
+      // (FoodDatabase) re-read their in-memory state. The local
+      // cache is the freshest possible — we just wrote to it above
+      // and the Supabase round-trip below is async.
+      window.dispatchEvent(
+        new CustomEvent(DAILY_STEPS_CHANGED_EVENT, {
+          detail: { dateKey },
+        })
       );
       try {
         const { error } = await (supabase.from('daily_steps') as any).upsert(
@@ -235,6 +277,12 @@ export function useDailySteps(
           ),
           { date: forDate, steps: clamped },
         ])
+      );
+      // Broadcast to other instances — see saveSteps above.
+      window.dispatchEvent(
+        new CustomEvent(DAILY_STEPS_CHANGED_EVENT, {
+          detail: { dateKey: forDate },
+        })
       );
       // In-memory history: replace if date already in list, otherwise
       // prepend (newest-first sort). Recomputes extraKcal with the
