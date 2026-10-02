@@ -563,6 +563,26 @@ export function useTrackerState() {
       // localStorage lives in the same browser the user just edited
       // in, so prefer it for any habit it explicitly records (true or
       // false). Daily_totals fills in habits it doesn't mention.
+      //
+      // Crucially, we also re-upsert localStorage's day entries to
+      // daily_totals on every boot. Without this, a day that was
+      // archived by a midnight rollover while the tab was closed
+      // (so the upsert never landed on Supabase) sits in the
+      // browser's localStorage forever — and a different device
+      // (mobile vs desktop, different logged-in browser) that opens
+      // the page later sees the day as incomplete because the
+      // server never knew about it. Result: a 46-day streak on one
+      // device, a 7-day streak on the other, depending on which
+      // browser the user happened to have open at each rollover.
+      // The upsert is idempotent (same user_id, day_number, habit_id
+      // → ON CONFLICT DO NOTHING) so this is cheap on re-runs.
+      const localOnlyRows: Array<{
+        user_id: string;
+        day_number: number;
+        habit_id: string;
+        completed: boolean;
+        archived_at: string;
+      }> = [];
       if (hasStart) {
         for (const [dayStr, taps] of Object.entries(localClosedDays)) {
           const dayNumber = Number(dayStr);
@@ -576,6 +596,28 @@ export function useTrackerState() {
             ...(mergedClosed[dayNumber] || {}),
             ...taps,
           };
+          if (user && supabase) {
+            const archivedAt = new Date().toISOString();
+            for (const [habitId, completed] of Object.entries(taps)) {
+              if (typeof completed !== 'boolean') continue;
+              localOnlyRows.push({
+                user_id: user.id,
+                day_number: dayNumber,
+                habit_id: habitId,
+                completed,
+                archived_at: archivedAt,
+              });
+            }
+          }
+        }
+        if (localOnlyRows.length > 0) {
+          try {
+            await (supabase.from('daily_totals') as any).upsert(localOnlyRows, {
+              onConflict: 'user_id,day_number,habit_id',
+            });
+          } catch (err) {
+            console.error('localStorage → daily_totals sync failed:', err);
+          }
         }
       }
 
