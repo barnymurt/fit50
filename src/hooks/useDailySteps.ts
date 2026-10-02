@@ -94,6 +94,15 @@ export function useDailySteps(
     // Fetch today's entry + the recent-history window in parallel so
     // the per-day "Record of the 50 days" list and the today's input
     // both populate on first paint.
+    //
+    // Deps deliberately exclude `effectiveWeight`. Including it
+    // caused a subtle bug: when the profile weight finishes loading
+    // after the initial hydration, the dep would re-fire this
+    // effect, the fetch would overwrite `steps` with whatever's in
+    // the DB (frequently 0 on cold start), and the [steps] effect
+    // in the consumer would wipe the user's typed stepsDraft —
+    // making "save" appear broken. The history entries' extraKcal
+    // is recomputed in a separate effect below when weight changes.
     const historyCutoff = new Date();
     historyCutoff.setDate(historyCutoff.getDate() - historyDays);
     const historyCutoffKey = `${historyCutoff.getFullYear()}-${String(
@@ -134,10 +143,14 @@ export function useDailySteps(
         const hist: StepsHistoryEntry[] = rows
           .filter((r) => r.date_key !== dateKey)
           .sort((a, b) => b.date_key.localeCompare(a.date_key))
+          // extraKcal = 0 placeholder; recomputed by the
+          // weight-effect below so the first paint isn't blocked on
+          // the profile fetch and the user's typed stepsDraft
+          // can't be wiped by a stale re-fetch.
           .map((r) => ({
             date: r.date_key,
             steps: r.steps,
-            extraKcal: stepsExtraKcal(r.steps, effectiveWeight ?? 0),
+            extraKcal: 0,
           }));
         setHistory(hist);
         setHydrated(true);
@@ -146,7 +159,22 @@ export function useDailySteps(
     return () => {
       cancelled = true;
     };
-  }, [dateKey, user, supabase, effectiveWeight, historyDays]);
+  }, [dateKey, user, supabase, historyDays]);
+
+  // Recompute extraKcal on every history entry once the user's
+  // weight is known. Runs independently of the hydration effect so
+  // a late-arriving weight doesn't re-fire the network fetch and
+  // clobber local state. Cheap (50 entries × arithmetic).
+  useEffect(() => {
+    if (effectiveWeight <= 0) return;
+    setHistory((prev) =>
+      prev.map((e) =>
+        e.extraKcal === stepsExtraKcal(e.steps, effectiveWeight)
+          ? e
+          : { ...e, extraKcal: stepsExtraKcal(e.steps, effectiveWeight) }
+      )
+    );
+  }, [effectiveWeight]);
 
   const saveSteps = useCallback(
     async (next: number) => {
