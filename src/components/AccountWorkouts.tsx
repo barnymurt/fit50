@@ -918,6 +918,16 @@ export default function AccountWorkouts() {
   // explicitly clicks Save, which avoids accidental write-amplification
   // (each keystroke today was firing an upsert).
   const [stepsDraft, setStepsDraft] = useState<string>('');
+  // Brief "Saved ✓" indicator shown for 2s after a successful save so
+  // the user gets confirmation the click landed. Without it, Save
+  // re-renders into the same disabled state (stepsDraft now matches
+  // String(steps)) and the user thinks nothing happened.
+  const [stepsJustSaved, setStepsJustSaved] = useState(false);
+  useEffect(() => {
+    if (!stepsJustSaved) return;
+    const t = setTimeout(() => setStepsJustSaved(false), 2000);
+    return () => clearTimeout(t);
+  }, [stepsJustSaved]);
   // Edit + add-past-day state. Only one row can be in edit mode at a
   // time; the "Add for past day" form is mutually exclusive with the
   // row-edit form so the user isn't juggling two open inputs.
@@ -2031,14 +2041,22 @@ export default function AccountWorkouts() {
             onClick={() => {
               const n = Number(stepsDraft);
               if (Number.isFinite(n) && n >= 0) {
-                saveSteps(n);
+                saveSteps(n).then(() => setStepsJustSaved(true));
               }
             }}
-            disabled={!stepsHydrated || stepsDraft === String(steps || '')}
+            disabled={!stepsHydrated}
             className="font-body text-caption uppercase tracking-widest bg-ink text-paper px-4 py-2 hover:bg-ink/85 transition-colors disabled:opacity-40"
           >
             Save
           </button>
+          {stepsJustSaved && (
+            <span
+              aria-live="polite"
+              className="font-body text-caption uppercase tracking-widest text-teal"
+            >
+              ✓ Saved
+            </span>
+          )}
         </div>
 
         {/* Counter-balance callout — only when over the 10k baseline.
