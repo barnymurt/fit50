@@ -875,6 +875,18 @@ export default function AccountWorkouts() {
   const [date, setDate] = useState<string>('');
   const [grouping, setGrouping] = useState<Grouping>('bodyweight');
   const [key, setKey] = useState<WorkoutKey>('A');
+  // Per-grouping line. The save effect was previously saving the
+  // single global `key` as the line ID for every grouping, which
+  // meant switching to kettlebell and back to bodyweight silently
+  // overwrote the bodyweight line ID. Track each grouping's line
+  // separately so the workout_log row stays correct.
+  const [lineByGrouping, setLineByGrouping] = useState<
+    Record<Grouping, WorkoutKey>
+  >({
+    bodyweight: 'A',
+    kettlebell: 'A',
+    band: 'A',
+  });
   // Today's steps entry + the kcal it contributes. Lives on the
   // daily_steps table so it survives across devices and feeds the
   // kcal balance in useFoodAnalytics. Weight is pulled from the
@@ -898,7 +910,7 @@ export default function AccountWorkouts() {
       cancelled = true;
     };
   }, [user, supabase]);
-  const { steps, stepsExtraKcal, saveSteps, history: stepsHistory, hydrated: stepsHydrated } = useDailySteps(
+  const { steps, stepsExtraKcal, saveSteps, saveStepsForDate, history: stepsHistory, hydrated: stepsHydrated } = useDailySteps(
     date || null,
     profileWeightKg
   );
@@ -906,6 +918,14 @@ export default function AccountWorkouts() {
   // explicitly clicks Save, which avoids accidental write-amplification
   // (each keystroke today was firing an upsert).
   const [stepsDraft, setStepsDraft] = useState<string>('');
+  // Edit + add-past-day state. Only one row can be in edit mode at a
+  // time; the "Add for past day" form is mutually exclusive with the
+  // row-edit form so the user isn't juggling two open inputs.
+  const [editingStepsDate, setEditingStepsDate] = useState<string | null>(null);
+  const [editStepsDraft, setEditStepsDraft] = useState<string>('');
+  const [addingPastDay, setAddingPastDay] = useState(false);
+  const [pastDayDate, setPastDayDate] = useState<string>('');
+  const [pastDayDraft, setPastDayDraft] = useState<string>('');
   // Keep the draft in sync when today's saved value changes (e.g.
   // hydration on first render).
   useEffect(() => {
@@ -1002,6 +1022,17 @@ export default function AccountWorkouts() {
     // exercises completed via KB / band paths too — switching tabs
     // used to "lose" those entries because the load only fetched the
     // active grouping. Hydrate the unified `todaysByGrouping` map.
+    //
+    // Deps deliberately exclude `grouping`. Including `grouping`
+    // here causes a race: switching the equipment tab re-runs this
+    // load, the fresh fetch returns stale data (the save's upsert
+    // for the just-ticked exercise hasn't landed on Supabase yet),
+    // and `setTodaysByGrouping` overwrites the in-memory ticks the
+    // user just made — they vanish from Done today. The grouping
+    // tab handler reads `lineByGrouping` to set the line selector
+    // for the new grouping, and `lineByGrouping` is already
+    // populated by this load on initial mount, so we don't need to
+    // refetch just to know the right line to show.
     if (user && supabase) {
       // Active-grouping line for the "back to row X" jump-back UX.
       loadWorkoutRemote(supabase, user.id, k, grouping)
@@ -1012,16 +1043,17 @@ export default function AccountWorkouts() {
             Promise.resolve(active),
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (supabase.from('workout_log') as any)
-              .select('grouping, sets')
+              .select('grouping, sets, line')
               .eq('user_id', user.id)
               .eq('date_key', k)
               .in('grouping', GROUPINGS as unknown as string[])
-              .then((res: { data: Array<{ grouping: Grouping; sets: Record<string, number> | null }> | null; error: unknown }) => ({
+              .then((res: { data: Array<{ grouping: Grouping; sets: Record<string, number> | null; line: WorkoutKey | null }> | null; error: unknown }) => ({
                 data: ((res.data || []) as Array<{
                   grouping: Grouping;
                   sets: Record<string, number> | null;
+                  line: WorkoutKey | null;
                 }>).map(
-                  (r) => [r.grouping, r.sets || {}] as const
+                  (r) => [r.grouping, r.sets || {}, (r.line || 'A') as WorkoutKey] as const
                 ),
                 error: res.error,
               })),
@@ -1044,11 +1076,20 @@ export default function AccountWorkouts() {
             { line: Record<string, number>; random: Record<string, number> }
           >;
           if (remote.data) {
-            for (const [g, sets] of remote.data as Array<
-              [Grouping, Record<string, number>]
+            for (const [g, sets, remoteLine] of remote.data as Array<
+              [Grouping, Record<string, number>, WorkoutKey]
             >) {
               grouped[g] = { line: sets, random: grouped[g].random };
-              saveWorkoutLocal(k, g, { line: key, sets });
+              // Mirror to local with the per-grouping line so the
+              // next offline boot reads it correctly. (Previously
+              // saved with the global `key`, which overwrote the
+              // per-grouping line on every page load.)
+              saveWorkoutLocal(k, g, { line: remoteLine, sets });
+              // Seed lineByGrouping from the server-side line ID
+              // so the next save round-trips correctly.
+              setLineByGrouping((prev) =>
+                prev[g] === remoteLine ? prev : { ...prev, [g]: remoteLine }
+              );
             }
           } else {
             // Remote fetch failed / empty — fall back to localStorage
@@ -1056,11 +1097,19 @@ export default function AccountWorkouts() {
             for (const g of GROUPINGS) {
               const local = loadWorkoutLocal(k, g);
               grouped[g] = { line: local.sets, random: grouped[g].random };
+              setLineByGrouping((prev) =>
+                prev[g] === local.line ? prev : { ...prev, [g]: local.line }
+              );
             }
           }
           setTodaysByGrouping(grouped);
           if (active) {
             setKey(active.line);
+            setLineByGrouping((prev) =>
+              prev[grouping] === active.line
+                ? prev
+                : { ...prev, [grouping]: active.line }
+            );
           }
           setHasLoaded(true);
         });
@@ -1075,24 +1124,42 @@ export default function AccountWorkouts() {
       setTodaysByGrouping(grouped);
       setHasLoaded(true);
     }
-  }, [user, supabase, grouping]);
+  }, [user, supabase]);
 
   useEffect(() => {
     if (!date || !hasLoaded) return;
     // Persist every grouping separately so the per-(user, date,
     // grouping) primary key on workout_log stays intact. Iterating
     // here is cheap; just a few upserts.
-    for (const [g, { line }] of Object.entries(todaysByGrouping)) {
-      saveWorkoutLocal(date, g as Grouping, { line: key, sets: line });
+    //
+    // Two fixes vs the previous version:
+    //   1. The `line` ID is per-grouping (via lineByGrouping), not
+    //      the global `key` selector — switching to kettlebell and
+    //      back no longer overwrites bodyweight's line ID.
+    //   2. The line + random set counts are merged before save, so
+    //      ticks the user placed via the "Done today" panel on a
+    //      random-session exercise actually persist (previously
+    //      random ticks only existed in React state — the save
+    //      effect dropped them).
+    for (const [g, { line, random }] of Object.entries(todaysByGrouping)) {
+      const mergedSets: Record<string, number> = { ...line };
+      for (const [name, count] of Object.entries(random)) {
+        // If the same exercise appears in both the line session and
+        // a random session, take the higher count — the user
+        // shouldn't double-count sets they've already done.
+        mergedSets[name] = Math.max(mergedSets[name] || 0, count);
+      }
+      const groupingLine = lineByGrouping[g as Grouping] ?? key;
+      saveWorkoutLocal(date, g as Grouping, { line: groupingLine, sets: mergedSets });
       if (user && supabase) {
         saveWorkoutRemote(supabase, user.id, date, {
-          line: key,
-          sets: line,
+          line: groupingLine,
+          sets: mergedSets,
           grouping: g as Grouping,
         });
       }
     }
-  }, [date, key, todaysByGrouping, user, supabase]);
+  }, [date, key, lineByGrouping, todaysByGrouping, user, supabase]);
 
   // Midnight rollover. Without this, a user who leaves the tab open
   // across midnight keeps seeing yesterday's ticked boxes because
@@ -1124,7 +1191,12 @@ export default function AccountWorkouts() {
       // whatever's in workout_log for the new date (almost always
       // empty for a fresh day, but a previously-saved session
       // would survive).
+      // Reset the global line selector and per-grouping map to
+      // 'A' so the new day starts from a clean slate. The next
+      // mount-effect will repopulate lineByGrouping from whatever
+      // workout_log says for each grouping.
       setKey('A');
+      setLineByGrouping({ bodyweight: 'A', kettlebell: 'A', band: 'A' });
       // Clear all groupings — a fresh day starts at zero across the
       // board. The next mount-effect re-loads.
       setTodaysByGrouping({
@@ -1673,9 +1745,13 @@ export default function AccountWorkouts() {
                   type="button"
                   onClick={() => {
                     setGrouping(g);
-                    // Reset to 'A' when switching groupings so the
-                    // user lands on a sensible default each time.
-                    setKey('A');
+                    // Show the line the user last used for this
+                    // grouping (loaded from server / localStorage),
+                    // not the global `key` — otherwise switching to
+                    // kettlebell and back to bodyweight would clobber
+                    // the bodyweight line ID with whatever the
+                    // user last picked in kettlebell.
+                    setKey(lineByGrouping[g]);
                     setActiveIdx(null);
                   }}
                   aria-pressed={active}
@@ -1713,6 +1789,11 @@ export default function AccountWorkouts() {
                 key={l}
                 onClick={() => {
                   setKey(l);
+                  // Remember this line for the active grouping so the
+                  // next save round-trips it correctly to workout_log.
+                  setLineByGrouping((prev) =>
+                    prev[grouping] === l ? prev : { ...prev, [grouping]: l }
+                  );
                   setActiveIdx(null);
                 }}
                 className={`px-3 py-3 border font-body text-caption uppercase tracking-widest transition-colors ${
@@ -1857,7 +1938,7 @@ export default function AccountWorkouts() {
                     return (
                       <button
                         key={j}
-                        onClick={() => cycleSet(exercises[activeIdx].name)}
+                        onClick={() => cycleSet(exercises[activeIdx].name, j)}
                         aria-label={`Set ${j + 1} ${isFilled ? 'completed, tap to undo' : 'tap to log'}`}
                         className="min-w-[48px] min-h-[48px] flex items-center justify-center"
                       >
@@ -1901,11 +1982,11 @@ export default function AccountWorkouts() {
       <div className="mb-6 border border-ink/15 bg-cre-30 p-4">
         <div className="flex items-baseline justify-between gap-2 mb-3 flex-wrap">
           <span className="font-body text-caption uppercase tracking-widest text-ink/60">
-            Today's steps
+            Total steps today
           </span>
           {stepsExtraKcal > 0 ? (
-            <span className="font-body text-caption uppercase tracking-widest text-ink/50 tabular-nums">
-              +{stepsExtraKcal} kcal
+            <span className="font-body text-caption uppercase tracking-widest text-coral font-medium tabular-nums">
+              +{stepsExtraKcal} kcal extra burn
             </span>
           ) : null}
         </div>
@@ -1918,9 +1999,14 @@ export default function AccountWorkouts() {
             step={100}
             disabled={!stepsHydrated}
             value={stepsDraft}
-            onChange={(e) => setStepsDraft(e.target.value)}
+            onChange={(e) =>
+              // Strip commas so '12,500' parses as 12500 on some
+              // browsers/locales that accept thousand separators in
+              // number inputs.
+              setStepsDraft(e.target.value.replace(/,/g, ''))
+            }
             placeholder="0"
-            aria-label="Steps today"
+            aria-label="Total steps today"
             className="flex-1 min-w-0 px-3 py-2 bg-paper border border-ink/20 font-body focus:border-ink outline-none text-base tabular-nums"
           />
           <span className="font-body text-caption uppercase tracking-widest text-ink/50 shrink-0">
@@ -1940,15 +2026,31 @@ export default function AccountWorkouts() {
             Save
           </button>
         </div>
+
+        {/* Counter-balance callout — only when over the 10k baseline.
+            This is the part that used to be confusing. "Extra burn"
+            is half the story; the other half is that the user has to
+            actually eat those kcal or their body will pull from muscle.
+            The macro target is already inflated by the extra burn
+            (see useFoodAnalytics → daily_steps join), so this card is
+            just a nudge: "your target includes +N kcal — don't skip
+            the snack." The numbers match the kcal balance surface. */}
         {stepsExtraKcal > 0 ? (
-          <p className="font-body text-caption text-ink/60 mt-2">
-            {steps - 10000} extra steps = <span className="font-semibold">+{stepsExtraKcal} kcal</span> extra burn
-            on top of the 10k activity baseline.
-          </p>
+          <div className="mt-3 border border-coral/40 bg-coral/5 p-3">
+            <p className="font-body text-caption uppercase tracking-widest text-coral font-medium mb-1">
+              Eat an extra {stepsExtraKcal} kcal today
+            </p>
+            <p className="font-body text-sm text-ink/70 leading-snug">
+              {steps - 10000} steps over the 10k baseline = +{stepsExtraKcal} kcal
+              {' '}of extra burn on top of your normal target. Your macro target
+              already includes those {stepsExtraKcal} kcal — skip the snack
+              and your body eats muscle with the fat.
+            </p>
+          </div>
         ) : steps > 0 ? (
           <p className="font-body text-caption text-ink/50 mt-2">
-            Below the 10k activity baseline — no extra burn. Log the steps
-            you actually walked to track them across the challenge.
+            Under the 10k baseline — no extra burn, your normal target
+            covers it. Log the total so we have the full picture.
           </p>
         ) : null}
 
@@ -1966,28 +2068,187 @@ export default function AccountWorkouts() {
               </span>
             </div>
             <ul className="divide-y divide-ink/10">
-              {stepsHistory.map((h) => (
-                <li
-                  key={h.date}
-                  className="flex items-center justify-between gap-2 py-2 font-body text-sm"
-                >
-                  <span className="font-display text-base tabular-nums text-ink">
-                    {h.steps.toLocaleString()}
-                  </span>
-                  <span className="font-body text-caption uppercase tracking-widest text-ink/50 tabular-nums">
-                    {h.date}
-                  </span>
-                  <span
-                    className={`font-body text-caption tabular-nums ${
-                      h.extraKcal > 0 ? 'text-coral font-medium' : 'text-ink/40'
-                    }`}
+              {stepsHistory.map((h) => {
+                const isEditing = editingStepsDate === h.date;
+                const edited = Number(editStepsDraft);
+                const dirty =
+                  isEditing &&
+                  Number.isFinite(edited) &&
+                  edited >= 0 &&
+                  edited !== h.steps;
+                if (isEditing) {
+                  return (
+                    <li
+                      key={h.date}
+                      className="flex flex-wrap items-center gap-2 py-2 font-body text-sm"
+                    >
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        min={0}
+                        max={99999}
+                        step={100}
+                        value={editStepsDraft}
+                        onChange={(e) =>
+                          setEditStepsDraft(
+                            e.target.value.replace(/,/g, '')
+                          )
+                        }
+                        aria-label={`Edit steps for ${h.date}`}
+                        className="flex-1 min-w-0 px-2 py-1 bg-paper border border-ink/30 font-body focus:border-ink outline-none text-base tabular-nums"
+                      />
+                      <span className="font-body text-caption uppercase tracking-widest text-ink/50 shrink-0">
+                        steps
+                      </span>
+                      <span className="font-body text-caption uppercase tracking-widest text-ink/50 tabular-nums shrink-0">
+                        {h.date}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          await saveStepsForDate(h.date, edited);
+                          setEditingStepsDate(null);
+                          setEditStepsDraft('');
+                        }}
+                        disabled={!dirty}
+                        className="font-body text-caption uppercase tracking-widest bg-ink text-paper px-3 py-1 hover:bg-ink/85 transition-colors disabled:opacity-40"
+                      >
+                        Save
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingStepsDate(null);
+                          setEditStepsDraft('');
+                        }}
+                        className="font-body text-caption uppercase tracking-widest text-ink/50 hover:text-ink px-2 py-1"
+                      >
+                        Cancel
+                      </button>
+                    </li>
+                  );
+                }
+                return (
+                  <li
+                    key={h.date}
+                    className="flex items-center gap-2 py-2 font-body text-sm"
                   >
-                    {h.extraKcal > 0 ? `+${h.extraKcal} kcal` : '—'}
-                  </span>
-                </li>
-              ))}
+                    <span className="font-display text-base tabular-nums text-ink">
+                      {h.steps.toLocaleString()}
+                    </span>
+                    <span className="font-body text-caption uppercase tracking-widest text-ink/50 tabular-nums">
+                      {h.date}
+                    </span>
+                    <span
+                      className={`font-body text-caption tabular-nums ${
+                        h.extraKcal > 0 ? 'text-coral font-medium' : 'text-ink/40'
+                      }`}
+                    >
+                      {h.extraKcal > 0 ? `+${h.extraKcal} kcal` : '—'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingStepsDate(h.date);
+                        setEditStepsDraft(String(h.steps));
+                        setAddingPastDay(false);
+                      }}
+                      aria-label={`Edit steps for ${h.date}`}
+                      className="ml-auto shrink-0 font-body text-caption uppercase tracking-widest text-ink/40 hover:text-ink px-1"
+                    >
+                      Edit
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           </div>
+        )}
+
+        {/* Add steps for a past day — the user forgot to log, but they
+            have a record of it (e.g. their phone shows the step count).
+            Mutually exclusive with row-edit mode so only one form is
+            open at a time. */}
+        {addingPastDay ? (
+          <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-ink/10 pt-3">
+            <label className="font-body text-caption uppercase tracking-widest text-ink/50 shrink-0">
+              Date
+            </label>
+            <input
+              type="date"
+              value={pastDayDate}
+              max={date || undefined}
+              onChange={(e) => setPastDayDate(e.target.value)}
+              aria-label="Past day date"
+              className="px-2 py-1 bg-paper border border-ink/30 font-body focus:border-ink outline-none text-base"
+            />
+            <label className="font-body text-caption uppercase tracking-widest text-ink/50 shrink-0">
+              Steps
+            </label>
+            <input
+              type="number"
+              inputMode="numeric"
+              min={0}
+              max={99999}
+              step={100}
+              value={pastDayDraft}
+              onChange={(e) =>
+                setPastDayDraft(e.target.value.replace(/,/g, ''))
+              }
+              placeholder="e.g. 12,500"
+              aria-label="Past day steps"
+              className="w-28 px-2 py-1 bg-paper border border-ink/30 font-body focus:border-ink outline-none text-base tabular-nums"
+            />
+            <button
+              type="button"
+              onClick={async () => {
+                if (!pastDayDate) return;
+                const n = Number(pastDayDraft);
+                if (!Number.isFinite(n) || n < 0) return;
+                await saveStepsForDate(pastDayDate, n);
+                setAddingPastDay(false);
+                setPastDayDate('');
+                setPastDayDraft('');
+              }}
+              disabled={
+                !pastDayDate ||
+                !pastDayDraft ||
+                !Number.isFinite(Number(pastDayDraft)) ||
+                Number(pastDayDraft) < 0
+              }
+              className="font-body text-caption uppercase tracking-widest bg-ink text-paper px-3 py-1 hover:bg-ink/85 transition-colors disabled:opacity-40"
+            >
+              Save
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setAddingPastDay(false);
+                setPastDayDate('');
+                setPastDayDraft('');
+              }}
+              className="font-body text-caption uppercase tracking-widest text-ink/50 hover:text-ink px-2 py-1"
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              // Default to yesterday — the most common "I forgot
+              // to log" case. Date input clamps to today via max=.
+              const d = new Date();
+              d.setDate(d.getDate() - 1);
+              const y = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+              setPastDayDate(y);
+              setAddingPastDay(true);
+              setEditingStepsDate(null);
+            }}
+            className="mt-3 font-body text-caption uppercase tracking-widest text-coral hover:text-coral/85"
+          >
+            + Add for past day
+          </button>
         )}
       </div>
     </Section>

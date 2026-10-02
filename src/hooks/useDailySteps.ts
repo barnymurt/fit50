@@ -159,10 +159,73 @@ export function useDailySteps(
     [dateKey, user, supabase]
   );
 
+  // Save steps for an arbitrary date. Used by the history-row edit
+  // and the "+ Add for past day" flow. Updates the local cache,
+  // refreshes the in-memory history list (so the UI updates without
+  // a refetch), and mirrors to Supabase. When `forDate` matches
+  // today's dateKey the today-state is also updated.
+  const saveStepsForDate = useCallback(
+    async (forDate: string, next: number) => {
+      if (!user || !supabase || !forDate) return;
+      // Reject future dates. We don't want users backfilling
+      // tomorrow by accident.
+      const todayStr = (() => {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      })();
+      if (forDate > todayStr) return;
+      const clamped = Math.max(0, Math.min(99999, Math.floor(next)));
+      // Local cache: replace-or-insert.
+      saveJson(
+        STORAGE_KEY,
+        dedupAndSort([
+          ...loadJson<DaySteps[]>(STORAGE_KEY, []).filter(
+            (d) => d.date !== forDate
+          ),
+          { date: forDate, steps: clamped },
+        ])
+      );
+      // In-memory history: replace if date already in list, otherwise
+      // prepend (newest-first sort). Recomputes extraKcal with the
+      // current weight so the kcal column stays accurate.
+      setHistory((prev) => {
+        const entry: StepsHistoryEntry = {
+          date: forDate,
+          steps: clamped,
+          extraKcal: stepsExtraKcal(clamped, weightKg ?? 0),
+        };
+        const existing = prev.find((e) => e.date === forDate);
+        const next = existing
+          ? prev.map((e) => (e.date === forDate ? entry : e))
+          : [entry, ...prev];
+        return next.sort((a, b) => b.date.localeCompare(a.date));
+      });
+      if (forDate === dateKey) {
+        setSteps(clamped);
+      }
+      try {
+        const { error } = await (supabase.from('daily_steps') as any).upsert(
+          {
+            user_id: user.id,
+            date_key: forDate,
+            steps: clamped,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'user_id,date_key' }
+        );
+        if (error) throw error;
+      } catch (err) {
+        console.error('daily_steps upsert failed:', err);
+      }
+    },
+    [dateKey, user, supabase, weightKg]
+  );
+
   return {
     steps,
     stepsExtraKcal: stepsExtraKcal(steps, weightKg ?? 0),
     saveSteps,
+    saveStepsForDate,
     history,
     hydrated,
   };
