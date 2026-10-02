@@ -19,8 +19,10 @@ const COLORS = {
 
 function getColor(day: AnalyticsDay): string {
   if (!day.hadLoggedFood) return COLORS.noLog;
-  if (day.kcalUnderOver > 0) return COLORS.under;
-  if (day.kcalUnderOver < 0) return COLORS.over;
+  // Burn-adjusted balance so a workout + bonus steps day counts
+  // as 'under' even if the user ate at their food target.
+  if (day.kcalUnderOverAdjusted > 0) return COLORS.under;
+  if (day.kcalUnderOverAdjusted < 0) return COLORS.over;
   return COLORS.onTarget;
 }
 
@@ -70,7 +72,7 @@ export default function DeficitStreakCalendar({
               key={day.day_key}
               className="w-5 h-5 transition-colors"
               style={{ backgroundColor: getColor(day) }}
-              title={`${day.day_key}${day.hadLoggedFood ? '' : ' — no log'}: ${day.kcalUnderOver >= 0 ? '+' : ''}${day.kcalUnderOver} kcal`}
+              title={`${day.day_key}${day.hadLoggedFood ? '' : ' — no log'}: ${day.kcalUnderOverAdjusted >= 0 ? '+' : ''}${day.kcalUnderOverAdjusted} kcal`}
             />
           );
         })}

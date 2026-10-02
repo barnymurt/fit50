@@ -15,6 +15,7 @@ import FavoritesPanel from './FavoritesPanel';
 import Modal from '@/components/Modal';
 import AnalyticsScreen from '@/components/analytics/AnalyticsScreen';
 import { useTrackerState } from '@/hooks/useTrackerState';
+import { useDailySteps } from '@/hooks/useDailySteps';
 
 type FoodTab = 'logged' | 'search' | 'customfoods' | 'favorites' | 'analytics';
 
@@ -230,7 +231,32 @@ const MEAL_OPTIONS: { value: Meal; label: string }[] = [
 ];
 
 export default function FoodDatabase({ targets }: Props) {
-  const { startDate } = useTrackerState();
+  const { startDate, todayKey } = useTrackerState();
+  // Daily steps — the hook fetches weight itself when not provided,
+  // so we don't need to plumb the user's weight through this tree.
+  // We only use stepsExtraKcal here to inflate today's macro
+  // target by the kcal burn from going over the 10k baseline;
+  // the rest of the hook (saveSteps, history) is used by the
+  // workouts section.
+  const { stepsExtraKcal } = useDailySteps(todayKey ?? null, null);
+  // Targets inflated by today's extra-burn steps. Additive on kcal,
+  // proportional scale-up on protein / carbs / fat so the macro
+  // ratio stays the same as the static target — the user just
+  // gets more grams of each to cover the extra burn. Without the
+  // burn, this is a no-op (stepsExtraKcal === 0 when steps ≤ 10k).
+  const adjustedTargets: MacroTargets | null = (() => {
+    if (!targets) return null;
+    const extra = Math.max(0, stepsExtraKcal);
+    if (extra <= 0) return targets;
+    const scale = (targets.kcal + extra) / targets.kcal;
+    return {
+      ...targets,
+      kcal: Math.round(targets.kcal + extra),
+      protein: Math.round(targets.protein * scale),
+      carbs: Math.round(targets.carbs * scale),
+      fat: Math.round(targets.fat * scale),
+    };
+  })();
   const {
     todayEntries,
     todayTotals,
@@ -623,11 +649,11 @@ export default function FoodDatabase({ targets }: Props) {
   }, [visibleBundles, bundleKcal, bundleFoodNames]);
 
   const isOverBudget =
-    !!targets &&
-    (todayTotals.kcal > targets.kcal ||
-      todayTotals.protein > targets.protein ||
-      todayTotals.carbs > targets.carbs ||
-      todayTotals.fat > targets.fat);
+    !!adjustedTargets &&
+    (todayTotals.kcal > adjustedTargets.kcal ||
+      todayTotals.protein > adjustedTargets.protein ||
+      todayTotals.carbs > adjustedTargets.carbs ||
+      todayTotals.fat > adjustedTargets.fat);
 
   const topContributors: Array<{
     entry: FoodLogEntry;
@@ -644,15 +670,15 @@ export default function FoodDatabase({ targets }: Props) {
     e: FoodLogEntry,
     macro: 'kcal' | 'protein' | 'carbs' | 'fat'
   ): number => {
-    if (!targets || targets[macro] <= 0) return 0;
-    return (e[macro] / targets[macro]) * 100;
+    if (!adjustedTargets || adjustedTargets[macro] <= 0) return 0;
+    return (e[macro] / adjustedTargets[macro]) * 100;
   };
 
   const isOverFor = (
     macro: 'kcal' | 'protein' | 'carbs' | 'fat'
   ): boolean => {
-    if (!targets) return false;
-    return todayTotals[macro] > targets[macro];
+    if (!adjustedTargets) return false;
+    return todayTotals[macro] > adjustedTargets[macro];
   };
 
   // On-add path: remember portion + bump bundle times_logged if it
@@ -692,7 +718,7 @@ export default function FoodDatabase({ targets }: Props) {
 
   return (
     <div className="space-y-6">
-      <DailyTotalsBar totals={todayTotals} targets={targets} />
+      <DailyTotalsBar totals={todayTotals} targets={adjustedTargets ?? targets} />
 
       {!targets && (
         <div className="border border-ink/15 bg-cream/30 p-4">

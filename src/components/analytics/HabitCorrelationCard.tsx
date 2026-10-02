@@ -16,14 +16,21 @@ export default function HabitCorrelationCard({
   const workoutDays = loggedDays.filter((d) => d.hadWorkout);
   const restDays = loggedDays.filter((d) => !d.hadWorkout);
 
+  // Burn-adjusted balance so the workout-vs-rest comparison captures
+  // the extra kcal from workout + steps burn on workout days, not
+  // just the food-side gap. Without the adjustment the comparison
+  // would always show workout days as 'more over' (food looks the
+  // same but they're actually more under once burn is credited).
   const avgWorkoutBalance =
     workoutDays.length > 0
-      ? workoutDays.reduce((s, d) => s + d.kcalUnderOver, 0) / workoutDays.length
+      ? workoutDays.reduce((s, d) => s + d.kcalUnderOverAdjusted, 0) /
+        workoutDays.length
       : 0;
 
   const avgRestBalance =
     restDays.length > 0
-      ? restDays.reduce((s, d) => s + d.kcalUnderOver, 0) / restDays.length
+      ? restDays.reduce((s, d) => s + d.kcalUnderOverAdjusted, 0) /
+        restDays.length
       : 0;
 
   const diff = avgWorkoutBalance - avgRestBalance;

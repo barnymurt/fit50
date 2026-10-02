@@ -51,6 +51,29 @@ export function useDailySteps(
   // kcal balance so the history list and the kcal balance stay in
   // sync if the user later changes their weight.
   const [history, setHistory] = useState<StepsHistoryEntry[]>([]);
+  // Weight fallback. If the caller passes null we fetch
+  // profiles.weight_kg ourselves so consumers like the food
+  // tracker don't have to plumb the weight through. Callers that
+  // already have it (AccountWorkouts) can keep passing it to skip
+  // the round-trip.
+  const [fetchedWeight, setFetchedWeight] = useState<number>(0);
+  const effectiveWeight = weightKg ?? fetchedWeight;
+
+  useEffect(() => {
+    if (weightKg != null || !user || !supabase) return;
+    let cancelled = false;
+    (supabase.from('profiles') as any)
+      .select('weight_kg')
+      .eq('id', user.id)
+      .maybeSingle()
+      .then((res: { data: { weight_kg: number | null } | null; error: unknown }) => {
+        if (cancelled || res.error) return;
+        setFetchedWeight(Number(res.data?.weight_kg) || 0);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [weightKg, user, supabase]);
 
   // Hydrate from localStorage (immediate) then from Supabase (source
   // of truth, including cross-device edits).
@@ -114,7 +137,7 @@ export function useDailySteps(
           .map((r) => ({
             date: r.date_key,
             steps: r.steps,
-            extraKcal: stepsExtraKcal(r.steps, weightKg ?? 0),
+            extraKcal: stepsExtraKcal(r.steps, effectiveWeight ?? 0),
           }));
         setHistory(hist);
         setHydrated(true);
@@ -123,7 +146,7 @@ export function useDailySteps(
     return () => {
       cancelled = true;
     };
-  }, [dateKey, user, supabase, weightKg, historyDays]);
+  }, [dateKey, user, supabase, effectiveWeight, historyDays]);
 
   const saveSteps = useCallback(
     async (next: number) => {
@@ -192,7 +215,7 @@ export function useDailySteps(
         const entry: StepsHistoryEntry = {
           date: forDate,
           steps: clamped,
-          extraKcal: stepsExtraKcal(clamped, weightKg ?? 0),
+          extraKcal: stepsExtraKcal(clamped, effectiveWeight ?? 0),
         };
         const existing = prev.find((e) => e.date === forDate);
         const next = existing
@@ -218,12 +241,12 @@ export function useDailySteps(
         console.error('daily_steps upsert failed:', err);
       }
     },
-    [dateKey, user, supabase, weightKg]
+    [dateKey, user, supabase, effectiveWeight]
   );
 
   return {
     steps,
-    stepsExtraKcal: stepsExtraKcal(steps, weightKg ?? 0),
+    stepsExtraKcal: stepsExtraKcal(steps, effectiveWeight ?? 0),
     saveSteps,
     saveStepsForDate,
     history,

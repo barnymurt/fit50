@@ -54,7 +54,7 @@ export default function DailyBalanceChart({
 
   // Clamp extreme values for bar scaling; show the actual number in label regardless
   const maxAbs = Math.min(
-    Math.max(...loggedDays.map((d) => Math.abs(d.kcalUnderOver)), 500),
+    Math.max(...loggedDays.map((d) => Math.abs(d.kcalUnderOverAdjusted)), 500),
     2000
   );
   const halfWidth = BAR_AREA_PX / 2;
@@ -87,9 +87,13 @@ export default function DailyBalanceChart({
 
       {/* Day rows — most recent at top */}
       {[...loggedDays].reverse().map((day) => {
-        const under = day.kcalUnderOver >= 0;
-        const w = halfBarWidth(day.kcalUnderOver);
-        const displayValue = Math.round(day.kcalUnderOver);
+        // Use the burn-adjusted balance so a day where the user
+        // ate at target but ran extra steps shows as "under" (the
+        // burn inflated the effective target). Food-only balance
+        // would have hidden that.
+        const under = day.kcalUnderOverAdjusted >= 0;
+        const w = halfBarWidth(day.kcalUnderOverAdjusted);
+        const displayValue = Math.round(day.kcalUnderOverAdjusted);
 
         return (
           <div

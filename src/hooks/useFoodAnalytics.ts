@@ -443,14 +443,18 @@ export function useFoodAnalytics(
       // Compute rolling 7-day average (only for days with food logged)
       const rolling7 = computeRolling7(builtDays, rangeStart?.start ?? null);
 
-      // Compute totals (only for days with food logged)
+      // Compute totals (only for days with food logged). The
+      // under/over counters use the burn-adjusted balance so a day
+      // where the user ate at target but ran extra steps / did an
+      // extra workout counts as 'under' (the burn inflated the
+      // effective target). Food-only balance would hide that.
       const loggedDays = builtDays.filter((d) => d.hadLoggedFood);
       const onTargetBand = 0.05; // 95-105%
       const daysUnderBudget = loggedDays.filter(
-        (d) => d.kcalUnderOver > kcalTarget * onTargetBand
+        (d) => d.kcalUnderOverAdjusted > kcalTarget * onTargetBand
       ).length;
       const daysOverBudget = loggedDays.filter(
-        (d) => d.kcalUnderOver < -kcalTarget * onTargetBand
+        (d) => d.kcalUnderOverAdjusted < -kcalTarget * onTargetBand
       ).length;
       const daysOnTarget = loggedDays.length - daysUnderBudget - daysOverBudget;
       const daysWorkedOut = loggedDays.filter((d) => d.hadWorkout).length;
