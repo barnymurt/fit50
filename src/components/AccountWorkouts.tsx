@@ -1075,7 +1075,7 @@ export default function AccountWorkouts() {
             Grouping,
             { line: Record<string, number>; random: Record<string, number> }
           >;
-          if (remote.data) {
+          if (remote.data && remote.data.length > 0) {
             for (const [g, sets, remoteLine] of remote.data as Array<
               [Grouping, Record<string, number>, WorkoutKey]
             >) {
@@ -1092,8 +1092,13 @@ export default function AccountWorkouts() {
               );
             }
           } else {
-            // Remote fetch failed / empty — fall back to localStorage
-            // for every grouping.
+            // Either the fetch failed (remote.data === null) or it
+            // succeeded with zero rows (remote.data === []). In
+            // both cases the DB doesn't have anything for today,
+            // so fall back to localStorage per grouping — the
+            // empty-array path was previously truthy-checked and
+            // silently overwrote the user's existing local data
+            // with empty sets on every refresh.
             for (const g of GROUPINGS) {
               const local = loadWorkoutLocal(k, g);
               grouped[g] = { line: local.sets, random: grouped[g].random };
@@ -1743,7 +1748,15 @@ export default function AccountWorkouts() {
                 <button
                   key={g}
                   type="button"
+                  // Gate the click: free users see the locked tab
+                  // and 🔒 icon but the onClick short-circuits so
+                  // they can't switch into KB / band. (Previously
+                  // the onClick ran regardless of premium status
+                  // and free users could tick KB / band exercises,
+                  // which the rest of the UI surface thought was
+                  // gated.)
                   onClick={() => {
+                    if (isLocked) return;
                     setGrouping(g);
                     // Show the line the user last used for this
                     // grouping (loaded from server / localStorage),
@@ -1754,6 +1767,7 @@ export default function AccountWorkouts() {
                     setKey(lineByGrouping[g]);
                     setActiveIdx(null);
                   }}
+                  disabled={isLocked}
                   aria-pressed={active}
                   className={`px-3 py-2 border font-body text-caption uppercase tracking-widest transition-colors ${
                     active
