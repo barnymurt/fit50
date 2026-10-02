@@ -61,19 +61,24 @@ export function useDailySteps(
   // sync if the user later changes their weight.
   const [history, setHistory] = useState<StepsHistoryEntry[]>([]);
   // Weight fallback. If the caller passes null we fetch
-  // profiles.weight_kg ourselves so consumers like the food
+  // macro_profile.weight_kg ourselves so consumers like the food
   // tracker don't have to plumb the weight through. Callers that
   // already have it (AccountWorkouts) can keep passing it to skip
   // the round-trip.
+  //
+  // Note: weight lives on `macro_profile` (where the macro
+  // calculator writes it), NOT on `profiles`. Reading from
+  // `profiles` returns null forever, which silently zeroes out
+  // stepsExtraKcal and leaves the kcal target unmoved.
   const [fetchedWeight, setFetchedWeight] = useState<number>(0);
   const effectiveWeight = weightKg ?? fetchedWeight;
 
   useEffect(() => {
     if (weightKg != null || !user || !supabase) return;
     let cancelled = false;
-    (supabase.from('profiles') as any)
+    (supabase.from('macro_profile') as any)
       .select('weight_kg')
-      .eq('id', user.id)
+      .eq('user_id', user.id)
       .maybeSingle()
       .then((res: { data: { weight_kg: number | null } | null; error: unknown }) => {
         if (cancelled || res.error) return;

@@ -896,10 +896,13 @@ export default function AccountWorkouts() {
   useEffect(() => {
     if (!user || !supabase) return;
     let cancelled = false;
+    // Read weight from macro_profile — that's where the macro
+    // calculator writes it. profiles.weight_kg doesn't exist as a
+    // column, so reading from there silently returned 0.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (supabase.from('profiles') as any)
+    (supabase.from('macro_profile') as any)
       .select('weight_kg')
-      .eq('id', user.id)
+      .eq('user_id', user.id)
       .maybeSingle()
       .then((res: { data: { weight_kg: number | null } | null; error: unknown }) => {
         if (cancelled || res.error) return;
