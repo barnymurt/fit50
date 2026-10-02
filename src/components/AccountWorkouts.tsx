@@ -1089,16 +1089,33 @@ export default function AccountWorkouts() {
             for (const [g, sets, remoteLine] of remote.data as Array<
               [Grouping, Record<string, number>, WorkoutKey]
             >) {
-              grouped[g] = { line: sets, random: grouped[g].random };
-              // Mirror to local with the per-grouping line so the
-              // next offline boot reads it correctly. (Previously
-              // saved with the global `key`, which overwrote the
-              // per-grouping line on every page load.)
-              saveWorkoutLocal(k, g, { line: remoteLine, sets });
+              // localStorage may have data the server doesn't yet
+              // (the user clicked a tick before hydration completed
+              // and the Supabase upsert hadn't landed yet). Local
+              // wins on conflicts so the in-memory tick survives
+              // hydration instead of being overwritten by stale
+              // server data.
+              const local = loadWorkoutLocal(k, g);
+              const mergedSets: Record<string, number> = {
+                ...sets,
+                ...local.sets,
+              };
+              grouped[g] = { line: mergedSets, random: grouped[g].random };
+              // Mirror to local so the next offline boot reads it
+              // correctly. Uses the merged sets + the server-side
+              // line ID (server is authoritative on which line the
+              // user last used; local falls back if the server
+              // never had the row).
+              saveWorkoutLocal(k, g, {
+                line: remoteLine ?? local.line,
+                sets: mergedSets,
+              });
               // Seed lineByGrouping from the server-side line ID
               // so the next save round-trips correctly.
               setLineByGrouping((prev) =>
-                prev[g] === remoteLine ? prev : { ...prev, [g]: remoteLine }
+                prev[g] === (remoteLine ?? local.line)
+                  ? prev
+                  : { ...prev, [g]: remoteLine ?? local.line }
               );
             }
           } else {
@@ -1142,21 +1159,22 @@ export default function AccountWorkouts() {
   }, [user, supabase]);
 
   useEffect(() => {
-    if (!date || !hasLoaded) return;
+    if (!date) return;
     // Persist every grouping separately so the per-(user, date,
-    // grouping) primary key on workout_log stays intact. Iterating
-    // here is cheap; just a few upserts.
+    // grouping) primary key on workout_log stays intact.
     //
-    // Two fixes vs the previous version:
-    //   1. The `line` ID is per-grouping (via lineByGrouping), not
-    //      the global `key` selector — switching to kettlebell and
-    //      back no longer overwrites bodyweight's line ID.
-    //   2. The line + random set counts are merged before save, so
-    //      ticks the user placed via the "Done today" panel on a
-    //      random-session exercise actually persist (previously
-    //      random ticks only existed in React state — the save
-    //      effect dropped them).
+    // Previously this effect had `!hasLoaded` gating, which
+    // dropped user clicks that happened during the brief window
+    // between mount and the hydration effect completing. On
+    // mobile that window is long enough to be noticeable (slow
+    // network + cold start). The fix: save localStorage
+    // immediately on every state change, but skip empty groupings so
+    // the initial mount doesn't clobber existing entries with
+    // `{ line: {}, random: {} }`. Supabase still waits for
+    // hydration so we don't upsert empty data on cold start.
     for (const [g, { line, random }] of Object.entries(todaysByGrouping)) {
+      const hasAny = Object.keys(line).length > 0 || Object.keys(random).length > 0;
+      if (!hasAny) continue;
       const mergedSets: Record<string, number> = { ...line };
       for (const [name, count] of Object.entries(random)) {
         // If the same exercise appears in both the line session and
@@ -1166,7 +1184,7 @@ export default function AccountWorkouts() {
       }
       const groupingLine = lineByGrouping[g as Grouping] ?? key;
       saveWorkoutLocal(date, g as Grouping, { line: groupingLine, sets: mergedSets });
-      if (user && supabase) {
+      if (hasLoaded && user && supabase) {
         saveWorkoutRemote(supabase, user.id, date, {
           line: groupingLine,
           sets: mergedSets,
@@ -1174,7 +1192,7 @@ export default function AccountWorkouts() {
         });
       }
     }
-  }, [date, key, lineByGrouping, todaysByGrouping, user, supabase]);
+  }, [date, key, lineByGrouping, todaysByGrouping, user, supabase, hasLoaded]);
 
   // Midnight rollover. Without this, a user who leaves the tab open
   // across midnight keeps seeing yesterday's ticked boxes because
