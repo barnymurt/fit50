@@ -192,6 +192,14 @@ export function useDailySteps(
   // re-reads today's entry from the local cache (which saveSteps
   // already wrote) so the food tracker's kcal target updates
   // without a Supabase fetch.
+  //
+  // The handler also kicks the weight fetch when the step has
+  // changed but our effectiveWeight is still 0 — without this,
+  // FoodDatabase's first render after a save sits with
+  // effectiveWeight=0 (the in-flight profile fetch hasn't resolved),
+  // so stepsExtraKcal returns 0 and the kcal target doesn't move.
+  // The follow-up dispatch below re-triggers this same handler
+  // once weight is in.
   useEffect(() => {
     if (!dateKey) return;
     const handler = (e: Event) => {
@@ -203,11 +211,45 @@ export function useDailySteps(
       const cached = loadJson<DaySteps[]>(STORAGE_KEY, []);
       const local = cached.find((d) => d.date === dateKey);
       if (local) setSteps(local.steps);
+      if (weightKg == null && effectiveWeight <= 0 && user && supabase) {
+        // Weight hasn't loaded yet — fetch it now so the
+        // next render has the real value and stepsExtraKcal
+        // produces a non-zero burn.
+        (supabase.from('profiles') as any)
+          .select('weight_kg')
+          .eq('id', user.id)
+          .maybeSingle()
+          .then(
+            (res: {
+              data: { weight_kg: number | null } | null;
+              error: unknown;
+            }) => {
+              if (res.error || !res.data) return;
+              setFetchedWeight(Number(res.data.weight_kg) || 0);
+            }
+          );
+      }
     };
     window.addEventListener(DAILY_STEPS_CHANGED_EVENT, handler);
     return () =>
       window.removeEventListener(DAILY_STEPS_CHANGED_EVENT, handler);
-  }, [dateKey]);
+  }, [dateKey, weightKg, effectiveWeight, user, supabase]);
+
+  // When the weight lands (after the listener-triggered fetch above,
+  // or after the mount-time fetch), re-dispatch the event so this
+  // and any other listener re-evaluate kcal now that we have a real
+  // weight. Guarded by `step > 0` so we don't run on initial mount
+  // before the user has done anything.
+  useEffect(() => {
+    if (effectiveWeight <= 0) return;
+    if (steps <= 0) return;
+    window.dispatchEvent(
+      new CustomEvent(DAILY_STEPS_CHANGED_EVENT, {
+        detail: { dateKey },
+      })
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [effectiveWeight]);
 
   const saveSteps = useCallback(
     async (next: number) => {
