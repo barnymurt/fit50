@@ -271,6 +271,51 @@ export type Database = {
           subscribed_at: string;
         }>;
       };
+      cohorts: {
+        Row: {
+          id: string;
+          start_date: string;
+          name: string;
+          signups_open_at: string;
+          cap: number;
+          created_at: string;
+        };
+        Insert: {
+          start_date: string;
+          name: string;
+          signups_open_at: string;
+          cap?: number;
+          created_at?: string;
+        };
+        Update: Partial<{
+          name: string;
+          signups_open_at: string;
+          cap: number;
+        }>;
+      };
+      cohort_memberships: {
+        Row: {
+          id: string;
+          cohort_id: string;
+          user_id: string;
+          anonymous_handle: string;
+          show_display_name: boolean;
+          status: 'upcoming' | 'active' | 'left' | 'completed';
+          joined_at: string;
+        };
+        Insert: {
+          cohort_id: string;
+          user_id: string;
+          anonymous_handle: string;
+          show_display_name?: boolean;
+          status?: 'upcoming' | 'active' | 'left' | 'completed';
+          joined_at?: string;
+        };
+        Update: Partial<{
+          show_display_name: boolean;
+          status: 'upcoming' | 'active' | 'left' | 'completed';
+        }>;
+      };
     };
   };
 };

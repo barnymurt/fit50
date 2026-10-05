@@ -28,6 +28,7 @@ export const DEFAULT_ORDER: string[] = [
   'tracker',
   'my-motivator',
   'buddy',
+  'cohorts',
   'feed-your-brain',
   'timer',
   'workouts',

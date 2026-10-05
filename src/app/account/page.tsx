@@ -30,6 +30,7 @@ import { getRememberMe, setRememberMe } from '@/lib/supabase';
 import MyMotivator from '@/components/MyMotivator';
 import CollapsibleSection from '@/components/CollapsibleSection';
 import { useAccountLayout, DEFAULT_ORDER } from '@/hooks/useAccountLayout';
+import CohortSection from '@/components/cohort/CohortSection';
 
 const HABIT_LABELS: Record<string, string> = {
   'chill-out': 'Chill Out',
@@ -325,27 +326,32 @@ export default function AccountPage() {
   return (
     <>
       {/* ============ Jump-to nav (top of page, sticky under main nav) ============ */}
-      <AccountNav
-        sections={[
-          { id: 'tracker', label: 'Tracker' },
-          { id: 'my-motivator', label: 'Motivator' },
-          { id: 'buddy', label: 'Buddy' },
-          { id: 'feed-your-brain', label: 'Feed Brain' },
-          ...(profile?.is_premium
-            ? [{ id: 'timer', label: 'Timer' }]
-            : []),
-          { id: 'workouts', label: 'Workouts' },
-          { id: 'macro-calc', label: 'Macro calc' },
-          ...(profile?.is_premium
-            ? [
-                { id: 'hydration', label: 'Hydration' },
-                { id: 'food-database', label: 'Foods' },
-                { id: 'todo', label: 'To-do' },
-                { id: 'board', label: 'Board' },
-              ]
-            : []),
-        ]}
-      />
+        <AccountNav
+          sections={[
+            { id: 'tracker', label: 'Tracker' },
+            { id: 'my-motivator', label: 'Motivator' },
+            { id: 'buddy', label: 'Buddy' },
+            // Cohorts are free + premium — anyone signed in can join
+            // a monthly cohort to start the 50 days alongside
+            // others. Listed before Feed Brain so it sits next to
+            // the social/account sections.
+            { id: 'cohorts', label: 'Cohort' },
+            { id: 'feed-your-brain', label: 'Feed Brain' },
+            ...(profile?.is_premium
+              ? [{ id: 'timer', label: 'Timer' }]
+              : []),
+            { id: 'workouts', label: 'Workouts' },
+            { id: 'macro-calc', label: 'Macro calc' },
+            ...(profile?.is_premium
+              ? [
+                  { id: 'hydration', label: 'Hydration' },
+                  { id: 'food-database', label: 'Foods' },
+                  { id: 'todo', label: 'To-do' },
+                  { id: 'board', label: 'Board' },
+                ]
+              : []),
+          ]}
+        />
 
       {/* ============ Collapsible + reorderable middle sections ============ */}
       {layout.order
@@ -355,6 +361,7 @@ export default function AccountPage() {
           if (!profile?.is_premium) {
             return !['hydration', 'food-database', 'todo', 'board', 'timer'].includes(id);
           }
+          // Cohorts are free + premium; no filter needed.
           return true;
         })
         .map((id) => {
@@ -432,6 +439,32 @@ export default function AccountPage() {
               return wrapper(<Tracker hideMarquee />);
             case 'my-motivator':
               return wrapper(<MyMotivator />);
+            case 'cohorts':
+              return wrapper(
+                <Section
+                  className="relative pt-12 md:pt-16 pb-section"
+                  tone="paper"
+                  contained
+                >
+                  <div className="max-w-5xl mx-auto">
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mb-8">
+                      <div className="md:col-span-7">
+                        <p className="font-body text-caption uppercase tracking-widest text-coral mb-3">
+                          Cohort
+                        </p>
+                        <Heading>Start with a group.</Heading>
+                        <p className="font-body text-base text-ink/70 mt-3 max-w-xl">
+                          Cohorts are monthly groups that start the 50 days
+                          together. You see a collective &ldquo;X of Y hit 9/9
+                          today&rdquo; and a 50-day arc — your own day number
+                          and habit grid stay yours.
+                        </p>
+                      </div>
+                    </div>
+                    <CohortSection />
+                  </div>
+                </Section>
+              );
             case 'buddy':
               return wrapper(
                 <Section
@@ -671,6 +704,7 @@ const SECTION_TITLES: Record<string, string> = {
   'tracker': 'The tracker',
   'my-motivator': 'My motivator',
   'buddy': 'Buddy',
+  'cohorts': 'Cohort',
   'feed-your-brain': 'Feed your brain',
   'timer': 'The timer',
   'workouts': 'Workouts',

@@ -3,6 +3,14 @@
     {
       "path": "/api/cron/buddy-expiry",
       "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/cohort-join-closes",
+      "schedule": "10 0 * * *"
+    },
+    {
+      "path": "/api/cron/cohort-milestones",
+      "schedule": "20 13 * * *"
     }
   ]
 }
