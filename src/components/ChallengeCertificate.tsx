@@ -62,6 +62,11 @@ function formatDateLong(dateKey: string): string {
 // done. 40-44 keeps "vast majority" because 80%+ is the natural
 // home of that phrase. 25-39 is half-way. Under 25 is
 // "you're on your way".
+//
+// Phrasing is purely observational — state what the number
+// shows, don't push a directive at the user. "Keep going" and
+// similar forward-looking imperatives don't belong here — the
+// cert's job is to acknowledge what they did, not lecture.
 function headlineCopy(d: CertificateData, isComplete: boolean): string {
   if (isComplete || d.daysCompleted >= 50) {
     return 'You ticked every box, every day.';
@@ -73,7 +78,7 @@ function headlineCopy(d: CertificateData, isComplete: boolean): string {
     return 'You ticked the vast majority of the boxes.';
   }
   if (d.daysCompleted >= 25) {
-    return 'You got past the half-way point and kept going.';
+    return 'You got past the half-way point.';
   }
   return "You're on your way.";
 }
