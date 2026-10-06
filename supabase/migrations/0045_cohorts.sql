@@ -161,7 +161,6 @@ AS $$
   GROUP  BY dt.user_id, dt.day_number
   HAVING COUNT(*) FILTER (WHERE dt.completed) = 9
     AND  COUNT(*) = 9
-  GROUP  BY dt.day_number
   ORDER  BY dt.day_number;
 $$;
 
