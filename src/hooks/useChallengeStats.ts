@@ -23,6 +23,11 @@ export interface ChallengeStats {
   loaded: boolean;
   totalDays: number;
   daysCompleted: number;
+  // Day 50 specifically — true only when day 50 is fully
+  // completed (all 9 habit rows ticked for that day). The
+  // certificate page gates on this rather than just currentDay >= 50
+  // so partial finishes don't unlock the cert prematurely.
+  day50FullyComplete: boolean;
   daysWithoutAlcohol: number;
   daysWithoutNicotine: number;
   coldShowerDays: number;
@@ -32,6 +37,11 @@ export interface ChallengeStats {
   waterGoalHits: number;
   workoutLines: WorkoutLineSummary[];
   workoutCompletions: number;
+  // Longest completed-day streak in the 50. (currentStreak from
+  // useTrackerState is the live running streak; this is the best
+  // historical peak so the certificate reflects what they actually
+  // pulled off, not just where they are today.)
+  longestStreak: number;
   books: { title: string; format: 'read' | 'listen' }[];
 }
 
@@ -39,6 +49,7 @@ const empty: ChallengeStats = {
   loaded: false,
   totalDays: 0,
   daysCompleted: 0,
+  day50FullyComplete: false,
   daysWithoutAlcohol: 0,
   daysWithoutNicotine: 0,
   coldShowerDays: 0,
@@ -48,6 +59,7 @@ const empty: ChallengeStats = {
   waterGoalHits: 0,
   workoutLines: [],
   workoutCompletions: 0,
+  longestStreak: 0,
   books: [],
 };
 
@@ -120,6 +132,31 @@ export function useChallengeStats(startDate: string | null): ChallengeStats {
         (taps) => Object.values(taps).filter(Boolean).length >= HABIT_COUNT
       ).length;
 
+      // Day 50 = all 9 habits ticked on day 50. We require the
+      // full set so partial finishes don't unlock the cert
+      // prematurely — that's the rule the page gates on.
+      const day50Habits = dayToHabits[CHALLENGE_DAYS] || {};
+      const day50Tapped = Object.values(day50Habits).filter(Boolean).length;
+      const day50FullyComplete = day50Tapped >= HABIT_COUNT;
+
+      // Longest completed-day streak. Walk the days in order and
+      // count the longest run of consecutive full-day completions.
+      // Note: this is the historical peak from the data, not the
+      // live running streak (which is the user's current streak
+      // and can be smaller if they slipped recently).
+      let longestStreak = 0;
+      let runStreak = 0;
+      for (let d = 1; d <= CHALLENGE_DAYS; d++) {
+        const taps = dayToHabits[d] || {};
+        const tapped = Object.values(taps).filter(Boolean).length;
+        if (tapped >= HABIT_COUNT) {
+          runStreak += 1;
+          if (runStreak > longestStreak) longestStreak = runStreak;
+        } else {
+          runStreak = 0;
+        }
+      }
+
       let waterTotalMl = 0;
       let waterGoalHits = 0;
       for (const row of waterRes.data || []) {
@@ -168,6 +205,7 @@ export function useChallengeStats(startDate: string | null): ChallengeStats {
         loaded: true,
         totalDays,
         daysCompleted,
+        day50FullyComplete,
         daysWithoutAlcohol,
         daysWithoutNicotine,
         coldShowerDays,
@@ -177,6 +215,7 @@ export function useChallengeStats(startDate: string | null): ChallengeStats {
         waterGoalHits,
         workoutLines,
         workoutCompletions,
+        longestStreak,
         books: booksByTitle.map((b) => ({ title: b.title, format: b.format })),
       });
     };

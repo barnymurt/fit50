@@ -9,14 +9,14 @@ import Title from '@/components/Title';
 import ChallengeCertificate from '@/components/ChallengeCertificate';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTrackerState } from '@/hooks/useTrackerState';
-import { useChallengeStats } from '@/hooks/useChallengeStats';
+import { useCertificateData } from '@/hooks/useCertificateData';
 import { dayKeyFromStart } from '@/lib/dates';
 
 export default function CertificatePage() {
   const router = useRouter();
   const { user, profile, loading } = useAuth();
   const tracker = useTrackerState();
-  const stats = useChallengeStats(tracker.startDate);
+  const data = useCertificateData(tracker.startDate);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -103,28 +103,52 @@ export default function CertificatePage() {
     );
   }
 
-  const isComplete = tracker.currentDay >= 50;
+  // Certificate is locked until BOTH day 50 has been reached
+  // AND every habit on day 50 has been tapped. Otherwise the user
+  // could end-of-day 49 with everything done and the page would
+  // claim the challenge is "complete" before they finish the last
+  // day. The "not finished yet" block under the cert shows until
+  // both conditions are true.
+  //
+  // daysCompleted is the count of days in the 50-day window
+  // where all 9 habit rows were ticked. It can hit 50 even on
+  // day 49 (if every prior day was complete) — but day 50 itself
+  // can't be in daysCompleted until at least day 51. So we also
+  // gate on "the user is past day 50 in calendar terms" via
+  // currentDay.
+  const isComplete =
+    data.loaded &&
+    data.daysCompleted >= 50 &&
+    tracker.currentDay >= 50;
+
   const startKey = dayKeyFromStart(tracker.startDate, 1);
 
   return (
     <>
       <ChallengeCertificate
-        stats={stats}
+        data={data}
         startDate={startKey}
         displayName={profile.display_name ?? null}
         email={user.email ?? ''}
         isComplete={isComplete}
       />
-      {!isComplete && (
+      {!data.loaded && (
+        <Section className="relative pt-0 pb-section" tone="paper" contained>
+          <div className="max-w-3xl mx-auto text-center">
+            <p className="font-body text-ink/40">Loading your stats…</p>
+          </div>
+        </Section>
+      )}
+      {data.loaded && !isComplete && (
         <Section className="relative pt-0 pb-section" tone="ink" contained>
           <div className="max-w-3xl mx-auto text-center">
             <p className="font-body text-caption uppercase tracking-widest text-paper/50 mb-3">
               Not finished yet
             </p>
             <p className="font-body text-base text-paper/70 mb-6 max-w-md mx-auto">
-              You&apos;re on day {tracker.currentDay} of 50. Finish the
-              challenge and the numbers above will be locked in for your
-              certificate.
+              {tracker.currentDay >= 50
+                ? `Day 50 is on the board but not all 9 habits are ticked yet. Finish the last day and the certificate unlocks.`
+                : `You're on day ${tracker.currentDay} of 50. Finish every habit on day 50 and the certificate unlocks.`}
             </p>
             <button
               type="button"

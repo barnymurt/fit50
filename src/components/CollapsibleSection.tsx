@@ -160,11 +160,13 @@ export default function CollapsibleSection({
             ≡
           </span>
         )}
-        {/* Mobile-only up/down reorder. HTML5 drag-and-drop
-            doesn't fire on touch devices, so we expose these tap
-            targets instead. Hidden on md+ where drag works. */}
+        {/* Up/down reorder. HTML5 drag-and-drop doesn't fire on
+            touch devices, so we expose these tap targets for
+            mobile. They're also visible on desktop so non-premium
+            users (or anyone who doesn't want to drag) have a click
+            path. */}
         {draggable && (onMoveUp || onMoveDown) && (
-          <div className="flex items-center gap-1 md:hidden">
+          <div className="flex items-center gap-1">
             {onMoveUp && (
               <button
                 type="button"
