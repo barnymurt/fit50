@@ -123,29 +123,48 @@ export default function ChallengeCertificate({
   const fatHitPct = macroTargets?.fat
     ? Math.round((d.macroFatHits / 50) * 100)
     : null;
-  const workoutLineDistribution = (() => {
-    const byLine: Record<'A' | 'B' | 'C' | 'D', number> = {
-      A: 0, B: 0, C: 0, D: 0,
-    };
-    // Read from the same data source the cert already pulled —
-    // workoutCompletions is a count, not a per-line breakdown, so
-    // we surface the dominant line via the title text.
-    return byLine;
-  })();
-
   // "This is what got you here" / "this is your next chapter" —
   // tone depends on how much they actually did. People who did
   // every day should feel acknowledged, not patronised. People
   // who only ticked 30 days shouldn't get "you did all 50" copy.
+  //
+  // The outro also lays out four real, concrete next-step paths
+  // the user can take from this certificate (the design rule is
+  // "useful: every email/page should give the reader one thing
+  // they can do in the next five minutes"). We surface them as
+  // bulleted next steps in the footer block.
   const outroCopy = (() => {
     if (d.daysCompleted >= 50) {
-      return 'You finished the fifty days. The bit nobody told you in the brochure: the real flex is the 50-day streak that comes right after this one. Pick the thing you couldn\u2019t stop doing during the challenge, and do it for another fifty. We\u2019ll be here for the boring middle.';
+      return 'You finished the fifty days. The bit nobody tells you in the brochure is that the fifty-day clock isn\u2019t the one that matters most — the one that matters is whatever habit you kept doing when no one was watching. Pick the one that stuck and run it for another fifty. The toolkit is free to use in the meantime — food log, water, the macro calculator, the random exercise list — none of it has a timer. We\u2019ll be here for the boring middle.';
     }
     if (d.daysCompleted >= 25) {
-      return 'You got past the half-way point. Half the people who start this challenge don\u2019t. The fifty-day clock isn\u2019t the only clock that matters; the easiest one to keep ticking is the one you start right after this one.';
+      return 'You got past the half-way point, which is more than most people who start this challenge manage. The fifty-day clock isn\u2019t the only clock that matters; the easiest one to keep ticking is the one you start right after this one. Reset and run it again any time, or just keep using the food log and exercise tracker as-is.';
     }
-    return 'You got to day 50 \u2014 maybe not by the path you planned, but you got there. Most of the benefit of the fifty days is the habit, not the number. Pick the one habit that stuck and run it for another fifty.';
+    return 'You made it to day 50 \u2014 not by the path you planned, maybe, but you made it. The benefit of the fifty days is the habit, not the number. Pick the one habit that stuck, and run it for another fifty. The whole toolkit (food log, water, workouts, the random exercise picker) stays free to use any time. If you want the full 50-day restart, you can reset your challenge data and start again on any day.';
   })();
+
+  const nextSteps: { label: string; body: string }[] = [
+    {
+      label: 'Reset and run it again',
+      body:
+        'On the tracker, "Reset" wipes your challenge data and starts a new 50 days. Reset the day before the 1st of a month and join a cohort if you want company, or just keep your own count.',
+    },
+    {
+      label: 'Use the toolkit in the meantime',
+      body:
+        'Food log, water, workouts, the macro calculator, the random exercise list — none of it expires when the fifty days end. Use the parts that help without the 50-day pressure.',
+    },
+    {
+      label: 'Try again in a few months',
+      body:
+        'Cohorts open on the 1st of each month. If you want a fresh start without a reset, wait for the next one and join when you\u2019re ready. The account page shows the next open cohort.',
+    },
+    {
+      label: 'Send it to a friend',
+      body:
+        'If a friend is the kind of person who would do this, send them the link. Buddy pairs are free to set up; cohorts are free to join. Recommend the toolkit, not the streak.',
+    },
+  ];
 
   return (
     <Section
@@ -356,7 +375,47 @@ export default function ChallengeCertificate({
             )}
           </div>
 
-          {/* What now? — tongue-and-cheek, then concrete next steps */}
+          {/* Your frequent movers — top exercises by total sets
+              across the 50 days. Each row shows the exercise name,
+              the count of days they did it, and the cumulative set
+              count. Skipped when the user didn't do any workouts. */}
+          {d.topExercises.length > 0 && (
+            <div className="px-6 md:px-12 py-8 md:py-10 border-b border-ink/10">
+              <div className="flex items-baseline justify-between mb-5">
+                <p className="font-body text-caption uppercase tracking-widest text-ink/40">
+                  Your frequent movers
+                </p>
+                <p className="font-body text-caption uppercase tracking-widest text-ink/40 tabular-nums">
+                  {d.uniqueExercisesDone} exercise{d.uniqueExercisesDone === 1 ? '' : 's'} ·{' '}
+                  {d.totalSetsAcrossAllExercises} sets
+                </p>
+              </div>
+              <ol className="space-y-2">
+                {d.topExercises.map((e, i) => (
+                  <li
+                    key={e.name}
+                    className="flex items-baseline gap-4 border-b border-ink/10 pb-2 last:border-b-0 last:pb-0"
+                  >
+                    <span className="font-display text-base text-coral tabular-nums w-6 shrink-0">
+                      {String(i + 1).padStart(2, '0')}
+                    </span>
+                    <span className="font-display text-h3 text-ink flex-1">
+                      {e.name}
+                    </span>
+                    <span className="font-body text-caption uppercase tracking-widest text-ink/50 shrink-0 tabular-nums">
+                      {e.totalSets} sets · {e.dayCount} day{e.dayCount === 1 ? '' : 's'}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
+
+          {/* What now? — tongue-and-cheek outro + 4 concrete next-step
+              paths the user can take. Brand voice: honest (no fake
+              "you're a champion!" energy), useful (every option
+              has a clear action), brief (each option is one short
+              paragraph, not a wall of text). */}
           <div className="px-6 md:px-12 py-8 md:py-10 bg-cre-30 border-b border-ink/10">
             <p className="font-body text-caption uppercase tracking-widest text-coral mb-3">
               What now?
@@ -364,6 +423,22 @@ export default function ChallengeCertificate({
             <p className="font-display text-h3 text-ink leading-snug">
               {outroCopy}
             </p>
+
+            <ol className="mt-6 space-y-4">
+              {nextSteps.map((s) => (
+                <li
+                  key={s.label}
+                  className="border-l-2 border-coral pl-4"
+                >
+                  <p className="font-body text-caption uppercase tracking-widest text-ink">
+                    {s.label}
+                  </p>
+                  <p className="font-body text-base text-ink/80 mt-1 leading-snug">
+                    {s.body}
+                  </p>
+                </li>
+              ))}
+            </ol>
 
             <div className="mt-6 flex flex-col sm:flex-row flex-wrap gap-3">
               <a

@@ -37,6 +37,15 @@ export interface CertificateData {
   streakProtectionsUsed: number;
   workoutCompletions: number;
   longestStreak: number;
+  // Workout inventory: which exercises the user actually did
+  // and how many sets across the 50 days. Computed from
+  // workout_log.sets which already records per-exercise
+  // completion count. We surface the top entries on the
+  // certificate so it's personalised, not a generic
+  // "you did some workouts" line.
+  topExercises: { name: string; totalSets: number; dayCount: number }[];
+  totalSetsAcrossAllExercises: number;
+  uniqueExercisesDone: number;
   books: { title: string; format: 'read' | 'listen' }[];
 
   // From useFoodLog
@@ -67,6 +76,9 @@ const empty: CertificateData = {
   streakProtectionsUsed: 0,
   workoutCompletions: 0,
   longestStreak: 0,
+  topExercises: [],
+  totalSetsAcrossAllExercises: 0,
+  uniqueExercisesDone: 0,
   books: [],
   mealsLogged: 0,
   totalKcalLogged: 0,
@@ -161,6 +173,41 @@ export function useCertificateData(startDate: string | null): CertificateData {
     return { total, goalHits };
   }, [dailySteps.history]);
 
+  // Workout inventory. Each workout_log row has a `sets` object
+  // keyed by exercise name. Sum total sets per exercise across
+  // all 50 days and rank by volume so the certificate shows
+  // the user's real activity, not a generic "you worked out"
+  // line. Anything below 5 sets per exercise across the whole
+  // challenge gets dropped (noise).
+  const workoutInventory = useMemo(() => {
+    const perExercise = new Map<
+      string,
+      { totalSets: number; dayCount: number }
+    >();
+    for (const w of stats.workoutLines || []) {
+      if (!w.sets) continue;
+      for (const [name, count] of Object.entries(w.sets)) {
+        if (!count || count < 1) continue;
+        const entry = perExercise.get(name) ?? { totalSets: 0, dayCount: 0 };
+        entry.totalSets += count;
+        // Count the days they actually did the exercise at all
+        // (any positive count). Multi-set days count as one.
+        entry.dayCount += 1;
+        perExercise.set(name, entry);
+      }
+    }
+    const all = Array.from(perExercise.entries()).map(
+      ([name, v]) => ({ name, ...v })
+    );
+    // Top 5 by total sets; break ties by name asc for stability.
+    all.sort((a, b) =>
+      b.totalSets - a.totalSets || a.name.localeCompare(b.name)
+    );
+    const top = all.slice(0, 5);
+    const total = all.reduce((s, e) => s + e.totalSets, 0);
+    return { topExercises: top, totalSets: total, unique: all.length };
+  }, [stats.workoutLines]);
+
   const [composite, setComposite] = useState<CertificateData>(empty);
 
   useEffect(() => {
@@ -179,6 +226,9 @@ export function useCertificateData(startDate: string | null): CertificateData {
       streakProtectionsUsed: stats.streakProtectionsUsed,
       workoutCompletions: stats.workoutCompletions,
       longestStreak: stats.longestStreak,
+      topExercises: workoutInventory.topExercises,
+      totalSetsAcrossAllExercises: workoutInventory.totalSets,
+      uniqueExercisesDone: workoutInventory.unique,
       books: stats.books,
       mealsLogged: foodLog.entries.length,
       totalKcalLogged: perDayAggregates.totalKcal,
