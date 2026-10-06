@@ -53,34 +53,13 @@ function formatDateLong(dateKey: string): string {
 }
 
 // "Record high" / "this is good, lean into it" framing for the
-// headline numbers. Falls back to a sensible message if the
-// user only just barely got here.
-//
-// The thresholds are tuned so each branch matches how the
-// number feels rather than rounding. 45+ says "one day left" or
-// "every day" because at that range the user is functionally
-// done. 40-44 keeps "vast majority" because 80%+ is the natural
-// home of that phrase. 25-39 is half-way. Under 25 is
-// "you're on your way".
-//
-// Phrasing is purely observational — state what the number
-// shows, don't push a directive at the user. "Keep going" and
-// similar forward-looking imperatives don't belong here — the
-// cert's job is to acknowledge what they did, not lecture.
-function headlineCopy(d: CertificateData, isComplete: boolean): string {
-  if (isComplete || d.daysCompleted >= 50) {
-    return 'You ticked every box, every day.';
-  }
-  if (d.daysCompleted >= 45) {
-    return `${d.daysCompleted} of 50 — one day left.`;
-  }
-  if (d.daysCompleted >= 40) {
-    return 'You ticked the vast majority of the boxes.';
-  }
-  if (d.daysCompleted >= 25) {
-    return 'You got past the half-way point.';
-  }
-  return "You're on your way.";
+// Single, consistent headline regardless of progress. The cert
+// is a moment of acknowledgement, not a status report — the
+// per-day stats below carry the actual numbers. This line
+// stays the same whether the user finished, almost finished,
+// or is just at the start.
+function headlineCopy(d: CertificateData, _isComplete: boolean): string {
+  return `${d.daysCompleted} of 50 days. Congratulations on sticking at it!`;
 }
 
 function StickerStat({
