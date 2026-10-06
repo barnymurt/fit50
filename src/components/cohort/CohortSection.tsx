@@ -26,6 +26,7 @@ import { useCohortProgress } from '@/hooks/useCohortProgress';
 import CohortCard from './CohortCard';
 import CohortTodayPanel from './CohortTodayPanel';
 import CohortArc from './CohortArc';
+import CohortJoinCard from './CohortJoinCard';
 
 export default function CohortSection() {
   const { current, loaded } = useCurrentCohort();
@@ -42,7 +43,13 @@ export default function CohortSection() {
     );
   }
 
-  if (!current) return null;
+  // No live cohort yet — show the join card so the user can
+  // discover the cohort feature from the account page (not just
+  // the start splash, which only renders for users who haven't
+  // started a challenge yet). Existing users who started solo can
+  // hop into a cohort here; the card's confirm dialog warns them
+  // about the day-number reset.
+  if (!current) return <CohortJoinCard />;
 
   // Headline for the today panel: "X of Y of you hit 9/9 today".
   // We don't have the strict count as a separate field — the arc
