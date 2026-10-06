@@ -35,6 +35,10 @@ interface ChallengeCertificateProps {
   displayName: string | null;
   email: string;
   isComplete: boolean;
+  // Anchors the "→ end" half of the date range. By default this
+  // is today; a user on day 49 with 49 complete days should see
+  // their range end at day 49's date, not today's.
+  endDateOverride?: string;
 }
 
 function formatDateLong(dateKey: string): string {
@@ -51,9 +55,19 @@ function formatDateLong(dateKey: string): string {
 // "Record high" / "this is good, lean into it" framing for the
 // headline numbers. Falls back to a sensible message if the
 // user only just barely got here.
-function headlineCopy(d: CertificateData): string {
-  if (d.daysCompleted >= 50) {
+//
+// The thresholds are tuned so each branch matches how the
+// number feels rather than rounding. 45+ says "one day left" or
+// "every day" because at that range the user is functionally
+// done. 40-44 keeps "vast majority" because 80%+ is the natural
+// home of that phrase. 25-39 is half-way. Under 25 is
+// "you're on your way".
+function headlineCopy(d: CertificateData, isComplete: boolean): string {
+  if (isComplete || d.daysCompleted >= 50) {
     return 'You ticked every box, every day.';
+  }
+  if (d.daysCompleted >= 45) {
+    return `${d.daysCompleted} of 50 — one day left.`;
   }
   if (d.daysCompleted >= 40) {
     return 'You ticked the vast majority of the boxes.';
@@ -61,7 +75,7 @@ function headlineCopy(d: CertificateData): string {
   if (d.daysCompleted >= 25) {
     return 'You got past the half-way point and kept going.';
   }
-  return 'You made it to day 50.';
+  return "You're on your way.";
 }
 
 function StickerStat({
@@ -109,8 +123,13 @@ export default function ChallengeCertificate({
   displayName,
   email,
   isComplete,
+  endDateOverride,
 }: ChallengeCertificateProps) {
-  const todayKey = dateKeyLocal(new Date());
+  // endDateOverride comes from the page: the date we anchor the
+  // "→ end" half of the date range to. By default this is
+  // today, but a user on day 49 with 49 complete days should see
+  // their range end at day 49's date, not today's.
+  const todayKey = endDateOverride ?? dateKeyLocal(new Date());
   const name = (displayName && displayName.trim()) || email;
   const d = data;
   const macroTargets = d.macroTargets;
@@ -193,7 +212,7 @@ export default function ChallengeCertificate({
                 : `In progress · day ${d.daysCompleted} of 50`}
             </p>
             <Heading size="display-2" className="text-ink leading-[1.05]">
-              {headlineCopy(d)}
+              {headlineCopy(d, isComplete)}
             </Heading>
             <p className="font-body text-base text-ink/70 mt-4 max-w-xl">
               {formatDateLong(startDate)} → {formatDateLong(todayKey)}
@@ -310,6 +329,7 @@ export default function ChallengeCertificate({
               <StickerStat
                 value={d.tenKStepDays}
                 label="10K-step days"
+                hint="Days you walked / ran 10,000+ steps."
               />
               <StickerStat
                 value={d.waterGoalHits}
@@ -318,8 +338,9 @@ export default function ChallengeCertificate({
               />
               <StickerStat
                 value={d.stepsTotal.toLocaleString()}
-                label="steps total"
+                label="steps you logged"
                 suffix="steps"
+                hint="Across all 50 days."
               />
             </div>
             <div className="mt-4 flex flex-wrap gap-2">

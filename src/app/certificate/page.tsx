@@ -103,31 +103,45 @@ export default function CertificatePage() {
     );
   }
 
-  // Certificate is locked until BOTH day 50 has been reached
-  // AND every habit on day 50 has been tapped. Otherwise the user
-  // could end-of-day 49 with everything done and the page would
-  // claim the challenge is "complete" before they finish the last
-  // day. The "not finished yet" block under the cert shows until
-  // both conditions are true.
+  // Certificate is available to anyone who reached day 50 on
+  // their calendar. We intentionally do NOT gate on
+  // daysCompleted >= 50:
   //
-  // daysCompleted is the count of days in the 50-day window
-  // where all 9 habit rows were ticked. It can hit 50 even on
-  // day 49 (if every prior day was complete) — but day 50 itself
-  // can't be in daysCompleted until at least day 51. So we also
-  // gate on "the user is past day 50 in calendar terms" via
-  // currentDay.
-  const isComplete =
-    data.loaded &&
-    data.daysCompleted >= 50 &&
-    tracker.currentDay >= 50;
+  //   - That would be the strictest "every habit ticked for all 50
+  //     days" rule, which is the spirit of the user's request,
+  //     BUT it permanently locks out users whose ticks were lost
+  //     to the now-fixed hydration-race bug (their daily_totals
+  //     are sparse even though they completed the challenge).
+  //   - For those users, surfacing a "data may be incomplete"
+  //     callout on the cert is better than never showing the cert
+  //     at all.
+  //
+  // The "Not finished yet" block renders while currentDay < 50.
+  // The cert itself shows a "this isn't a full 50 — the data
+  // looks like 41 of 50 because some days were lost" warning if
+  // daysCompleted < 50, so the user knows the gap.
+  const isComplete = data.loaded && tracker.currentDay >= 50;
 
+  // End of the date range should match the user's progress, not
+  // today's date. A user who's on day 49 with 49 complete days
+  // should see Aug 17 → Oct 4, not Aug 17 → Oct 5. The "last
+  // day they did something real" anchor is the higher of
+  // daysCompleted (their last fully-complete day) and the start
+  // date itself. If they've completed zero days we just show the
+  // start.
+  const lastDayCompleted = data.loaded ? data.daysCompleted : 0;
+  const endDay = isComplete
+    ? 50
+    : Math.max(1, lastDayCompleted || 1);
   const startKey = dayKeyFromStart(tracker.startDate, 1);
+  const endKey = dayKeyFromStart(tracker.startDate, endDay);
 
   return (
     <>
       <ChallengeCertificate
         data={data}
         startDate={startKey}
+        endDateOverride={endKey}
         displayName={profile.display_name ?? null}
         email={user.email ?? ''}
         isComplete={isComplete}

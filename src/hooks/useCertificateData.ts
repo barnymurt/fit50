@@ -18,6 +18,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTrackerState } from './useTrackerState';
 import { useFoodLog } from './useFoodLog';
 import { useWaterLog } from './useWaterLog';
 import { useDailySteps } from './useDailySteps';
@@ -30,6 +31,13 @@ export interface CertificateData {
 
   // From useChallengeStats
   daysCompleted: number;
+  // True if the user reached day 50 on the calendar (so they're
+  // eligible to see the cert) but `daysCompleted` came back below
+  // 50. Most likely cause: a tick was lost to the hydration race
+  // (since fixed) so daily_totals is sparse. We surface this on
+  // the cert so the user knows the numbers shown are real, just
+  // incomplete.
+  dataLooksIncomplete: boolean;
   daysWithoutAlcohol: number;
   daysWithoutNicotine: number;
   coldShowerDays: number;
@@ -69,6 +77,7 @@ export interface CertificateData {
 const empty: CertificateData = {
   loaded: false,
   daysCompleted: 0,
+  dataLooksIncomplete: false,
   daysWithoutAlcohol: 0,
   daysWithoutNicotine: 0,
   coldShowerDays: 0,
@@ -95,6 +104,13 @@ const empty: CertificateData = {
 
 export function useCertificateData(startDate: string | null): CertificateData {
   const { user } = useAuth();
+  // We need the user's tracker for two reasons on the certificate
+  // page: (1) to anchor the end of the date range to the user's
+  // actual progress (their last fully-complete day, not today),
+  // and (2) to flag the "data may be incomplete" callout when
+  // currentDay >= 50 but daysCompleted is suspiciously low (a
+  // symptom of the old hydration race losing ticks).
+  const tracker = useTrackerState();
   const stats = useChallengeStats(startDate);
   const foodLog = useFoodLog();
   const water = useWaterLog();
@@ -219,6 +235,15 @@ export function useCertificateData(startDate: string | null): CertificateData {
     setComposite({
       loaded: true,
       daysCompleted: stats.daysCompleted,
+      // The cert is shown to anyone who reached day 50 on the
+      // calendar. If their `daysCompleted` count is well below
+      // 50, that's a strong signal that some ticks were lost to
+      // the hydration race (now fixed). Surface a flag so the
+      // cert can show a "data may be incomplete" note.
+      dataLooksIncomplete:
+        tracker.loaded &&
+        tracker.currentDay >= 50 &&
+        stats.daysCompleted < 45,
       daysWithoutAlcohol: stats.daysWithoutAlcohol,
       daysWithoutNicotine: stats.daysWithoutNicotine,
       coldShowerDays: stats.coldShowerDays,
@@ -251,6 +276,7 @@ export function useCertificateData(startDate: string | null): CertificateData {
     stats,
     foodLog.entries.length,
     macroTargets.targets,
+    tracker,
   ]);
 
   return composite;
