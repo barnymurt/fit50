@@ -148,14 +148,14 @@ export default function ChallengeCertificate({
 
   const nextSteps: { label: string; body: string }[] = [
     {
-      label: 'Reset and run it again',
+      label: 'Send it to a friend',
       body:
-        'On the tracker, "Reset" wipes your challenge data and starts a new 50 days. Reset the day before the 1st of a month and join a cohort if you want company, or just keep your own count.',
+        'If a friend is the kind of person who would do this, send them the link. Buddy pairs are free to set up; cohorts are free to join. Recommend the toolkit, not the streak.',
     },
     {
-      label: 'Use the toolkit in the meantime',
+      label: 'These tools are yours to keep moving forward',
       body:
-        'Food log, water, workouts, the macro calculator, the random exercise list — none of it expires when the fifty days end. Use the parts that help without the 50-day pressure.',
+        'Daily consistency is your best friend. Use the parts that most helped you without having to worry about the 50-day pressure. Follow us on our socials — we have more tricks planned up our sleeve.',
     },
     {
       label: 'Try again in a few months',
@@ -163,9 +163,9 @@ export default function ChallengeCertificate({
         'Cohorts open on the 1st of each month. If you want a fresh start without a reset, wait for the next one and join when you\u2019re ready. The account page shows the next open cohort.',
     },
     {
-      label: 'Send it to a friend',
+      label: 'Reset and run it again',
       body:
-        'If a friend is the kind of person who would do this, send them the link. Buddy pairs are free to set up; cohorts are free to join. Recommend the toolkit, not the streak.',
+        'On the tracker, "Reset" wipes your challenge data and starts a new 50 days. Reset the day before the 1st of a month and join a cohort if you want company, or just keep your own count.',
     },
   ];
 
