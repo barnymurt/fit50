@@ -1,0 +1,23 @@
+{
+  "id": "member-progress",
+  "name": "Member progress",
+  "summary": "Approved member submissions (consent on file). Shows habits, streak and how they feel — not only the body. No weight-loss promises.",
+  "source": "approved member submissions (Phase 4)",
+  "platforms": {
+    "instagram": { "aspect": "4:5", "templates": ["before-after", "quote", "statement"], "marquee": "marquee_default" },
+    "facebook":  { "aspect": "4:5", "templates": ["before-after", "quote", "statement"], "marquee": "marquee_default" },
+    "tiktok":    { "aspect": "9:16", "templates": ["before-after", "quote", "statement"], "marquee": "marquee_default" }
+  },
+  "slide_pattern": "before-after (day 1 vs day 50 photos) → quote (the member's words) → statement (the streak) → cta",
+  "extra_voice_rules": [
+    "The member's own words whenever possible. The generator should use the submission as the source of truth.",
+    "Show habits, streak, and how they feel — not only the body. A great member post mentions at least one habit and at least one feeling.",
+    "No weight-loss promises. No 'lose X kg in Y days'.",
+    "The member's chosen credit (full name, first name, or anonymous) is the only credit used."
+  ],
+  "extra_checks": [
+    "Consent on file for the submission. Withdrawal flag is not set.",
+    "Every number, date, and habit mentioned in the post exists in the submission.",
+    "No before-and-after weight figures outside the consent scope."
+  ]
+}

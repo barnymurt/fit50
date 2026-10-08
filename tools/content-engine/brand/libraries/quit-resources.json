@@ -1,0 +1,339 @@
+{
+  "$schema": "./quit-resources.schema.json",
+  "meta": {
+    "name": "FIT50 quit-smoking resource list",
+    "version": "0.1.0",
+    "count": 40,
+    "source": "Public quit-smoking services, hand-curated for the FIT50 content engine. The pillar `quit-smoking` cites only entries from this file; Phase 5 adds a monthly link check. voice-lint requires the link to be present and the service to be named exactly as it appears here. No health-outcome claims; supportive, never shaming."
+  },
+  "resources": [
+    {
+      "id": "au-quitline",
+      "name": "Quitline Australia",
+      "country": "AU",
+      "type": "phone",
+      "phone": "13 7848",
+      "url": "https://www.quit.org.au",
+      "last_checked": "2026-10-01"
+    },
+    {
+      "id": "au-quitline-online",
+      "name": "Quitline Online (AU)",
+      "country": "AU",
+      "type": "chat",
+      "url": "https://www.quit.org.au/online-chat",
+      "last_checked": "2026-10-01"
+    },
+    {
+      "id": "nz-quitline",
+      "name": "Quitline New Zealand",
+      "country": "NZ",
+      "type": "phone",
+      "phone": "0800 778 778",
+      "url": "https://www.quit.org.nz",
+      "last_checked": "2026-10-01"
+    },
+    {
+      "id": "uk-nhs",
+      "name": "NHS Smokefree",
+      "country": "GB",
+      "type": "web",
+      "url": "https://www.nhs.uk/better-health/quit-smoking/",
+      "last_checked": "2026-10-01"
+    },
+    {
+      "id": "uk-nhs-helpline",
+      "name": "NHS Smokefree Helpline",
+      "country": "GB",
+      "type": "phone",
+      "phone": "0300 123 1044",
+      "url": "https://www.nhs.uk/better-health/quit-smoking/",
+      "last_checked": "2026-10-01"
+    },
+    {
+      "id": "ie-hse",
+      "name": "HSE Quit Smoking (Ireland)",
+      "country": "IE",
+      "type": "web",
+      "url": "https://www2.hse.ie/conditions/quitting-smoking/",
+      "last_checked": "2026-10-01"
+    },
+    {
+      "id": "us-nci",
+      "name": "NCI Quitline (US)",
+      "country": "US",
+      "type": "phone",
+      "phone": "1-877-44U-QUIT",
+      "url": "https://smokefree.gov",
+      "last_checked": "2026-10-01"
+    },
+    {
+      "id": "us-smokefree",
+      "name": "Smokefree.gov (US)",
+      "country": "US",
+      "type": "web",
+      "url": "https://smokefree.gov",
+      "last_checked": "2026-10-01"
+    },
+    {
+      "id": "us-truth",
+      "name": "truth initiative",
+      "country": "US",
+      "type": "web",
+      "url": "https://truthinitiative.org",
+      "last_checked": "2026-10-01"
+    },
+    {
+      "id": "us-becomeanex",
+      "name": "BecomeAnEx",
+      "country": "US",
+      "type": "web",
+      "url": "https://www.becomeanex.org",
+      "last_checked": "2026-10-01"
+    },
+    {
+      "id": "ca-gov",
+      "name": "Health Canada — Quit Smoking",
+      "country": "CA",
+      "type": "web",
+      "url": "https://www.canada.ca/en/health-canada/services/smoking-tobacco.html",
+      "last_checked": "2026-10-01"
+    },
+    {
+      "id": "ca-tfl",
+      "name": "Tobacco Free Nova Scotia",
+      "country": "CA",
+      "type": "web",
+      "url": "https://tobaccofree.novascotia.ca",
+      "last_checked": "2026-10-01"
+    },
+    {
+      "id": "nz-app",
+      "name": "Quit Smoking NZ App",
+      "country": "NZ",
+      "type": "app",
+      "url": "https://www.health.govt.nz/your-health/healthy-living/addictions/quitting-smoking",
+      "last_checked": "2026-10-01"
+    },
+    {
+      "id": "au-my-quitbuddy",
+      "name": "My QuitBuddy (AU app)",
+      "country": "AU",
+      "type": "app",
+      "url": "https://www.health.gov.au/resources/apps-and-tools/my-quitbuddy-app",
+      "last_checked": "2026-10-01"
+    },
+    {
+      "id": "intl-who",
+      "name": "WHO Tobacco Free Initiative",
+      "country": "INTL",
+      "type": "web",
+      "url": "https://www.who.int/teams/health-promotion/tobacco-control",
+      "last_checked": "2026-10-01"
+    },
+    {
+      "id": "intl-fctc",
+      "name": "WHO FCTC (Framework Convention)",
+      "country": "INTL",
+      "type": "web",
+      "url": "https://fctc.who.int",
+      "last_checked": "2026-10-01"
+    },
+    {
+      "id": "intl-exsmokers",
+      "name": "iCoach (EU ex-smokers)",
+      "country": "EU",
+      "type": "web",
+      "url": "https://exsmokers.eu/exsmokers/icoach",
+      "last_checked": "2026-10-01"
+    },
+    {
+      "id": "es-ministerio",
+      "name": "Ministerio de Sanidad — Tabaquismo",
+      "country": "ES",
+      "type": "web",
+      "url": "https://www.sanidad.gob.es/areas/promocionPrevencion/tabaquismo/home.htm",
+      "last_checked": "2026-10-01"
+    },
+    {
+      "id": "fr-tabac",
+      "name": "Tabac Info Service (France)",
+      "country": "FR",
+      "type": "web",
+      "url": "https://www.tabac-info-service.fr",
+      "last_checked": "2026-10-01"
+    },
+    {
+      "id": "fr-tabac-phone",
+      "name": "Tabac Info Service — Phone",
+      "country": "FR",
+      "type": "phone",
+      "phone": "39 89",
+      "url": "https://www.tabac-info-service.fr",
+      "last_checked": "2026-10-01"
+    },
+    {
+      "id": "de-bzga",
+      "name": "BZgA — Rauchfrei (Germany)",
+      "country": "DE",
+      "type": "web",
+      "url": "https://www.rauchfrei-info.de",
+      "last_checked": "2026-10-01"
+    },
+    {
+      "id": "it-iss",
+      "name": "ISS — Smettodi fumare (Italy)",
+      "country": "IT",
+      "type": "web",
+      "url": "https://www.iss.it/en/smettere-di-fumare",
+      "last_checked": "2026-10-01"
+    },
+    {
+      "id": "pt-dgs",
+      "name": "DGS — Tabagismo (Portugal)",
+      "country": "PT",
+      "type": "web",
+      "url": "https://www.dgs.pt/programa-nacional-para-a-prevencao-e-controlo-do-tabagismo.aspx",
+      "last_checked": "2026-10-01"
+    },
+    {
+      "id": "nl-roken",
+      "name": "Roken Infolijn (Netherlands)",
+      "country": "NL",
+      "type": "phone",
+      "phone": "0900-1995",
+      "url": "https://www.ikstopnu.nl",
+      "last_checked": "2026-10-01"
+    },
+    {
+      "id": "be-tabak",
+      "name": "Tabakstop (Belgium)",
+      "country": "BE",
+      "type": "web",
+      "url": "https://www.tabakstop.be",
+      "last_checked": "2026-10-01"
+    },
+    {
+      "id": "se-sluta",
+      "name": "Sluta-Röka-Linjen (Sweden)",
+      "country": "SE",
+      "type": "phone",
+      "phone": "020-84 00 00",
+      "url": "https://www.slutaroka.se",
+      "last_checked": "2026-10-01"
+    },
+    {
+      "id": "no-slutta",
+      "name": "Slutta (Norway)",
+      "country": "NO",
+      "type": "web",
+      "url": "https://helsenorge.no/slutta",
+      "last_checked": "2026-10-01"
+    },
+    {
+      "id": "dk-stoplinien",
+      "name": "Stoplinien (Denmark)",
+      "country": "DK",
+      "type": "phone",
+      "phone": "80 31 23 12",
+      "url": "https://stoplinien.dk",
+      "last_checked": "2026-10-01"
+    },
+    {
+      "id": "fi-stumppi",
+      "name": "Stumppi (Finland)",
+      "country": "FI",
+      "type": "web",
+      "url": "https://www.stumppi.fi",
+      "last_checked": "2026-10-01"
+    },
+    {
+      "id": "es-eme",
+      "name": "Asociación Española contra el Cáncer",
+      "country": "ES",
+      "type": "web",
+      "url": "https://www.contraelcancer.es",
+      "last_checked": "2026-10-01"
+    },
+    {
+      "id": "intl-exercise",
+      "name": "Exercises for Smokers (NHS)",
+      "country": "GB",
+      "type": "web",
+      "url": "https://www.nhs.uk/live-well/exercise/",
+      "last_checked": "2026-10-01"
+    },
+    {
+      "id": "us-cdc",
+      "name": "CDC Tips From Former Smokers",
+      "country": "US",
+      "type": "web",
+      "url": "https://www.cdc.gov/tobacco/campaign/tips/",
+      "last_checked": "2026-10-01"
+    },
+    {
+      "id": "us-asthma",
+      "name": "American Lung Association",
+      "country": "US",
+      "type": "web",
+      "url": "https://www.lung.org/quit-smoking",
+      "last_checked": "2026-10-01"
+    },
+    {
+      "id": "uk-asthma",
+      "name": "Asthma + Lung UK",
+      "country": "GB",
+      "type": "web",
+      "url": "https://www.asthmaandlung.org.uk/living-with/quit-smoking/",
+      "last_checked": "2026-10-01"
+    },
+    {
+      "id": "intl-book",
+      "name": "Allen Carr's Easyway",
+      "country": "INTL",
+      "type": "web",
+      "url": "https://www.allencarr.com",
+      "last_checked": "2026-10-01"
+    },
+    {
+      "id": "intl-app",
+      "name": "Smoke Free app",
+      "country": "INTL",
+      "type": "app",
+      "url": "https://smokefreeapp.com",
+      "last_checked": "2026-10-01"
+    },
+    {
+      "id": "intl-quitnow",
+      "name": "QuitNow app",
+      "country": "INTL",
+      "type": "app",
+      "url": "https://quitnow.app",
+      "last_checked": "2026-10-01"
+    },
+    {
+      "id": "intl-flamy",
+      "name": "Flamy app",
+      "country": "INTL",
+      "type": "app",
+      "url": "https://flamy.app",
+      "last_checked": "2026-10-01"
+    },
+    {
+      "id": "au-quitbook",
+      "name": "The Easy Way to Stop Smoking (book, AU)",
+      "country": "AU",
+      "type": "book",
+      "url": "https://www.allencarr.com.au",
+      "last_checked": "2026-10-01"
+    },
+    {
+      "id": "intl-arabic",
+      "name": "Quit Smoking — Arabic (WHO)",
+      "country": "INTL",
+      "type": "web",
+      "url": "https://www.who.int/ar/news-room/q-a-detail/q-a-on-tobacco",
+      "last_checked": "2026-10-01"
+    }
+  ]
+}

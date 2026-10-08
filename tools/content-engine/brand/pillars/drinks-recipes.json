@@ -1,0 +1,23 @@
+{
+  "id": "drinks-recipes",
+  "name": "Drinks recipes",
+  "summary": "Zero-proof drink recipes for the recipe template. Each post is anchored to a single recipe from libraries/drinks.json — quantities, method, garnish come from there, never invented.",
+  "source": "libraries/drinks.json",
+  "platforms": {
+    "instagram": { "aspect": "4:5", "templates": ["recipe", "cover", "cta"], "marquee": "marquee_default" },
+    "facebook":  { "aspect": "4:5", "templates": ["recipe", "cover", "cta"], "marquee": "marquee_default" },
+    "tiktok":    { "aspect": "9:16", "templates": ["recipe", "cover", "cta"], "marquee": "marquee_default" }
+  },
+  "slide_pattern": "cover (name + tag) → list (3–5 ingredients with icons) → list or statement (method) → cta",
+  "extra_voice_rules": [
+    "Use the recipe name exactly as in libraries/drinks.json.",
+    "Quantities and units come from the library, never invented.",
+    "Metric units. Litres, millilitres, grams, centilitres.",
+    "No 'try this' or 'you'll love' — recipe posts are about the drink, not the user."
+  ],
+  "extra_checks": [
+    "Every ingredient in the post must appear in the source recipe.",
+    "Every quantity in the post must equal a quantity in the source recipe.",
+    "The recipe's glass and garnish appear in the post if the slide pattern calls for them."
+  ]
+}

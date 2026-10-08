@@ -1,0 +1,93 @@
+{
+  "$schema": "../schema/post.schema.json",
+  "id": "tiktok-workout-day5",
+  "type": "carousel",
+  "platform": "tiktok",
+  "aspect": "9:16",
+  "pillar": "workouts",
+  "brief": "Day 5 of the 50 days. Line A. Lower body, posterior chain. 5 moves, no kit. The hook: 'you only need 20 minutes and a wall.'",
+  "status": "draft",
+  "version": 1,
+  "marquee": "marquee_default",
+  "source": {
+    "line_letter": "A",
+    "library": "libraries/workouts.json"
+  },
+  "slides": [
+    {
+      "id": "s1",
+      "template": "cover",
+      "ground": "ink",
+      "fields": {
+        "eyebrow":  { "text": "Day 5 · 50 days", "by": "ai" },
+        "headline": { "text": "Line *A*", "by": "ai" },
+        "sub":      { "text": "Lower body. 20 minutes. A wall.", "by": "ai" }
+      }
+    },
+    {
+      "id": "s2",
+      "template": "workout-line",
+      "ground": "paper",
+      "fields": {
+        "eyebrow":  { "text": "The line", "by": "ai" },
+        "headline": { "text": "A", "by": "ai" },
+        "letter":   "A",
+        "exercises": [
+          { "name": "Bodyweight Squat",       "sets": 4, "reps": "12" },
+          { "name": "Reverse Lunge",          "sets": 3, "reps": "10 each side" },
+          { "name": "Glute Bridge",           "sets": 3, "reps": "15" },
+          { "name": "Calf Raise",             "sets": 3, "reps": "20" },
+          { "name": "Wall Sit",               "sets": 2, "reps": "30 seconds" }
+        ],
+        "bridge": { "text": "Five moves, all bodyweight", "by": "ai" }
+      }
+    },
+    {
+      "id": "s3",
+      "template": "list",
+      "ground": "lavender",
+      "fields": {
+        "eyebrow":  { "text": "The form", "by": "ai" },
+        "headline": { "text": "*Two* cues.", "by": "ai" },
+        "items": [
+          { "title": "Knees track over toes on the squat", "icon": null },
+          { "title": "Back tall on the lunge, not leaning", "icon": null }
+        ],
+        "bridge": { "text": "Slow on the way down", "by": "ai" }
+      }
+    },
+    {
+      "id": "s4",
+      "template": "statement",
+      "ground": "teal",
+      "fields": {
+        "eyebrow":  { "text": "Finisher", "by": "ai" },
+        "headline": { "text": "1 minute *brisk walk* in place.", "by": "ai" },
+        "body":     { "text": "Calm the heart rate. Cool the legs. Then stretch for 5 minutes.", "by": "ai" },
+        "bridge":   { "text": "That's the line done", "by": "ai" }
+      }
+    },
+    {
+      "id": "s5",
+      "template": "cta",
+      "ground": "paper",
+      "fields": {
+        "eyebrow":  { "text": "Save this", "by": "ai" },
+        "headline": { "text": "Day 5. *One line.*", "by": "ai" },
+        "body":     { "text": "Comment 'A' for the rest of the 50 days, one line a day. Link in bio for the free tracker.", "by": "ai" },
+        "button":   { "text": "Comment A", "by": "ai" }
+      }
+    }
+  ],
+  "caption": {
+    "text": "Day 5 of 50. Line A. 5 moves, no kit, 20 minutes. The hardest one is the wall sit. \n\n#fit50 #day5 #workout #lineA #50days",
+    "hashtags": ["#fit50", "#day5", "#workout", "#lineA", "#50days"],
+    "by": "ai"
+  },
+  "checks": {
+    "facts":     "pending",
+    "voice_lint": "pending",
+    "design":    "pending",
+    "fit":       "pending"
+  }
+}

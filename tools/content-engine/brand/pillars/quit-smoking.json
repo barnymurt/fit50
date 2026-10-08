@@ -1,0 +1,23 @@
+{
+  "id": "quit-smoking",
+  "name": "Quit smoking",
+  "summary": "Hand-curated quit-smoking services from libraries/quit-resources.json. Supportive, never shaming. No health-outcome claims.",
+  "source": "libraries/quit-resources.json",
+  "platforms": {
+    "instagram": { "aspect": "4:5", "templates": ["list", "statement", "cta"], "marquee": "marquee_quiet" },
+    "facebook":  { "aspect": "4:5", "templates": ["list", "statement", "cta"], "marquee": "marquee_quiet" },
+    "tiktok":    { "aspect": "9:16", "templates": ["list", "statement", "cta"], "marquee": "marquee_quiet" }
+  },
+  "slide_pattern": "cover (the topic) → list (3–5 services, named) → statement (a supportive line) → cta",
+  "extra_voice_rules": [
+    "Supportive, never shaming. Never 'you should', never 'just quit'.",
+    "No health-outcome claims. Never 'after 30 days you'll feel X'.",
+    "Name the service exactly as in libraries/quit-resources.json.",
+    "Country tags are part of the service identity; don't drop them."
+  ],
+  "extra_checks": [
+    "Every service named in the post must exist in libraries/quit-resources.json.",
+    "Every URL in the post must equal a URL in the source file.",
+    "No health-outcome claim string anywhere in the post (checked against a banned-claim list)."
+  ]
+}

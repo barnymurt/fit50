@@ -1,0 +1,23 @@
+{
+  "id": "challenge-explainers",
+  "name": "Challenge explainers",
+  "summary": "Explainer posts about the 9 rules, the 50 days, the price, the buddy programme. No price in feed posts.",
+  "source": "facts.json",
+  "platforms": {
+    "instagram": { "aspect": "4:5", "templates": ["cover", "list", "statement", "cta"], "marquee": "marquee_default" },
+    "facebook":  { "aspect": "4:5", "templates": ["cover", "list", "statement", "cta"], "marquee": "marquee_default" },
+    "tiktok":    { "aspect": "9:16", "templates": ["cover", "list", "statement", "cta"], "marquee": "marquee_default" }
+  },
+  "slide_pattern": "cover (the question) → list (the answer) → statement (the bridge) → cta (link in bio)",
+  "extra_voice_rules": [
+    "Don't compare FIT50 to 75 Hard. The origin-story pillar may.",
+    "Feed posts don't show the price. Price lives on the link-in-bio page, in Stories, in DMs.",
+    "Rule names exact: Move Your Body, Step It Up, Wet The Lips, Fuel Right, Chill Out, Feed Your Brain, Open Mind, Crispy Clarity, Fresh Lungs.",
+    "Targets from facts.json. 10,000 steps. 2.5 litres. 10 minutes. 5 books or 30 minutes."
+  ],
+  "extra_checks": [
+    "Every rule name in the post appears in facts.json#/habit_names/exact.",
+    "Every numeric value in the post equals a value in facts.json#/habit_targets or facts.json#/voice_numbers.",
+    "No `€` symbol in any field of the post. The cta must point to 'link in bio' copy, not a price."
+  ]
+}

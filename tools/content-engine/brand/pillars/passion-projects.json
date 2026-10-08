@@ -1,0 +1,23 @@
+{
+  "id": "passion-projects",
+  "name": "Passion projects",
+  "summary": "What members built across the 50 days. The member's description, milestones and dates from the submission only.",
+  "source": "submissions (Phase 4)",
+  "platforms": {
+    "instagram": { "aspect": "4:5", "templates": ["project-timeline", "photo-top", "statement"], "marquee": "marquee_calm" },
+    "facebook":  { "aspect": "4:5", "templates": ["project-timeline", "photo-top", "statement"], "marquee": "marquee_calm" },
+    "tiktok":    { "aspect": "9:16", "templates": ["project-timeline", "photo-top", "statement"], "marquee": "marquee_calm" }
+  },
+  "slide_pattern": "photo-top (the finished artefact) → project-timeline (3–5 milestones with dates) → statement (the member's words) → cta",
+  "extra_voice_rules": [
+    "The member's own description. The submission is the source of truth.",
+    "Milestones and dates from the submission only. Never invented.",
+    "Day markers drawn like the site's 50-day grid (small numerals, not a calendar).",
+    "One finished thing is the through-line. Use that phrase from the first slide."
+  ],
+  "extra_checks": [
+    "Every milestone date in the post equals a milestone date in the submission.",
+    "The finished artefact is the same as in the submission's photo evidence.",
+    "No 'I built this in 50 days' if the submission's timeline doesn't support it."
+  ]
+}

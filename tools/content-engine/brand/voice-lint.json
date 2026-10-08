@@ -1,0 +1,112 @@
+{
+  "$schema": "./voice-lint.schema.json",
+  "meta": {
+    "name": "FIT50 voice-lint",
+    "version": "0.1.0",
+    "purpose": "Machine-checkable subset of voice.md. The post-draft validator runs this against every generated slide and fails the post if any rule trips. Banned lists grow over time as you correct copy (see Phase 6)."
+  },
+  "banned_characters": {
+    "_comment": "Hard bans. No slide, ever.",
+    "in_slide_text": ["!"],
+    "rationale": "voice.md rule 1 — full stops where you'd expect exclamation marks."
+  },
+  "banned_emoji": {
+    "_comment": "Slide text never carries emoji. Caption text is allowed (e.g. 👇 for 'see first comment').",
+    "in_slide_text": ".*",
+    "in_caption": []
+  },
+  "banned_phrases": {
+    "_comment": "Extend this list every time you correct copy. The Phase 6 learning loop formalises the workflow.",
+    "anywhere_in_post": [
+      "unlock your potential",
+      "unlock your true",
+      "game-changer",
+      "game changer",
+      "journey",
+      "transform your",
+      "transformative",
+      "level up",
+      "crush it",
+      "crushed it",
+      "killed it",
+      "you're a champion",
+      "you are a champion",
+      "no excuses",
+      "this is your sign"
+    ],
+    "in_feed_post": [
+      "€"
+    ]
+  },
+  "spelling": {
+    "banned_american_in_body_copy": [
+      "liters", "color", "program", "math", "meter",
+      "centimeter", "kilometer", "favorite", "honor", "behavior"
+    ],
+    "use_british_in_body_copy": [
+      "litres", "colour", "programme", "maths", "metre",
+      "centimetre", "kilometre", "favourite", "honour", "behaviour"
+    ]
+  },
+  "field_limits": {
+    "_comment": "Max characters per field, by template. Hard cap — the generator refuses to write beyond. These match the spec's template table; if you raise one, raise the same one in tokens.json (or vice versa).",
+    "cover": {
+      "eyebrow":  28,
+      "headline": 60,
+      "sub":      90
+    },
+    "statement": {
+      "eyebrow":  28,
+      "headline": 70,
+      "body":     130,
+      "bridge":   45
+    },
+    "list": {
+      "eyebrow":  28,
+      "headline": 35,
+      "item_title":  32,
+      "item_detail": 45,
+      "bridge":   45,
+      "items_max": 5,
+      "items_min": 3
+    },
+    "numeral": {
+      "eyebrow": 28,
+      "body":    110,
+      "number_max_chars": 6
+    },
+    "icon-card": {
+      "title": 24,
+      "body":  110
+    },
+    "cta": {
+      "eyebrow":  28,
+      "headline": 40,
+      "body":     110,
+      "button":   18
+    },
+    "photo-top": {
+      "eyebrow":  28,
+      "headline": 50
+    }
+  },
+  "structure": {
+    "_comment": "Carousel structural rules per voice.md rule 9.",
+    "min_slides": 3,
+    "max_slides": 7,
+    "cta_required_on_last_slide": true,
+    "cta_required_max_count": 1,
+    "bridge_required_on_middle_slides": true,
+    "no_two_adjacent_slides_same_ground": true,
+    "coral_used_once_per_slide_max": true,
+    "marquee_required": true
+  },
+  "facts_check": {
+    "_comment": "Anything in facts.json must appear by exact name. Numbers in copy must equal a number in facts.json. voice-lint runs the post-draft facts check; this section configures it.",
+    "habit_names_source": "facts.json#/habit_names/exact",
+    "habit_names_case_sensitive": true,
+    "numeric_values_source": "facts.json#/habit_targets, facts.json#/voice_numbers",
+    "reject_unrecognised_numbers_in_post": true,
+    "allow_exception_for_tag_launch": true
+  }
+}

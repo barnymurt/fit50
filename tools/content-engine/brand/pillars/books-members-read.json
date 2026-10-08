@@ -1,0 +1,23 @@
+{
+  "id": "books-members-read",
+  "name": "Books members read",
+  "summary": "What members are reading. Member ideas in their own words. At most one short, attributed line from the book — never long passages.",
+  "source": "submissions + book metadata (Phase 4)",
+  "platforms": {
+    "instagram": { "aspect": "4:5", "templates": ["book-card", "list"], "marquee": "marquee_default" },
+    "facebook":  { "aspect": "4:5", "templates": ["book-card", "list"], "marquee": "marquee_default" },
+    "tiktok":    { "aspect": "9:16", "templates": ["book-card", "list"], "marquee": "marquee_default" }
+  },
+  "slide_pattern": "book-card (cover + title + author) → list (3 ideas in the member's words) → cta",
+  "extra_voice_rules": [
+    "Member's own words for the ideas. The book gives the structure; the member gives the voice.",
+    "At most one short, attributed line from the book. Never a long passage.",
+    "Title and author exactly as on the book cover.",
+    "No 'this book will change your life' or 'must-read' framing."
+  ],
+  "extra_checks": [
+    "Title and author exactly match the source book metadata.",
+    "Any quoted line from the book is short (under 30 words) and attributed.",
+    "Every idea in the post is paraphrased from the member's submission, not invented."
+  ]
+}

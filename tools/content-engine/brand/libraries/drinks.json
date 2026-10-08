@@ -1,0 +1,831 @@
+{
+  "$schema": "./drinks.schema.json",
+  "meta": {
+    "name": "FIT50 zero-proof drinks library",
+    "version": "0.1.0",
+    "count": 50,
+    "source": "Hand-authored for the FIT50 content engine. Each recipe is metric, low-sugar where possible, and references icons from the engine's icon library. Pillar: drinks-recipes.",
+    "spelling": "British. Litres, centilitres, millilitres, grams."
+  },
+  "recipes": [
+    {
+      "id": "hibiscus-iced-tea",
+      "name": "Hibiscus Iced Tea",
+      "tag": "Zero proof · 5 minutes",
+      "glass": "highball",
+      "ingredients": [
+        { "quantity": "2 tsp", "item": "dried hibiscus flowers", "icon": null },
+        { "quantity": "250 ml", "item": "boiling water", "icon": null },
+        { "quantity": "1 tsp", "item": "honey", "icon": null },
+        { "quantity": "1", "item": "lime, juiced", "icon": "lime" },
+        { "quantity": "to taste", "item": "ice", "icon": "ice" }
+      ],
+      "method": [
+        "Steep hibiscus in boiling water for 4 minutes. Strain.",
+        "Stir in honey while warm. Add lime juice. Pour over ice."
+      ],
+      "garnish": "lime wheel"
+    },
+    {
+      "id": "peppermint-iced-tea",
+      "name": "Peppermint Iced Tea",
+      "tag": "Zero proof · 5 minutes",
+      "glass": "highball",
+      "ingredients": [
+        { "quantity": "1 tbsp", "item": "dried peppermint", "icon": "mint" },
+        { "quantity": "300 ml", "item": "boiling water", "icon": null },
+        { "quantity": "1 tsp", "item": "honey", "icon": null },
+        { "quantity": "to taste", "item": "ice", "icon": "ice" }
+      ],
+      "method": [
+        "Steep peppermint in boiling water for 5 minutes. Strain.",
+        "Stir in honey. Pour over ice."
+      ],
+      "garnish": "fresh mint sprig"
+    },
+    {
+      "id": "green-iced-tea",
+      "name": "Green Iced Tea",
+      "tag": "Zero proof · 5 minutes",
+      "glass": "highball",
+      "ingredients": [
+        { "quantity": "1 tsp", "item": "loose green tea", "icon": null },
+        { "quantity": "300 ml", "item": "water at 80°C", "icon": null },
+        { "quantity": "1 tsp", "item": "honey", "icon": null }
+      ],
+      "method": [
+        "Steep green tea in 80°C water for 2 minutes. Strain. Chill.",
+        "Stir in honey. Pour over ice."
+      ],
+      "garnish": "lemon slice"
+    },
+    {
+      "id": "earl-grey-iced",
+      "name": "Earl Grey Iced",
+      "tag": "Zero proof · 8 minutes",
+      "glass": "highball",
+      "ingredients": [
+        { "quantity": "1 bag", "item": "Earl Grey tea", "icon": null },
+        { "quantity": "250 ml", "item": "boiling water", "icon": null },
+        { "quantity": "to taste", "item": "ice", "icon": "ice" }
+      ],
+      "method": [
+        "Steep tea in boiling water for 4 minutes. Remove bag. Cool.",
+        "Pour over a tall glass of ice."
+      ],
+      "garnish": "lemon twist"
+    },
+    {
+      "id": "chamomile-iced",
+      "name": "Chamomile Iced",
+      "tag": "Zero proof · 10 minutes",
+      "glass": "highball",
+      "ingredients": [
+        { "quantity": "2 bags", "item": "chamomile tea", "icon": null },
+        { "quantity": "300 ml", "item": "boiling water", "icon": null },
+        { "quantity": "1 tsp", "item": "honey", "icon": null }
+      ],
+      "method": [
+        "Steep chamomile in boiling water for 6 minutes. Strain. Cool.",
+        "Sweeten with honey. Serve over ice."
+      ],
+      "garnish": "fresh chamomile flowers if available"
+    },
+    {
+      "id": "rooibos-iced",
+      "name": "Rooibos Iced",
+      "tag": "Zero proof · 8 minutes",
+      "glass": "highball",
+      "ingredients": [
+        { "quantity": "1 bag", "item": "rooibos tea", "icon": null },
+        { "quantity": "250 ml", "item": "boiling water", "icon": null },
+        { "quantity": "1 tsp", "item": "honey", "icon": null }
+      ],
+      "method": [
+        "Steep rooibos in boiling water for 5 minutes. Strain. Cool.",
+        "Pour over ice and sweeten with honey."
+      ],
+      "garnish": "orange slice"
+    },
+    {
+      "id": "lemon-ginger-tea",
+      "name": "Lemon Ginger Tea",
+      "tag": "Zero proof · 12 minutes",
+      "glass": "mug",
+      "ingredients": [
+        { "quantity": "3 cm", "item": "fresh ginger, sliced", "icon": "ginger" },
+        { "quantity": "1", "item": "lemon, juiced", "icon": "lemon" },
+        { "quantity": "1 tsp", "item": "honey", "icon": null },
+        { "quantity": "400 ml", "item": "boiling water", "icon": null }
+      ],
+      "method": [
+        "Simmer ginger in water for 8 minutes.",
+        "Strain into a mug. Stir in lemon juice and honey."
+      ],
+      "garnish": "lemon slice"
+    },
+    {
+      "id": "turmeric-tea",
+      "name": "Turmeric Tea",
+      "tag": "Zero proof · 8 minutes",
+      "glass": "mug",
+      "ingredients": [
+        { "quantity": "1 tsp", "item": "ground turmeric", "icon": "ginger" },
+        { "quantity": "1 tsp", "item": "honey", "icon": null },
+        { "quantity": "1 pinch", "item": "black pepper", "icon": null },
+        { "quantity": "300 ml", "item": "hot water", "icon": null }
+      ],
+      "method": [
+        "Whisk turmeric and pepper into hot water.",
+        "Stir in honey. Sip warm."
+      ],
+      "garnish": "lemon slice"
+    },
+    {
+      "id": "jasmine-iced",
+      "name": "Jasmine Iced",
+      "tag": "Zero proof · 6 minutes",
+      "glass": "highball",
+      "ingredients": [
+        { "quantity": "1 tsp", "item": "jasmine tea leaves", "icon": null },
+        { "quantity": "300 ml", "item": "water at 80°C", "icon": null }
+      ],
+      "method": [
+        "Steep jasmine tea in 80°C water for 3 minutes. Strain. Cool.",
+        "Pour over ice."
+      ],
+      "garnish": "fresh jasmine flowers if available"
+    },
+    {
+      "id": "sparkling-yuzu-tea",
+      "name": "Sparkling Yuzu Tea",
+      "tag": "Zero proof · 4 minutes",
+      "glass": "wine glass",
+      "ingredients": [
+        { "quantity": "60 ml", "item": "cold green tea", "icon": null },
+        { "quantity": "30 ml", "item": "yuzu juice", "icon": "lemon" },
+        { "quantity": "1 tsp", "item": "honey", "icon": null },
+        { "quantity": "to top", "item": "sparkling water", "icon": null }
+      ],
+      "method": [
+        "Stir honey into yuzu juice until dissolved.",
+        "Pour over ice with green tea. Top with sparkling water."
+      ],
+      "garnish": "yuzu slice"
+    },
+    {
+      "id": "classic-limeade",
+      "name": "Classic Limeade",
+      "tag": "Zero proof · 5 minutes",
+      "glass": "highball",
+      "ingredients": [
+        { "quantity": "60 ml", "item": "lime juice (4 limes)", "icon": "lime" },
+        { "quantity": "2 tsp", "item": "sugar", "icon": null },
+        { "quantity": "300 ml", "item": "cold water", "icon": null },
+        { "quantity": "to taste", "item": "ice", "icon": "ice" }
+      ],
+      "method": [
+        "Dissolve sugar in lime juice.",
+        "Top with water and ice. Stir."
+      ],
+      "garnish": "lime wheel"
+    },
+    {
+      "id": "hibiscus-agua-fresca",
+      "name": "Hibiscus Agua Fresca",
+      "tag": "Zero proof · 15 minutes",
+      "glass": "jug",
+      "ingredients": [
+        { "quantity": "1 cup", "item": "dried hibiscus", "icon": null },
+        { "quantity": "1 litre", "item": "boiling water", "icon": null },
+        { "quantity": "1/4 cup", "item": "sugar", "icon": null },
+        { "quantity": "1", "item": "lime, juiced", "icon": "lime" }
+      ],
+      "method": [
+        "Steep hibiscus in boiling water for 10 minutes. Strain. Cool.",
+        "Stir in sugar and lime juice. Serve over ice."
+      ],
+      "garnish": "lime wheel"
+    },
+    {
+      "id": "cucumber-lime",
+      "name": "Cucumber Lime Agua",
+      "tag": "Zero proof · 8 minutes",
+      "glass": "highball",
+      "ingredients": [
+        { "quantity": "1/2", "item": "cucumber, sliced", "icon": "cucumber" },
+        { "quantity": "30 ml", "item": "lime juice", "icon": "lime" },
+        { "quantity": "1 tsp", "item": "honey", "icon": null },
+        { "quantity": "to top", "item": "sparkling water", "icon": null }
+      ],
+      "method": [
+        "Muddle cucumber in lime juice. Add honey.",
+        "Strain into a glass over ice. Top with sparkling water."
+      ],
+      "garnish": "cucumber ribbon"
+    },
+    {
+      "id": "watermelon-mint",
+      "name": "Watermelon Mint Agua",
+      "tag": "Zero proof · 5 minutes",
+      "glass": "highball",
+      "ingredients": [
+        { "quantity": "1 cup", "item": "watermelon, cubed", "icon": "watermelon" },
+        { "quantity": "5", "item": "mint leaves", "icon": "mint" },
+        { "quantity": "1 tsp", "item": "lime juice", "icon": "lime" }
+      ],
+      "method": [
+        "Blend watermelon, mint and lime until smooth.",
+        "Pour over ice. Garnish."
+      ],
+      "garnish": "mint sprig"
+    },
+    {
+      "id": "pineapple-basil",
+      "name": "Pineapple Basil Agua",
+      "tag": "Zero proof · 5 minutes",
+      "glass": "highball",
+      "ingredients": [
+        { "quantity": "1 cup", "item": "fresh pineapple, cubed", "icon": "pineapple" },
+        { "quantity": "6", "item": "basil leaves", "icon": "basil" },
+        { "quantity": "200 ml", "item": "cold water", "icon": null }
+      ],
+      "method": [
+        "Blend all ingredients until smooth.",
+        "Strain over ice."
+      ],
+      "garnish": "basil leaf"
+    },
+    {
+      "id": "grapefruit-rosemary",
+      "name": "Grapefruit Rosemary Spritz",
+      "tag": "Zero proof · 5 minutes",
+      "glass": "wine glass",
+      "ingredients": [
+        { "quantity": "100 ml", "item": "fresh pink grapefruit juice", "icon": "grapefruit" },
+        { "quantity": "1 sprig", "item": "fresh rosemary", "icon": "rosemary" },
+        { "quantity": "to top", "item": "sparkling water", "icon": null }
+      ],
+      "method": [
+        "Muddle rosemary gently in the grapefruit juice.",
+        "Pour over ice. Top with sparkling water."
+      ],
+      "garnish": "rosemary sprig + grapefruit slice"
+    },
+    {
+      "id": "mango-chile",
+      "name": "Mango Chile Agua",
+      "tag": "Zero proof · 5 minutes",
+      "glass": "highball",
+      "ingredients": [
+        { "quantity": "1 cup", "item": "fresh mango, cubed", "icon": "mango" },
+        { "quantity": "1/4", "item": "lime, juiced", "icon": "lime" },
+        { "quantity": "1 pinch", "item": "chilli powder", "icon": null },
+        { "quantity": "150 ml", "item": "cold water", "icon": null }
+      ],
+      "method": [
+        "Blend all ingredients until smooth.",
+        "Pour over ice."
+      ],
+      "garnish": "chilli flake + lime wheel"
+    },
+    {
+      "id": "tamarind-agua",
+      "name": "Tamarind Agua Fresca",
+      "tag": "Zero proof · 20 minutes",
+      "glass": "highball",
+      "ingredients": [
+        { "quantity": "60 g", "item": "tamarind paste", "icon": null },
+        { "quantity": "500 ml", "item": "warm water", "icon": null },
+        { "quantity": "2 tbsp", "item": "honey", "icon": null }
+      ],
+      "method": [
+        "Whisk tamarind into warm water. Strain. Cool.",
+        "Stir in honey. Serve over ice."
+      ],
+      "garnish": "lime wheel"
+    },
+    {
+      "id": "cantaloupe-mint",
+      "name": "Cantaloupe Mint Cooler",
+      "tag": "Zero proof · 5 minutes",
+      "glass": "highball",
+      "ingredients": [
+        { "quantity": "1 cup", "item": "cantaloupe, cubed", "icon": "cantaloupe" },
+        { "quantity": "5", "item": "mint leaves", "icon": "mint" },
+        { "quantity": "1 tsp", "item": "lime juice", "icon": "lime" }
+      ],
+      "method": [
+        "Blend cantaloupe, mint and lime until smooth.",
+        "Pour over ice."
+      ],
+      "garnish": "mint sprig"
+    },
+    {
+      "id": "strawberry-basil",
+      "name": "Strawberry Basil Agua",
+      "tag": "Zero proof · 5 minutes",
+      "glass": "highball",
+      "ingredients": [
+        { "quantity": "1 cup", "item": "strawberries, hulled", "icon": "strawberry" },
+        { "quantity": "6", "item": "basil leaves", "icon": "basil" },
+        { "quantity": "1 tsp", "item": "lemon juice", "icon": "lemon" }
+      ],
+      "method": [
+        "Blend all ingredients until smooth.",
+        "Pour over ice."
+      ],
+      "garnish": "basil leaf + strawberry"
+    },
+    {
+      "id": "green-smoothie",
+      "name": "Green Smoothie",
+      "tag": "Breakfast · 3 minutes",
+      "glass": "tumbler",
+      "ingredients": [
+        { "quantity": "1 handful", "item": "spinach", "icon": "spinach" },
+        { "quantity": "1", "item": "banana", "icon": "banana" },
+        { "quantity": "1/2 cup", "item": "Greek yoghurt", "icon": "yoghurt" },
+        { "quantity": "200 ml", "item": "cold water", "icon": null }
+      ],
+      "method": [
+        "Blend everything until completely smooth.",
+        "Pour. Drink immediately."
+      ],
+      "garnish": "spinach leaf"
+    },
+    {
+      "id": "berry-smoothie",
+      "name": "Berry Smoothie",
+      "tag": "Breakfast · 3 minutes",
+      "glass": "tumbler",
+      "ingredients": [
+        { "quantity": "1 cup", "item": "mixed berries, frozen", "icon": "strawberry" },
+        { "quantity": "1", "item": "banana", "icon": "banana" },
+        { "quantity": "1/2 cup", "item": "Greek yoghurt", "icon": "yoghurt" },
+        { "quantity": "200 ml", "item": "milk or oat milk", "icon": null }
+      ],
+      "method": [
+        "Blend everything until completely smooth.",
+        "Pour. Drink immediately."
+      ],
+      "garnish": "fresh berries"
+    },
+    {
+      "id": "tropical-smoothie",
+      "name": "Tropical Smoothie",
+      "tag": "Breakfast · 3 minutes",
+      "glass": "tumbler",
+      "ingredients": [
+        { "quantity": "1 cup", "item": "mango, frozen", "icon": "mango" },
+        { "quantity": "1/2 cup", "item": "pineapple, frozen", "icon": "pineapple" },
+        { "quantity": "1", "item": "banana", "icon": "banana" },
+        { "quantity": "200 ml", "item": "coconut water", "icon": null }
+      ],
+      "method": [
+        "Blend everything until completely smooth.",
+        "Pour. Drink immediately."
+      ],
+      "garnish": "pineapple wedge"
+    },
+    {
+      "id": "beet-juice",
+      "name": "Beet Juice",
+      "tag": "Cold press · 5 minutes",
+      "glass": "small tumbler",
+      "ingredients": [
+        { "quantity": "1", "item": "raw beet, peeled", "icon": "beet" },
+        { "quantity": "1", "item": "apple", "icon": "apple" },
+        { "quantity": "1 cm", "item": "ginger", "icon": "ginger" },
+        { "quantity": "1", "item": "lemon, juiced", "icon": "lemon" }
+      ],
+      "method": [
+        "Juice the beet, apple and ginger. Stir in lemon juice.",
+        "Serve cold, over ice if you like."
+      ],
+      "garnish": "lemon slice"
+    },
+    {
+      "id": "carrot-ginger-juice",
+      "name": "Carrot Ginger Juice",
+      "tag": "Cold press · 5 minutes",
+      "glass": "small tumbler",
+      "ingredients": [
+        { "quantity": "4", "item": "carrots", "icon": "carrot" },
+        { "quantity": "1", "item": "apple", "icon": "apple" },
+        { "quantity": "1 cm", "item": "ginger", "icon": "ginger" }
+      ],
+      "method": [
+        "Juice everything together.",
+        "Serve immediately over ice."
+      ],
+      "garnish": "carrot stick"
+    },
+    {
+      "id": "apple-celery",
+      "name": "Apple Celery Juice",
+      "tag": "Cold press · 5 minutes",
+      "glass": "small tumbler",
+      "ingredients": [
+        { "quantity": "2", "item": "apples", "icon": "apple" },
+        { "quantity": "4", "item": "celery stalks", "icon": "celery" },
+        { "quantity": "1/2", "item": "lemon, juiced", "icon": "lemon" }
+      ],
+      "method": [
+        "Juice apples and celery. Stir in lemon juice.",
+        "Serve immediately."
+      ],
+      "garnish": "celery stick"
+    },
+    {
+      "id": "watermelon-juice",
+      "name": "Watermelon Juice",
+      "tag": "Cold press · 3 minutes",
+      "glass": "highball",
+      "ingredients": [
+        { "quantity": "3 cups", "item": "watermelon, cubed and seeded", "icon": "watermelon" },
+        { "quantity": "1 tsp", "item": "lime juice", "icon": "lime" }
+      ],
+      "method": [
+        "Blend watermelon and lime. Strain if you like it clear.",
+        "Pour over ice."
+      ],
+      "garnish": "watermelon wedge"
+    },
+    {
+      "id": "pineapple-mint-juice",
+      "name": "Pineapple Mint Juice",
+      "tag": "Cold press · 5 minutes",
+      "glass": "highball",
+      "ingredients": [
+        { "quantity": "2 cups", "item": "fresh pineapple", "icon": "pineapple" },
+        { "quantity": "6", "item": "mint leaves", "icon": "mint" },
+        { "quantity": "1 tsp", "item": "lime juice", "icon": "lime" }
+      ],
+      "method": [
+        "Juice pineapple. Muddle mint in the juice.",
+        "Add lime. Pour over ice."
+      ],
+      "garnish": "mint sprig"
+    },
+    {
+      "id": "tomato-juice",
+      "name": "Tomato Juice",
+      "tag": "Cold press · 5 minutes",
+      "glass": "small tumbler",
+      "ingredients": [
+        { "quantity": "4", "item": "ripe tomatoes", "icon": "tomato" },
+        { "quantity": "1 tsp", "item": "lemon juice", "icon": "lemon" },
+        { "quantity": "1 pinch", "item": "celery salt", "icon": null }
+      ],
+      "method": [
+        "Blend tomatoes until smooth. Strain.",
+        "Stir in lemon and salt. Serve over ice."
+      ],
+      "garnish": "celery stick"
+    },
+    {
+      "id": "cucumber-juice",
+      "name": "Cucumber Juice",
+      "tag": "Cold press · 5 minutes",
+      "glass": "small tumbler",
+      "ingredients": [
+        { "quantity": "1", "item": "cucumber", "icon": "cucumber" },
+        { "quantity": "1", "item": "green apple", "icon": "apple" },
+        { "quantity": "1 cm", "item": "ginger", "icon": "ginger" }
+      ],
+      "method": [
+        "Juice everything together.",
+        "Serve cold."
+      ],
+      "garnish": "cucumber slice"
+    },
+    {
+      "id": "cucumber-spritzer",
+      "name": "Cucumber Spritzer",
+      "tag": "Zero proof · 3 minutes",
+      "glass": "wine glass",
+      "ingredients": [
+        { "quantity": "5", "item": "cucumber slices", "icon": "cucumber" },
+        { "quantity": "1 tsp", "item": "lime juice", "icon": "lime" },
+        { "quantity": "to top", "item": "sparkling water", "icon": null }
+      ],
+      "method": [
+        "Muddle cucumber in lime juice.",
+        "Pour over ice. Top with sparkling water."
+      ],
+      "garnish": "cucumber ribbon"
+    },
+    {
+      "id": "grapefruit-spritz",
+      "name": "Grapefruit Spritz",
+      "tag": "Zero proof · 3 minutes",
+      "glass": "wine glass",
+      "ingredients": [
+        { "quantity": "120 ml", "item": "fresh grapefruit juice", "icon": "grapefruit" },
+        { "quantity": "to top", "item": "sparkling water", "icon": null }
+      ],
+      "method": [
+        "Pour juice over ice.",
+        "Top with sparkling water."
+      ],
+      "garnish": "grapefruit slice"
+    },
+    {
+      "id": "elderflower-fizz",
+      "name": "Elderflower Fizz",
+      "tag": "Zero proof · 3 minutes",
+      "glass": "wine glass",
+      "ingredients": [
+        { "quantity": "30 ml", "item": "elderflower cordial", "icon": null },
+        { "quantity": "120 ml", "item": "sparkling water", "icon": null },
+        { "quantity": "1 slice", "item": "cucumber", "icon": "cucumber" }
+      ],
+      "method": [
+        "Pour cordial over ice with cucumber.",
+        "Top with sparkling water."
+      ],
+      "garnish": "cucumber slice"
+    },
+    {
+      "id": "rosemary-spritz",
+      "name": "Rosemary Spritz",
+      "tag": "Zero proof · 4 minutes",
+      "glass": "wine glass",
+      "ingredients": [
+        { "quantity": "1 sprig", "item": "rosemary", "icon": "rosemary" },
+        { "quantity": "60 ml", "item": "white grape juice", "icon": "grape" },
+        { "quantity": "to top", "item": "sparkling water", "icon": null }
+      ],
+      "method": [
+        "Muddle rosemary in grape juice.",
+        "Pour over ice. Top with sparkling water."
+      ],
+      "garnish": "rosemary sprig"
+    },
+    {
+      "id": "lemon-fizz",
+      "name": "Lemon Fizz",
+      "tag": "Zero proof · 3 minutes",
+      "glass": "highball",
+      "ingredients": [
+        { "quantity": "60 ml", "item": "lemon juice", "icon": "lemon" },
+        { "quantity": "1 tsp", "item": "honey", "icon": null },
+        { "quantity": "to top", "item": "sparkling water", "icon": null }
+      ],
+      "method": [
+        "Stir honey into lemon juice until dissolved.",
+        "Pour over ice. Top with sparkling water."
+      ],
+      "garnish": "lemon wheel"
+    },
+    {
+      "id": "pink-peppercorn-spritz",
+      "name": "Pink Peppercorn Spritz",
+      "tag": "Zero proof · 5 minutes",
+      "glass": "wine glass",
+      "ingredients": [
+        { "quantity": "1 tsp", "item": "pink peppercorns, lightly crushed", "icon": null },
+        { "quantity": "100 ml", "item": "white grape juice", "icon": "grape" },
+        { "quantity": "to top", "item": "sparkling water", "icon": null }
+      ],
+      "method": [
+        "Muddle peppercorns in grape juice. Strain.",
+        "Pour over ice. Top with sparkling water."
+      ],
+      "garnish": "whole peppercorns"
+    },
+    {
+      "id": "lavender-lemonade",
+      "name": "Lavender Lemonade",
+      "tag": "Zero proof · 15 minutes",
+      "glass": "highball",
+      "ingredients": [
+        { "quantity": "1 tbsp", "item": "dried lavender", "icon": null },
+        { "quantity": "60 ml", "item": "lemon juice", "icon": "lemon" },
+        { "quantity": "2 tsp", "item": "honey", "icon": null },
+        { "quantity": "200 ml", "item": "cold water", "icon": null }
+      ],
+      "method": [
+        "Steep lavender in 100 ml of just-boiled water for 5 minutes. Strain.",
+        "Stir in lemon, honey and remaining water. Serve over ice."
+      ],
+      "garnish": "lavender sprig"
+    },
+    {
+      "id": "rhubarb-spritz",
+      "name": "Rhubarb Spritz",
+      "tag": "Zero proof · 20 minutes",
+      "glass": "wine glass",
+      "ingredients": [
+        { "quantity": "100 g", "item": "rhubarb, chopped", "icon": null },
+        { "quantity": "2 tbsp", "item": "sugar", "icon": null },
+        { "quantity": "to top", "item": "sparkling water", "icon": null }
+      ],
+      "method": [
+        "Simmer rhubarb with sugar and 100 ml water for 8 minutes. Cool. Strain.",
+        "Pour 60 ml of the syrup over ice. Top with sparkling water."
+      ],
+      "garnish": "rhubarb ribbon"
+    },
+    {
+      "id": "ginger-beer",
+      "name": "Zero-Proof Ginger Beer",
+      "tag": "Zero proof · 20 minutes",
+      "glass": "highball",
+      "ingredients": [
+        { "quantity": "100 g", "item": "fresh ginger, sliced", "icon": "ginger" },
+        { "quantity": "1", "item": "lemon, juiced", "icon": "lemon" },
+        { "quantity": "3 tbsp", "item": "honey", "icon": null },
+        { "quantity": "to top", "item": "sparkling water", "icon": null }
+      ],
+      "method": [
+        "Simmer ginger in 300 ml water for 10 minutes. Strain.",
+        "Stir in honey and lemon. Cool. Top up with sparkling water."
+      ],
+      "garnish": "fresh ginger slice"
+    },
+    {
+      "id": "cranberry-spritz",
+      "name": "Cranberry Spritz",
+      "tag": "Zero proof · 3 minutes",
+      "glass": "wine glass",
+      "ingredients": [
+        { "quantity": "100 ml", "item": "unsweetened cranberry juice", "icon": "cranberry" },
+        { "quantity": "1 tsp", "item": "lime juice", "icon": "lime" },
+        { "quantity": "to top", "item": "sparkling water", "icon": null }
+      ],
+      "method": [
+        "Combine juices over ice.",
+        "Top with sparkling water."
+      ],
+      "garnish": "lime wheel"
+    },
+    {
+      "id": "no-jito",
+      "name": "No-Jito",
+      "tag": "Zero proof · 4 minutes",
+      "glass": "highball",
+      "ingredients": [
+        { "quantity": "8", "item": "mint leaves", "icon": "mint" },
+        { "quantity": "30 ml", "item": "lime juice", "icon": "lime" },
+        { "quantity": "1 tsp", "item": "sugar", "icon": null },
+        { "quantity": "to top", "item": "sparkling water", "icon": null }
+      ],
+      "method": [
+        "Muddle mint with sugar and lime juice.",
+        "Fill with ice. Top with sparkling water."
+      ],
+      "garnish": "mint sprig + lime wheel"
+    },
+    {
+      "id": "zero-proof-negroni",
+      "name": "Zero-Proof Negroni",
+      "tag": "Zero proof · 3 minutes",
+      "glass": "rocks",
+      "ingredients": [
+        { "quantity": "30 ml", "item": "non-alcoholic bitter aperitif", "icon": null },
+        { "quantity": "30 ml", "item": "zero-proof gin alternative", "icon": null },
+        { "quantity": "30 ml", "item": "vermouth-style NA spirit", "icon": null }
+      ],
+      "method": [
+        "Build over a large ice cube in a rocks glass.",
+        "Stir briefly. Garnish."
+      ],
+      "garnish": "orange peel"
+    },
+    {
+      "id": "virgin-mary",
+      "name": "Virgin Mary",
+      "tag": "Brunch · 5 minutes",
+      "glass": "highball",
+      "ingredients": [
+        { "quantity": "150 ml", "item": "tomato juice", "icon": "tomato" },
+        { "quantity": "30 ml", "item": "lemon juice", "icon": "lemon" },
+        { "quantity": "3 dashes", "item": "Worcestershire sauce", "icon": null },
+        { "quantity": "3 dashes", "item": "hot sauce", "icon": null }
+      ],
+      "method": [
+        "Combine over ice. Stir.",
+        "Taste, adjust seasoning, serve."
+      ],
+      "garnish": "celery stick + lemon wedge"
+    },
+    {
+      "id": "apple-shrub",
+      "name": "Apple Shrub",
+      "tag": "Zero proof · 10 minutes (plus 24h to infuse)",
+      "glass": "highball",
+      "ingredients": [
+        { "quantity": "60 ml", "item": "apple cider vinegar shrub", "icon": "apple" },
+        { "quantity": "1 tsp", "item": "honey", "icon": null },
+        { "quantity": "to top", "item": "sparkling water", "icon": null }
+      ],
+      "method": [
+        "Stir honey into the shrub until dissolved.",
+        "Pour over ice. Top with sparkling water."
+      ],
+      "garnish": "apple slice"
+    },
+    {
+      "id": "rhubarb-shrub",
+      "name": "Rhubarb Shrub",
+      "tag": "Zero proof · 10 minutes (plus 24h to infuse)",
+      "glass": "highball",
+      "ingredients": [
+        { "quantity": "60 ml", "item": "rhubarb shrub", "icon": null },
+        { "quantity": "1 tsp", "item": "honey", "icon": null },
+        { "quantity": "to top", "item": "sparkling water", "icon": null }
+      ],
+      "method": [
+        "Stir honey into the shrub until dissolved.",
+        "Pour over ice. Top with sparkling water."
+      ],
+      "garnish": "rhubarb ribbon"
+    },
+    {
+      "id": "no-groni",
+      "name": "No-Groni",
+      "tag": "Zero proof · 3 minutes",
+      "glass": "rocks",
+      "ingredients": [
+        { "quantity": "30 ml", "item": "non-alcoholic bitter", "icon": null },
+        { "quantity": "30 ml", "item": "zero-proof gin", "icon": null },
+        { "quantity": "1 dash", "item": "orange bitters (NA)", "icon": null }
+      ],
+      "method": [
+        "Build over a large ice cube.",
+        "Stir once. Garnish."
+      ],
+      "garnish": "orange peel"
+    },
+    {
+      "id": "zero-proof-aperol",
+      "name": "Zero-Proof Aperol Spritz",
+      "tag": "Zero proof · 3 minutes",
+      "glass": "wine glass",
+      "ingredients": [
+        { "quantity": "60 ml", "item": "non-alcoholic Aperol-style bitter", "icon": null },
+        { "quantity": "to top", "item": "sparkling water", "icon": null },
+        { "quantity": "1 slice", "item": "orange", "icon": "orange" }
+      ],
+      "method": [
+        "Pour bitter over ice with orange.",
+        "Top with sparkling water."
+      ],
+      "garnish": "orange slice"
+    },
+    {
+      "id": "spicy-pineapple",
+      "name": "Spicy Pineapple",
+      "tag": "Zero proof · 5 minutes",
+      "glass": "rocks",
+      "ingredients": [
+        { "quantity": "100 ml", "item": "fresh pineapple juice", "icon": "pineapple" },
+        { "quantity": "30 ml", "item": "lime juice", "icon": "lime" },
+        { "quantity": "1 pinch", "item": "chilli powder", "icon": null },
+        { "quantity": "1 tsp", "item": "honey", "icon": null }
+      ],
+      "method": [
+        "Shake all ingredients with ice.",
+        "Strain into a rocks glass over fresh ice."
+      ],
+      "garnish": "chilli-dusted pineapple wedge"
+    },
+    {
+      "id": "raspberry-no-jito",
+      "name": "Raspberry No-Jito",
+      "tag": "Zero proof · 5 minutes",
+      "glass": "highball",
+      "ingredients": [
+        { "quantity": "1/2 cup", "item": "raspberries", "icon": "raspberry" },
+        { "quantity": "6", "item": "mint leaves", "icon": "mint" },
+        { "quantity": "30 ml", "item": "lime juice", "icon": "lime" },
+        { "quantity": "to top", "item": "sparkling water", "icon": null }
+      ],
+      "method": [
+        "Muddle raspberries and mint with lime juice.",
+        "Pour over ice. Top with sparkling water."
+      ],
+      "garnish": "mint sprig + raspberry"
+    },
+    {
+      "id": "zero-proof-sangria",
+      "name": "Zero-Proof Sangria",
+      "tag": "Zero proof · 10 minutes",
+      "glass": "jug",
+      "ingredients": [
+        { "quantity": "500 ml", "item": "unsweetened red grape juice", "icon": "grape" },
+        { "quantity": "1", "item": "orange, sliced", "icon": "orange" },
+        { "quantity": "1", "item": "apple, cubed", "icon": "apple" },
+        { "quantity": "60 ml", "item": "orange juice", "icon": "orange" },
+        { "quantity": "to top", "item": "sparkling water", "icon": null }
+      ],
+      "method": [
+        "Combine grape juice, fruit and orange juice. Chill 1 hour.",
+        "Pour over ice in wine glasses. Top with sparkling water."
+      ],
+      "garnish": "orange wheel"
+    }
+  ]
+}

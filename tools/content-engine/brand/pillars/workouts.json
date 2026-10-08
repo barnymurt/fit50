@@ -1,0 +1,22 @@
+{
+  "id": "workouts",
+  "name": "Workouts",
+  "summary": "The four FIT50 workout lines (A–D) plus KB and band variants. Every post names one line and lists its exercises as on the live app.",
+  "source": "libraries/workouts.json",
+  "platforms": {
+    "instagram": { "aspect": "4:5", "templates": ["workout-line", "list", "cover"], "marquee": "marquee_default" },
+    "facebook":  { "aspect": "4:5", "templates": ["workout-line", "list", "cover"], "marquee": "marquee_default" },
+    "tiktok":    { "aspect": "9:16", "templates": ["workout-line", "list", "cover"], "marquee": "marquee_default" }
+  },
+  "slide_pattern": "cover (line letter + theme) → list (5 exercises with sets × reps) → statement (finisher) → cta",
+  "extra_voice_rules": [
+    "Exercise names and reps exactly as on the live app. Never rephrase.",
+    "No injury or medical claims. No 'this will build X' or 'great for Y'.",
+    "Giant Fraunces letter on the workout-line cover slide, finisher marked in coral."
+  ],
+  "extra_checks": [
+    "Every exercise in the post must exist in libraries/workouts.json for the named line.",
+    "Sets and reps in the post must equal the source values exactly.",
+    "Premium users see KB and band variants in the post; free users see the bodyweight version only."
+  ]
+}

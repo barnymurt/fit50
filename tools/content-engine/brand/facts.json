@@ -1,0 +1,72 @@
+{
+  "$schema": "./facts.schema.json",
+  "meta": {
+    "name": "FIT50 content engine facts",
+    "version": "0.1.0",
+    "source": "Verified against the live FIT50 app and AGENTS.md. The generator receives the relevant facts in its prompt; the post-draft validator rejects any number or rule name that is not in this file. This stops the model inventing a tenth rule or a wrong price."
+  },
+  "habit_names": {
+    "_comment": "The nine rule names, exactly as they appear on the site. voice-lint asserts copy uses these spellings.",
+    "exact": [
+      "Move Your Body",
+      "Step It Up",
+      "Wet The Lips",
+      "Fuel Right",
+      "Chill Out",
+      "Feed Your Brain",
+      "Open Mind",
+      "Crispy Clarity",
+      "Fresh Lungs"
+    ]
+  },
+  "habit_targets": {
+    "_comment": "Numeric targets from the live app and design system. The 'days' target is the 50-day challenge length.",
+    "Move Your Body": { "unit": "sessions_per_day", "value": 1, "note": "One bodyweight or KB/band workout a day" },
+    "Step It Up":     { "unit": "steps_per_day",     "value": 10000 },
+    "Wet The Lips":   { "unit": "litres_per_day",    "value": 2.5, "spelling": "litres" },
+    "Fuel Right":     { "unit": "kcal_per_day",      "value": null, "note": "Personal — calculated from macro profile" },
+    "Chill Out":      { "unit": "minutes_per_day",   "value": 10, "note": "Meditation or breath work" },
+    "Feed Your Brain":{ "unit": "books_or_minutes",  "value_choice": "5 books OR 30 minutes a day", "numeric": 5 },
+    "Open Mind":      { "unit": "minutes_per_day",   "value": 10, "note": "Quiet time, no phone" },
+    "Crispy Clarity":  { "unit": "minutes_per_day",   "value": 10, "note": "Cold exposure" },
+    "Fresh Lungs":     { "unit": "per_day",            "value": null, "note": "No cigarettes, no vaping" },
+    "challenge_length_days": 50
+  },
+  "pricing": {
+    "_comment": "Feed posts don't show the price. Price lives on the link-in-bio page, in Stories, in DMs. The exception is a time-bound launch post (never use on explainers).",
+    "toolkit_eur": 5.99,
+    "toolkit_label": "FIT50 Premium",
+    "buddy_addon_eur": 5.99,
+    "buddy_addon_label": "Add a buddy",
+    "pair_eur": 9.99,
+    "pair_label": "Pair at checkout",
+    "spelling": "€ with the value, no space (e.g. €5.99)"
+  },
+  "resources": {
+    "_comment": "Libraries the engine pulls from. The values reference file paths; the content lives in brand/libraries/.",
+    "drinks_recipes_count": 50,
+    "drinks_recipes_path": "libraries/drinks.json",
+    "workout_lines": ["A", "B", "C", "D"],
+    "workouts_path": "libraries/workouts.json",
+    "quit_services_count": 40,
+    "quit_services_path": "libraries/quit-resources.json",
+    "story_episodes_min": 5,
+    "story_episodes_max": 8,
+    "story_bank_path": "libraries/story-bank.md"
+  },
+  "voice_numbers": {
+    "_comment": "Numbers that frequently show up in copy. voice-lint asserts the units are spelled British when they appear in body copy.",
+    "litres": 2.5,
+    "steps": 10000,
+    "days": 50,
+    "minutes_calm": 10,
+    "minutes_cold": 10,
+    "minutes_quiet": 10,
+    "books_choice": "5 books OR 30 minutes a day"
+  },
+  "spelling": {
+    "_comment": "British English spellings. voice-lint warns on the American variants in body copy.",
+    "use_british": ["litres", "colour", "programme", "maths", "metre", "centimetre", "kilometre", "favourite", "honour", "behaviour"],
+    "do_not_use_american": ["liters", "color", "program", "math", "meter", "centimeter", "kilometer", "favorite", "honor", "behavior"]
+  }
+}

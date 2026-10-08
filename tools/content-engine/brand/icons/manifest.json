@@ -1,0 +1,91 @@
+{
+  "$schema": "./manifest.schema.json",
+  "meta": {
+    "name": "FIT50 content engine icon manifest",
+    "version": "0.1.0",
+    "notes": "The 9 originals are reused from the live FIT50 app's public/icons/ (webp, 96×96). Phase 5 converts them to SVG so the renderer can recolour by ground; Phase 0 ships them as webp for the test posts. New icons enter the library only after automated checks (manifest.schema) and by-eye approval."
+  },
+  "library": [
+    {
+      "id": "chill-out",
+      "subject": "ice cubes",
+      "tags": ["ice", "cold", "chill", "water"],
+      "description": "Three stacked ice cubes with a small motion line indicating a fresh chill.",
+      "source": "live-app",
+      "approval_status": "approved",
+      "files": ["chill-out.webp"]
+    },
+    {
+      "id": "crispy-clarity",
+      "subject": "ice / cold shower water",
+      "tags": ["ice", "cold", "clarity", "shower", "water"],
+      "description": "A single ice cube dripping into a few droplet lines, suggesting a cold shower.",
+      "source": "live-app",
+      "approval_status": "approved",
+      "files": ["crispy-clarity.webp"]
+    },
+    {
+      "id": "feed-brain",
+      "subject": "book stack",
+      "tags": ["book", "read", "brain", "learn"],
+      "description": "Three stacked books with one slightly off-centre, ready to be picked up.",
+      "source": "live-app",
+      "approval_status": "approved",
+      "files": ["feed-brain.webp"]
+    },
+    {
+      "id": "fresh-lungs",
+      "subject": "lungs",
+      "tags": ["lungs", "breath", "fresh", "air"],
+      "description": "A pair of lungs with a small breath line above, suggesting fresh air in.",
+      "source": "live-app",
+      "approval_status": "approved",
+      "files": ["fresh-lungs.webp"]
+    },
+    {
+      "id": "fuel-right",
+      "subject": "fuel pump",
+      "tags": ["fuel", "food", "eat", "pump"],
+      "description": "A fuel pump nozzle with a single drip, no fuel type shown.",
+      "source": "live-app",
+      "approval_status": "approved",
+      "files": ["fuel-right.webp"]
+    },
+    {
+      "id": "move-body",
+      "subject": "runner",
+      "tags": ["run", "body", "workout", "move", "exercise"],
+      "description": "A figure mid-stride, arms pumping, no face detail.",
+      "source": "live-app",
+      "approval_status": "approved",
+      "files": ["move-body.webp"]
+    },
+    {
+      "id": "open-mind",
+      "subject": "brain",
+      "tags": ["brain", "mind", "meditate", "open"],
+      "description": "A brain with a small sparkle above the top, suggesting an open mind.",
+      "source": "live-app",
+      "approval_status": "approved",
+      "files": ["open-mind.webp"]
+    },
+    {
+      "id": "step-it-up",
+      "subject": "feet",
+      "tags": ["feet", "steps", "walk", "run"],
+      "description": "A pair of feet mid-step, with small motion lines behind the back foot.",
+      "source": "live-app",
+      "approval_status": "approved",
+      "files": ["step-it-up.webp"]
+    },
+    {
+      "id": "wet-lips",
+      "subject": "lips with straw",
+      "tags": ["lips", "water", "drink", "hydration"],
+      "description": "A pair of lips around a straw, a small droplet line above.",
+      "source": "live-app",
+      "approval_status": "approved",
+      "files": ["wet-lips.webp"]
+    }
+  ]
+}

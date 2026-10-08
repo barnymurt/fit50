@@ -1,0 +1,23 @@
+{
+  "id": "origin-story",
+  "name": "Origin story",
+  "summary": "First-person Barny episodes from libraries/story-bank.md. The only pillar that may mention 75 Hard.",
+  "source": "libraries/story-bank.md",
+  "platforms": {
+    "instagram": { "aspect": "4:5", "templates": ["cover", "statement", "photo-top"], "marquee": "marquee_default" },
+    "facebook":  { "aspect": "4:5", "templates": ["cover", "statement", "photo-top"], "marquee": "marquee_default" },
+    "tiktok":    { "aspect": "9:16", "templates": ["cover", "statement", "photo-top"], "marquee": "marquee_default" }
+  },
+  "slide_pattern": "cover (the moment, in the founder's voice) → statement (the specific scene) → statement or photo-top (the lesson) → cta",
+  "extra_voice_rules": [
+    "First person as Barny. No 'we'. No 'the brand'.",
+    "Specific beats general. 'I bought a four-pack of Arnott's biscuits and ate three in the car' beats 'I struggled with my eating habits'.",
+    "Self-deprecating, a bit daft. The voice.md 'Tone on the wire' rule applies.",
+    "75 Hard may appear in this pillar only. No 'FIT50 is like 75 Hard' or 'not 75 Hard'."
+  ],
+  "extra_checks": [
+    "The post must reference at least one episode from libraries/story-bank.md.",
+    "Any scene or line in the post must be paraphrased or quoted from the bank, not invented.",
+    "Phrases from the on-brand list in voice.md are encouraged; banned phrases always fail."
+  ]
+}

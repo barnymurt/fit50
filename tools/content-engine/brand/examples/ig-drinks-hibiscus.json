@@ -1,0 +1,89 @@
+{
+  "$schema": "../schema/post.schema.json",
+  "id": "ig-drinks-hibiscus",
+  "type": "carousel",
+  "platform": "instagram",
+  "aspect": "4:5",
+  "pillar": "drinks-recipes",
+  "brief": "Hibiscus iced tea recipe, zero proof, 5 minutes. The hook: most people over-steep. The payoff: a sharper, brighter cup.",
+  "status": "draft",
+  "version": 1,
+  "marquee": "marquee_default",
+  "source": {
+    "recipe_id": "hibiscus-iced-tea",
+    "library": "libraries/drinks.json"
+  },
+  "slides": [
+    {
+      "id": "s1",
+      "template": "cover",
+      "ground": "ink",
+      "fields": {
+        "eyebrow":  { "text": "Drink · Zero proof", "by": "ai" },
+        "headline": { "text": "Hibiscus *iced tea.*", "by": "ai" },
+        "sub":      { "text": "5 minutes. One sharp finish.", "by": "ai" }
+      }
+    },
+    {
+      "id": "s2",
+      "template": "list",
+      "ground": "paper",
+      "fields": {
+        "eyebrow":  { "text": "What you need", "by": "ai" },
+        "headline": { "text": "Five *things.*", "by": "ai" },
+        "items": [
+          { "title": "2 tsp dried hibiscus", "icon": null },
+          { "title": "250 ml boiling water", "icon": null },
+          { "title": "1 tsp honey", "icon": null },
+          { "title": "1 lime, juiced", "icon": null },
+          { "title": "Ice, to taste", "icon": "wet-lips" }
+        ],
+        "bridge": { "text": "Most people over-steep", "by": "ai" }
+      }
+    },
+    {
+      "id": "s3",
+      "template": "statement",
+      "ground": "lavender",
+      "fields": {
+        "eyebrow":  { "text": "The method", "by": "ai" },
+        "headline": { "text": "*4 minutes* is the line.", "by": "ai" },
+        "body":     { "text": "Steep the hibiscus in boiling water for 4 minutes. Not 6, not 8. Strain. The longer the steep, the more bitter the cup.", "by": "ai" },
+        "bridge":   { "text": "Sweeten while warm", "by": "ai" }
+      }
+    },
+    {
+      "id": "s4",
+      "template": "statement",
+      "ground": "teal",
+      "fields": {
+        "eyebrow":  { "text": "Finish", "by": "ai" },
+        "headline": { "text": "Stir in the *honey first.*", "by": "ai" },
+        "body":     { "text": "Add lime juice. Pour over a tall glass of ice. Garnish with a lime wheel.", "by": "ai" },
+        "bridge":   { "text": "Now the sharper cup", "by": "ai" }
+      }
+    },
+    {
+      "id": "s5",
+      "template": "cta",
+      "ground": "paper",
+      "fields": {
+        "eyebrow":  { "text": "Save this", "by": "ai" },
+        "headline": { "text": "50 zero-proof drinks.", "by": "ai" },
+        "body":     { "text": "All metric. All low-sugar. The link is in the bio.", "by": "ai" },
+        "button":   { "text": "Save the recipe", "by": "ai" }
+      }
+    }
+  ],
+  "caption": {
+    "text": "Hibiscus iced tea. 5 minutes. The trick is the steep time. Recipe in the bio. \n\n#fit50 #zeroproof #hibiscus #icedtea",
+    "hashtags": ["#fit50", "#zeroproof", "#hibiscus", "#icedtea"],
+    "by": "ai"
+  },
+  "checks": {
+    "facts":     "pending",
+    "voice_lint": "pending",
+    "design":    "pending",
+    "fit":       "pending"
+  }
+}

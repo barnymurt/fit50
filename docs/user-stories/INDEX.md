@@ -55,6 +55,28 @@ per-feature stories of nearby features to see the existing spec.
 | Day-before-start reminder email | active_free, cohort_member, solo_user | [day-before-reminder.md](./day-before-reminder.md) | `269a236` | no |
 | Public cohort share landing pages | anonymous | [cohort-public-share.md](./cohort-public-share.md) | **superseded** | n/a |
 
+## Content engine
+
+The content engine lives at `tools/content-engine/` and produces
+designed image content for Instagram (4:5), Facebook (4:5 re-export)
+and TikTok (9:16). One user story per phase, each with a clear
+"Done when" line that becomes the acceptance criteria.
+
+| Phase | What gets built | Story | Shipped | Premium? |
+|---|---|---|---|---|
+| Phase 0 — Brand kit and libraries | tokens, facts, voice, lint, libraries (50 drinks, 4 workout lines, 8 story episodes, 40 quit services), 8 pillar configs, 2 example posts | [ce-phase-0-brand-kit.md](./ce-phase-0-brand-kit.md) | this build | n/a |
+| Phase 1 — Renderer | React templates (4:5 + 9:16), Playwright export, checks | (story pending — Phase 1) | — | n/a |
+| Phase 2 — Generator | brief → outline → draft → checks → retry | (story pending — Phase 2) | — | n/a |
+| Phase 3 — Editor | canvas, field locks, Rewrite, versions, corrections, calendar, export | (story pending — Phase 3) | — | n/a |
+| Phase 4 — Member submissions | intake, consent, review, generation, withdrawal | (story pending — Phase 4) | — | n/a |
+| Phase 5 — Icons | library search, style-locked generation, cleanup, approval | (story pending — Phase 5) | — | n/a |
+| Phase 6 — Learning + extras | corrections-in-prompts, critic, photo-top, 9:16, perf import | (story pending — Phase 6) | — | n/a |
+
+Brand kit check: `npm run check:brand`. Validates every JSON in
+`tools/content-engine/brand/`, cross-references example posts
+against `facts.json` and the libraries, runs voice-lint, and
+checks pillar source references.
+
 ## How to use this catalogue
 
 1. New feature idea? Skim the table to see if it already exists under a

@@ -1,0 +1,102 @@
+{
+  "$schema": "./workouts.schema.json",
+  "meta": {
+    "name": "FIT50 workout lines",
+    "version": "0.1.0",
+    "source": "Mirrors the live FIT50 app's workout lines A–D. Each line is a 5-exercise bodyweight session, with optional kettlebell (KB) and resistance band (band) variants for premium users. Pillar: workouts. Spellings match the live app; no invented exercises, no injury or medical claims."
+  },
+  "lines": [
+    {
+      "letter": "A",
+      "name": "Line A",
+      "theme": "Lower body, posterior chain",
+      "exercises": [
+        { "name": "Bodyweight Squat",       "sets": 4, "reps": "12" },
+        { "name": "Reverse Lunge",          "sets": 3, "reps": "10 each side" },
+        { "name": "Glute Bridge",           "sets": 3, "reps": "15" },
+        { "name": "Calf Raise",             "sets": 3, "reps": "20" },
+        { "name": "Wall Sit",               "sets": 2, "reps": "30 seconds" }
+      ],
+      "finisher": "1 minute brisk walk in place",
+      "kb_variants": [
+        { "name": "Goblet Squat",           "sets": 4, "reps": "10", "kit": "kettlebell" },
+        { "name": "KB Reverse Lunge",       "sets": 3, "reps": "10 each side", "kit": "kettlebell_held_at_chest" },
+        { "name": "Hip Thrust",             "sets": 3, "reps": "12", "kit": "kettlebell_on_hips" },
+        { "name": "KB Calf Raise",          "sets": 3, "reps": "20", "kit": "kettlebell_held_at_shoulders" },
+        { "name": "Goblet Wall Sit",        "sets": 2, "reps": "30 seconds", "kit": "kettlebell_at_chest" }
+      ],
+      "band_variants": [
+        { "name": "Banded Squat",           "sets": 4, "reps": "12", "kit": "band_above_knees" },
+        { "name": "Banded Glute Bridge",    "sets": 3, "reps": "15", "kit": "band_above_knees" },
+        { "name": "Banded Calf Raise",      "sets": 3, "reps": "20", "kit": "band_under_foot" }
+      ]
+    },
+    {
+      "letter": "B",
+      "name": "Line B",
+      "theme": "Upper body, push",
+      "exercises": [
+        { "name": "Push-Up",                "sets": 4, "reps": "8 to 12" },
+        { "name": "Pike Push-Up",           "sets": 3, "reps": "8" },
+        { "name": "Dip (chair)",            "sets": 3, "reps": "10" },
+        { "name": "Plank Shoulder Tap",     "sets": 3, "reps": "10 each side" },
+        { "name": "Bear Crawl",             "sets": 2, "reps": "30 seconds" }
+      ],
+      "finisher": "1 minute shadow boxing",
+      "kb_variants": [
+        { "name": "KB Press",               "sets": 4, "reps": "8 each side", "kit": "kettlebell" },
+        { "name": "KB Floor Press",         "sets": 3, "reps": "10", "kit": "kettlebell" },
+        { "name": "KB Halo",                "sets": 3, "reps": "8 each direction", "kit": "kettlebell_at_chest" }
+      ],
+      "band_variants": [
+        { "name": "Band Push-Up",           "sets": 4, "reps": "10", "kit": "band_across_back" },
+        { "name": "Band Chest Press",       "sets": 3, "reps": "12", "kit": "band_anchored_behind" },
+        { "name": "Band Overhead Press",    "sets": 3, "reps": "10", "kit": "band_under_feet" }
+      ]
+    },
+    {
+      "letter": "C",
+      "name": "Line C",
+      "theme": "Upper body, pull and core",
+      "exercises": [
+        { "name": "Inverted Row (table)",   "sets": 4, "reps": "8 to 12" },
+        { "name": "Superman",               "sets": 3, "reps": "12" },
+        { "name": "Dead Bug",               "sets": 3, "reps": "8 each side" },
+        { "name": "Side Plank",             "sets": 2, "reps": "20 seconds each side" },
+        { "name": "Bird Dog",               "sets": 2, "reps": "10 each side" }
+      ],
+      "finisher": "1 minute hollow body hold",
+      "kb_variants": [
+        { "name": "KB Row",                 "sets": 4, "reps": "10 each side", "kit": "kettlebell" },
+        { "name": "KB Halo to Hold",        "sets": 3, "reps": "8 each direction then 20s hold", "kit": "kettlebell" }
+      ],
+      "band_variants": [
+        { "name": "Band Row",               "sets": 4, "reps": "10", "kit": "band_anchored_in_front" },
+        { "name": "Band Pull-Apart",        "sets": 3, "reps": "12", "kit": "band_at_chest_height" },
+        { "name": "Band Pallof Press",      "sets": 3, "reps": "10 each side", "kit": "band_anchored_at_chest" }
+      ]
+    },
+    {
+      "letter": "D",
+      "name": "Line D",
+      "theme": "Full body, conditioning",
+      "exercises": [
+        { "name": "Jumping Jack",           "sets": 3, "reps": "30 seconds" },
+        { "name": "Burpee",                 "sets": 3, "reps": "8" },
+        { "name": "Mountain Climber",       "sets": 3, "reps": "30 seconds" },
+        { "name": "Squat to Forward Lunge", "sets": 3, "reps": "8 each side" },
+        { "name": "High Knees",             "sets": 2, "reps": "30 seconds" }
+      ],
+      "finisher": "2 minute steady jog on the spot",
+      "kb_variants": [
+        { "name": "KB Swing",               "sets": 4, "reps": "15", "kit": "kettlebell" },
+        { "name": "KB Snatch (alternating)", "sets": 3, "reps": "8 each side", "kit": "kettlebell" },
+        { "name": "KB Clean",               "sets": 3, "reps": "8 each side", "kit": "kettlebell" }
+      ],
+      "band_variants": [
+        { "name": "Band Lateral Shuffle",   "sets": 3, "reps": "30 seconds", "kit": "band_above_knees" },
+        { "name": "Band Resisted Sprint",   "sets": 4, "reps": "20 meters", "kit": "band_around_waist" }
+      ]
+    }
+  ]
+}
