@@ -76,16 +76,15 @@ have to repeat.
 
 ### Stage 5 — Cohort discovery
 
-- [ ] The public cohort landing `/cohorts` is reachable from the home
-      page (via the share card) and is fully indexable. It lists the
-      next 3–6 upcoming cohorts with start date, finish-line event, and
-      a "Join this cohort" CTA. The CTA routes an anonymous visitor
-      through sign-in (see
-      [cohort-public-share.md](./cohort-public-share.md) and
-      [join-a-cohort.md](./join-a-cohort.md)).
-- [ ] Each cohort has a `/cohorts/[id]` share page with a hero, the
-      finish-line coral block, the day-1 callout, and a join CTA. OG
-      tags render a shareable preview.
+- [ ] The cohort programme is on the home page as the section right
+      after Tracker (the "pick your date" / Calculator area). Anonymous
+      visitors see a coral countdown card to the next cohort (always
+      the 1st of a month, per `cohort-events.ts`) with a "Sign in to
+      join →" CTA that routes through `/account?next=/#cohort-on-homepage`
+      (see [cohort-countdown-on-homepage.md](./cohort-countdown-on-homepage.md)).
+- [ ] There is no separate `/cohorts` or `/cohorts/[id]` landing page.
+      Those return 404 (the public-share feature was superseded when
+      the cohort programme moved onto the home page).
 
 ## UX/UI risks
 
@@ -146,8 +145,9 @@ have to repeat.
   on `/account?next=…&scheduled=…`.
 - [join-a-cohort.md](./join-a-cohort.md) — the join API the splash
   CTA hits.
-- [cohort-public-share.md](./cohort-public-share.md) — `/cohorts` and
-  `/cohorts/[id]` share pages.
+- [cohort-countdown-on-homepage.md](./cohort-countdown-on-homepage.md) —
+  the cohort section on the home page (replaces the old `/cohorts`
+  and `/cohorts/[id]` pages).
 - [cohort-finish-line-message.md](./cohort-finish-line-message.md) —
   the finish-line event that makes a cohort pick meaningful.
 - [premium-unlock.md](./premium-unlock.md) — the Solo CTA's destination.

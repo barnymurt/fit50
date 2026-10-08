@@ -30,17 +30,24 @@ protection, hydration, food log, board).
 
 ### Stage 2 — Pick a cohort or go solo
 
-- [ ] On `/account`, the Cohort section is visible (cohorts are
-      free + premium). If I haven't joined one, the CohortJoinCard
-      shows the next cohort with a "Join this cohort" CTA.
-- [ ] Tapping "Join this cohort" POSTs to `/api/cohort/join` and
+- [ ] On the home page, the CohortHomepageSection (immediately after
+      the Tracker section) shows a coral countdown card to the next
+      cohort (always the 1st of a month) with a "Join this cohort →"
+      CTA (see
+      [cohort-countdown-on-homepage.md](./cohort-countdown-on-homepage.md)
+      and [join-a-cohort.md](./join-a-cohort.md)).
+- [ ] Tapping "Join this cohort →" POSTs to `/api/cohort/join` and
       `challenge_started_at` is set to the cohort's start date. The
-      CohortSection replaces the join card (see
-      [join-a-cohort.md](./join-a-cohort.md)).
+      home-page card morphs into the in-cohort view (countdown +
+      9-tile log + 50-day arc) without a page reload.
+- [ ] On `/account`, the CohortSection also shows the same in-cohort
+      view (account-level management) plus the high-five button.
 - [ ] Alternatively, from the Tracker StartSplash, I can "Start
       today" (immediate, localStorage + sync) or "Pick a different
       day" (see [start-the-challenge.md](./start-the-challenge.md) and
-      [scheduled-start.md](./scheduled-start.md)).
+      [scheduled-start.md](./scheduled-start.md)). The cohort CTA is
+      no longer in the StartSplash itself — it lives on the home
+      page next to the Tracker section.
 - [ ] The day-before-start reminder cron emails me the morning before
       day 1 in either the solo or cohort template (see
       [day-before-reminder.md](./day-before-reminder.md)).
@@ -178,6 +185,8 @@ protection, hydration, food log, board).
 - [scheduled-start.md](./scheduled-start.md) — future-date choice
   that survives refresh.
 - [join-a-cohort.md](./join-a-cohort.md) — joining the monthly group.
+- [cohort-countdown-on-homepage.md](./cohort-countdown-on-homepage.md) —
+  where the cohort section lives on the home page.
 - [cohort-high-five.md](./cohort-high-five.md) — the daily 5-cap kudos.
 - [cohort-finish-line-message.md](./cohort-finish-line-message.md) —
   the finish-line anchor in the CohortSection.

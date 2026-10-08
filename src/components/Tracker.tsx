@@ -14,7 +14,6 @@ import { getWeekStart } from '@/hooks/useStreakProtection';
 import { usePremium } from '@/hooks/usePremium';
 import { dateKeyLocal, parseDateKey, formatDateKeyShort, dayKeyFromStart, CHALLENGE_DAYS } from '@/lib/dates';
 import { HABIT_IDS, HABIT_COUNT } from '@/lib/habits';
-import { finishLineSentence } from '@/lib/cohort-events';
 import { useScheduledStart } from '@/hooks/useScheduledStart';
 import Link from 'next/link';
 
@@ -111,71 +110,12 @@ function StartSplash({ hasSession, onStart }: StartSplashProps) {
     null
   );
   const [busy, setBusy] = useState(false);
-  const [cohortBusy, setCohortBusy] = useState<string | null>(null);
-  const [cohortError, setCohortError] = useState<string | null>(null);
-  // The user's available cohorts (next upcoming + currently
-  // running). Pulled client-side from Supabase so the splash can
-  // show a "Join this cohort" CTA without a separate API call.
-  const { supabase } = useCohortStartData();
-  const [upcomingCohorts, setUpcomingCohorts] = useState<Array<{
-    id: string;
-    name: string;
-    start_date: string;
-    signups_open_at: string;
-  }>>([]);
-  useEffect(() => {
-    if (!supabase) return;
-    let cancelled = false;
-    (async () => {
-      const today = dateKeyLocal(new Date());
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const sb: any = supabase;
-      const { data } = await sb
-        .from('cohorts')
-        .select('id, name, start_date, signups_open_at')
-        .lte('signups_open_at', today)
-        .gte('start_date', today)
-        .order('start_date', { ascending: true })
-        .limit(4);
-      if (!cancelled) setUpcomingCohorts((data as Array<{
-        id: string;
-        name: string;
-        start_date: string;
-        signups_open_at: string;
-      }>) || []);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [supabase]);
+  const [pickerError, setPickerError] = useState<string | null>(null);
 
   const handleStart = async (iso?: string) => {
     setBusy(true);
     await onStart(iso);
     setBusy(false);
-  };
-
-  const handleJoinCohort = async (cohortId: string) => {
-    setCohortBusy(cohortId);
-    setCohortError(null);
-    try {
-      const res = await fetch('/api/cohort/join', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cohort_id: cohortId }),
-      });
-      if (!res.ok) {
-        const body = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(body.error || `Could not join (${res.status}).`);
-      }
-      // Reload so useTrackerState re-reads challenge_started_at and
-      // the cohort section picks up the new membership.
-      window.location.reload();
-    } catch (err) {
-      setCohortError(err instanceof Error ? err.message : 'Could not join.');
-    } finally {
-      setCohortBusy(null);
-    }
   };
 
   // Resolved scheduled start: a local override from the in-flight
@@ -233,18 +173,31 @@ function StartSplash({ hasSession, onStart }: StartSplashProps) {
             e.preventDefault();
             const iso = `${customDate}T00:00:00`;
             const todayIso = dateKeyLocal(new Date());
+            setPickerError(null);
             // Future start → don't start the challenge now.
             // Persist via the API so the choice survives a refresh
             // and shows on the splash when the user comes back. Today
             // → start immediately. Yesterday / earlier → reject
             // (the <input> is clamped to today by the date picker).
             if (iso.slice(0, 10) > todayIso) {
+              if (!hasSession) {
+                // No account yet → can't persist a future-start on
+                // their profile. Don't pretend the save worked;
+                // route them through the auth page so the choice
+                // can actually live in their account.
+                window.location.href =
+                  '/account?next=' +
+                  encodeURIComponent('/#tracker&scheduled=' + iso.slice(0, 10));
+                return;
+              }
               setBusy(true);
               const res = await setScheduled(iso.slice(0, 10));
               setBusy(false);
               if (res.ok) {
                 setLocalScheduled(iso.slice(0, 10));
                 setShowPicker(false);
+              } else {
+                setPickerError(res.error || 'Could not save the date.');
               }
               return;
             }
@@ -277,6 +230,15 @@ function StartSplash({ hasSession, onStart }: StartSplashProps) {
             {busy ? 'Saving…' : 'Start on this day'}
           </button>
         </form>
+      )}
+
+      {pickerError && (
+        <p
+          data-section="start-picker-error"
+          className="font-body text-caption text-coral mt-2 max-w-sm mx-auto"
+        >
+          {pickerError}
+        </p>
       )}
 
       {scheduledStartResolved && (() => {
@@ -366,55 +328,10 @@ function StartSplash({ hasSession, onStart }: StartSplashProps) {
         );
       })()}
 
-      {/* Cohort option — visible when at least one cohort has open
-          sign-ups or is currently running. Joining a cohort sets
-          the user's challenge_started_at to the cohort's start
-          date and routes them into the same shared day number as
-          every other cohort member. */}
-      {upcomingCohorts.length > 0 && (
-        <div className="mt-10 pt-8 border-t border-ink/10">
-          <p className="font-body text-caption uppercase tracking-widest text-ink/60 mb-3">
-            Or start with a cohort
-          </p>
-          <p className="font-body text-base text-ink/70 mb-4 max-w-md mx-auto">
-            A cohort is a group of people starting the 50 days together
-            on the same day. Your day number, the cohort day, and the
-            9-cell habit grid stay yours — you just see a collective
-            &ldquo;X of Y hit 9/9 today&rdquo; instead of working alone.
-          </p>
-          <div className="space-y-3 max-w-md mx-auto">
-            {upcomingCohorts.map((c) => (
-              <button
-                key={c.id}
-                type="button"
-                onClick={() => handleJoinCohort(c.id)}
-                disabled={cohortBusy === c.id}
-                className="w-full border border-ink/15 bg-paper p-4 text-left hover:border-coral transition-colors disabled:opacity-50"
-              >
-                <div className="flex items-baseline justify-between gap-2 mb-1">
-                  <span className="font-display text-base text-ink">
-                    {c.name}
-                  </span>
-                  <span className="font-body text-caption uppercase tracking-widest text-coral">
-                    {cohortBusy === c.id ? 'Joining…' : 'Join →'}
-                  </span>
-                </div>
-                <p className="font-body text-caption text-ink/60">
-                  Starts {formatCohortDate(c.start_date)}
-                </p>
-                <p className="font-body text-caption text-coral/80 mt-1">
-                  {finishLineSentence(c.start_date)}
-                </p>
-              </button>
-            ))}
-          </div>
-          {cohortError && (
-            <p className="font-body text-caption text-coral mt-3">
-              {cohortError}
-            </p>
-          )}
-        </div>
-      )}
+      {/* Cohort option has moved to CohortHomepageSection on the
+          home page. The decision belongs next to the Tracker
+          section as a peer, not buried at the bottom of the
+          StartSplash. */}
 
       <p className="font-body text-xs text-ink/40 mt-6">
         {hasSession
@@ -434,27 +351,6 @@ function StartSplash({ hasSession, onStart }: StartSplashProps) {
       </a>
     </div>
   );
-}
-
-// Lightweight client used by StartSplash to pull the list of
-// cohorts that have sign-ups open. Defined inline rather than in
-// its own hook because it's specific to this component and
-// doesn't need to be reusable.
-function useCohortStartData() {
-  // Lazy require so server-render of Tracker doesn't trip on
-  // the supabase client when env vars are missing in dev.
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { createClient } = require('@/lib/supabase');
-  return { supabase: createClient() as ReturnType<typeof createClient> | null };
-}
-
-function formatCohortDate(iso: string): string {
-  const d = new Date(iso + 'T00:00:00');
-  return d.toLocaleDateString(undefined, {
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-  });
 }
 
 interface ChipStripProps {

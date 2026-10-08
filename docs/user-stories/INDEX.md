@@ -48,11 +48,12 @@ per-feature stories of nearby features to see the existing spec.
 | Scheduled future start (survives refresh) | active_free, mobile | [scheduled-start.md](./scheduled-start.md) | `220fc72` | no |
 | Premium unlock (€5.99 one-time) | new_free, active_free | [premium-unlock.md](./premium-unlock.md) | (see account page) | — |
 | Streak protection (1 free pass / week) | premium, streak_broken | [streak-protection.md](./streak-protection.md) | `0038` | yes |
+| Cohort countdown + 9-tile log on the home page | anonymous, new_free, active_free, cohort_member | [cohort-countdown-on-homepage.md](./cohort-countdown-on-homepage.md) | (this build) | no |
 | Join the monthly cohort | anonymous, new_free, active_free | [join-a-cohort.md](./join-a-cohort.md) | `b31258e` | no |
 | Cohort high-five (5/day kudos) | cohort_member | [cohort-high-five.md](./cohort-high-five.md) | `e73ccb6` | no |
 | Cohort finish-line anchor message | cohort_member, new_free | [cohort-finish-line-message.md](./cohort-finish-line-message.md) | `269a236` | no |
 | Day-before-start reminder email | active_free, cohort_member, solo_user | [day-before-reminder.md](./day-before-reminder.md) | `269a236` | no |
-| Public cohort share landing pages | anonymous | [cohort-public-share.md](./cohort-public-share.md) | `c23a6e5` | no |
+| Public cohort share landing pages | anonymous | [cohort-public-share.md](./cohort-public-share.md) | **superseded** | n/a |
 
 ## How to use this catalogue
 

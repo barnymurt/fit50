@@ -5,6 +5,7 @@ import Resources from '@/components/Resources';
 import Workouts from '@/components/Workouts';
 import Calculator from '@/components/Calculator';
 import Tracker from '@/components/Tracker';
+import CohortHomepageSection from '@/components/cohort/CohortHomepageSection';
 import FAQ from '@/components/FAQ';
 import SixFeatures from '@/components/SixFeatures';
 import Newsletter from '@/components/Newsletter';
@@ -26,6 +27,7 @@ export default function Home() {
       <Workouts />
       <Calculator />
       <Tracker />
+      <CohortHomepageSection />
       <FAQ />
       <SixFeatures id="sign-up" />
       <Newsletter />

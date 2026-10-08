@@ -1,4 +1,17 @@
-# Public cohort share landing pages
+# Public cohort share landing pages — **SUPERSEDED**
+
+> **Status:** Superseded by
+> [cohort-countdown-on-homepage.md](./cohort-countdown-on-homepage.md).
+> The `/cohorts` and `/cohorts/[id]` pages have been deleted. The
+> cohort programme is now a section on the home page, not a separate
+> destination. This story is kept for historical context only.
+>
+> Do not link to this story from new work. Do not implement against
+> it.
+
+---
+
+Original spec (archived for reference):
 
 Anonymous visitors can land on `/cohorts` and `/cohorts/[id]` to see
 what a cohort is and share a specific cohort with a friend.
@@ -48,10 +61,15 @@ with me and I can decide to sign up and join without context**.
   preview looks right.
 - Lighthouse: score on mobile and desktop.
 
-## Shipped
+## Shipped (historical, since superseded)
 
-- **Commit**: `c23a6e5`
-- **Files**: `src/app/cohorts/page.tsx`,
-  `src/app/cohorts/[id]/page.tsx`,
+- **Originally shipped**: `c23a6e5` —
+  `src/app/cohorts/page.tsx`, `src/app/cohorts/[id]/page.tsx`,
   `src/hooks/usePublicCohorts.ts`, `src/hooks/usePublicCohort.ts`,
   `supabase/migrations/0047_cohorts_public_read.sql`.
+- **Superseded by**: `cohort-countdown-on-homepage.md` — the cohort
+  section is now on the home page (`src/app/page.tsx` →
+  `<CohortHomepageSection />`). The four files above were deleted.
+- **Migration 0047 stays**: the `cohorts` table is still publicly
+  readable; the public landing page was just the consumer. Removing
+  the page doesn't change RLS.
