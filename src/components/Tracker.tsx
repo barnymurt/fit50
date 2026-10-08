@@ -15,6 +15,7 @@ import { usePremium } from '@/hooks/usePremium';
 import { dateKeyLocal, parseDateKey, formatDateKeyShort, dayKeyFromStart, CHALLENGE_DAYS } from '@/lib/dates';
 import { HABIT_IDS, HABIT_COUNT } from '@/lib/habits';
 import { finishLineSentence } from '@/lib/cohort-events';
+import { useScheduledStart } from '@/hooks/useScheduledStart';
 import Link from 'next/link';
 
 interface Habit {
@@ -90,11 +91,25 @@ function StartSplash({ hasSession, onStart }: StartSplashProps) {
 
   const [showPicker, setShowPicker] = useState(false);
   const [customDate, setCustomDate] = useState<string>(today);
-  // "Scheduled" future start. Set when the user picks a date
-  // beyond today from the picker. Surfaced on the splash as
-  // "X days till you start" so they can change their mind or
-  // come back to start.
-  const [scheduledStart, setScheduledStart] = useState<string | null>(null);
+  // "Scheduled" future start. Comes from profiles.scheduled_start_at
+  // on mount (so the "X days till you start" panel survives a
+  // refresh) and is overwritten when the user picks a new future
+  // date. Once the morning of that day arrives the splash also
+  // shows a "Start now" CTA that writes today into
+  // challenge_started_at and clears the scheduled field.
+  const {
+    scheduled: persistedScheduled,
+    loaded: scheduledLoaded,
+    set: setScheduled,
+    clear: clearScheduled,
+  } = useScheduledStart();
+  // Local override used so a future-date pick is reflected in
+  // the splash immediately, before the server round-trip. Cleared
+  // by the user-facing "change date" button so the splash re-opens
+  // the picker with the date they picked.
+  const [localScheduled, setLocalScheduled] = useState<string | null>(
+    null
+  );
   const [busy, setBusy] = useState(false);
   const [cohortBusy, setCohortBusy] = useState<string | null>(null);
   const [cohortError, setCohortError] = useState<string | null>(null);
@@ -163,6 +178,17 @@ function StartSplash({ hasSession, onStart }: StartSplashProps) {
     }
   };
 
+  // Resolved scheduled start: a local override from the in-flight
+  // future-date pick wins (so the splash reflects what the user
+  // just chose without waiting for the server round-trip); if
+  // that's null, fall back to the persisted value from
+  // profiles.scheduled_start_at. While we're still loading the
+  // hook, treat as null so we don't briefly render a "you're
+  // scheduled" card from a stale cache before the server
+  // response has come back.
+  const scheduledStartResolved =
+    localScheduled ?? (scheduledLoaded ? persistedScheduled : null);
+
   return (
     <div
       data-section="start-splash"
@@ -200,21 +226,29 @@ function StartSplash({ hasSession, onStart }: StartSplashProps) {
         </button>
       </div>
 
-      {showPicker && !scheduledStart && (
+      {showPicker && !scheduledStartResolved && (
         <form
           className="max-w-sm mx-auto mb-6"
-          onSubmit={(e) => {
+          onSubmit={async (e) => {
             e.preventDefault();
             const iso = `${customDate}T00:00:00`;
-            // Future start → don't start the challenge now. Set
-            // the scheduled start, show the "X days till you
-            // start" panel so the user can come back to start on
-            // the day. Today → start immediately.
-            if (iso.slice(0, 10) > dateKeyLocal(new Date())) {
-              setScheduledStart(iso.slice(0, 10));
-            } else {
-              handleStart(iso);
+            const todayIso = dateKeyLocal(new Date());
+            // Future start → don't start the challenge now.
+            // Persist via the API so the choice survives a refresh
+            // and shows on the splash when the user comes back. Today
+            // → start immediately. Yesterday / earlier → reject
+            // (the <input> is clamped to today by the date picker).
+            if (iso.slice(0, 10) > todayIso) {
+              setBusy(true);
+              const res = await setScheduled(iso.slice(0, 10));
+              setBusy(false);
+              if (res.ok) {
+                setLocalScheduled(iso.slice(0, 10));
+                setShowPicker(false);
+              }
+              return;
             }
+            handleStart(iso);
           }}
         >
           <label
@@ -240,62 +274,89 @@ function StartSplash({ hasSession, onStart }: StartSplashProps) {
             data-section="start-picker-submit"
             className="mt-3 inline-flex items-center justify-center bg-coral hover:bg-coral-85 transition-colors px-6 py-3 font-body text-caption uppercase tracking-widest text-paper disabled:opacity-50"
           >
-            {busy ? 'Starting…' : 'Start on this day'}
+            {busy ? 'Saving…' : 'Start on this day'}
           </button>
         </form>
       )}
 
-      {scheduledStart && (() => {
+      {scheduledStartResolved && (() => {
+        const todayIso = dateKeyLocal(new Date());
         const daysAway = Math.max(
           0,
           Math.round(
-            (new Date(scheduledStart + 'T00:00:00').getTime() -
-              new Date(new Date().toDateString()).getTime()) /
+            (new Date(scheduledStartResolved + 'T00:00:00').getTime() -
+              new Date(todayIso + 'T00:00:00').getTime()) /
               86_400_000
           )
         );
+        const startsToday = scheduledStartResolved === todayIso;
         const formattedDate = new Date(
-          scheduledStart + 'T00:00:00'
+          scheduledStartResolved + 'T00:00:00'
         ).toLocaleDateString(undefined, {
           weekday: 'long',
           day: 'numeric',
           month: 'long',
           year: 'numeric',
         });
+        const isFuture = scheduledStartResolved > todayIso;
         return (
           <div
             data-section="scheduled-start-card"
             className="max-w-md mx-auto mb-6 border border-coral bg-coral/[0.05] p-5"
           >
             <p className="font-body text-caption uppercase tracking-widest text-coral mb-2">
-              Scheduled start
+              {startsToday
+                ? 'Ready to start'
+                : isFuture
+                ? 'Scheduled start'
+                : 'Scheduled start'}
             </p>
-            <p className="font-display text-h2 text-ink leading-[1.05] mb-2">
-              {daysAway === 0
-                ? 'Starts today.'
+            <p
+              data-section="scheduled-start-days-away"
+              className="font-display text-h2 text-ink leading-[1.05] mb-2"
+            >
+              {startsToday
+                ? 'Your 50 days are ready.'
                 : `Starts in ${daysAway} day${daysAway === 1 ? '' : 's'}.`}
             </p>
             <p className="font-body text-sm text-ink/70 mb-4">
-              {formattedDate} — the tracker won't start until then. We
-              kept you on the splash so you can come back and start
-              when it's day 1, or change the date.
+              {formattedDate}.{' '}
+              {startsToday
+                ? 'The tracker is ready to start — your cohort start is here.'
+                : 'The tracker will start then. We kept you on the splash so you can come back when it\u2019s day 1, or change the date.'}
             </p>
             <div className="flex flex-col sm:flex-row gap-2">
               <button
                 type="button"
                 data-section="scheduled-start-now"
-                onClick={() => {
-                  setScheduledStart(null);
-                  handleStart(`${scheduledStart}T00:00:00`);
+                onClick={async () => {
+                  setBusy(true);
+                  await clearScheduled();
+                  setLocalScheduled(null);
+                  setShowPicker(false);
+                  setBusy(false);
+                  handleStart(
+                    startsToday
+                      ? todayIso
+                      : `${scheduledStartResolved}T00:00:00`
+                  );
                 }}
                 className="inline-flex items-center justify-center bg-coral hover:bg-coral-deep text-paper px-5 py-3 font-body text-caption uppercase tracking-widest"
               >
-                Start now anyway →
+                {startsToday
+                  ? 'Start now →'
+                  : 'Start now anyway →'}
               </button>
               <button
                 type="button"
                 data-section="scheduled-start-change"
-                onClick={() => setScheduledStart(null)}
+                onClick={async () => {
+                  setBusy(true);
+                  await clearScheduled();
+                  setLocalScheduled(null);
+                  setShowPicker(true);
+                  setBusy(false);
+                }}
                 className="inline-flex items-center justify-center border border-ink/30 px-5 py-3 font-body text-caption uppercase tracking-widest text-ink/70 hover:text-ink"
               >
                 Change date

@@ -90,6 +90,7 @@ export type Database = {
           is_premium: boolean;
           premium_purchased_at: string | null;
           challenge_started_at: string;
+          scheduled_start_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -100,6 +101,7 @@ export type Database = {
           is_premium?: boolean;
           premium_purchased_at?: string | null;
           challenge_started_at?: string;
+          scheduled_start_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -108,6 +110,7 @@ export type Database = {
           is_premium: boolean;
           premium_purchased_at: string | null;
           challenge_started_at: string;
+          scheduled_start_at: string | null;
           updated_at: string;
         }>;
       };
