@@ -45,6 +45,10 @@ export interface CohortProgress {
   // Active cohort size (status = 'active' or 'upcoming'). Denominator
   // for the "X of Y" headlines.
   cohortSize: number;
+  // Number of members who sent a "high-five the cohort" today
+  // (kudos_today_date = today). 0 if none yet. Drives the
+  // "X of Y high-fived today" line in the today panel.
+  highFiversToday: number;
 }
 
 const STILL_GOING_WINDOW_DAYS = 4;
@@ -61,6 +65,7 @@ export function useCohortProgress(
     arcStrictCounts: {},
     stillGoing: 0,
     cohortSize: 0,
+    highFiversToday: 0,
   });
 
   const refetch = useCallback(async () => {
@@ -71,6 +76,7 @@ export function useCohortProgress(
         arcStrictCounts: {},
         stillGoing: 0,
         cohortSize: 0,
+        highFiversToday: 0,
       });
       return;
     }
@@ -113,33 +119,45 @@ export function useCohortProgress(
         arcStrictCounts: {},
         stillGoing: 0,
         cohortSize: 0,
+        highFiversToday: 0,
       });
       return;
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const sb2: any = supabase;
-    const [todayRes, arcRes, stillGoingRes, sizeRes] = await Promise.all([
-      // (1) Per-habit completion for today. Scoped to live
-      // members by the in() filter.
-      sb2
-        .from('daily_totals')
-        .select('habit_id')
-        .eq('day_number', safeDay)
-        .eq('completed', true)
-        .in('user_id', memberIds),
-      // (2) Per-day 9/9 strict count via SECURITY DEFINER RPC.
-      sb.rpc('cohort_arc_strict_counts', { p_cohort_id: cohortId }),
-      // (3) "Still going" — distinct members active in the
-      // last 4 day_numbers.
-      sb.rpc('cohort_still_going', {
-        p_cohort_id: cohortId,
-        p_window_days: STILL_GOING_WINDOW_DAYS,
-      }),
-      // (4) Cohort size = live member count (denominator).
-      // Computed client-side from the already-fetched memberIds.
-      Promise.resolve({ count: memberIds.length }),
-    ]);
+    const [todayRes, arcRes, stillGoingRes, sizeRes, kudosRes] =
+      await Promise.all([
+        // (1) Per-habit completion for today. Scoped to live
+        // members by the in() filter.
+        sb2
+          .from('daily_totals')
+          .select('habit_id')
+          .eq('day_number', safeDay)
+          .eq('completed', true)
+          .in('user_id', memberIds),
+        // (2) Per-day 9/9 strict count via SECURITY DEFINER RPC.
+        sb.rpc('cohort_arc_strict_counts', { p_cohort_id: cohortId }),
+        // (3) "Still going" — distinct members active in the
+        // last 4 day_numbers.
+        sb.rpc('cohort_still_going', {
+          p_cohort_id: cohortId,
+          p_window_days: STILL_GOING_WINDOW_DAYS,
+        }),
+        // (4) Cohort size = live member count (denominator).
+        // Computed client-side from the already-fetched memberIds.
+        Promise.resolve({ count: memberIds.length }),
+        // (5) High-fivers today — count of live members whose
+        // kudos_today_date == today. Targeted at the cohort, not at
+        // any one member; the daily cap (5) is enforced server-side
+        // in /api/cohort/kudos.
+        sb2
+          .from('cohort_memberships')
+          .select('user_id', { count: 'exact', head: true })
+          .eq('cohort_id', cohortId)
+          .eq('kudos_today_date', new Date().toISOString().slice(0, 10))
+          .in('status', ['upcoming', 'active']),
+      ]);
 
     const todayPerHabit: Record<string, number> = {};
     for (const r of (todayRes.data as Array<{ habit_id: string }>) || []) {
@@ -159,6 +177,9 @@ export function useCohortProgress(
     );
 
     const cohortSize = (sizeRes as { count: number }).count;
+    const highFiversToday = Number(
+      (kudosRes as { count: number | null }).count ?? 0
+    );
 
     setState({
       loaded: true,
@@ -166,6 +187,7 @@ export function useCohortProgress(
       arcStrictCounts,
       stillGoing,
       cohortSize,
+      highFiversToday,
     });
   }, [user, supabase, cohortId, cohortStartDate]);
 

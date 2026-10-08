@@ -19,6 +19,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCohortMembership } from '@/hooks/useCohortMembership';
+import { useCohortKudos, COHORT_KUDOS_DAILY_CAP } from '@/hooks/useCohortKudos';
 import type { CurrentCohort } from '@/hooks/useCurrentCohort';
 
 export interface CohortCardProps {
@@ -36,6 +37,8 @@ export default function CohortCard({ cohort, onLeft }: CohortCardProps) {
   const { user } = useAuth();
   const { leave, setShowDisplayName, pending, lastError } =
     useCohortMembership();
+  const { sendKudos, canSend, remaining, atCap, sending: kudosSending } =
+    useCohortKudos();
   const [busy, setBusy] = useState(false);
 
   const isUpcoming = cohort.status === 'upcoming';
@@ -106,6 +109,37 @@ export default function CohortCard({ cohort, onLeft }: CohortCardProps) {
         />
         Show my display name to other cohort members
       </label>
+
+      {/* "High-five the cohort" — daily collective kudos, max 5 per
+          local day. Targets the cohort as a whole, not any one
+          member; the cap is enforced server-side. Disabled once
+          the cap is hit (button text switches to a 5/5 indicator)
+          so the UI reflects the server's view of the count. */}
+      {user && (
+        <div className="mt-4 pt-3 border-t border-ink/10">
+          <div className="flex items-center gap-3 flex-wrap">
+            <button
+              type="button"
+              onClick={() => sendKudos()}
+              disabled={!canSend}
+              className="font-body text-caption uppercase tracking-widest border border-coral text-coral hover:bg-coral hover:text-paper px-4 py-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {kudosSending
+                ? 'High-fiving…'
+                : atCap
+                ? `5 / ${COHORT_KUDOS_DAILY_CAP} high-fives sent today`
+                : remaining !== null
+                ? `High-five the cohort · ${remaining} left`
+                : `High-five the cohort`}
+            </button>
+          </div>
+          {lastError && (
+            <p className="font-body text-caption text-coral mt-2">
+              {lastError}
+            </p>
+          )}
+        </div>
+      )}
 
       {lastError && (
         <p className="font-body text-caption text-coral mt-3">

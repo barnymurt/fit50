@@ -74,6 +74,7 @@ export default function CohortSection() {
             perHabit={progress.todayPerHabit}
             cohortSize={progress.cohortSize}
             headline={headline}
+            highFiversToday={progress.highFiversToday}
           />
           <CohortArc
             cohortDayNumber={current.cohortDayNumber}

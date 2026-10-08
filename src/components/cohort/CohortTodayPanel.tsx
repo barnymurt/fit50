@@ -17,12 +17,14 @@ export interface CohortTodayPanelProps {
   perHabit: Record<string, number>;
   cohortSize: number;
   headline: string;     // e.g. "37 of 80 of you hit 9/9 today"
+  highFiversToday: number; // members who high-fived the cohort today
 }
 
 export default function CohortTodayPanel({
   perHabit,
   cohortSize,
   headline,
+  highFiversToday,
 }: CohortTodayPanelProps) {
   // For each habit, how many of the cohort hit it today. Fills
   // missing habits with 0 so the row is always 9 cells.
@@ -79,6 +81,11 @@ export default function CohortTodayPanel({
       <p className="font-body text-caption text-ink/40 mt-3">
         Cells show &ldquo;{cohortSize > 0 ? 'X' : '–'} of {cohortSize}&rdquo; members who completed each habit today. The headline above counts members who completed all {HABIT_COUNT}.
       </p>
+      {cohortSize > 0 && (
+        <p className="font-body text-caption text-ink/50 mt-1">
+          {highFiversToday} of {cohortSize} high-fived the cohort today.
+        </p>
+      )}
     </div>
   );
 }
