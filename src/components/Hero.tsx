@@ -46,6 +46,15 @@ export default function Hero() {
                 <Icon name="arrow-right" size={16} />
               </span>
             </a>
+            <a
+              href="/cohorts"
+              className="inline-flex items-center gap-2 font-body text-caption uppercase text-ink/70 hover:text-coral transition-colors duration-200 group"
+            >
+              Start with a cohort
+              <span className="transition-transform duration-200 group-hover:translate-x-1">
+                <Icon name="arrow-right" size={16} />
+              </span>
+            </a>
           </div>
         </div>
 
