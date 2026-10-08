@@ -90,6 +90,11 @@ function StartSplash({ hasSession, onStart }: StartSplashProps) {
 
   const [showPicker, setShowPicker] = useState(false);
   const [customDate, setCustomDate] = useState<string>(today);
+  // "Scheduled" future start. Set when the user picks a date
+  // beyond today from the picker. Surfaced on the splash as
+  // "X days till you start" so they can change their mind or
+  // come back to start.
+  const [scheduledStart, setScheduledStart] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [cohortBusy, setCohortBusy] = useState<string | null>(null);
   const [cohortError, setCohortError] = useState<string | null>(null);
@@ -159,8 +164,14 @@ function StartSplash({ hasSession, onStart }: StartSplashProps) {
   };
 
   return (
-    <div className="max-w-2xl mx-auto text-center">
-      <p className="font-body text-caption uppercase tracking-widest text-coral mb-4">
+    <div
+      data-section="start-splash"
+      className="max-w-2xl mx-auto text-center"
+    >
+      <p
+        data-section="start-splash-eyebrow"
+        className="font-body text-caption uppercase tracking-widest text-coral mb-4"
+      >
         Day 0 · The 50-day challenge
       </p>
       <h2 className="font-display text-display-2 text-ink mb-6 leading-[1.05]">
@@ -189,23 +200,33 @@ function StartSplash({ hasSession, onStart }: StartSplashProps) {
         </button>
       </div>
 
-      {showPicker && (
+      {showPicker && !scheduledStart && (
         <form
           className="max-w-sm mx-auto mb-6"
           onSubmit={(e) => {
             e.preventDefault();
             const iso = `${customDate}T00:00:00`;
-            handleStart(iso);
+            // Future start → don't start the challenge now. Set
+            // the scheduled start, show the "X days till you
+            // start" panel so the user can come back to start on
+            // the day. Today → start immediately.
+            if (iso.slice(0, 10) > dateKeyLocal(new Date())) {
+              setScheduledStart(iso.slice(0, 10));
+            } else {
+              handleStart(iso);
+            }
           }}
         >
           <label
             htmlFor="start-date"
+            data-section="start-picker"
             className="block font-body text-caption uppercase tracking-widest text-ink/60 mb-2"
           >
             Start date
           </label>
           <input
             id="start-date"
+            data-input="custom-start-date"
             type="date"
             value={customDate}
             min={dateKeyLocal(minDate)}
@@ -216,12 +237,73 @@ function StartSplash({ hasSession, onStart }: StartSplashProps) {
           <button
             type="submit"
             disabled={busy}
-            className="mt-3 inline-flex items-center justify-center bg-coral hover:bg-coral/85 transition-colors px-6 py-3 font-body text-caption uppercase tracking-widest text-paper disabled:opacity-50"
+            data-section="start-picker-submit"
+            className="mt-3 inline-flex items-center justify-center bg-coral hover:bg-coral-85 transition-colors px-6 py-3 font-body text-caption uppercase tracking-widest text-paper disabled:opacity-50"
           >
             {busy ? 'Starting…' : 'Start on this day'}
           </button>
         </form>
       )}
+
+      {scheduledStart && (() => {
+        const daysAway = Math.max(
+          0,
+          Math.round(
+            (new Date(scheduledStart + 'T00:00:00').getTime() -
+              new Date(new Date().toDateString()).getTime()) /
+              86_400_000
+          )
+        );
+        const formattedDate = new Date(
+          scheduledStart + 'T00:00:00'
+        ).toLocaleDateString(undefined, {
+          weekday: 'long',
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric',
+        });
+        return (
+          <div
+            data-section="scheduled-start-card"
+            className="max-w-md mx-auto mb-6 border border-coral bg-coral/[0.05] p-5"
+          >
+            <p className="font-body text-caption uppercase tracking-widest text-coral mb-2">
+              Scheduled start
+            </p>
+            <p className="font-display text-h2 text-ink leading-[1.05] mb-2">
+              {daysAway === 0
+                ? 'Starts today.'
+                : `Starts in ${daysAway} day${daysAway === 1 ? '' : 's'}.`}
+            </p>
+            <p className="font-body text-sm text-ink/70 mb-4">
+              {formattedDate} — the tracker won't start until then. We
+              kept you on the splash so you can come back and start
+              when it's day 1, or change the date.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <button
+                type="button"
+                data-section="scheduled-start-now"
+                onClick={() => {
+                  setScheduledStart(null);
+                  handleStart(`${scheduledStart}T00:00:00`);
+                }}
+                className="inline-flex items-center justify-center bg-coral hover:bg-coral-deep text-paper px-5 py-3 font-body text-caption uppercase tracking-widest"
+              >
+                Start now anyway →
+              </button>
+              <button
+                type="button"
+                data-section="scheduled-start-change"
+                onClick={() => setScheduledStart(null)}
+                className="inline-flex items-center justify-center border border-ink/30 px-5 py-3 font-body text-caption uppercase tracking-widest text-ink/70 hover:text-ink"
+              >
+                Change date
+              </button>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Cohort option — visible when at least one cohort has open
           sign-ups or is currently running. Joining a cohort sets

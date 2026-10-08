@@ -64,16 +64,26 @@ export default function CohortSection() {
       : 'No one in the cohort yet';
 
   return (
-    <div className="space-y-6">
+    <div
+      data-section="cohort-section"
+      data-cohort-id={current.cohortId}
+      className="space-y-6"
+    >
       <CohortCard
         cohort={current}
         onLeft={() => window.location.reload()}
       />
-      <div className="border border-coral bg-coral/[0.05] p-4">
+      <div
+        data-section="cohort-finish-line-card"
+        className="border border-coral bg-coral/[0.05] p-4"
+      >
         <p className="font-body text-caption uppercase tracking-widest text-coral mb-2">
           The finish line
         </p>
-        <p className="font-display text-h3 text-ink leading-[1.05]">
+        <p
+          data-section="cohort-finish-line-sentence"
+          className="font-display text-h3 text-ink leading-[1.05]"
+        >
           {finishLineSentence(current.startDate)}
         </p>
       </div>
