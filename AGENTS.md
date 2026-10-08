@@ -6,9 +6,11 @@
 ## Required reading (in order)
 
 1. **This file** (you're reading it)
-2. `docs/design-system/DESIGN_SYSTEM.md` — the design system in markdown (always read before visual work)
-3. `docs/design-system/Foundations.dc.html` — the design system with live previews (open in a browser)
-4. The current code: `src/components/`, `src/app/`, `tailwind.config.js`, `src/app/globals.css`
+2. `docs/user-stories/README.md` — the build workflow. Read before any new feature.
+3. `docs/user-stories/INDEX.md` — the catalogue of shipped features × user types. Skim before designing.
+4. `docs/design-system/DESIGN_SYSTEM.md` — the design system in markdown (always read before visual work)
+5. `docs/design-system/Foundations.dc.html` — the design system with live previews (open in a browser)
+6. The current code: `src/components/`, `src/app/`, `tailwind.config.js`, `src/app/globals.css`
 
 If you have access to the `.dc.html` files, browse them — they show the full design system with live examples.
 
@@ -100,6 +102,25 @@ Premium is not for *how* you sign in. It's for *what* you can do once signed in.
 - **Don't add rounded corners to panels.** Squares only (full radius for buttons is the exception).
 - **Don't use Lilita One for UI text.** Marquee sections only.
 - **Don't put paper text on cream or lavender.** Both carry ink.
+
+## Build phase: user stories first
+
+Before writing code for any new feature, surface, API route, premium gate,
+email, cron, or UX-visible hook:
+
+1. Read `docs/user-stories/INDEX.md` to see what already exists for each
+   user type.
+2. Copy `docs/user-stories/TEMPLATE.md` to `docs/user-stories/<slug>.md`.
+3. Fill the four required sections: **user story**, **acceptance
+   criteria**, **UX/UI risks**, **out of scope** (plus the test plan).
+4. Show the user the draft. **Do not start coding until they sign off.**
+5. When shipped, append a row to `docs/user-stories/INDEX.md` and reference
+   the story file in the commit message body.
+
+You do **not** need a story for pure bug fixes, trivial copy edits, or
+internal refactors with no user-visible behaviour change.
+
+The `user-stories-first` skill enforces this on build tasks.
 
 ## Build / lint / verify
 
