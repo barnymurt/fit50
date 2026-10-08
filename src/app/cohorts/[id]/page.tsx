@@ -8,9 +8,12 @@
 //
 // Server component: reads the cohort row via @supabase/supabase-js
 // with the anon key (RLS allows anon SELECT after migration 0047).
-// For the Join CTA, signed-in users get a form that POSTs to
-// /api/cohort/join. Signed-out users get a link to the sign-up
-// page; they're returned to this cohort URL after signup.
+//
+// This pass is a layout refactor — the previous version was
+// four sections of body copy. Now: a hero line, a dominant
+// "you finish on [date] — [event]" card (the social-share payoff),
+// the start countdown, and a "what you do on day 1" callout. The
+// rest of the cohort info is a quieter "how it works" tail.
 
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
@@ -18,12 +21,16 @@ import Link from 'next/link';
 import Heading from '@/components/Heading';
 import Section from '@/components/Section';
 import { createClient } from '@supabase/supabase-js';
+import {
+  cohortFinish,
+  daysUntilStart,
+  finishLineSentence,
+  type CohortRegion,
+} from '@/lib/cohort-events';
 
 const SITE_URL = 'https://fit50challenge.io';
 
 const titleFor = (name: string) => `${name} — the next monthly FIT50 cohort`;
-const descriptionFor = (name: string, startDateLong: string) =>
-  `${name} — the next monthly cohort for the FIT50 50-day challenge. Starts ${startDateLong}. Pick a cohort, start the 50 days alongside a group of other starters. Free for everyone; join via the link.`;
 
 export async function generateMetadata({
   params,
@@ -33,7 +40,8 @@ export async function generateMetadata({
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   let cohortName = 'Join the next FIT50 cohort';
-  let startDateLong = '';
+  let finishDate = '';
+  let eventName = '';
   if (url && key) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const sb: any = createClient(url, key, {
@@ -46,20 +54,18 @@ export async function generateMetadata({
       .maybeSingle();
     if (data) {
       cohortName = titleFor((data as { name: string }).name);
-      const [y, m, d] = (data as { start_date: string })
-        .start_date.split('-')
-        .map(Number);
-      if (y && m && d) {
-        startDateLong = new Date(y, m - 1, d).toLocaleDateString(
-          undefined,
-          { day: 'numeric', month: 'long', year: 'numeric' }
-        );
-      }
+      const f = cohortFinish(
+        (data as { start_date: string }).start_date,
+        'row'
+      );
+      finishDate = f.finishDate;
+      eventName = f.eventName;
     }
   }
-  const desc = startDateLong
-    ? descriptionFor(cohortName.replace(' — the next monthly FIT50 cohort', ''), startDateLong)
-    : 'Monthly cohorts for the FIT50 50-day challenge. Pick a month, start the 50 days alongside a group of other starters. Free, no sign-up fee.';
+  const desc =
+    finishDate && eventName
+      ? `Starts soon, finishes on ${finishDate} (${eventName}). Pick a cohort, start the 50 days alongside a group of other starters. Free.`
+      : 'Monthly cohorts for the FIT50 50-day challenge. Pick a month, start the 50 days alongside a group of other starters. Free, no sign-up fee.';
   return {
     title: cohortName,
     description: desc,
@@ -78,20 +84,12 @@ export async function generateMetadata({
   };
 }
 
-function formatDateLong(iso: string): string {
-  const [y, m, d] = iso.split('-').map(Number);
-  if (!y || !m || !d) return iso;
-  return new Date(y, m - 1, d).toLocaleDateString(undefined, {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  });
-}
-
-function daysUntil(iso: string): number {
-  const target = new Date(iso + 'T00:00:00').getTime();
-  const today = new Date(new Date().toDateString()).getTime();
-  return Math.ceil((target - today) / 86_400_000);
+interface CohortRow {
+  id: string;
+  name: string;
+  start_date: string;
+  signups_open_at: string;
+  cap: number;
 }
 
 async function loadCohort(id: string) {
@@ -107,13 +105,18 @@ async function loadCohort(id: string) {
     .select('id, name, start_date, signups_open_at, cap')
     .eq('id', id)
     .maybeSingle();
-  return (data as {
-    id: string;
-    name: string;
-    start_date: string;
-    signups_open_at: string;
-    cap: number;
-  } | null);
+  return (data as CohortRow | null);
+}
+
+function formatStartLong(iso: string): string {
+  const [y, m, d] = iso.split('-').map(Number);
+  if (!y || !m || !d) return iso;
+  return new Date(y, m - 1, d).toLocaleDateString(undefined, {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
 }
 
 export default async function PublicCohortDetailPage({
@@ -127,13 +130,20 @@ export default async function PublicCohortDetailPage({
     notFound();
   }
 
-  const cohortObj = cohort!; // notFound() throws but TS doesn't know
+  const cohortObj = cohort!;
+  const region: CohortRegion = 'row';
+  const startIn = daysUntilStart(cohortObj.start_date);
   const signupsOpen =
     new Date() >= new Date(cohortObj.signups_open_at + 'T00:00:00');
   const cohortLive =
     new Date() >= new Date(cohortObj.start_date + 'T00:00:00');
-  const daysToStart = daysUntil(cohortObj.start_date);
+  const finish = cohortFinish(cohortObj.start_date, region);
+  const finishSentence = finishLineSentence(
+    cohortObj.start_date,
+    region
+  );
   const shareUrl = `${SITE_URL}/cohorts/${params.id}`;
+  const ogImage = `${SITE_URL}/icons/icon.png`;
 
   return (
     <main className="bg-paper text-ink">
@@ -144,42 +154,92 @@ export default async function PublicCohortDetailPage({
       >
         <div className="max-w-3xl mx-auto">
           <p className="font-body text-caption uppercase tracking-widest text-coral mb-4">
-            Cohort · {cohortLive
-              ? 'Active'
-              : daysToStart > 0
-              ? `Starts in ${daysToStart} day${daysToStart === 1 ? '' : 's'}`
+            {cohortLive
+              ? 'Active cohort'
+              : startIn > 0
+              ? `Starts in ${startIn} day${startIn === 1 ? '' : 's'}`
               : 'Starts today'}
           </p>
-          <Heading size="display-2" className="text-ink leading-[1.05] mb-6">
+          <Heading
+            size="display-2"
+            className="text-ink leading-[1.05] mb-4"
+          >
             {cohortObj.name}
           </Heading>
-          <p className="font-body text-lg text-ink/80 mb-8">
-            Starts <strong>{formatDateLong(cohortObj.start_date)}</strong>.
-            Your day number, the habit grid, the streak — they're
-            all yours. The "X of Y hit 9/9 today" and the 50-day arc
-            are the cohort's.
+          <p className="font-body text-xl text-ink/80 mb-8">
+            Starts {formatStartLong(cohortObj.start_date)}.
           </p>
 
-          <section className="mb-10 border border-ink/15 bg-cre-30 p-5">
-            <Heading size="h3" className="text-ink leading-snug mb-3">
+          {/* The social-share payoff — this is what the candidate
+              wants the user to be carrying around in their head. */}
+          <div className="border border-coral bg-coral/[0.05] p-6 mb-8">
+            <p className="font-body text-caption uppercase tracking-widest text-coral mb-2">
+              The finish line
+            </p>
+            <p className="font-display text-h2 text-ink leading-[1.05]">
+              {finishSentence}
+            </p>
+          </div>
+
+          <div className="border border-ink/15 bg-cre-30 p-5 mb-8">
+            <p className="font-body text-caption uppercase tracking-widest text-ink/40 mb-2">
               What you do on day 1
-            </Heading>
-            <p className="font-body text-base text-ink/80 mb-3">
-              Open the tracker on {formatDateLong(cohortObj.start_date)}.
-              Tick the first habit. That's it. Day 1 begins.
             </p>
             <p className="font-body text-base text-ink/80">
-              Each of the 50 days has nine habits — chill out, fuel
-              right, clear, fresh lungs, mind, body, water, steps,
-              brain. You don't need to do all nine every day, but the
-              cohort section adds up who's doing what.
+              Open the tracker on {formatStartLong(cohortObj.start_date)}.
+              Tick the first habit. That's it. Day 1 begins. The
+              cohort section on your account page starts showing
+              the collective count the same day.
             </p>
-          </section>
+          </div>
+
+          {signupsOpen && !cohortLive && (
+            <div className="mb-8">
+              {startIn > 0 && (
+                <p className="font-body text-sm text-ink/60 mb-3">
+                  Sign-ups close the day before the cohort starts. You
+                  can leave the cohort any time after that.
+                </p>
+              )}
+              <div className="flex flex-col sm:flex-row gap-3">
+                <form
+                  action="/api/cohort/join"
+                  method="post"
+                  className="inline-block"
+                >
+                  <input
+                    type="hidden"
+                    name="cohort_id"
+                    value={cohortObj.id}
+                  />
+                  <button
+                    type="submit"
+                    className="inline-flex items-center justify-center bg-coral hover:bg-coral-deep text-paper px-8 py-4 font-body text-caption uppercase tracking-widest transition-colors"
+                  >
+                    Join this cohort →
+                  </button>
+                </form>
+                <Link
+                  href="/cohorts"
+                  className="inline-flex items-center justify-center border border-ink px-8 py-4 font-body text-caption uppercase tracking-widest text-ink hover:bg-ink hover:text-paper transition-colors"
+                >
+                  See other cohorts
+                </Link>
+              </div>
+            </div>
+          )}
+
+          {cohortLive && (
+            <p className="font-body text-sm text-ink/50 mb-8">
+              This cohort is already running. Head to your tracker to
+              keep going.
+            </p>
+          )}
 
           <section className="mb-10">
-            <Heading size="h3" className="text-ink leading-snug mb-3">
+            <p className="font-body text-caption uppercase tracking-widest text-ink/40 mb-3">
               How it works
-            </Heading>
+            </p>
             <ul className="space-y-3 font-body text-base text-ink/80 list-disc pl-5">
               <li>
                 The cohort is a group of people who started on the
@@ -190,62 +250,22 @@ export default async function PublicCohortDetailPage({
               </li>
               <li>
                 Cohort membership is <strong>free</strong> for everyone,
-                free and premium alike. Joining a cohort resets your
-                challenge day-number to day 1; your old progress is
-                archived (never deleted) and returns if you go back to
-                a personal challenge later.
+                free and premium alike.
               </li>
               <li>
                 Your progress stays yours. The cohort can see your
-                anonymous handle (a randomised "Crane-7A2" style
-                identifier) — never your display name unless you
-                explicitly opt in. The cohort never sees your email or
-                your macro math.
+                anonymous handle — never your display name unless you
+                opt in. The cohort never sees your email or macro math.
               </li>
             </ul>
           </section>
 
-          <section className="mb-10">
-            {signupsOpen && !cohortLive ? (
-              <form
-                action="/api/cohort/join"
-                method="post"
-                className="inline-block"
-              >
-                <input type="hidden" name="cohort_id" value={cohortObj.id} />
-                <button
-                  type="submit"
-                  className="inline-flex items-center justify-center bg-coral hover:bg-coral-deep text-paper px-8 py-4 font-body text-caption uppercase tracking-widest transition-colors"
-                >
-                  Join this cohort →
-                </button>
-              </form>
-            ) : (
-              <span className="inline-flex items-center justify-center bg-paper border border-ink/20 text-ink/40 px-8 py-4 font-body text-caption uppercase tracking-widest">
-                Cohort is currently locked
-              </span>
-            )}
-            <p className="font-body text-xs text-ink/50 mt-3">
-              {signupsOpen
-                ? 'Sign in or sign up first, then come back to this page and the button will join you.'
-                : `Sign-ups open 30 days before the cohort starts (${formatDateLong(cohortObj.signups_open_at)}). Bookmark this page and check back then.`}
-            </p>
-            <div className="mt-4">
-              <Link
-                href="/cohorts"
-                className="font-body text-caption uppercase tracking-widest text-coral underline underline-offset-4 decoration-coral/40 hover:decoration-coral"
-              >
-                ← See other cohorts
-              </Link>
-            </div>
-          </section>
-
           <section className="border-t border-ink/15 pt-8">
-            <Heading size="h3" className="text-ink leading-snug mb-3">
+            <p className="font-body text-caption uppercase tracking-widest text-ink/40 mb-3">
               Share this cohort
-            </Heading>
+            </p>
             <p className="font-body text-base text-ink/70 mb-4">
-              If you know people who'd do this, share this page — the
+              If you know people who'd do this, share the link — the
               cohort works best with a group, and the more starters,
               the more motivating the daily collective count becomes.
             </p>

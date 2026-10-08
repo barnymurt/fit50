@@ -14,6 +14,7 @@ import { getWeekStart } from '@/hooks/useStreakProtection';
 import { usePremium } from '@/hooks/usePremium';
 import { dateKeyLocal, parseDateKey, formatDateKeyShort, dayKeyFromStart, CHALLENGE_DAYS } from '@/lib/dates';
 import { HABIT_IDS, HABIT_COUNT } from '@/lib/habits';
+import { finishLineSentence } from '@/lib/cohort-events';
 import Link from 'next/link';
 
 interface Habit {
@@ -257,6 +258,9 @@ function StartSplash({ hasSession, onStart }: StartSplashProps) {
                 </div>
                 <p className="font-body text-caption text-ink/60">
                   Starts {formatCohortDate(c.start_date)}
+                </p>
+                <p className="font-body text-caption text-coral/80 mt-1">
+                  {finishLineSentence(c.start_date)}
                 </p>
               </button>
             ))}

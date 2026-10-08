@@ -27,6 +27,7 @@ import CohortCard from './CohortCard';
 import CohortTodayPanel from './CohortTodayPanel';
 import CohortArc from './CohortArc';
 import CohortJoinCard from './CohortJoinCard';
+import { finishLineSentence } from '@/lib/cohort-events';
 
 export default function CohortSection() {
   const { current, loaded } = useCurrentCohort();
@@ -68,6 +69,14 @@ export default function CohortSection() {
         cohort={current}
         onLeft={() => window.location.reload()}
       />
+      <div className="border border-coral bg-coral/[0.05] p-4">
+        <p className="font-body text-caption uppercase tracking-widest text-coral mb-2">
+          The finish line
+        </p>
+        <p className="font-display text-h3 text-ink leading-[1.05]">
+          {finishLineSentence(current.startDate)}
+        </p>
+      </div>
       {current.status === 'active' && progress.loaded && (
         <>
           <CohortTodayPanel
