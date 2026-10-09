@@ -50,8 +50,8 @@
         "eyebrow":  { "text": "The form", "by": "ai" },
         "headline": { "text": "*Two* cues.", "by": "ai" },
         "items": [
-          { "title": "Knees track over toes on the squat", "icon": null },
-          { "title": "Back tall on the lunge, not leaning", "icon": null }
+          { "title": "Knees track over toes", "icon": null },
+          { "title": "Back tall on the lunge", "icon": null }
         ],
         "bridge": { "text": "Slow on the way down", "by": "ai" }
       }

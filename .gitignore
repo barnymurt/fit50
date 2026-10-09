@@ -17,6 +17,9 @@
 /.next/
 /out/
 
+# content engine renderer output (regenerable, never committed)
+/tools/content-engine/out/
+
 # production
 /build
 
