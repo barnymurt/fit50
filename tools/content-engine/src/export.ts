@@ -4,7 +4,7 @@
 import { chromium, type Page, type Browser } from 'playwright';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
-import { renderPostHTML } from './render-slide.js';
+import { renderPostHTML } from './render-slide';
 import { loadTokens } from './tokens.js';
 import type { Post } from './schema/post.js';
 import { runAllChecks } from './checks/index.js';

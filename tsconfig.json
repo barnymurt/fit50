@@ -25,6 +25,9 @@
     "paths": {
       "@/*": [
         "./src/*"
+      ],
+      "@/ce-content-engine/*": [
+        "./tools/content-engine/src/*"
       ]
     }
   },

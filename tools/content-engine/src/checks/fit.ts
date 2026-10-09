@@ -15,19 +15,20 @@ export function checkFitLengths(post: Post, lint: LintRules) {
     const t = slide.template;
     const l = limits[t];
     if (!l) continue;
-    for (const [name, value] of Object.entries(slide.fields)) {
-      if (!value || typeof value === 'string' || typeof value === 'number') continue;
-      if (typeof value.text !== 'string') continue;
-      const cap = l[name];
-      if (typeof cap !== 'number') continue;
-      if (value.text.length > cap) {
-        flags.push({
-          slideId: slide.id,
-          field: name,
-          message: `Field ${name} is ${value.text.length} chars, cap is ${cap}.`,
-        });
-      }
+  for (const [name, value] of Object.entries(slide.fields)) {
+    if (!value || typeof value === 'string' || typeof value === 'number') continue;
+    if (typeof (value as any).text !== 'string') continue;
+    const cap = l[name];
+    if (typeof cap !== 'number') continue;
+    const text = (value as any).text as string;
+    if (text.length > cap) {
+      flags.push({
+        slideId: slide.id,
+        field: name,
+        message: `Field ${name} is ${text.length} chars, cap is ${cap}.`,
+      });
     }
+  }
     // `items` is a list, not a Field; check each item's title.
     if (Array.isArray(slide.fields.items) && l.item_title) {
       const cap = l.item_title as number;

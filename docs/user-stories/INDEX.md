@@ -67,6 +67,7 @@ and TikTok (9:16). One user story per phase, each with a clear
 | Phase 0 — Brand kit and libraries | tokens, facts, voice, lint, libraries (50 drinks, 4 workout lines, 8 story episodes, 40 quit services), 8 pillar configs, 2 example posts | [ce-phase-0-brand-kit.md](./ce-phase-0-brand-kit.md) | this build | n/a |
 | Phase 1 — Renderer | React templates (4:5 + 9:16), Playwright export, 5 checks, 2 example posts rendered to PNGs | [ce-phase-1-renderer.md](./ce-phase-1-renderer.md) | this build | n/a |
 | Phase 2 — Generator | brief → outline → draft → checks → one retry, 5 hand-authored mock posts (one per library-backed pillar), all pass with zero flags, log of 15 entries | [ce-phase-2-generator.md](./ce-phase-2-generator.md) | this build | n/a |
+| Phase 3 — Editor | 3-pane editor, 9 API routes, 4 Supabase tables, version history, Rewrite (stubbed), correction capture, zip export, env-var auth gate | [ce-phase-3-editor.md](./ce-phase-3-editor.md) | this build | n/a |
 | Phase 2 — Generator | brief → outline → draft → checks → retry | (story pending — Phase 2) | — | n/a |
 | Phase 3 — Editor | canvas, field locks, Rewrite, versions, corrections, calendar, export | (story pending — Phase 3) | — | n/a |
 | Phase 4 — Member submissions | intake, consent, review, generation, withdrawal | (story pending — Phase 4) | — | n/a |
@@ -100,6 +101,16 @@ Phase 2 scripts:
 - `npm run render:drafts` — renders every draft in
   `out/drafts/` to PNGs. Confirms the generator's drafts
   round-trip through the renderer.
+
+Phase 3 editor:
+- `npm run build` — the new pages appear under `/editor`,
+  `/editor/[id]`, and the 9 routes under `/api/ce/...`.
+- Visit `/editor` to load the editor (default password
+  `fit50`; set `EDITOR_PASSWORD` to override).
+- The migration `supabase/migrations/0051_content_engine.sql`
+  creates `content_posts`, `content_post_versions`,
+  `content_corrections`, `content_generations`. Apply it via
+  the Supabase dashboard.
 
 ## How to use this catalogue
 
