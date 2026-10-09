@@ -12,8 +12,11 @@
     "check:brand": "node tools/content-engine/scripts/check-brand.mjs",
     "check:posts": "node tools/content-engine/scripts/validate-posts.mjs",
     "check:renderer": "tsx tools/content-engine/scripts/check-renderer.ts",
+    "check:generator": "tsx tools/content-engine/scripts/check-generator.ts",
     "render": "tsx tools/content-engine/scripts/render.ts",
-    "render:examples": "tsx tools/content-engine/scripts/render-examples.ts"
+    "render:examples": "tsx tools/content-engine/scripts/render-examples.ts",
+    "render:drafts": "tsx tools/content-engine/scripts/render-drafts.ts",
+    "generate": "tsx tools/content-engine/scripts/generate.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

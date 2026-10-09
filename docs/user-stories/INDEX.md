@@ -66,6 +66,7 @@ and TikTok (9:16). One user story per phase, each with a clear
 |---|---|---|---|---|
 | Phase 0 — Brand kit and libraries | tokens, facts, voice, lint, libraries (50 drinks, 4 workout lines, 8 story episodes, 40 quit services), 8 pillar configs, 2 example posts | [ce-phase-0-brand-kit.md](./ce-phase-0-brand-kit.md) | this build | n/a |
 | Phase 1 — Renderer | React templates (4:5 + 9:16), Playwright export, 5 checks, 2 example posts rendered to PNGs | [ce-phase-1-renderer.md](./ce-phase-1-renderer.md) | this build | n/a |
+| Phase 2 — Generator | brief → outline → draft → checks → one retry, 5 hand-authored mock posts (one per library-backed pillar), all pass with zero flags, log of 15 entries | [ce-phase-2-generator.md](./ce-phase-2-generator.md) | this build | n/a |
 | Phase 2 — Generator | brief → outline → draft → checks → retry | (story pending — Phase 2) | — | n/a |
 | Phase 3 — Editor | canvas, field locks, Rewrite, versions, corrections, calendar, export | (story pending — Phase 3) | — | n/a |
 | Phase 4 — Member submissions | intake, consent, review, generation, withdrawal | (story pending — Phase 4) | — | n/a |
@@ -86,6 +87,19 @@ Phase 1 scripts:
 - `npm run render -- <post.json>` — renders a single post to
   PNGs and a caption.txt in `tools/content-engine/out/`.
 - `npm run render:examples` — renders both example posts.
+
+Phase 2 scripts:
+- `npm run check:generator` — runs the brief smoke test for
+  the 5 library-backed pillars. Each pillar produces a draft
+  that validates against the Zod schema, passes every check,
+  and references real library entries. The generation log
+  records every call.
+- `npm run generate -- <brief.json> [--mock]` — generates
+  a single post from a brief JSON. `--mock` is the default for
+  CI; without it the real model is stubbed.
+- `npm run render:drafts` — renders every draft in
+  `out/drafts/` to PNGs. Confirms the generator's drafts
+  round-trip through the renderer.
 
 ## How to use this catalogue
 
