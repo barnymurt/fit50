@@ -232,3 +232,199 @@ export async function logCorrection(entry: {
     reason: entry.reason || null,
   });
 }
+
+// ---------------------------------------------------------------------------
+// Submissions (Phase 4)
+// ---------------------------------------------------------------------------
+
+export interface SubmissionRow {
+  id: string;
+  member_id: string;
+  type: 'progress' | 'book' | 'project';
+  answers: any;
+  photo_paths: string[];
+  credit_as: 'full_name' | 'first_name' | 'anonymous';
+  consent_scope: string;
+  consent_at: string;
+  withdrawn_at: string | null;
+  status: 'pending' | 'approved' | 'rejected';
+  created_at: string;
+  updated_at: string;
+}
+
+export async function listSubmissions(filter?: { status?: string; member_id?: string }): Promise<SubmissionRow[]> {
+  let q = admin().from('content_submissions').select('*').order('created_at', { ascending: false });
+  if (filter?.status) q = q.eq('status', filter.status);
+  if (filter?.member_id) q = q.eq('member_id', filter.member_id);
+  const { data, error } = await q;
+  if (error) throw new Error(`listSubmissions: ${error.message}`);
+  return (data || []) as SubmissionRow[];
+}
+
+export async function getSubmission(id: string): Promise<SubmissionRow | null> {
+  const { data, error } = await admin().from('content_submissions').select('*').eq('id', id).maybeSingle();
+  if (error) throw new Error(`getSubmission: ${error.message}`);
+  return data as SubmissionRow | null;
+}
+
+export async function createSubmission(input: {
+  member_id: string;
+  type: 'progress' | 'book' | 'project';
+  answers: any;
+  photo_paths?: string[];
+  credit_as: 'full_name' | 'first_name' | 'anonymous';
+  consent_scope: string;
+  consent_at: string;
+}): Promise<SubmissionRow> {
+  const sb = admin();
+  const id = `sub-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const { data, error } = await sb.from('content_submissions').insert({
+    id,
+    member_id: input.member_id,
+    type: input.type,
+    answers: input.answers,
+    photo_paths: input.photo_paths || [],
+    credit_as: input.credit_as,
+    consent_scope: input.consent_scope,
+    consent_at: input.consent_at,
+    status: 'pending',
+  }).select('*').single();
+  if (error) throw new Error(`createSubmission: ${error.message}`);
+  return data as SubmissionRow;
+}
+
+export async function approveSubmission(
+  id: string,
+  opts: { generate_post: boolean; pillar?: 'member-progress' | 'books-members-read' | 'passion-projects' }
+): Promise<{ submission: SubmissionRow; post: PostRow | null; version: VersionRow | null }> {
+  const submission = await getSubmission(id);
+  if (!submission) throw new Error('submission_not_found');
+  const sb = admin();
+  // Mark approved
+  const { data: updated, error: updErr } = await sb.from('content_submissions').update({
+    status: 'approved',
+    updated_at: new Date().toISOString(),
+  }).eq('id', id).select('*').single();
+  if (updErr) throw new Error(`approveSubmission: ${updErr.message}`);
+
+  let post: PostRow | null = null;
+  let version: VersionRow | null = null;
+
+  if (opts.generate_post && opts.pillar) {
+    const result = await createPostFromSubmission(updated, opts.pillar);
+    post = result.post;
+    version = result.version;
+  }
+
+  return { submission: updated as SubmissionRow, post, version };
+}
+
+export async function rejectSubmission(id: string, note?: string): Promise<SubmissionRow> {
+  const sb = admin();
+  const { data, error } = await sb.from('content_submissions').update({
+    status: 'rejected',
+    updated_at: new Date().toISOString(),
+  }).eq('id', id).select('*').single();
+  if (error) throw new Error(`rejectSubmission: ${error.message}`);
+  await sb.from('content_submissions').update({ updated_at: new Date().toISOString() }).eq('id', id); // no-op to ensure updated_at
+  return data as SubmissionRow;
+}
+
+export async function withdrawSubmission(id: string): Promise<{ submission: SubmissionRow; flaggedPosts: string[] }> {
+  const sb = admin();
+  // Set withdrawn_at
+  const { data: sub, error } = await sb.from('content_submissions').update({
+    withdrawn_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  }).eq('id', id).select('*').single();
+  if (error) throw new Error(`withdrawSubmission: ${error.message}`);
+
+  // Find every post using this submission and flag them
+  const { data: posts, error: postErr } = await sb.from('content_posts')
+    .select('id, current_version_id')
+    .eq('submission_id', id);
+  if (postErr) throw new Error(`withdrawSubmission posts: ${postErr.message}`);
+
+  const flaggedPosts: string[] = [];
+  for (const p of (posts || []) as any[]) {
+    if (!p.current_version_id) continue;
+    // Get current version, update checks.withdrawn, save a new version
+    const { data: ver } = await sb.from('content_post_versions').select('*').eq('id', p.current_version_id).maybeSingle();
+    if (!ver) continue;
+    const doc = ver.doc || {};
+    doc.checks = { ...(doc.checks || {}), withdrawn: true, withdrawn_at: new Date().toISOString() };
+    // Save as a new version (preserves history)
+    const { data: existing } = await sb.from('content_post_versions')
+      .select('version').eq('post_id', p.id).order('version', { ascending: false }).limit(1);
+    const nextVersion = (existing && existing[0]?.version) ? existing[0].version + 1 : 1;
+    const { data: newVer } = await sb.from('content_post_versions').insert({
+      post_id: p.id,
+      version: nextVersion,
+      doc,
+      saved_by: 'human',
+      note: `withdrawal of submission ${id}`,
+    }).select('*').single();
+    if (newVer) {
+      await sb.from('content_posts').update({ current_version_id: newVer.id, updated_at: new Date().toISOString() }).eq('id', p.id);
+      flaggedPosts.push(p.id);
+    }
+  }
+
+  return { submission: sub as SubmissionRow, flaggedPosts };
+}
+
+// Build a stub post from a submission. The editor fleshes it
+// out — the submission is the source of truth, but the
+// generator / editor paint the slides.
+async function createPostFromSubmission(
+  submission: SubmissionRow,
+  pillar: 'member-progress' | 'books-members-read' | 'passion-projects'
+): Promise<{ post: PostRow; version: VersionRow }> {
+  const id = `${submission.type}-${submission.id.slice(-8)}`;
+  // Stub doc: cover with credit line, then 1–3 slides from
+  // the answers, then a CTA. The editor will flesh this out.
+  const coverLine = creditLineFor(submission, pillar);
+  const doc = {
+    id,
+    type: 'carousel' as const,
+    platform: 'instagram' as const,
+    aspect: '4:5' as const,
+    pillar,
+    brief: `Member submission — ${submission.type}`,
+    status: 'draft' as const,
+    version: 1,
+    marquee: 'marquee_default',
+    source: { submission_id: submission.id, library: `libraries/submissions/${submission.type}.json` },
+    slides: [
+      { id: 's1', template: 'cover' as const, ground: 'ink' as const, fields: { headline: { text: coverLine, by: 'human' as const } } },
+      { id: 's2', template: 'statement' as const, ground: 'paper' as const, fields: { body: { text: JSON.stringify(submission.answers).slice(0, 100), by: 'human' as const } } },
+      { id: 's3', template: 'cta' as const, ground: 'paper' as const, fields: { headline: { text: 'Save this', by: 'human' as const }, button: { text: 'Read the rest', by: 'human' as const } } },
+    ],
+    caption: { text: `Member submission. ${coverLine}`, hashtags: [], by: 'human' as const },
+    checks: {},
+  };
+  return await createPost({
+    id,
+    pillar,
+    brief: `Member submission — ${submission.type}`,
+    aspect: '4:5',
+    platform: 'instagram',
+    marquee: 'marquee_default',
+    source: { submission_id: submission.id },
+  });
+}
+
+function creditLineFor(submission: SubmissionRow, pillar: string): string {
+  const a = submission.answers || {};
+  if (pillar === 'member-progress') {
+    const feeling = a.feeling ? ` — ${a.feeling}` : '';
+    return `Member progress${feeling}`;
+  }
+  if (pillar === 'books-members-read') {
+    return a.title ? `Read: ${a.title}` : 'Book pick';
+  }
+  if (pillar === 'passion-projects') {
+    return a.title ? `Project: ${a.title}` : 'Passion project';
+  }
+  return 'Member submission';
+}

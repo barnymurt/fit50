@@ -61,22 +61,31 @@ export default function EditorList() {
         <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 40, fontWeight: 400, color: '#1A1A1A', margin: 0 }}>
           Posts
         </h1>
-        <button
-          onClick={() => setShowNew((v) => !v)}
-          style={{
-            background: '#E88B5A',
-            color: '#FAF6EE',
-            border: 0,
-            padding: '14px 24px',
-            fontFamily: 'system-ui, sans-serif',
-            fontSize: 12,
-            letterSpacing: '0.12em',
-            textTransform: 'uppercase',
-            cursor: 'pointer',
-          }}
-        >
-          {showNew ? 'Cancel' : 'New post'}
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <Link href="/editor/submissions" style={{
+            background: 'rgba(26,26,26,0.08)', color: '#1A1A1A', border: 0, padding: '14px 20px',
+            fontFamily: 'system-ui, sans-serif', fontSize: 12, letterSpacing: '0.12em',
+            textTransform: 'uppercase', textDecoration: 'none',
+          }}>
+            Submissions
+          </Link>
+          <button
+            onClick={() => setShowNew((v) => !v)}
+            style={{
+              background: '#E88B5A',
+              color: '#FAF6EE',
+              border: 0,
+              padding: '14px 24px',
+              fontFamily: 'system-ui, sans-serif',
+              fontSize: 12,
+              letterSpacing: '0.12em',
+              textTransform: 'uppercase',
+              cursor: 'pointer',
+            }}
+          >
+            {showNew ? 'Cancel' : 'New post'}
+          </button>
+        </div>
       </div>
 
       {showNew && (

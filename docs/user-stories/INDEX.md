@@ -68,6 +68,7 @@ and TikTok (9:16). One user story per phase, each with a clear
 | Phase 1 — Renderer | React templates (4:5 + 9:16), Playwright export, 5 checks, 2 example posts rendered to PNGs | [ce-phase-1-renderer.md](./ce-phase-1-renderer.md) | this build | n/a |
 | Phase 2 — Generator | brief → outline → draft → checks → one retry, 5 hand-authored mock posts (one per library-backed pillar), all pass with zero flags, log of 15 entries | [ce-phase-2-generator.md](./ce-phase-2-generator.md) | this build | n/a |
 | Phase 3 — Editor | 3-pane editor, 9 API routes, 4 Supabase tables, version history, Rewrite (stubbed), correction capture, zip export, env-var auth gate | [ce-phase-3-editor.md](./ce-phase-3-editor.md) | this build | n/a |
+| Phase 4 — Member submissions | 3 intake forms (progress, books, projects), review queue, approve/reject/withdraw, withdrawal flags every post | [ce-phase-4-member-submissions.md](./ce-phase-4-member-submissions.md) | this build | n/a |
 | Phase 2 — Generator | brief → outline → draft → checks → retry | (story pending — Phase 2) | — | n/a |
 | Phase 3 — Editor | canvas, field locks, Rewrite, versions, corrections, calendar, export | (story pending — Phase 3) | — | n/a |
 | Phase 4 — Member submissions | intake, consent, review, generation, withdrawal | (story pending — Phase 4) | — | n/a |

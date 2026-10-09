@@ -342,6 +342,12 @@ export default function AccountPage() {
               : []),
             { id: 'workouts', label: 'Workouts' },
             { id: 'macro-calc', label: 'Macro calc' },
+            // Phase 4 — member submission intake forms. Each link
+            // points at a real /account/<type> route that posts to
+            // /api/ce/submissions.
+            { id: 'progress-submit',  label: 'Submit progress',  href: '/account/progress' },
+            { id: 'books-submit',     label: 'Submit book',      href: '/account/books' },
+            { id: 'projects-submit',  label: 'Submit project',   href: '/account/projects' },
             ...(profile?.is_premium
               ? [
                   { id: 'hydration', label: 'Hydration' },
