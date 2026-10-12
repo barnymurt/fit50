@@ -1,27 +1,37 @@
 import type { Metadata } from "next";
-import { Fraunces, Inter, Lilita_One } from "next/font/google";
+import localFont from "next/font/local";
 import Providers from "@/components/Providers";
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
 import "./globals.css";
 
-const fraunces = Fraunces({
+const fraunces = localFont({
   variable: "--font-display",
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
-  style: ["normal", "italic"],
+  display: "swap",
+  src: [
+    { path: "../../node_modules/@fontsource/fraunces/files/fraunces-latin-400-normal.woff2", weight: "400", style: "normal" },
+    { path: "../../node_modules/@fontsource/fraunces/files/fraunces-latin-400-italic.woff2", weight: "400", style: "italic" },
+    { path: "../../node_modules/@fontsource/fraunces/files/fraunces-latin-600-normal.woff2", weight: "600", style: "normal" },
+    { path: "../../node_modules/@fontsource/fraunces/files/fraunces-latin-700-normal.woff2", weight: "700", style: "normal" },
+  ],
 });
 
-const inter = Inter({
+const inter = localFont({
   variable: "--font-body",
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
+  display: "swap",
+  src: [
+    { path: "../../node_modules/@fontsource/inter/files/inter-latin-400-normal.woff2", weight: "400", style: "normal" },
+    { path: "../../node_modules/@fontsource/inter/files/inter-latin-500-normal.woff2", weight: "500", style: "normal" },
+    { path: "../../node_modules/@fontsource/inter/files/inter-latin-600-normal.woff2", weight: "600", style: "normal" },
+  ],
 });
 
-const lilitaOne = Lilita_One({
+const lilitaOne = localFont({
   variable: "--font-marquee",
-  subsets: ["latin"],
-  weight: "400",
+  display: "swap",
+  src: [
+    { path: "../../node_modules/@fontsource/lilita-one/files/lilita-one-latin-400-normal.woff2", weight: "400", style: "normal" },
+  ],
 });
 
 export const metadata: Metadata = {

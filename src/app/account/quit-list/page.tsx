@@ -1,24 +1,32 @@
 'use client';
 
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { Fraunces, Inter } from 'next/font/google';
+import localFont from 'next/font/local';
 
 /* ============================================================
-   Fonts — loaded via next/font, exposed as CSS custom properties
+   Fonts — loaded via next/font/local (offline @fontsource
+   files; see AGENTS.md for the Google-Fonts-to-local switch
+   Vercel requires). Exposed as CSS custom properties.
    ============================================================ */
-const fraunces = Fraunces({
-  subsets: ['latin'],
-  weight: ['300', '400', '600', '700', '900'],
-  style: ['normal', 'italic'],
-  variable: '--ql-font-display',
+const fraunces = localFont({
   display: 'swap',
+  variable: '--ql-font-display',
+  src: [
+    { path: '../../../../node_modules/@fontsource/fraunces/files/fraunces-latin-400-normal.woff2', weight: '400', style: 'normal' },
+    { path: '../../../../node_modules/@fontsource/fraunces/files/fraunces-latin-400-italic.woff2', weight: '400', style: 'italic' },
+    { path: '../../../../node_modules/@fontsource/fraunces/files/fraunces-latin-600-normal.woff2', weight: '600', style: 'normal' },
+    { path: '../../../../node_modules/@fontsource/fraunces/files/fraunces-latin-700-normal.woff2', weight: '700', style: 'normal' },
+  ],
 });
 
-const inter = Inter({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  variable: '--ql-font-body',
+const inter = localFont({
   display: 'swap',
+  variable: '--ql-font-body',
+  src: [
+    { path: '../../../../node_modules/@fontsource/inter/files/inter-latin-400-normal.woff2', weight: '400', style: 'normal' },
+    { path: '../../../../node_modules/@fontsource/inter/files/inter-latin-500-normal.woff2', weight: '500', style: 'normal' },
+    { path: '../../../../node_modules/@fontsource/inter/files/inter-latin-600-normal.woff2', weight: '600', style: 'normal' },
+  ],
 });
 
 /* ============================================================
