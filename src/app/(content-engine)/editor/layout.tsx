@@ -1,4 +1,5 @@
-import { isEditorSessionValid, isEditorPasswordValid } from '@/lib/editor-auth';
+import { isEditorSessionValid } from '@/lib/editor-auth';
+import { ErrorBanner } from './ErrorBanner';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,6 +15,7 @@ export default async function EditorLayout({ children }: { children: React.React
         <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 32, fontWeight: 400, color: '#1A1A1A', margin: '8px 0 24px' }}>
           Sign in
         </h1>
+        <ErrorBanner />
         <form method="post" action="/api/ce/auth">
           <label style={{ display: 'block', fontFamily: 'system-ui, sans-serif', fontSize: 12, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(26,26,26,0.5)', marginBottom: 8 }}>
             Editor password
