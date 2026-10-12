@@ -2,10 +2,10 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
 import { ConsentStatement } from '@/components/member/ConsentStatement';
 
 const PALETTE = { ink: '#1A1A1A', paper: '#FAF6EE' };
+const MARKETING_MEMBER_ID = 'marketing-team';
 
 interface Milestone {
   date: string;
@@ -14,7 +14,6 @@ interface Milestone {
 
 export default function ProjectsForm() {
   const router = useRouter();
-  const { user, profile } = useAuth();
   const [title, setTitle] = useState('');
   const [milestones, setMilestones] = useState<Milestone[]>([
     { date: '', text: '' },
@@ -29,23 +28,15 @@ export default function ProjectsForm() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [photoPaths, setPhotoPaths] = useState('');
 
-  function addMilestone() {
-    setMilestones((m) => [...m, { date: '', text: '' }]);
-  }
-  function removeMilestone(i: number) {
-    setMilestones((m) => m.filter((_, j) => j !== i));
-  }
+  function addMilestone() { setMilestones((m) => [...m, { date: '', text: '' }]); }
+  function removeMilestone(i: number) { setMilestones((m) => m.filter((_, j) => j !== i)); }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setConsentError(null);
     setSubmitError(null);
     if (!agreed) {
-      setConsentError('You need to agree to the consent statement before submitting.');
-      return;
-    }
-    if (!user) {
-      setSubmitError('Sign in first.');
+      setConsentError('Tick the consent box before saving.');
       return;
     }
     const cleaned = milestones.filter((m) => m.date && m.text.trim());
@@ -58,7 +49,7 @@ export default function ProjectsForm() {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
-        member_id: user.id,
+        member_id: MARKETING_MEMBER_ID,
         type: 'project',
         answers: {
           title,
@@ -74,30 +65,23 @@ export default function ProjectsForm() {
     setSubmitting(false);
     const j = await r.json();
     if (r.ok) {
-      router.push(`/account?submitted=project`);
+      router.push('/editor/submissions');
     } else {
-      setSubmitError(j.error || 'Submit failed.');
+      setSubmitError(j.error || 'Save failed.');
     }
   }
 
   return (
     <div style={{ padding: '32px 24px', maxWidth: 720, margin: '0 auto' }}>
+      <p style={{ fontFamily: 'system-ui, sans-serif', fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#E88B5A', margin: '0 0 8px' }}>
+        Marketing tool · project
+      </p>
       <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 40, fontWeight: 400, color: PALETTE.ink, margin: '0 0 8px' }}>
-        Passion project
+        New passion-project submission
       </h1>
       <p style={{ fontFamily: 'system-ui, sans-serif', fontSize: 14, color: 'rgba(26,26,26,0.7)', margin: '0 0 24px' }}>
-        What you built across the 50 days. 3–5 milestones with dates and a one-line description of the finished artefact.
+        What the member built across the 50 days. 3–5 milestones with dates and a one-line description of the finished artefact.
       </p>
-      {!user && (
-        <p style={{ background: 'rgba(232,139,90,0.10)', border: '1px solid #E88B5A', padding: 12, fontFamily: 'system-ui, sans-serif', fontSize: 13, color: '#1A1A1A' }}>
-          You need to be signed in. <a href="/account?next=/account/projects" style={{ color: '#E88B5A' }}>Sign in first</a>.
-        </p>
-      )}
-      {user && !profile?.is_premium && (
-        <p style={{ background: 'rgba(242,217,162,0.19)', border: '1px solid rgba(26,26,26,0.20)', padding: 12, fontFamily: 'system-ui, sans-serif', fontSize: 13, color: '#1A1A1A' }}>
-          Project posts are a premium feature. The editor reviews each submission before any post goes out. <a href="/upgrade" style={{ color: '#E88B5A' }}>Upgrade to premium</a> to submit.
-        </p>
-      )}
       <form onSubmit={submit} style={{ display: 'grid', gap: 16 }}>
         <Field label="Project title">
           <input value={title} onChange={(e) => setTitle(e.target.value)} required style={inputStyle} />
@@ -126,7 +110,7 @@ export default function ProjectsForm() {
         </Field>
         <Field label="Credit preference">
           <select value={creditAs} onChange={(e) => setCreditAs(e.target.value as any)} style={inputStyle}>
-            <option value="full_name">{profile?.display_name || 'full name'}</option>
+            <option value="full_name">full name</option>
             <option value="first_name">first name only</option>
             <option value="anonymous">anonymous</option>
           </select>
@@ -138,7 +122,7 @@ export default function ProjectsForm() {
           fontFamily: 'system-ui, sans-serif', fontSize: 12, letterSpacing: '0.12em',
           textTransform: 'uppercase', cursor: submitting ? 'default' : 'pointer', opacity: submitting ? 0.5 : 1,
         }}>
-          {submitting ? 'Submitting…' : 'Submit project'}
+          {submitting ? 'Saving…' : 'Save to review queue'}
         </button>
       </form>
     </div>

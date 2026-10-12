@@ -2,18 +2,22 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
 import { ConsentStatement } from '@/components/member/ConsentStatement';
 
-const PALETTE = { ink: '#1A1A1A', paper: '#FAF6EE' };
+// Marketing-team intake for member-progress submissions. Lives
+// behind the editor's env-var password gate. The form posts to
+// /api/ce/submissions, which (in this same change) requires the
+// editor session cookie. member_id is set to a stable marketing
+// placeholder so the submission is attributable in the audit log.
 
-export default function BooksForm() {
+const PALETTE = { ink: '#1A1A1A', paper: '#FAF6EE' };
+const MARKETING_MEMBER_ID = 'marketing-team';
+
+export default function ProgressForm() {
   const router = useRouter();
-  const { user, profile } = useAuth();
-  const [title, setTitle] = useState('');
-  const [author, setAuthor] = useState('');
-  const [ideas, setIdeas] = useState<string[]>(['', '', '']);
-  const [attributed, setAttributed] = useState('');
+  const [habits, setHabits] = useState<string[]>(['', '', '']);
+  const [streak, setStreak] = useState('');
+  const [feeling, setFeeling] = useState('');
   const [creditAs, setCreditAs] = useState<'full_name' | 'first_name' | 'anonymous'>('first_name');
   const [agreed, setAgreed] = useState(false);
   const [consentError, setConsentError] = useState<string | null>(null);
@@ -26,114 +30,99 @@ export default function BooksForm() {
     setConsentError(null);
     setSubmitError(null);
     if (!agreed) {
-      setConsentError('You need to agree to the consent statement before submitting.');
-      return;
-    }
-    if (!user) {
-      setSubmitError('Sign in first.');
+      setConsentError('Tick the consent box before saving.');
       return;
     }
     setSubmitting(true);
-    const cleanedIdeas = ideas.map((s) => s.trim()).filter(Boolean);
-    if (attributed && attributed.split(/\s+/).length > 30) {
-      setSubmitError('Quoted line must be under 30 words.');
-      setSubmitting(false);
-      return;
-    }
+    const photos = photoPaths.split('\n').map((s) => s.trim()).filter(Boolean);
+    const cleanedHabits = habits.map((h) => h.trim()).filter(Boolean);
     const r = await fetch('/api/ce/submissions', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
-        member_id: user.id,
-        type: 'book',
+        member_id: MARKETING_MEMBER_ID,
+        type: 'progress',
         answers: {
-          title,
-          author,
-          ideas: cleanedIdeas,
-          attributed_line: attributed,
+          habits: cleanedHabits,
+          streak: parseInt(streak || '0', 10) || 0,
+          feeling,
         },
-        photo_paths: photoPaths.split('\n').map((s) => s.trim()).filter(Boolean),
+        photo_paths: photos,
         credit_as: creditAs,
-        consent_scope: 'books-members-read',
+        consent_scope: 'member-progress',
         consent_at: new Date().toISOString(),
       }),
     });
     setSubmitting(false);
     const j = await r.json();
     if (r.ok) {
-      router.push(`/account?submitted=book`);
+      router.push('/editor/submissions');
     } else {
-      setSubmitError(j.error || 'Submit failed.');
+      setSubmitError(j.error || 'Save failed.');
     }
   }
 
   return (
     <div style={{ padding: '32px 24px', maxWidth: 720, margin: '0 auto' }}>
+      <p style={{ fontFamily: 'system-ui, sans-serif', fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#E88B5A', margin: '0 0 8px' }}>
+        Marketing tool · progress
+      </p>
       <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 40, fontWeight: 400, color: PALETTE.ink, margin: '0 0 8px' }}>
-        Book pick
+        New member-progress submission
       </h1>
       <p style={{ fontFamily: 'system-ui, sans-serif', fontSize: 14, color: 'rgba(26,26,26,0.7)', margin: '0 0 24px' }}>
-        What you are reading. The book and 1–3 ideas in your own words. One short quoted line, if any.
+        What the member actually did in the last stretch. Habits, the streak, and how they felt. Submit to the editor's review queue.
       </p>
-      {!user && (
-        <p style={{ background: 'rgba(232,139,90,0.10)', border: '1px solid #E88B5A', padding: 12, fontFamily: 'system-ui, sans-serif', fontSize: 13, color: '#1A1A1A' }}>
-          You need to be signed in. <a href="/account?next=/account/books" style={{ color: '#E88B5A' }}>Sign in first</a>.
-        </p>
-      )}
-      {user && !profile?.is_premium && (
-        <p style={{ background: 'rgba(242,217,162,0.19)', border: '1px solid rgba(26,26,26,0.20)', padding: 12, fontFamily: 'system-ui, sans-serif', fontSize: 13, color: '#1A1A1A' }}>
-          Book picks are a premium feature. The editor reviews each submission before any post goes out. <a href="/upgrade" style={{ color: '#E88B5A' }}>Upgrade to premium</a> to submit.
-        </p>
-      )}
       <form onSubmit={submit} style={{ display: 'grid', gap: 16 }}>
-        <Field label="Title">
-          <input value={title} onChange={(e) => setTitle(e.target.value)} required style={inputStyle} />
-        </Field>
-        <Field label="Author">
-          <input value={author} onChange={(e) => setAuthor(e.target.value)} required style={inputStyle} />
-        </Field>
-        <Field label="Ideas (1–3, in your own words)">
+        <Field label="Habits (1–3)">
           {[0, 1, 2].map((i) => (
             <input
               key={i}
-              value={ideas[i]}
-              onChange={(e) => setIdeas((a) => a.map((v, j) => (i === j ? e.target.value : v)))}
-              placeholder={`Idea ${i + 1}`}
+              value={habits[i]}
+              onChange={(e) => setHabits((h) => h.map((v, j) => (i === j ? e.target.value : v)))}
+              placeholder={`Habit ${i + 1}`}
               style={inputStyle}
             />
           ))}
         </Field>
-        <Field label="One short quoted line (optional, under 30 words)">
-          <textarea
-            value={attributed}
-            onChange={(e) => setAttributed(e.target.value)}
-            rows={2}
-            style={{ ...inputStyle, height: 'auto', resize: 'vertical', fontFamily: 'system-ui, sans-serif' }}
+        <Field label="Streak (days, 0–50)">
+          <input
+            type="number"
+            min={0}
+            max={50}
+            value={streak}
+            onChange={(e) => setStreak(e.target.value)}
+            placeholder="0"
+            style={inputStyle}
           />
         </Field>
-        <Field label="Photo paths (cover image, one per line)">
+        <Field label="How they felt (one line)">
+          <input value={feeling} onChange={(e) => setFeeling(e.target.value)} placeholder="Rougher day 32 than I expected" style={inputStyle} />
+        </Field>
+        <Field label="Photo paths (one per line, optional)">
           <textarea
             value={photoPaths}
             onChange={(e) => setPhotoPaths(e.target.value)}
-            rows={2}
+            placeholder={'/path/to/day-1.jpg\n/path/to/day-50.jpg'}
+            rows={3}
             style={{ ...inputStyle, height: 'auto', resize: 'vertical', fontFamily: 'system-ui, sans-serif' }}
           />
         </Field>
         <Field label="Credit preference">
           <select value={creditAs} onChange={(e) => setCreditAs(e.target.value as any)} style={inputStyle}>
-            <option value="full_name">{profile?.display_name || 'full name'}</option>
+            <option value="full_name">full name</option>
             <option value="first_name">first name only</option>
             <option value="anonymous">anonymous</option>
           </select>
         </Field>
-        <ConsentStatement type="book" checked={agreed} onChange={setAgreed} error={consentError} />
+        <ConsentStatement type="progress" checked={agreed} onChange={setAgreed} error={consentError} />
         {submitError && <p style={{ color: '#E88B5A', fontFamily: 'system-ui, sans-serif', fontSize: 13 }} role="alert">{submitError}</p>}
         <button type="submit" disabled={submitting} style={{
           background: '#1A1A1A', color: '#FAF6EE', border: 0, padding: '14px 20px',
           fontFamily: 'system-ui, sans-serif', fontSize: 12, letterSpacing: '0.12em',
           textTransform: 'uppercase', cursor: submitting ? 'default' : 'pointer', opacity: submitting ? 0.5 : 1,
         }}>
-          {submitting ? 'Submitting…' : 'Submit book pick'}
+          {submitting ? 'Saving…' : 'Save to review queue'}
         </button>
       </form>
     </div>

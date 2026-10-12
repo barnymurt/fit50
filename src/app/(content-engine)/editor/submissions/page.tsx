@@ -39,6 +39,12 @@ export default function SubmissionsList() {
         <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 40, fontWeight: 400, color: PALETTE.ink, margin: 0 }}>
           Submissions
         </h1>
+        <span style={{ flex: 1 }} />
+        <div style={{ display: 'flex', gap: 8 }}>
+          <Link href="/editor/submissions/new/progress" style={navLinkBtn}>+ Progress</Link>
+          <Link href="/editor/submissions/new/books" style={navLinkBtn}>+ Book</Link>
+          <Link href="/editor/submissions/new/projects" style={navLinkBtn}>+ Project</Link>
+        </div>
       </div>
 
       <div style={{ marginBottom: 16 }}>
@@ -140,4 +146,15 @@ const tdStyle: React.CSSProperties = {
   fontFamily: 'system-ui, sans-serif',
   fontSize: 13,
   color: '#1A1A1A',
+};
+
+const navLinkBtn: React.CSSProperties = {
+  background: 'rgba(26,26,26,0.08)',
+  color: '#1A1A1A',
+  padding: '8px 14px',
+  fontFamily: 'system-ui, sans-serif',
+  fontSize: 11,
+  letterSpacing: '0.08em',
+  textTransform: 'uppercase',
+  textDecoration: 'none',
 };
