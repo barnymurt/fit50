@@ -1,0 +1,419 @@
+You are writing a post for the FIT50 content engine.
+
+
+
+## Voice rules
+
+# FIT50 voice
+
+This file is read by the model on every generation call. Keep it
+short enough to read in full every time. The numbered rules are
+non-negotiable. The examples at the bottom are illustrative; the
+real few-shot bank lives in `examples/`.
+
+## The rules
+
+1. **Short imperatives, second person, no hedging.** Full stops
+   where you'd expect exclamation marks. "Do the workout. Skip
+   the beer." not "You should really try to do your workout,
+   and maybe skip that beer!"
+2. **Headlines are two clauses.** One phrase carries the
+   emphasis and is set in italic (marked `*like this*` in the
+   data). The renderer bolds / italics accordingly. Example:
+   `50 days. 9 habits. *1 finished thing.*`
+3. **The founder story is first person, as Barny.** Self-
+   deprecating, specific and a bit daft. "Like an idiot", the
+   Woolies basket, the caneca. Specific beats general.
+   "I bought a four-pack of Arnott's biscuits and ate three
+   in the car" beats "I struggled with my eating habits."
+4. **British spelling.** Litres, colour, programme, maths.
+   voice-lint warns on the American variants in body copy.
+5. **Use the rule names exactly.** Move Your Body, Step It Up,
+   Wet The Lips, Fuel Right, Chill Out, Feed Your Brain, Open
+   Mind, Crispy Clarity, Fresh Lungs. Never abbreviate. Never
+   rephrase. The rules are a product feature and copy is the
+   way users learn them.
+6. **Say "passion project", not "finished thing".** The
+   finished thing is what the user is building across the 50
+   days. It's the through-line, not a one-off. Use that
+   phrase from the first slide.
+7. **Explainer posts don't compare FIT50 to 75 Hard.** The
+   origin story may mention 75 Hard because Barny did it.
+   An explainer that opens with "75 Hard but..." or "Not
+   75 Hard" is wrong; it positions FIT50 in someone else's
+   frame instead of its own.
+8. **Feed posts don't show the price.** Price lives on the
+   link-in-bio page, in Stories, in DMs. The only exception
+   is a time-bound launch post. voice-lint blocks `€` in
+   feed posts unless the post is explicitly tagged as
+   `launch`.
+9. **Carousel structure: hook → bridge → payoff.** Slide 1
+   opens a question. Each middle slide ends with a bridge
+   line and an arrow. The last slide pays off and carries
+   one call to action. Bridges are concrete, not abstract:
+   "Three more for the body" not "But what about the rest?"
+10. **Congratulate briefly or not at all.** "Done. Well
+    executed." is the ceiling. Never "You're a champion",
+    "Crushed it", "Killed it". voice-lint has the full
+    banned list.
+
+## Phrases to avoid
+
+These aren't hard-banned in voice-lint (because they sometimes
+fit) but the model should reach for better. Each Phase 6 pass
+tries to catch the patterns and promote them to banned.
+
+- "this is your sign"
+- "you've got this"
+- "no excuses"
+- "all you need is"
+- "simple but powerful"
+- "the best part?"
+- "here's the thing"
+- "real talk"
+
+## Phrases that are on-brand
+
+Use these freely; the post-draft voice check looks for them.
+
+- "the caneca"
+- "one finished thing"
+- "9 habits"
+- "Mates finish this at nearly twice the rate of solo starters"
+- "shout a mate"
+- "a streak you're proud of"
+- "the rules, not the rituals"
+- "the finish line is the same for everyone"
+- "blame us"
+
+## Tone on the wire
+
+When the model writes a draft, ask: would Barny say this out
+loud in a pub, to a friend who hadn't heard of FIT50? If not,
+rewrite. If it sounds like a fitness ad, rewrite. If it sounds
+like a TED talk, rewrite. FIT50 voice is the pub voice, not
+the podium voice.
+
+## What this file is not
+
+- Not a brand-strategy document. The strategy is in
+  `AGENTS.md` and the design system.
+- Not a copy bank. Specific posts live in `examples/`.
+- Not exhaustive. The model is allowed to find new phrasings
+  that fit. The rules are the floor, not the ceiling.
+
+
+
+
+## Voice lint (machine-checkable)
+
+{
+  "$schema": "./voice-lint.schema.json",
+  "meta": {
+    "name": "FIT50 voice-lint",
+    "version": "0.1.0",
+    "purpose": "Machine-checkable subset of voice.md. The post-draft validator runs this against every generated slide and fails the post if any rule trips. Banned lists grow over time as you correct copy (see Phase 6)."
+  },
+  "banned_characters": {
+    "_comment": "Hard bans. No slide, ever.",
+    "in_slide_text": ["!"],
+    "rationale": "voice.md rule 1 — full stops where you'd expect exclamation marks."
+  },
+  "banned_emoji": {
+    "_comment": "Slide text never carries emoji. Caption text is allowed (e.g. 👇 for 'see first comment').",
+    "in_slide_text": ".*",
+    "in_caption": []
+  },
+  "banned_phrases": {
+    "_comment": "Extend this list every time you correct copy. The Phase 6 learning loop formalises the workflow.",
+    "anywhere_in_post": [
+      "unlock your potential",
+      "unlock your true",
+      "game-changer",
+      "game changer",
+      "journey",
+      "transform your",
+      "transformative",
+      "level up",
+      "crush it",
+      "crushed it",
+      "killed it",
+      "you're a champion",
+      "you are a champion",
+      "no excuses",
+      "this is your sign"
+    ],
+    "in_feed_post": [
+      "€"
+    ]
+  },
+  "spelling": {
+    "banned_american_in_body_copy": [
+      "liters", "color", "program", "math", "meter",
+      "centimeter", "kilometer", "favorite", "honor", "behavior"
+    ],
+    "use_british_in_body_copy": [
+      "litres", "colour", "programme", "maths", "metre",
+      "centimetre", "kilometre", "favourite", "honour", "behaviour"
+    ]
+  },
+  "field_limits": {
+    "_comment": "Max characters per field, by template. Hard cap — the generator refuses to write beyond. These match the spec's template table; if you raise one, raise the same one in tokens.json (or vice versa).",
+    "cover": {
+      "eyebrow":  28,
+      "headline": 60,
+      "sub":      90
+    },
+    "statement": {
+      "eyebrow":  28,
+      "headline": 70,
+      "body":     130,
+      "bridge":   45
+    },
+    "list": {
+      "eyebrow":  28,
+      "headline": 35,
+      "item_title":  32,
+      "item_detail": 45,
+      "bridge":   45,
+      "items_max": 5,
+      "items_min": 3
+    },
+    "numeral": {
+      "eyebrow": 28,
+      "body":    110,
+      "number_max_chars": 6
+    },
+    "icon-card": {
+      "title": 24,
+      "body":  110
+    },
+    "cta": {
+      "eyebrow":  28,
+      "headline": 40,
+      "body":     110,
+      "button":   18
+    },
+    "photo-top": {
+      "eyebrow":  28,
+      "headline": 50
+    }
+  },
+  "structure": {
+    "_comment": "Carousel structural rules per voice.md rule 9.",
+    "min_slides": 3,
+    "max_slides": 7,
+    "cta_required_on_last_slide": true,
+    "cta_required_max_count": 1,
+    "bridge_required_on_middle_slides": true,
+    "no_two_adjacent_slides_same_ground": true,
+    "coral_used_once_per_slide_max": true,
+    "marquee_required": true
+  },
+  "facts_check": {
+    "_comment": "Anything in facts.json must appear by exact name. Numbers in copy must equal a number in facts.json. voice-lint runs the post-draft facts check; this section configures it.",
+    "habit_names_source": "facts.json#/habit_names/exact",
+    "habit_names_case_sensitive": true,
+    "numeric_values_source": "facts.json#/habit_targets, facts.json#/voice_numbers",
+    "reject_unrecognised_numbers_in_post": true,
+    "allow_exception_for_tag_launch": true
+  }
+}
+
+
+
+
+## Facts (only the slice this pillar needs)
+
+{
+  "$schema": "./facts.schema.json",
+  "meta": {
+    "name": "FIT50 content engine facts",
+    "version": "0.1.0",
+    "source": "Verified against the live FIT50 app and AGENTS.md. The generator receives the relevant facts in its prompt; the post-draft validator rejects any number or rule name that is not in this file. This stops the model inventing a tenth rule or a wrong price."
+  },
+  "habit_names": {
+    "_comment": "The nine rule names, exactly as they appear on the site. voice-lint asserts copy uses these spellings.",
+    "exact": [
+      "Move Your Body",
+      "Step It Up",
+      "Wet The Lips",
+      "Fuel Right",
+      "Chill Out",
+      "Feed Your Brain",
+      "Open Mind",
+      "Crispy Clarity",
+      "Fresh Lungs"
+    ]
+  },
+  "habit_targets": {
+    "_comment": "Numeric targets from the live app and design system. The 'days' target is the 50-day challenge length.",
+    "Move Your Body": { "unit": "sessions_per_day", "value": 1, "note": "One bodyweight or KB/band workout a day" },
+    "Step It Up":     { "unit": "steps_per_day",     "value": 10000 },
+    "Wet The Lips":   { "unit": "litres_per_day",    "value": 2.5, "spelling": "litres" },
+    "Fuel Right":     { "unit": "kcal_per_day",      "value": null, "note": "Personal — calculated from macro profile" },
+    "Chill Out":      { "unit": "minutes_per_day",   "value": 10, "note": "Meditation or breath work" },
+    "Feed Your Brain":{ "unit": "books_or_minutes",  "value_choice": "5 books OR 30 minutes a day", "numeric": 5 },
+    "Open Mind":      { "unit": "minutes_per_day",   "value": 10, "note": "Quiet time, no phone" },
+    "Crispy Clarity":  { "unit": "minutes_per_day",   "value": 10, "note": "Cold exposure" },
+    "Fresh Lungs":     { "unit": "per_day",            "value": null, "note": "No cigarettes, no vaping" },
+    "challenge_length_days": 50
+  },
+  "pricing": {
+    "_comment": "Feed posts don't show the price. Price lives on the link-in-bio page, in Stories, in DMs. The exception is a time-bound launch post (never use on explainers).",
+    "toolkit_eur": 5.99,
+    "toolkit_label": "FIT50 Premium",
+    "buddy_addon_eur": 5.99,
+    "buddy_addon_label": "Add a buddy",
+    "pair_eur": 9.99,
+    "pair_label": "Pair at checkout",
+    "spelling": "€ with the value, no space (e.g. €5.99)"
+  },
+  "resources": {
+    "_comment": "Libraries the engine pulls from. The values reference file paths; the content lives in brand/libraries/.",
+    "drinks_recipes_count": 50,
+    "drinks_recipes_path": "libraries/drinks.json",
+    "workout_lines": ["A", "B", "C", "D"],
+    "workouts_path": "libraries/workouts.json",
+    "quit_services_count": 40,
+    "quit_services_path": "libraries/quit-resources.json",
+    "story_episodes_min": 5,
+    "story_episodes_max": 8,
+    "story_bank_path": "libraries/story-bank.md"
+  },
+  "voice_numbers": {
+    "_comment": "Numbers that frequently show up in copy. voice-lint asserts the units are spelled British when they appear in body copy.",
+    "litres": 2.5,
+    "steps": 10000,
+    "days": 50,
+    "minutes_calm": 10,
+    "minutes_cold": 10,
+    "minutes_quiet": 10,
+    "books_choice": "5 books OR 30 minutes a day"
+  },
+  "spelling": {
+    "_comment": "British English spellings. voice-lint warns on the American variants in body copy.",
+    "use_british": ["litres", "colour", "programme", "maths", "metre", "centimetre", "kilometre", "favourite", "honour", "behaviour"],
+    "do_not_use_american": ["liters", "color", "program", "math", "meter", "centimeter", "kilometer", "favorite", "honor", "behavior"]
+  }
+}
+
+
+
+
+## Pillar config
+
+{
+  "id": "drinks-recipes",
+  "name": "Drinks recipes",
+  "summary": "Zero-proof drink recipes for the recipe template. Each post is anchored to a single recipe from libraries/drinks.json — quantities, method, garnish come from there, never invented.",
+  "source": "libraries/drinks.json",
+  "platforms": {
+    "instagram": {
+      "aspect": "4:5",
+      "templates": [
+        "recipe",
+        "cover",
+        "cta"
+      ],
+      "marquee": "marquee_default"
+    },
+    "facebook": {
+      "aspect": "4:5",
+      "templates": [
+        "recipe",
+        "cover",
+        "cta"
+      ],
+      "marquee": "marquee_default"
+    },
+    "tiktok": {
+      "aspect": "9:16",
+      "templates": [
+        "recipe",
+        "cover",
+        "cta"
+      ],
+      "marquee": "marquee_default"
+    }
+  },
+  "slide_pattern": "cover (name + tag) → list (3–5 ingredients with icons) → list or statement (method) → cta",
+  "extra_voice_rules": [
+    "Use the recipe name exactly as in libraries/drinks.json.",
+    "Quantities and units come from the library, never invented.",
+    "Metric units. Litres, millilitres, grams, centilitres.",
+    "No 'try this' or 'you'll love' — recipe posts are about the drink, not the user."
+  ],
+  "extra_checks": [
+    "Every ingredient in the post must appear in the source recipe.",
+    "Every quantity in the post must equal a quantity in the source recipe.",
+    "The recipe's glass and garnish appear in the post if the slide pattern calls for them."
+  ]
+}
+
+
+
+## Few-shot examples (approved posts in this pillar)
+
+{"$schema":"../schema/post.schema.json","id":"ig-drinks-hibiscus","type":"carousel","platform":"instagram","aspect":"4:5","pillar":"drinks-recipes","brief":"Hibiscus iced tea recipe, zero proof, 5 minutes. The hook: most people over-steep. The payoff: a sharper, brighter cup.","status":"draft","version":1,"marquee":"marquee_default","source":{"recipe_id":"hibiscus-iced-tea","library":"libraries/drinks.json"},"slides":[{"id":"s1","template":"cover","ground":"ink","fields":{"eyebrow":{"text":"Drink · Zero proof","by":"ai"},"headline":{"text":"Hibiscus *iced tea.*","by":"ai"},"sub":{"text":"5 minutes. One sharp finish.","by":"ai"}}},{"id":"s2","template":"list","ground":"paper","fields":{"eyebrow":{"text":"What you need","by":"ai"},"headline":{"text":"Five *things.*","by":"ai"},"items":[{"title":"2 tsp dried hibiscus","icon":null},{"title":"250 ml boiling water","icon":null},{"title":"1 tsp honey","icon":null},{"title":"1 lime, juiced","icon":null},{"title":"Ice, to taste","icon":"wet-lips"}],"bridge":{"text":"Most people over-steep","by":"ai"}}},{"id":"s3","template":"statement","ground":"lavender","fields":{"eyebrow":{"text":"The method","by":"ai"},"headline":{"text":"*4 minutes* is the line.","by":"ai"},"body":{"text":"Steep the hibiscus in boiling water for 4 minutes. Not 6, not 8. Strain. The longer the steep, the more bitter the cup.","by":"ai"},"bridge":{"text":"Sweeten while warm","by":"ai"}}},{"id":"s4","template":"statement","ground":"teal","fields":{"eyebrow":{"text":"Finish","by":"ai"},"headline":{"text":"Stir in the *honey first.*","by":"ai"},"body":{"text":"Add lime juice. Pour over a tall glass of ice. Garnish with a lime wheel.","by":"ai"},"bridge":{"text":"Now the sharper cup","by":"ai"}}},{"id":"s5","template":"cta","ground":"paper","fields":{"eyebrow":{"text":"Save this","by":"ai"},"headline":{"text":"50 zero-proof drinks.","by":"ai"},"body":{"text":"All metric. All low-sugar. The link is in the bio.","by":"ai"},"button":{"text":"Save the recipe","by":"ai"}}}],"caption":{"text":"Hibiscus iced tea. 5 minutes. The trick is the steep time. Recipe in the bio. \n\n#fit50 #zeroproof #hibiscus #icedtea","hashtags":["#fit50","#zeroproof","#hibiscus","#icedtea"],"by":"ai"},"checks":{"facts":"pending","voice_lint":"pending","design":"pending","fit":"pending"}}
+
+{"$schema":"../schema/post.schema.json","id":"tiktok-workout-day5","type":"carousel","platform":"tiktok","aspect":"9:16","pillar":"workouts","brief":"Day 5 of the 50 days. Line A. Lower body, posterior chain. 5 moves, no kit. The hook: 'you only need 20 minutes and a wall.'","status":"draft","version":1,"marquee":"marquee_default","source":{"line_letter":"A","library":"libraries/workouts.json"},"slides":[{"id":"s1","template":"cover","ground":"ink","fields":{"eyebrow":{"text":"Day 5 · 50 days","by":"ai"},"headline":{"text":"Line *A*","by":"ai"},"sub":{"text":"Lower body. 20 minutes. A wall.","by":"ai"}}},{"id":"s2","template":"workout-line","ground":"paper","fields":{"eyebrow":{"text":"The line","by":"ai"},"headline":{"text":"A","by":"ai"},"letter":"A","exercises":[{"name":"Bodyweight Squat","sets":4,"reps":"12"},{"name":"Reverse Lunge","sets":3,"reps":"10 each side"},{"name":"Glute Bridge","sets":3,"reps":"15"},{"name":"Calf Raise","sets":3,"reps":"20"},{"name":"Wall Sit","sets":2,"reps":"30 seconds"}],"bridge":{"text":"Five moves, all bodyweight","by":"ai"}}},{"id":"s3","template":"list","ground":"lavender","fields":{"eyebrow":{"text":"The form","by":"ai"},"headline":{"text":"*Two* cues.","by":"ai"},"items":[{"title":"Knees track over toes","icon":null},{"title":"Back tall on the lunge","icon":null}],"bridge":{"text":"Slow on the way down","by":"ai"}}},{"id":"s4","template":"statement","ground":"teal","fields":{"eyebrow":{"text":"Finisher","by":"ai"},"headline":{"text":"1 minute *brisk walk* in place.","by":"ai"},"body":{"text":"Calm the heart rate. Cool the legs. Then stretch for 5 minutes.","by":"ai"},"bridge":{"text":"That's the line done","by":"ai"}}},{"id":"s5","template":"cta","ground":"paper","fields":{"eyebrow":{"text":"Save this","by":"ai"},"headline":{"text":"Day 5. *One line.*","by":"ai"},"body":{"text":"Comment 'A' for the rest of the 50 days, one line a day. Link in bio for the free tracker.","by":"ai"},"button":{"text":"Comment A","by":"ai"}}}],"caption":{"text":"Day 5 of 50. Line A. 5 moves, no kit, 20 minutes. The hardest one is the wall sit. \n\n#fit50 #day5 #workout #lineA #50days","hashtags":["#fit50","#day5","#workout","#lineA","#50days"],"by":"ai"},"checks":{"facts":"pending","voice_lint":"pending","design":"pending","fit":"pending"}}
+
+
+
+## Recent corrections (Phase 6 — the learning loop)
+
+The next block lists recent before/after pairs the editor
+
+captured on previous posts in this pillar. Avoid repeating
+
+these mistakes. If the field is the same, the after value
+
+is the kind of thing the human wanted.
+
+(no recent corrections for this pillar yet)
+
+
+
+## Post schema (return JSON matching this shape)
+
+A post JSON has:
+  - id (string, kebab-case, unique)
+  - type: "carousel"
+  - platform: "instagram" | "facebook" | "tiktok"
+  - aspect: "4:5" | "9:16"
+  - pillar (string, matches a pillar name)
+  - brief (string, optional)
+  - status: "draft" | "review" | "approved" | "exported" (default "draft")
+  - version (integer, default 1)
+  - marquee (string id, e.g. "marquee_default")
+  - source (object, optional — recipe_id for drinks, line_letter for workouts, etc.)
+  - slides (array, 3 to 7 slides)
+  - caption (object, optional — text and hashtags array)
+  - checks (object, optional — {facts, voice_lint, design, fit, lastRenderedAt})
+
+Each slide has:
+  - id (string, unique within the post)
+  - template: "cover" | "statement" | "list" | "numeral" | "icon-card" | "cta" | "workout-line"
+  - ground: "paper" | "teal" | "lavender" | "ink" | "white" | "cream"
+  - fields (object) — the per-template fields. Slide 1 is usually a "cover". Last slide is usually a "cta". Middle slides are "statement" or "list".
+
+---
+
+## Brief
+
+{
+  "pillar": "drinks-recipes",
+  "goal": "reach",
+  "message": "Cucumber lime agua fresca. 8 minutes. Two cues.",
+  "slide_count": 5,
+  "call_to_action": "link-in-bio",
+  "must_include_facts": [],
+  "aspect": "4:5",
+  "platform": "instagram",
+  "pin_recipe_id": "cucumber-lime"
+}
+
+
+
+Return the post JSON only. No prose, no code fences.

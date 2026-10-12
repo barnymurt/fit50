@@ -17,6 +17,7 @@ export interface PromptContext {
   lintJson: string;    // voice-lint.json
   factsJson: string;   // facts.json (only the slice this pillar needs)
   fewShot: string;     // 3–5 approved posts from the same pillar
+  corrections: string; // last N corrections for this pillar
   schemaDescription: string; // human-readable summary of the post schema
   pillarName: string;
   existingExampleIds: string[];
@@ -51,6 +52,35 @@ export async function loadFewShot(pillar: string): Promise<{ examples: any[]; id
     ids.push(parsed.id);
   }
   return { examples, ids };
+}
+
+/**
+ * Phase 6 — the learning loop. Reads the most recent
+ * corrections for the pillar from the editor's capture table
+ * (or from the optional in-memory override for mock runs)
+ * and formats them as a `before → after` block. The mock path
+ * passes an empty list so the wire is exercised without
+ * requiring a real Supabase connection.
+ */
+export interface CorrectionPair {
+  field_path: string;
+  before: string;
+  after: string;
+  reason: string | null;
+  created_at?: string;
+}
+
+export function formatCorrections(corrections: CorrectionPair[]): string {
+  if (!corrections.length) {
+    return '(no recent corrections for this pillar yet)';
+  }
+  return corrections
+    .map(
+      (c, i) =>
+        `${i + 1}. field: ${c.field_path}\n   before: ${JSON.stringify(c.before)}\n   after:  ${JSON.stringify(c.after)}` +
+        (c.reason ? `\n   reason: ${c.reason}` : '')
+    )
+    .join('\n\n');
 }
 
 // Human-readable description of the post schema. We don't pass
@@ -88,7 +118,7 @@ export function factsSliceForPillar(_pillar: string, allFacts: any) {
 }
 
 // Compose the system prompt and the user prompt as separate
-// strings. The system prompt is cacheable; the user prompt is
+// strings. The system prompt is cache-friendly; the user prompt is
 // the per-call delta.
 export function composeSystemPrompt(ctx: Omit<PromptContext, 'brief'>) {
   return [
@@ -108,6 +138,13 @@ export function composeSystemPrompt(ctx: Omit<PromptContext, 'brief'>) {
     '',
     '## Few-shot examples (approved posts in this pillar)',
     ctx.fewShot,
+    '',
+    '## Recent corrections (Phase 6 — the learning loop)',
+    'The next block lists recent before/after pairs the editor',
+    'captured on previous posts in this pillar. Avoid repeating',
+    'these mistakes. If the field is the same, the after value',
+    'is the kind of thing the human wanted.',
+    ctx.corrections,
     '',
     '## Post schema (return JSON matching this shape)',
     ctx.schemaDescription,

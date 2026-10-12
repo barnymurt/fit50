@@ -4,16 +4,17 @@
 // logic; no inline styles are computed at screenshot time.
 
 import { renderToString } from 'react-dom/server';
-import { Cover } from './templates/cover.js';
-import { Statement } from './templates/statement.js';
-import { List } from './templates/list.js';
-import { Numeral } from './templates/numeral.js';
-import { IconCard } from './templates/icon-card.js';
-import { CTA } from './templates/cta.js';
-import { WorkoutLine } from './templates/workout-line.js';
-import { typeTokensFor, type Aspect, type Ground, type Tokens } from './tokens.js';
+import { Cover } from './templates/cover';
+import { Statement } from './templates/statement';
+import { List } from './templates/list';
+import { Numeral } from './templates/numeral';
+import { IconCard } from './templates/icon-card';
+import { CTA } from './templates/cta';
+import { WorkoutLine } from './templates/workout-line';
+import { PhotoTop } from './templates/photo-top';
+import { typeTokensFor, type Aspect, type Ground, type Tokens } from './tokens';
 
-import type { Slide as SlideT } from './schema/post.js';
+import type { Slide as SlideT } from './schema/post';
 
 function renderTemplate(slide: SlideT, aspect: Aspect, ground: Ground, marqueeId: string, tokens: Tokens): string {
   const props = { slide, aspect, ground, marqueeId, tokens };
@@ -29,10 +30,14 @@ function renderTemplate(slide: SlideT, aspect: Aspect, ground: Ground, marqueeId
     case 'icon-card':
       return renderToString(IconCard(props));
     case 'cta':
-      return renderToString(CTA({ slide, aspect, ground, tokens }));
+      return renderToString(CTA({ ...props, tokens }));
     case 'workout-line':
       return renderToString(WorkoutLine(props));
+    case 'photo-top':
+      return renderToString(PhotoTop(props));
   }
+  return '';
+}
 }
 
 // Re-export so consumers can import from one place.

@@ -10,7 +10,7 @@
 // returns a hand-authored stub from mocks.ts. The orchestrator
 // doesn't care: the return shape is the same Post JSON.
 
-import { loadBrandTexts, loadPillarConfig, loadFewShot, describeSchema, composeSystemPrompt, composeUserPrompt, factsSliceForPillar } from './prompt.js';
+import { loadBrandTexts, loadPillarConfig, loadFewShot, describeSchema, composeSystemPrompt, composeUserPrompt, factsSliceForPillar, formatCorrections } from './prompt.js';
 import { outlineModel, draftModel } from './model.js';
 import { appendLog, type LogEntry } from './log.js';
 import { MOCK_POSTS } from './mocks.js';
@@ -45,18 +45,24 @@ export async function generatePost(brief: Brief, opts: GenerateOptions = {}): Pr
   if (pillarConfig) {
     const { voice, lint, facts } = await loadBrandTexts();
     const { examples } = await loadFewShot(brief.pillar);
+    // Phase 6 — the learning loop. The mock path passes an
+    // empty list of corrections so the wire is exercised
+    // without a real Supabase connection. The real path
+    // (Phase 6.1) calls loadCorrections(brief.pillar) here.
+    const correctionsBlock = formatCorrections([]);
     const sysPrompt = composeSystemPrompt({
       pillarConfig,
       voice,
       lintJson: lint,
       factsJson: JSON.stringify(factsSliceForPillar(brief.pillar, JSON.parse(facts))),
       fewShot: examples.map((e) => JSON.stringify(e)).join('\n\n'),
+      corrections: correctionsBlock,
       schemaDescription: describeSchema(),
       pillarName: brief.pillar,
       existingExampleIds: examples.map((e) => e.id),
     });
     const userPrompt = composeUserPrompt(brief);
-    // sysPrompt / userPrompt are wired in for Phase 6's real
+    // sysPrompt / userPrompt are wired in for Phase 6.1's real
     // model. In mock mode they're built but not consumed.
     void sysPrompt;
     void userPrompt;

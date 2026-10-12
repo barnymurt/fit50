@@ -70,6 +70,7 @@ and TikTok (9:16). One user story per phase, each with a clear
 | Phase 3 — Editor | 3-pane editor, 9 API routes, 4 Supabase tables, version history, Rewrite (stubbed), correction capture, zip export, env-var auth gate | [ce-phase-3-editor.md](./ce-phase-3-editor.md) | this build | n/a |
 | Phase 4 — Member submissions | 3 intake forms (progress, books, projects), review queue, approve/reject/withdraw, withdrawal flags every post | [ce-phase-4-member-submissions.md](./ce-phase-4-member-submissions.md) | this build | n/a |
 | Phase 5 — Icons | 9 hand-authored SVG originals with currentColor, content_icons table, list/search/get/approve/reject API, editor approval queue with ground-swap preview | [ce-phase-5-icons.md](./ce-phase-5-icons.md) | this build | n/a |
+| Phase 6 — Learning and extras | corrections-in-prompts wire (last 10 per pillar), critic pass API + Score button, photo-top template, 9:16 Story frame token note, check:prompts script | [ce-phase-6-learning-extras.md](./ce-phase-6-learning-extras.md) | this build | n/a |
 | Phase 2 — Generator | brief → outline → draft → checks → retry | (story pending — Phase 2) | — | n/a |
 | Phase 3 — Editor | canvas, field locks, Rewrite, versions, corrections, calendar, export | (story pending — Phase 3) | — | n/a |
 | Phase 4 — Member submissions | intake, consent, review, generation, withdrawal | (story pending — Phase 4) | — | n/a |

@@ -486,3 +486,35 @@ export async function rejectIcon(id: string): Promise<IconRow> {
   if (error) throw new Error(`rejectIcon: ${error.message}`);
   return data as IconRow;
 }
+
+// ---------------------------------------------------------------------------
+// Corrections (Phase 6 — the learning loop)
+// ---------------------------------------------------------------------------
+
+export interface CorrectionRow {
+  id: string;
+  post_id: string;
+  version_id: string | null;
+  field_path: string;
+  pillar: string | null;
+  before: any;
+  after: any;
+  reason: string | null;
+  created_at: string;
+}
+
+/**
+ * Loads the most recent N corrections for a pillar, in
+ * descending created_at order. Used by the prompt assembly so
+ * the model sees recent before/after pairs.
+ */
+export async function loadCorrections(pillar: string, limit = 10): Promise<CorrectionRow[]> {
+  const { data, error } = await admin()
+    .from('content_corrections')
+    .select('*')
+    .eq('pillar', pillar)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (error) throw new Error(`loadCorrections: ${error.message}`);
+  return (data || []) as CorrectionRow[];
+}

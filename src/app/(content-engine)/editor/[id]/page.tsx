@@ -64,6 +64,8 @@ export default function EditPage({ params }: { params: Promise<{ id: string }> }
   const [rewriteFor, setRewriteFor] = useState<string | null>(null);
   const [rewriteOptions, setRewriteOptions] = useState<string[]>([]);
   const [rewriteReason, setRewriteReason] = useState('');
+  const [critic, setCritic] = useState<{ hook: number; bridges: number; payoff: number; weakest_slide: string | null; notes: string } | null>(null);
+  const [criticBusy, setCriticBusy] = useState(false);
   const [postId, setPostId] = useState<string>('');
 
   useEffect(() => {
@@ -222,6 +224,23 @@ export default function EditPage({ params }: { params: Promise<{ id: string }> }
     }
   }, [postId]);
 
+  const scorePost = useCallback(async () => {
+    if (!doc) return;
+    setCriticBusy(true);
+    try {
+      const r = await fetch(`/api/ce/posts/${postId}/critic`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ pillar: post?.pillar, current_doc: doc, flags }),
+      });
+      const j = await r.json();
+      if (r.ok) setCritic(j);
+      else alert(`Critic failed: ${j.error || 'unknown'}`);
+    } finally {
+      setCriticBusy(false);
+    }
+  }, [postId, doc, post?.pillar, flags]);
+
   const exportZip = useCallback(async () => {
     setBusy(true);
     const r = await fetch(`/api/ce/posts/${postId}/export`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({}) });
@@ -272,6 +291,7 @@ export default function EditPage({ params }: { params: Promise<{ id: string }> }
         <span style={{ flex: 1 }} />
         <span style={{ fontSize: 12, color: 'rgba(26,26,26,0.5)' }}>{flags.length} flag{flags.length !== 1 ? 's' : ''}</span>
         <button onClick={() => saveDraft('manual save')} disabled={busy} style={primaryBtn}>Save</button>
+        <button onClick={scorePost} disabled={busy || criticBusy} style={secondaryBtn}>{criticBusy ? 'Scoring…' : 'Score'}</button>
         <button onClick={exportZip} disabled={busy} style={secondaryBtn}>Export</button>
       </div>
 
@@ -407,6 +427,7 @@ export default function EditPage({ params }: { params: Promise<{ id: string }> }
           onClose={() => setRewriteFor(null)}
         />
       )}
+      {critic && <CriticModal critic={critic} onClose={() => setCritic(null)} />}
     </div>
   );
 }
@@ -582,3 +603,43 @@ const tinyBtn: React.CSSProperties = {
   textTransform: 'uppercase',
   cursor: 'pointer',
 };
+
+function CriticModal({ critic, onClose }: { critic: any; onClose: () => void }) {
+  const bar = (label: string, score: number) => (
+    <div style={{ marginBottom: 12 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+        <span style={{ fontFamily: 'system-ui, sans-serif', fontSize: 12, color: '#1A1A1A' }}>{label}</span>
+        <span style={{ fontFamily: 'system-ui, sans-serif', fontSize: 12, color: '#1A1A1A', fontVariantNumeric: 'tabular-nums' }}>{score}/10</span>
+      </div>
+      <div style={{ height: 8, background: 'rgba(26,26,26,0.08)' }}>
+        <div style={{ height: 8, background: '#E88B5A', width: `${(score / 10) * 100}%` }} />
+      </div>
+    </div>
+  );
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(26,26,26,0.40)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+      <div style={{ background: '#FFFFFF', padding: 24, maxWidth: 480, width: '100%', border: '1px solid rgba(26,26,26,0.12)' }}>
+        <p style={{ fontFamily: 'system-ui, sans-serif', fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#E88B5A', margin: '0 0 8px' }}>
+          Critic — structural quality
+        </p>
+        <p style={{ fontFamily: 'system-ui, sans-serif', fontSize: 12, color: 'rgba(26,26,26,0.7)', margin: '0 0 16px' }}>
+          {critic.notes}
+        </p>
+        {bar('Hook', critic.hook)}
+        {bar('Bridges', critic.bridges)}
+        {bar('Payoff', critic.payoff)}
+        {critic.weakest_slide && (
+          <p style={{ fontFamily: 'system-ui, sans-serif', fontSize: 12, color: '#E88B5A', margin: '8px 0 0' }}>
+            Weakest slide: <code style={{ background: 'rgba(242,217,162,0.19)', padding: '2px 6px' }}>{critic.weakest_slide}</code>
+          </p>
+        )}
+        <p style={{ fontFamily: 'system-ui, sans-serif', fontSize: 11, color: 'rgba(26,26,26,0.5)', margin: '12px 0 0', fontStyle: 'italic' }}>
+          (Phase 6 ships a deterministic stub. Phase 6.1 wires the real Anthropic call so the notes become semantic.)
+        </p>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
+          <button onClick={onClose} style={primaryBtn}>Close</button>
+        </div>
+      </div>
+    </div>
+  );
+}
