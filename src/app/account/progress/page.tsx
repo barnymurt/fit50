@@ -79,6 +79,11 @@ export default function ProgressForm() {
           You need to be signed in. <a href="/account?next=/account/progress" style={{ color: '#E88B5A' }}>Sign in first</a>.
         </p>
       )}
+      {user && !profile?.is_premium && (
+        <p style={{ background: 'rgba(242,217,162,0.19)', border: '1px solid rgba(26,26,26,0.20)', padding: 12, fontFamily: 'system-ui, sans-serif', fontSize: 13, color: '#1A1A1A' }}>
+          Progress updates are a premium feature. The editor reviews each submission before any post goes out. <a href="/upgrade" style={{ color: '#E88B5A' }}>Upgrade to premium</a> to submit.
+        </p>
+      )}
       <form onSubmit={submit} style={{ display: 'grid', gap: 16 }}>
         <Field label="Habits you did (1–3)">
           {[0, 1, 2].map((i) => (
