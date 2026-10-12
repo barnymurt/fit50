@@ -1,6 +1,7 @@
 # User stories
 
 Every new feature in FIT50 is designed for a specific user, not "everyone".
+
 This folder is the build-phase contract that makes that statement true across
 LLM sessions.
 
