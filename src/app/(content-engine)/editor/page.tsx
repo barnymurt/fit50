@@ -69,6 +69,13 @@ export default function EditorList() {
           }}>
             Submissions
           </Link>
+          <Link href="/editor/icons" style={{
+            background: 'rgba(26,26,26,0.08)', color: '#1A1A1A', border: 0, padding: '14px 20px',
+            fontFamily: 'system-ui, sans-serif', fontSize: 12, letterSpacing: '0.12em',
+            textTransform: 'uppercase', textDecoration: 'none',
+          }}>
+            Icons
+          </Link>
           <button
             onClick={() => setShowNew((v) => !v)}
             style={{

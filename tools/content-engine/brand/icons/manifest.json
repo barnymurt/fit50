@@ -13,7 +13,8 @@
       "description": "Three stacked ice cubes with a small motion line indicating a fresh chill.",
       "source": "live-app",
       "approval_status": "approved",
-      "files": ["chill-out.webp"]
+      "files": ["chill-out.webp"],
+      "svg_path": "chill-out.svg"
     },
     {
       "id": "crispy-clarity",
@@ -22,7 +23,8 @@
       "description": "A single ice cube dripping into a few droplet lines, suggesting a cold shower.",
       "source": "live-app",
       "approval_status": "approved",
-      "files": ["crispy-clarity.webp"]
+      "files": ["crispy-clarity.webp"],
+      "svg_path": "crispy-clarity.svg"
     },
     {
       "id": "feed-brain",
@@ -31,7 +33,8 @@
       "description": "Three stacked books with one slightly off-centre, ready to be picked up.",
       "source": "live-app",
       "approval_status": "approved",
-      "files": ["feed-brain.webp"]
+      "files": ["feed-brain.webp"],
+      "svg_path": "feed-brain.svg"
     },
     {
       "id": "fresh-lungs",
@@ -40,7 +43,8 @@
       "description": "A pair of lungs with a small breath line above, suggesting fresh air in.",
       "source": "live-app",
       "approval_status": "approved",
-      "files": ["fresh-lungs.webp"]
+      "files": ["fresh-lungs.webp"],
+      "svg_path": "fresh-lungs.svg"
     },
     {
       "id": "fuel-right",
@@ -49,7 +53,8 @@
       "description": "A fuel pump nozzle with a single drip, no fuel type shown.",
       "source": "live-app",
       "approval_status": "approved",
-      "files": ["fuel-right.webp"]
+      "files": ["fuel-right.webp"],
+      "svg_path": "fuel-right.svg"
     },
     {
       "id": "move-body",
@@ -58,7 +63,8 @@
       "description": "A figure mid-stride, arms pumping, no face detail.",
       "source": "live-app",
       "approval_status": "approved",
-      "files": ["move-body.webp"]
+      "files": ["move-body.webp"],
+      "svg_path": "move-body.svg"
     },
     {
       "id": "open-mind",
@@ -67,7 +73,8 @@
       "description": "A brain with a small sparkle above the top, suggesting an open mind.",
       "source": "live-app",
       "approval_status": "approved",
-      "files": ["open-mind.webp"]
+      "files": ["open-mind.webp"],
+      "svg_path": "open-mind.svg"
     },
     {
       "id": "step-it-up",
@@ -76,7 +83,8 @@
       "description": "A pair of feet mid-step, with small motion lines behind the back foot.",
       "source": "live-app",
       "approval_status": "approved",
-      "files": ["step-it-up.webp"]
+      "files": ["step-it-up.webp"],
+      "svg_path": "step-it-up.svg"
     },
     {
       "id": "wet-lips",
@@ -85,7 +93,8 @@
       "description": "A pair of lips around a straw, a small droplet line above.",
       "source": "live-app",
       "approval_status": "approved",
-      "files": ["wet-lips.webp"]
+      "files": ["wet-lips.webp"],
+      "svg_path": "wet-lips.svg"
     }
   ]
 }

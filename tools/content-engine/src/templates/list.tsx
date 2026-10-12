@@ -1,11 +1,11 @@
 // list.tsx — eyebrow, headline, 3–5 items, bridge. Used by the
 // rules, what worked, tips slides. Items have an optional
-// detail line and an optional icon (looked up in the icon
-// manifest by Phase 5; for now we render a placeholder square
-// if an icon is named).
+// detail line and an optional icon (Phase 5: SVG with
+// currentColor recolouring by ground).
 
 import React from 'react';
 import { Marquee } from './Marquee.js';
+import { Icon } from './Icon.js';
 import {
   emphasis,
   typeScaleFor,
@@ -13,7 +13,7 @@ import {
   type Tokens,
   type Ground,
 } from '../tokens.js';
-import { typeStyle, wrapperStyle, pagePadding } from '../styles.js';
+import { typeStyle, wrapperStyle } from '../styles.js';
 import type { Slide } from '../schema/post.js';
 
 interface Props {
@@ -22,32 +22,6 @@ interface Props {
   ground: Ground;
   marqueeId: string;
   tokens: Tokens;
-}
-
-const ICON_SIZE = 64;
-
-function ItemIcon({ name, tokens }: { name: string | null | undefined; tokens: Tokens }) {
-  if (!name) return null;
-  // Phase 1 ships webp icons in tools/content-engine/brand/icons/.
-  // We resolve them via a relative path that the renderer serves.
-  // Recolouring by ground is a Phase 5 task; for now we render
-  // the icon as-is and accept that it won't recolour on
-  // ink / teal grounds.
-  return (
-    <img
-      src={`./brand/icons/${name}.webp`}
-      alt=""
-      data-icon={name}
-      width={ICON_SIZE}
-      height={ICON_SIZE}
-      style={{
-        display: 'block',
-        flexShrink: 0,
-        backgroundColor: tokens.colours.cream,
-        opacity: 0.95,
-      }}
-    />
-  );
 }
 
 export function List({ slide, aspect, ground, marqueeId, tokens }: Props) {
@@ -115,7 +89,7 @@ export function List({ slide, aspect, ground, marqueeId, tokens }: Props) {
                     : 'none',
               }}
             >
-              <ItemIcon name={item.icon} tokens={tokens} />
+              <Icon name={item.icon} tokens={tokens} ground={ground} size={64} style={{ flexShrink: 0 }} />
               <div style={{ display: 'flex', flexDirection: 'column' }}>
                 <span
                   data-field="item-title"

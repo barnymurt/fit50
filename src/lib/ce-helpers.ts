@@ -428,3 +428,61 @@ function creditLineFor(submission: SubmissionRow, pillar: string): string {
   }
   return 'Member submission';
 }
+
+// ---------------------------------------------------------------------------
+// Icons (Phase 5)
+// ---------------------------------------------------------------------------
+
+export interface IconRow {
+  id: string;
+  tags: string[];
+  description: string | null;
+  source: 'live-app' | 'generated';
+  approval_status: 'pending' | 'approved' | 'rejected';
+  svg_path: string | null;
+  png_path: string | null;
+  created_at: string;
+  approved_at: string | null;
+}
+
+export async function listIcons(filter?: { status?: string; q?: string; tag?: string }): Promise<IconRow[]> {
+  let q = admin().from('content_icons').select('*').order('id', { ascending: true });
+  if (filter?.status) q = q.eq('approval_status', filter.status);
+  if (filter?.tag) q = q.contains('tags', [filter.tag]);
+  const { data, error } = await q;
+  if (error) throw new Error(`listIcons: ${error.message}`);
+  let rows = (data || []) as IconRow[];
+  if (filter?.q) {
+    const needle = filter.q.toLowerCase();
+    rows = rows.filter(
+      (r) =>
+        r.id.toLowerCase().includes(needle) ||
+        (r.description || '').toLowerCase().includes(needle) ||
+        (r.tags || []).some((t) => t.toLowerCase().includes(needle))
+    );
+  }
+  return rows;
+}
+
+export async function getIcon(id: string): Promise<IconRow | null> {
+  const { data, error } = await admin().from('content_icons').select('*').eq('id', id).maybeSingle();
+  if (error) throw new Error(`getIcon: ${error.message}`);
+  return data as IconRow | null;
+}
+
+export async function approveIcon(id: string): Promise<IconRow> {
+  const { data, error } = await admin().from('content_icons').update({
+    approval_status: 'approved',
+    approved_at: new Date().toISOString(),
+  }).eq('id', id).select('*').single();
+  if (error) throw new Error(`approveIcon: ${error.message}`);
+  return data as IconRow;
+}
+
+export async function rejectIcon(id: string): Promise<IconRow> {
+  const { data, error } = await admin().from('content_icons').update({
+    approval_status: 'rejected',
+  }).eq('id', id).select('*').single();
+  if (error) throw new Error(`rejectIcon: ${error.message}`);
+  return data as IconRow;
+}

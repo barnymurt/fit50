@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Marquee } from './Marquee.js';
+import { Icon } from './Icon.js';
 import {
   emphasis,
   typeScaleFor,
@@ -45,18 +46,7 @@ export function IconCard({ slide, aspect, ground, marqueeId, tokens }: Props) {
         }}
       >
         {fields.icon && (
-          <img
-            src={`./brand/icons/${fields.icon}.webp`}
-            alt=""
-            data-icon={fields.icon}
-            width={220}
-            height={220}
-            style={{
-              display: 'block',
-              backgroundColor: tokens.colours.cream,
-              opacity: 0.95,
-            }}
-          />
+          <Icon name={fields.icon} tokens={tokens} ground={ground} size={220} />
         )}
         {fields.title && (
           <h2
