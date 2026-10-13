@@ -1,17 +1,18 @@
 // storyboard.ts — content-aware storyboard generator.
 //
-// Primary path: Anthropic API call (if ANTHROPIC_API_KEY is
-// set) that writes a real storyboard based on the brief, the
-// goal, and the platform. The model is told to write the hook
-// as a curiosity-creating question (not a rephrasing of
-// sentence 1), the beats as a flowing narrative, and the CTA
-// that closes the loop.
+// Primary path: real LLM (Anthropic by default, MiniMax if
+// MINIMAX_API_KEY is set and ANTHROPIC_API_KEY isn't). The model
+// is told to write a real storyboard based on the brief — the
+// hook earns the next 5 seconds, the beats flow narratively,
+// and the CTA closes the loop. Every line is from the brief
+// itself or the goal's hook / CTA — no placeholders.
 //
 // Fallback: a platform-aware heuristic that splits the brief
 // into beats with concrete visual directions and voice lines
-// pulled from the brief itself. No fake placeholders — every
-// line is either the goal's hook, the goal's CTA, or the
-// user's actual words.
+// pulled from the brief itself. Always runs if no LLM is
+// available; runs after the LLM if the LLM output is unusable.
+
+import { callLLM } from './llm';
 
 export interface Beat {
   n: number;
@@ -85,13 +86,6 @@ function pickChunks(idea: string): { cost: string; turn: string } {
   return { cost: rest.slice(0, half).trim(), turn: rest.slice(half).trim() };
 }
 
-const HOOK_STRATEGIES: Record<string, (idea: string, lede: string) => string> = {
-  reach: (_idea, lede) => `Have you seen this? ${lede.charAt(0).toUpperCase() + lede.slice(1)}`,
-  saves: () => 'Save this — it changed how I see the ruleset.',
-  signups: () => 'Try the ruleset for free. 50 days. 9 habits. One finished thing.',
-  'link-clicks': () => 'The full story is in bio. But first:',
-};
-
 const PLATFORM_NOTES: Record<string, string> = {
   '9:16': 'vertical reel — hook at the top, text overlay, fast cuts, no intro',
   '4:5':  'IG feed — slower, more polished, caption-heavy',
@@ -105,17 +99,17 @@ export async function generateStoryboard(input: {
   platforms: string[];
   pillar?: string;
 }): Promise<Storyboard> {
-  // Primary path: real LLM. Only runs if the API key is set.
-  // The model is told to write a real storyboard — the brief
-  // is the source of truth, the goal shapes the hook and CTA,
-  // the platform shapes the cadence and visual rhythm.
-  if (process.env.ANTHROPIC_API_KEY) {
-    try {
-      const llm = await generateStoryboardLLM(input);
-      if (llm) return llm;
-    } catch {
-      // fall through to heuristic
-    }
+  // Primary path: real LLM. Provider is auto-selected by env
+  // (Anthropic by default, MiniMax if MINIMAX_API_KEY is set
+  // and ANTHROPIC_API_KEY isn't). The LLM is told to write a
+  // real storyboard — the brief is the source of truth, the
+  // goal shapes the hook and CTA, the platform shapes the
+  // cadence and visual rhythm.
+  try {
+    const llm = await generateStoryboardLLM(input);
+    if (llm) return llm;
+  } catch {
+    // fall through to heuristic
   }
   return generateStoryboardHeuristic(input);
 }
@@ -126,19 +120,15 @@ export async function generateStoryboardLLM(input: {
   platforms: string[];
   pillar?: string;
 }): Promise<Storyboard | null> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return null;
-  const model = process.env.ANTHROPIC_MODEL || 'claude-3-5-haiku-latest';
   const format = pickPrimaryFormat(input.platforms);
-  const platformNote = PLATFORM_TO_ASPECT[format] ? PLATFORM_TO_ASPECT[format].aspect : format;
-  const hint = PLATFORM_NOTES[format] || '';
+  const platformNote = PLATFORM_NOTES[format] || '';
   const goalHint = ({ reach: 'goal = reach, hook must be curiosity-creating', saves: 'goal = saves, hook must promise value worth keeping', signups: 'goal = signups, hook must invite a try', 'link-clicks': 'goal = link-clicks, hook must create a curiosity gap' } as const)[input.message_goal];
 
   const prompt = `You are writing a storyboard for a short-form social video.
 
 Brief: ${JSON.stringify(input.idea)}
 Goal: ${input.message_goal} (${goalHint})
-Platform(s): ${input.platforms.join(', ')} → primary aspect ${platformNote} (${hint})
+Platform(s): ${input.platforms.join(', ')} → primary aspect ${format} (${platformNote})
 
 Return a JSON object with this exact shape:
 {
@@ -158,23 +148,8 @@ Rules
 - Output ONLY the JSON. No prose, no code fences.`;
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model,
-        max_tokens: 1500,
-        messages: [{ role: 'user', content: prompt }],
-      }),
-    });
-    if (!res.ok) return null;
-    const j: any = await res.json();
-    const text = j?.content?.[0]?.text || '';
-    const cleaned = text.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim();
+    const res = await callLLM({ prompt, maxTokens: 1500 });
+    const cleaned = res.text.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim();
     let parsed: any;
     try { parsed = JSON.parse(cleaned); } catch { return null; }
     const beats: Beat[] = (parsed.beats || []).map((b: any, i: number) => ({
@@ -209,7 +184,7 @@ export function generateStoryboardHeuristic(input: {
 }): Storyboard {
   const ledeText = lede(input.idea);
   const { cost, turn } = pickChunks(input.idea);
-  const hook = HOOK_STRATEGIES[input.message_goal]?.(input.idea, ledeText) || GOAL_HOOKS[input.message_goal] || 'See this.';
+  const hook = GOAL_HOOKS[input.message_goal] || 'See this.';
   const ctaGoal = GOAL_CTAS[input.message_goal] || GOAL_CTAS.reach;
   const format = pickPrimaryFormat(input.platforms);
   const platformNote = PLATFORM_NOTES[format] || '';
