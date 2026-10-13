@@ -1,11 +1,17 @@
 // storyboard.ts — content-aware storyboard generator.
-// v1 reads the brief's sentences and routes them into beats
-// with specific visual directions and voice lines, so the
-// reviewer sees a real storyboard (not a template with "Cover.
-// The viewer lands on the hook."). Phase 7.1 wires the real
-// Anthropic call so the LLM writes the beats in the user's
-// style and voice — this is the heuristic fallback that
-// always runs first and is good enough to be shippable.
+//
+// Primary path: Anthropic API call (if ANTHROPIC_API_KEY is
+// set) that writes a real storyboard based on the brief, the
+// goal, and the platform. The model is told to write the hook
+// as a curiosity-creating question (not a rephrasing of
+// sentence 1), the beats as a flowing narrative, and the CTA
+// that closes the loop.
+//
+// Fallback: a platform-aware heuristic that splits the brief
+// into beats with concrete visual directions and voice lines
+// pulled from the brief itself. No fake placeholders — every
+// line is either the goal's hook, the goal's CTA, or the
+// user's actual words.
 
 export interface Beat {
   n: number;
@@ -52,24 +58,24 @@ export function pickPrimaryFormat(platforms: string[]): '9:16' | '4:5' | '1:1' |
   return (PLATFORM_TO_ASPECT[sorted[0]]?.aspect) || '9:16';
 }
 
+function clamp(s: string, max: number): string {
+  if (s.length <= max) return s;
+  const cut = s.slice(0, max);
+  const lastSpace = cut.lastIndexOf(' ');
+  return (lastSpace > 40 ? cut.slice(0, lastSpace) : cut).replace(/[.,;:!?\-–—\s]+$/, '') + '…';
+}
+
 function lede(idea: string): string {
-  // First sentence, trimmed. If it's too short, take the first
-  // clause; if it's a run-on, cut at the first comma or " — ".
   const first = idea.split(/(?<=[.!?])\s+/)[0] || idea;
   const m = first.match(/^[^,—.!?]+/);
   return (m ? m[0] : first).trim();
 }
 
 function pickChunks(idea: string): { cost: string; turn: string } {
-  // Split the rest of the idea (after sentence 1) into two
-  // roughly equal halves. If only one sentence, the first half
-  // is the whole thing; the second is empty. The storyboard
-  // gracefully drops the empty beat rather than padding it.
   const sentences = idea.split(/(?<=[.!?])\s+/).filter(Boolean);
   const rest = sentences.slice(1).join(' ').trim();
   if (!rest) return { cost: '', turn: '' };
   const half = Math.max(1, Math.floor(rest.length / 2));
-  // Try to split on a sentence boundary near the half
   const reSentence = /(?<=[.!?])\s+/g;
   const pieces = rest.split(reSentence).filter(Boolean);
   if (pieces.length >= 2) {
@@ -79,15 +85,123 @@ function pickChunks(idea: string): { cost: string; turn: string } {
   return { cost: rest.slice(0, half).trim(), turn: rest.slice(half).trim() };
 }
 
-function clamp(s: string, max: number): string {
-  if (s.length <= max) return s;
-  const cut = s.slice(0, max);
-  // cut at last word boundary
-  const lastSpace = cut.lastIndexOf(' ');
-  return (lastSpace > 40 ? cut.slice(0, lastSpace) : cut).replace(/[.,;:!?\-–—\s]+$/, '') + '…';
+const HOOK_STRATEGIES: Record<string, (idea: string, lede: string) => string> = {
+  reach: (_idea, lede) => `Have you seen this? ${lede.charAt(0).toUpperCase() + lede.slice(1)}`,
+  saves: () => 'Save this — it changed how I see the ruleset.',
+  signups: () => 'Try the ruleset for free. 50 days. 9 habits. One finished thing.',
+  'link-clicks': () => 'The full story is in bio. But first:',
+};
+
+const PLATFORM_NOTES: Record<string, string> = {
+  '9:16': 'vertical reel — hook at the top, text overlay, fast cuts, no intro',
+  '4:5':  'IG feed — slower, more polished, caption-heavy',
+  '1:1':  'FB feed — square, steady cuts, news-feed rhythm',
+  '16:9': 'YouTube / FB widescreen — landscape, room for captions',
+};
+
+export async function generateStoryboard(input: {
+  idea: string;
+  message_goal: 'reach' | 'saves' | 'signups' | 'link-clicks';
+  platforms: string[];
+  pillar?: string;
+}): Promise<Storyboard> {
+  // Primary path: real LLM. Only runs if the API key is set.
+  // The model is told to write a real storyboard — the brief
+  // is the source of truth, the goal shapes the hook and CTA,
+  // the platform shapes the cadence and visual rhythm.
+  if (process.env.ANTHROPIC_API_KEY) {
+    try {
+      const llm = await generateStoryboardLLM(input);
+      if (llm) return llm;
+    } catch {
+      // fall through to heuristic
+    }
+  }
+  return generateStoryboardHeuristic(input);
 }
 
-export function generateStoryboard(input: {
+export async function generateStoryboardLLM(input: {
+  idea: string;
+  message_goal: 'reach' | 'saves' | 'signups' | 'link-clicks';
+  platforms: string[];
+  pillar?: string;
+}): Promise<Storyboard | null> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) return null;
+  const model = process.env.ANTHROPIC_MODEL || 'claude-3-5-haiku-latest';
+  const format = pickPrimaryFormat(input.platforms);
+  const platformNote = PLATFORM_TO_ASPECT[format] ? PLATFORM_TO_ASPECT[format].aspect : format;
+  const hint = PLATFORM_NOTES[format] || '';
+  const goalHint = ({ reach: 'goal = reach, hook must be curiosity-creating', saves: 'goal = saves, hook must promise value worth keeping', signups: 'goal = signups, hook must invite a try', 'link-clicks': 'goal = link-clicks, hook must create a curiosity gap' } as const)[input.message_goal];
+
+  const prompt = `You are writing a storyboard for a short-form social video.
+
+Brief: ${JSON.stringify(input.idea)}
+Goal: ${input.message_goal} (${goalHint})
+Platform(s): ${input.platforms.join(', ')} → primary aspect ${platformNote} (${hint})
+
+Return a JSON object with this exact shape:
+{
+  "beats": [
+    { "n": 1, "time_s": 0.0, "what_happens": "...", "voice_line": "...", "bridge_to_next": "..." },
+    ... 3 or 4 more beats
+  ]
+}
+
+Rules
+- Use the brief's own words. The voice_line for each beat is a phrase or sentence from the brief, paraphrased if needed but not invented. No "what happened" placeholders.
+- The cover beat's voice_line is a curiosity-creating question or statement that earns the next 5 seconds. Do not rephrase sentence 1 — write a hook.
+- Each beat's "what_happens" describes a concrete visual: the type on the ground, the camera move, the cut.
+- "bridge_to_next" is one short sentence that tells the editor what the next beat's job is.
+- "time_s" runs in 1.5s increments starting at 0.0.
+- The final beat's voice_line is the goal-driven CTA line, not a beat's worth of copy. Keep it punchy.
+- Output ONLY the JSON. No prose, no code fences.`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: 1500,
+        messages: [{ role: 'user', content: prompt }],
+      }),
+    });
+    if (!res.ok) return null;
+    const j: any = await res.json();
+    const text = j?.content?.[0]?.text || '';
+    const cleaned = text.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim();
+    let parsed: any;
+    try { parsed = JSON.parse(cleaned); } catch { return null; }
+    const beats: Beat[] = (parsed.beats || []).map((b: any, i: number) => ({
+      n: typeof b.n === 'number' ? b.n : i + 1,
+      time_s: typeof b.time_s === 'number' ? b.time_s : i * 1.5,
+      what_happens: String(b.what_happens || '').slice(0, 300),
+      voice_line: String(b.voice_line || '').slice(0, 200),
+      bridge_to_next: String(b.bridge_to_next || '').slice(0, 200),
+    })).filter((b: Beat) => b.voice_line.trim().length > 0);
+    if (!beats.length) return null;
+    const hook = beats[0]?.voice_line || GOAL_HOOKS[input.message_goal] || 'See this.';
+    const cta = beats[beats.length - 1]?.voice_line || GOAL_CTAS[input.message_goal].headline;
+    return {
+      pillar: input.pillar || 'animated-reel',
+      format,
+      total_seconds: beats[beats.length - 1]?.time_s + 1.5 || 6.0,
+      beats,
+      hook,
+      cta,
+      message_goal: input.message_goal,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function generateStoryboardHeuristic(input: {
   idea: string;
   message_goal: 'reach' | 'saves' | 'signups' | 'link-clicks';
   platforms: string[];
@@ -95,23 +209,22 @@ export function generateStoryboard(input: {
 }): Storyboard {
   const ledeText = lede(input.idea);
   const { cost, turn } = pickChunks(input.idea);
-  const hook = GOAL_HOOKS[input.message_goal] || 'See this.';
-  const cta = GOAL_CTAS[input.message_goal] || { eyebrow: 'Save this', headline: 'Try the ruleset', button: 'Save this' };
+  const hook = HOOK_STRATEGIES[input.message_goal]?.(input.idea, ledeText) || GOAL_HOOKS[input.message_goal] || 'See this.';
+  const ctaGoal = GOAL_CTAS[input.message_goal] || GOAL_CTAS.reach;
   const format = pickPrimaryFormat(input.platforms);
+  const platformNote = PLATFORM_NOTES[format] || '';
 
   // The storyboard is built from the brief itself + the goal's
   // hook and CTA. No fake placeholders. If the brief is
   // short, the same line legitimately fills multiple beats
   // (cover = the lede, point = the lede + cost, etc.) — the
   // reviewer sees the repetition and rewrites accordingly.
-  // The storyboard UI's inline edit is the source of truth;
-  // the generator is a starting point, not a final product.
   const beats: Beat[] = [
     {
       n: 1,
       time_s: 0.0,
-      what_happens: `Cover frame: "${ledeText}" in large type on the chosen ground. The whole video is the proof of this one line.`,
-      voice_line: clamp(ledeText, 80),
+      what_happens: `Cover. ${platformNote ? platformNote + '. ' : ''}Big type on the chosen ground: "${ledeText}". The whole video is the proof of this one line.`,
+      voice_line: hook,
       bridge_to_next: 'Hold for half a second, then the cost.',
     },
     {
@@ -131,8 +244,8 @@ export function generateStoryboard(input: {
     {
       n: 4,
       time_s: 4.5,
-      what_happens: `CTA. Coral button on ink. Reads "${cta.eyebrow.toUpperCase()}: ${cta.headline}". The button is the only coral in the deck.`,
-      voice_line: cta.eyebrow,
+      what_happens: `CTA. Coral button on ink. Reads "${ctaGoal.eyebrow.toUpperCase()}: ${ctaGoal.headline}". The button is the only coral in the deck.`,
+      voice_line: ctaGoal.eyebrow,
       bridge_to_next: 'Cut to black on the button.',
     },
   ];
@@ -143,7 +256,7 @@ export function generateStoryboard(input: {
     total_seconds: 6.0,
     beats,
     hook,
-    cta: cta.headline,
+    cta: ctaGoal.headline,
     message_goal: input.message_goal,
   };
 }

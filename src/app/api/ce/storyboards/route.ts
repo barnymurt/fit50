@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'schema_failed', issues: parsed.error.issues }, { status: 422 });
     }
     const { idea, message_goal, platforms } = parsed.data;
-    const storyboard = generateStoryboard({ idea, message_goal, platforms });
+    const storyboard = await generateStoryboard({ idea, message_goal, platforms });
     const sb = createAdminClient() as any;
     const { data, error } = await sb.from('content_storyboards').insert({
       idea,
