@@ -1,0 +1,32 @@
+{
+  "$schema": "./schema.json",
+  "briefs": [
+    {
+      "id": "reel-1",
+      "kind": "stub",
+      "title": "New 5-minute Line B workout, fresh for the new cohort",
+      "idea": "FIT50 just released a 5-minute Line B workout — the next evolution of the famous 50-day challenge. It's bodyweight, 20 minutes total, no kit. Tap the link in bio for the free tracker and a 7-day streak reset.",
+      "message_goal": "signups",
+      "platforms": ["tiktok", "reels"],
+      "style_hint": "cut-paper"
+    },
+    {
+      "id": "reel-2",
+      "kind": "stub",
+      "title": "Day 18 — when the ruleset meets the wall",
+      "idea": "Day 18 of a 50-day ruleset. You've stopped the cigarettes, you've read three books, you've moved your body every morning. Then day 18 hits and the wall shows up. Here's what the data says about pushing through.",
+      "message_goal": "saves",
+      "platforms": ["instagram", "facebook"],
+      "style_hint": "crosshatch"
+    },
+    {
+      "id": "reel-3",
+      "kind": "stub",
+      "title": "Why FIT50's caneca price tag isn't a marketing trick",
+      "idea": "FIT50 Premium is €5.99 — the price of a caneca (a large beer) in the local dialect. Here's why that number isn't a marketing trick and what it covers.",
+      "message_goal": "link-clicks",
+      "platforms": ["facebook"],
+      "style_hint": "riso"
+    }
+  ]
+}

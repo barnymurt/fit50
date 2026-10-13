@@ -1,0 +1,50 @@
+{
+  "id": "animated-reel",
+  "name": "Animated reel",
+  "summary": "Marketing-team-idea → AI-generated scenes → MP4 in every chosen platform format. Use this pillar for any short-form video; the brief + the animate skill handle the rest.",
+  "source": "libraries/animation-briefs.json",
+  "platforms": {
+    "instagram": { "aspect": "4:5", "label": "Instagram feed" },
+    "facebook":  { "aspect": "1:1", "label": "Facebook feed" },
+    "tiktok":    { "aspect": "9:16", "label": "TikTok" },
+    "reels":     { "aspect": "9:16", "label": "Instagram Reels" },
+    "shorts":    { "aspect": "9:16", "label": "YouTube Shorts" }
+  },
+  "platform_aliases": {
+    "ig": "instagram",
+    "fb": "facebook",
+    "yt": "shorts",
+    "insta": "instagram"
+  },
+  "platform_priority": ["tiktok", "reels", "shorts", "instagram", "facebook"],
+  "platforms_to_formats": {
+    "tiktok":   ["9:16"],
+    "reels":    ["9:16"],
+    "shorts":   ["9:16"],
+    "instagram": ["4:5", "9:16"],
+    "facebook":  ["1:1", "16:9"]
+  },
+  "slide_pattern": {
+    "min_slides": 3,
+    "max_slides": 6,
+    "default_slides": 4,
+    "structure": "cover (1) → content (1-4) → cta (1)",
+    "voice_rules": [
+      "≤ 3.5 words per second",
+      "1 line per slide",
+      "name numbers and people the way they should be said",
+      "put the payoff hit in a pause before the line that names it"
+    ]
+  },
+  "ground_sequence_hint": ["ink", "paper", "teal", "paper", "ink"],
+  "extra_voice_rules": [
+    "Hook in the first 2 seconds. The cover is a question, not a statement.",
+    "Each content slide is one beat. Don't try to fit more than one idea per slide.",
+    "The CTA is a verb: 'Save this', 'Comment X', 'Tap the link in bio'."
+  ],
+  "extra_checks": [
+    "Every fact on a content slide appears in the brief's `idea` text — no hallucinated numbers.",
+    "Voice-over line count == slide count.",
+    "Hook is the cover's headline (no separate 'hook' slide)."
+  ]
+}
