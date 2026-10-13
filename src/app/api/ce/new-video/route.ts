@@ -40,12 +40,6 @@ const Body = z.object({
   platforms: z.array(z.enum(['tiktok', 'reels', 'shorts', 'instagram', 'facebook'])).min(1),
 });
 
-// runAnimation is dynamically imported inside the handler so
-// the renderer / react-dom/server chain stays out of the
-// initial route bundle. The `webpackIgnore` magic comment
-// prevents Next.js's static analysis from walking the import
-// graph (which would flag the react-dom/server import). The
-// import is resolved at runtime when the route handler runs.
 async function getRunAnimation() {
   const mod = await import(/* webpackIgnore: true */ '@/lib/ce-animate');
   return mod.runAnimation;
@@ -98,6 +92,8 @@ export async function POST(req: NextRequest) {
       checks: {},
     };
 
+    // 1. Persist the post + first version immediately so the
+    //    user gets the editor within ~100ms (not 30-60s).
     const sb = createAdminClient() as any;
     const { data: postRow, error: postErr } = await sb.from('content_posts').insert({
       id: postId,
@@ -116,51 +112,67 @@ export async function POST(req: NextRequest) {
       version: 1,
       doc: post,
       saved_by: 'human',
-      note: `initial brief — ${message_goal}, ${platforms.join('+')}`,
+      note: `initial brief, ${message_goal}, ${platforms.join('+')}`,
     }).select('*').single();
     if (verErr) return NextResponse.json({ error: verErr.message }, { status: 500 });
 
     await sb.from('content_posts').update({ current_version_id: ver.id, updated_at: new Date().toISOString() }).eq('id', postId);
 
-    const runAnimation = await getRunAnimation();
-    try {
-      const animation = await runAnimation({
-        post,
-        style: 'cut-paper',
-        formats: formats as any,
-        secondsPerSlide: 1.5,
-      });
-      await sb.from('content_animations').insert({
-        post_id: postId,
-        status: 'ready',
-        piece_dir: animation.pieceDir,
-        style: 'cut-paper',
-        formats,
-        mp4_paths: animation.mp4Paths,
-        frames_dir: animation.framesDir,
-        duration_ms: Math.round(animation.durationSeconds * 1000),
-      });
-    } catch (err) {
-      // The animation needs Playwright + ffmpeg which Vercel's
-      // serverless runtime doesn't have. The post is still
-      // created (with the goal-derived copy) so the user can
-      // finish it in the editor. The animation row records
-      // the failure with a hint to run locally.
-      await sb.from('content_animations').insert({
-        post_id: postId,
-        status: 'failed',
-        piece_dir: null,
-        style: 'cut-paper',
-        formats,
-        mp4_paths: {},
-        frames_dir: null,
-        duration_ms: null,
-        error: `${(err as Error).message} — run \`npx tsx tools/content-engine/scripts/animate-cli.ts <brief> <out>\` on a machine with ffmpeg + Playwright.`,
-      });
-    }
+    // 2. Record the animation as 'queued'. The user gets the
+    //    editor within ~100ms; the animation runs in the
+    //    background. The editor's AnimateModal polls
+    //    /api/ce/posts/:id/animation for status updates.
+    await sb.from('content_animations').insert({
+      post_id: postId,
+      status: 'queued',
+      piece_dir: null,
+      style: 'cut-paper',
+      formats,
+      mp4_paths: {},
+      frames_dir: null,
+      duration_ms: null,
+      error: null,
+    });
+
+    // 3. Fire-and-forget background run. setImmediate gives
+    //    the response a chance to flush before the heavy work
+    //    (Playwright launch + ffmpeg concat) starts. The route
+    //    returns immediately so Vercel's serverless function
+    //    doesn't hit its 10s (free) / 60s (pro) timeout.
+    setImmediate(() => {
+      runAnimationInBackground(postId, post, formats as any).catch(() => {});
+    });
 
     return NextResponse.json({ post_id: postId });
   } catch (err) {
     return NextResponse.json({ error: (err as Error).message }, { status: 500 });
+  }
+}
+
+async function runAnimationInBackground(postId: string, post: any, formats: any) {
+  const sb = createAdminClient() as any;
+  try {
+    await sb.from('content_animations').update({ status: 'building' }).eq('post_id', postId);
+    const runAnimation = await getRunAnimation();
+    const animation = await runAnimation({
+      post,
+      style: 'cut-paper',
+      formats,
+      secondsPerSlide: 1.5,
+    });
+    await sb.from('content_animations').update({
+      status: 'ready',
+      piece_dir: animation.pieceDir,
+      mp4_paths: animation.mp4Paths,
+      frames_dir: animation.framesDir,
+      duration_ms: Math.round(animation.durationSeconds * 1000),
+      updated_at: new Date().toISOString(),
+    }).eq('post_id', postId);
+  } catch (err) {
+    await sb.from('content_animations').update({
+      status: 'failed',
+      error: `${(err as Error).message}. Run the animation locally with ffmpeg + Playwright installed.`,
+      updated_at: new Date().toISOString(),
+    }).eq('post_id', postId);
   }
 }

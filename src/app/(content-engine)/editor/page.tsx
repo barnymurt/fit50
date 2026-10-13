@@ -20,6 +20,7 @@ export default function EditorList() {
   const [posts, setPosts] = useState<PostRow[]>([]);
   const [status, setStatus] = useState<string>('');
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [showNew, setShowNew] = useState(false);
   const [newPillar, setNewPillar] = useState('drinks-recipes');
   const [newPlatform, setNewPlatform] = useState('instagram');
@@ -36,6 +37,22 @@ export default function EditorList() {
     setLoading(false);
   }
   useEffect(() => { load(); }, [status]);
+
+  async function deletePost(id: string) {
+    if (!confirm('Delete this post? Versions, corrections and animations are removed too.')) return;
+    setDeletingId(id);
+    try {
+      const r = await fetch(`/api/ce/posts/${id}`, { method: 'DELETE' });
+      if (r.ok) {
+        setPosts((arr) => arr.filter((p) => p.id !== id));
+      } else {
+        const j = await r.json().catch(() => ({}));
+        alert(`Delete failed: ${j.error || 'unknown'}`);
+      }
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   async function createPost() {
     setNewBusy(true);
@@ -184,6 +201,25 @@ export default function EditorList() {
                 <td style={{ ...tdStyle, color: 'rgba(26,26,26,0.7)' }}>{p.brief || '—'}</td>
                 <td style={{ ...tdStyle, fontVariantNumeric: 'tabular-nums', color: 'rgba(26,26,26,0.7)' }}>
                   {new Date(p.updated_at).toLocaleString()}
+                </td>
+                <td style={tdStyle}>
+                  <button
+                    onClick={() => deletePost(p.id)}
+                    disabled={deletingId === p.id}
+                    style={{
+                      background: '#FFFFFF',
+                      color: '#E88B5A',
+                      border: '1px solid rgba(232,139,90,0.30)',
+                      padding: '4px 10px',
+                      fontFamily: 'system-ui, sans-serif',
+                      fontSize: 10,
+                      letterSpacing: '0.08em',
+                      textTransform: 'uppercase',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {deletingId === p.id ? '…' : 'Delete'}
+                  </button>
                 </td>
               </tr>
             ))}
