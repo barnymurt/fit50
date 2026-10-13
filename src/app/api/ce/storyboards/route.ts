@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { cookies } from 'next/headers';
 import { createAdminClient } from '@/lib/supabase-admin';
 import { isEditorSessionValid } from '@/lib/editor-auth';
 import { generateStoryboard, pickPrimaryFormat } from '@/ce-content-engine/storyboard';
+import { pickProvider, type Provider } from '@/ce-content-engine/llm';
+
+const COOKIE = 'ce_llm_provider';
 
 const Body = z.object({
   idea: z.string().min(1),
@@ -19,7 +23,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'schema_failed', issues: parsed.error.issues }, { status: 422 });
     }
     const { idea, message_goal, platforms } = parsed.data;
-    const storyboard = await generateStoryboard({ idea, message_goal, platforms });
+    // The provider picker's cookie override wins if set; the
+    // pickProvider() env-based default is the fallback.
+    const jar = await cookies();
+    const override = (jar.get(COOKIE)?.value || '') as Provider | '';
+    const provider: Provider | undefined = (override || pickProvider() || undefined) as Provider | undefined;
+    const storyboard = await generateStoryboard({ idea, message_goal, platforms, provider });
     const sb = createAdminClient() as any;
     const { data, error } = await sb.from('content_storyboards').insert({
       idea,

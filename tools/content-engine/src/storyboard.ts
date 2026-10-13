@@ -98,13 +98,16 @@ export async function generateStoryboard(input: {
   message_goal: 'reach' | 'saves' | 'signups' | 'link-clicks';
   platforms: string[];
   pillar?: string;
+  provider?: 'anthropic' | 'minimax' | null;
+  model?: string;
 }): Promise<Storyboard> {
   // Primary path: real LLM. Provider is auto-selected by env
   // (Anthropic by default, MiniMax if MINIMAX_API_KEY is set
-  // and ANTHROPIC_API_KEY isn't). The LLM is told to write a
-  // real storyboard — the brief is the source of truth, the
-  // goal shapes the hook and CTA, the platform shapes the
-  // cadence and visual rhythm.
+  // and ANTHROPIC_API_KEY isn't), or by the caller's `provider`
+  // override (set by the editor's provider picker). The LLM
+  // is told to write a real storyboard — the brief is the
+  // source of truth, the goal shapes the hook and CTA, the
+  // platform shapes the cadence and visual rhythm.
   try {
     const llm = await generateStoryboardLLM(input);
     if (llm) return llm;
@@ -119,6 +122,8 @@ export async function generateStoryboardLLM(input: {
   message_goal: 'reach' | 'saves' | 'signups' | 'link-clicks';
   platforms: string[];
   pillar?: string;
+  provider?: 'anthropic' | 'minimax' | null;
+  model?: string;
 }): Promise<Storyboard | null> {
   const format = pickPrimaryFormat(input.platforms);
   const platformNote = PLATFORM_NOTES[format] || '';
@@ -148,7 +153,7 @@ Rules
 - Output ONLY the JSON. No prose, no code fences.`;
 
   try {
-    const res = await callLLM({ prompt, maxTokens: 1500 });
+    const res = await callLLM({ prompt, maxTokens: 1500, provider: input.provider || undefined, model: input.model || undefined });
     const cleaned = res.text.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim();
     let parsed: any;
     try { parsed = JSON.parse(cleaned); } catch { return null; }

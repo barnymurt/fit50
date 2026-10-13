@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { ProviderPicker } from '@/components/editor/ProviderPicker';
 
 interface PostRow {
   id: string;
@@ -114,6 +115,7 @@ export default function EditorList() {
 
       {showNew && (
         <div style={{ background: '#FFFFFF', border: '1px solid rgba(26,26,26,0.12)', padding: 20, marginBottom: 24 }}>
+          <ProviderPicker />
           <p style={{ fontFamily: 'system-ui, sans-serif', fontSize: 12, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#E88B5A', margin: '0 0 12px' }}>
             New draft
           </p>

@@ -17,6 +17,7 @@ export interface LLMRequest {
   prompt: string;
   maxTokens?: number;
   model?: string;
+  provider?: Provider | null;
 }
 
 export interface LLMResponse {
@@ -35,7 +36,7 @@ export function pickProvider(): Provider {
 }
 
 export async function callLLM(req: LLMRequest): Promise<LLMResponse> {
-  const provider = pickProvider();
+  const provider = req.provider || pickProvider();
   if (!provider) throw new Error('No LLM provider configured. Set ANTHROPIC_API_KEY or MINIMAX_API_KEY.');
   if (provider === 'anthropic') return callAnthropic(req);
   if (provider === 'minimax')  return callMinimax(req);

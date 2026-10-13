@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { ProviderPicker } from '@/components/editor/ProviderPicker';
 
 const PLATFORMS = [
   { value: 'tiktok',    label: 'TikTok',                aspect: '9:16' },
@@ -57,6 +58,7 @@ export default function NewVideoPage() {
       <p style={{ fontFamily: 'system-ui, sans-serif', fontSize: 14, color: 'rgba(26,26,26,0.7)', margin: '0 0 24px' }}>
         Type the idea. Pick the message goal. Pick the platforms. The engine generates the scenes, picks the right aspect for each, and runs the animate pipeline to produce an MP4 per platform.
       </p>
+      <ProviderPicker />
       <form onSubmit={submit} style={{ display: 'grid', gap: 18 }}>
         <Field label="The idea">
           <textarea
