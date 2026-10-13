@@ -128,7 +128,7 @@ export async function POST(req: NextRequest) {
     // primary is what the editor already shows in its preview).
     const allFormats = formats as Array<'9:16' | '4:5' | '1:1' | '16:9'>;
     // eslint-disable-next-line no-eval
-    const animateMod = eval('require')('@/ce-content-engine/animate') as { runAnimation: (input: any) => Promise<{ pieceDir: string; framesDir: string; rendersDir: string; mp4Paths: Record<string, string>; durationSeconds: number }> };
+    const animateMod = eval('require')('../../../../../../tools/content-engine/src/animate.ts') as { runAnimation: (input: any) => Promise<{ pieceDir: string; framesDir: string; rendersDir: string; mp4Paths: Record<string, string>; durationSeconds: number }> };
     try {
       const { data: animRow } = await sb.from('content_animations').insert({
         post_id: postId,

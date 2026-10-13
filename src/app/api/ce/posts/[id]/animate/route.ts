@@ -49,7 +49,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     // ever reached server-side, so the require is safe.
     type AnimateModule = { runAnimation: (input: { post: unknown; style: string; formats: string[]; secondsPerSlide: number }) => Promise<{ pieceDir: string; framesDir: string; rendersDir: string; mp4Paths: Record<string, string>; durationSeconds: number }> };
     // eslint-disable-next-line no-eval
-    const animateMod = eval('require')('@/ce-content-engine/animate') as AnimateModule;
+    const animateMod = eval('require')('../../../../../../tools/content-engine/src/animate.ts') as AnimateModule;
     const runAnimation = animateMod.runAnimation;
     let animation;
     try {
