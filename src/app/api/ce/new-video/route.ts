@@ -2,14 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createAdminClient } from '@/lib/supabase-admin';
 import { isEditorSessionValid } from '@/lib/editor-auth';
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
-import { writeFile, readFile, mkdir } from 'node:fs/promises';
-import { join } from 'node:path';
-import { tmpdir } from 'node:os';
 import { Post } from '@/ce-content-engine/schema/post';
-
-const execFileAsync = promisify(execFile);
 
 const PLATFORM_TO_ASPECT: Record<string, { aspect: '9:16' | '4:5' | '1:1' | '16:9'; priority: number }> = {
   tiktok:    { aspect: '9:16', priority: 5 },
@@ -46,6 +39,17 @@ const Body = z.object({
   message_goal: z.enum(['reach', 'saves', 'signups', 'link-clicks']).default('reach'),
   platforms: z.array(z.enum(['tiktok', 'reels', 'shorts', 'instagram', 'facebook'])).min(1),
 });
+
+// runAnimation is dynamically imported inside the handler so
+// the renderer / react-dom/server chain stays out of the
+// initial route bundle. The `webpackIgnore` magic comment
+// prevents Next.js's static analysis from walking the import
+// graph (which would flag the react-dom/server import). The
+// import is resolved at runtime when the route handler runs.
+async function getRunAnimation() {
+  const mod = await import(/* webpackIgnore: true */ '@/lib/ce-animate');
+  return mod.runAnimation;
+}
 
 export async function POST(req: NextRequest) {
   if (!(await isEditorSessionValid())) return NextResponse.json({ error: 'editor_session_required' }, { status: 401 });
@@ -94,8 +98,6 @@ export async function POST(req: NextRequest) {
       checks: {},
     };
 
-    // Create the post + first version so the editor has
-    // something to show while the animation runs.
     const sb = createAdminClient() as any;
     const { data: postRow, error: postErr } = await sb.from('content_posts').insert({
       id: postId,
@@ -120,33 +122,31 @@ export async function POST(req: NextRequest) {
 
     await sb.from('content_posts').update({ current_version_id: ver.id, updated_at: new Date().toISOString() }).eq('id', postId);
 
-    // Spawn the animate CLI as a child process. The animate
-    // module transitively imports react-dom/server (via the
-    // existing Phase 1 renderer). Vercel's bundled production
-    // runtime can't include that import chain across the route
-    // boundary, so the route hands off to a tsx-spawned CLI that
-    // runs in its own Node process.
-    const tmpRoot = join(tmpdir(), `ce-newvideo-${postId}-${Date.now()}`);
-    await mkdir(tmpRoot, { recursive: true });
-    const briefPath = join(tmpRoot, 'brief.json');
-    const outputPath = join(tmpRoot, 'output.json');
-    await writeFile(briefPath, JSON.stringify({ post, style: 'cut-paper', formats, secondsPerSlide: 1.5 }));
-
+    const runAnimation = await getRunAnimation();
     try {
-      const { stdout } = await execFileAsync('npx', ['tsx', 'tools/content-engine/scripts/animate.ts', briefPath, outputPath], {
-        cwd: process.cwd(),
-        env: { ...process.env, NODE_ENV: 'production' },
-        timeout: 5 * 60 * 1000, // 5 min
+      const animation = await runAnimation({
+        post,
+        style: 'cut-paper',
+        formats: formats as any,
+        secondsPerSlide: 1.5,
       });
-      void stdout; // debug
-    } catch (err: any) {
-      // Try to read the output JSON for the error message
-      let detail = err?.message || 'animate script failed';
-      try {
-        const out = JSON.parse(await readFile(outputPath, 'utf8'));
-        if (out?.error) detail = out.error;
-      } catch {}
-      const { data: animRow } = await sb.from('content_animations').insert({
+      await sb.from('content_animations').insert({
+        post_id: postId,
+        status: 'ready',
+        piece_dir: animation.pieceDir,
+        style: 'cut-paper',
+        formats,
+        mp4_paths: animation.mp4Paths,
+        frames_dir: animation.framesDir,
+        duration_ms: Math.round(animation.durationSeconds * 1000),
+      });
+    } catch (err) {
+      // The animation needs Playwright + ffmpeg which Vercel's
+      // serverless runtime doesn't have. The post is still
+      // created (with the goal-derived copy) so the user can
+      // finish it in the editor. The animation row records
+      // the failure with a hint to run locally.
+      await sb.from('content_animations').insert({
         post_id: postId,
         status: 'failed',
         piece_dir: null,
@@ -155,40 +155,9 @@ export async function POST(req: NextRequest) {
         mp4_paths: {},
         frames_dir: null,
         duration_ms: null,
-        error: detail,
+        error: `${(err as Error).message} — run \`npx tsx tools/content-engine/scripts/animate-cli.ts <brief> <out>\` on a machine with ffmpeg + Playwright.`,
       });
-      void animRow;
-      return NextResponse.json({ post_id: postId, error: detail }, { status: 500 });
     }
-
-    // Read the result
-    const out = JSON.parse(await readFile(outputPath, 'utf8'));
-    if (out?.error) {
-      const { data: animRow } = await sb.from('content_animations').insert({
-        post_id: postId,
-        status: 'failed',
-        piece_dir: null,
-        style: 'cut-paper',
-        formats,
-        mp4_paths: {},
-        frames_dir: null,
-        duration_ms: null,
-        error: out.error,
-      });
-      void animRow;
-      return NextResponse.json({ post_id: postId, error: out.error }, { status: 500 });
-    }
-
-    const { data: animRow } = await sb.from('content_animations').insert({
-      post_id: postId,
-      status: 'ready',
-      piece_dir: out.pieceDir,
-      style: 'cut-paper',
-      formats,
-      mp4_paths: out.mp4Paths,
-      frames_dir: out.framesDir,
-      duration_ms: Math.round(out.durationSeconds * 1000),
-    });
 
     return NextResponse.json({ post_id: postId });
   } catch (err) {

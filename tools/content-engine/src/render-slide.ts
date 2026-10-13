@@ -12,7 +12,7 @@ import { IconCard } from './templates/icon-card';
 import { CTA } from './templates/cta';
 import { WorkoutLine } from './templates/workout-line';
 import { PhotoTop } from './templates/photo-top';
-import { typeTokensFor, type Aspect, type Ground, type Tokens } from './tokens';
+import { loadTokens, typeScaleFor, type Aspect, type Ground, type Tokens } from './tokens';
 
 import type { Slide as SlideT } from './schema/post';
 
@@ -40,8 +40,6 @@ function renderTemplate(slide: SlideT, aspect: Aspect, ground: Ground, marqueeId
 }
 
 // Re-export so consumers can import from one place.
-import { loadTokens, typeScaleFor } from './tokens';
-
 export async function renderSlide(slide: SlideT, aspect: Aspect, ground: Ground, marqueeId: string) {
   const tokens = await loadTokens();
   return renderTemplate(slide, aspect, ground, marqueeId, tokens);

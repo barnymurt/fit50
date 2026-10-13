@@ -2,13 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createAdminClient } from '@/lib/supabase-admin';
 import { isEditorSessionValid } from '@/lib/editor-auth';
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
-import { readFile, writeFile, mkdir } from 'node:fs/promises';
-import { join } from 'node:path';
-import { tmpdir } from 'node:os';
-
-const execFileAsync = promisify(execFile);
 
 const AnimationBody = z.object({
   style: z.enum(['cut-paper', 'crosshatch', 'riso', 'sketchbook', 'math', 'pixel', 'isometric']).default('cut-paper'),
@@ -17,6 +10,11 @@ const AnimationBody = z.object({
 });
 
 const running = new Map<string, { cancelled: boolean }>();
+
+async function getRunAnimation() {
+  const mod = await import(/* webpackIgnore: true */ '@/lib/ce-animate');
+  return mod.runAnimation;
+}
 
 export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   if (!(await isEditorSessionValid())) return NextResponse.json({ error: 'editor_session_required' }, { status: 401 });
@@ -50,63 +48,36 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     }).select('*').single();
     if (insErr) return NextResponse.json({ error: insErr.message }, { status: 500 });
 
-    const tmpRoot = join(tmpdir(), `ce-anim-${id}-${Date.now()}`);
-    await mkdir(tmpRoot, { recursive: true });
-    const briefPath = join(tmpRoot, 'brief.json');
-    const outputPath = join(tmpRoot, 'output.json');
-    await writeFile(briefPath, JSON.stringify({
-      post: ver.doc,
-      style: parsed.data.style,
-      formats: parsed.data.formats,
-      secondsPerSlide: parsed.data.seconds_per_slide,
-    }));
-
+    const runAnimation = await getRunAnimation();
     try {
       if (cancel.cancelled) throw new Error('cancelled');
-      await execFileAsync('npx', ['tsx', 'tools/content-engine/scripts/animate.ts', briefPath, outputPath], {
-        cwd: process.cwd(),
-        env: { ...process.env, NODE_ENV: 'production' },
-        timeout: 5 * 60 * 1000,
+      const animation = await runAnimation({
+        post: ver.doc,
+        style: parsed.data.style as any,
+        formats: parsed.data.formats as any,
+        secondsPerSlide: parsed.data.seconds_per_slide,
       });
+      await sb.from('content_animations').update({
+        status: 'ready',
+        piece_dir: animation.pieceDir,
+        mp4_paths: animation.mp4Paths,
+        frames_dir: animation.framesDir,
+        duration_ms: Math.round(animation.durationSeconds * 1000),
+        updated_at: new Date().toISOString(),
+      }).eq('id', row.id);
     } catch (err: any) {
-      let detail = err?.message || 'animate script failed';
-      try {
-        const out = JSON.parse(await readFile(outputPath, 'utf8'));
-        if (out?.error) detail = out.error;
-      } catch {}
       await sb.from('content_animations').update({
         status: 'failed',
-        error: detail,
+        error: (err as Error).message,
         updated_at: new Date().toISOString(),
       }).eq('id', row.id);
       running.delete(id);
-      return NextResponse.json({ error: detail, animation_id: row.id }, { status: 500 });
+      return NextResponse.json({ error: (err as Error).message, animation_id: row.id }, { status: 500 });
     }
     running.delete(id);
 
-    const out = JSON.parse(await readFile(outputPath, 'utf8'));
-    if (out?.error) {
-      await sb.from('content_animations').update({
-        status: 'failed',
-        error: out.error,
-        updated_at: new Date().toISOString(),
-      }).eq('id', row.id);
-      return NextResponse.json({ error: out.error, animation_id: row.id }, { status: 500 });
-    }
-
-    await sb.from('content_animations').update({
-      status: 'ready',
-      piece_dir: out.pieceDir,
-      mp4_paths: out.mp4Paths,
-      frames_dir: out.framesDir,
-      duration_ms: Math.round(out.durationSeconds * 1000),
-      updated_at: new Date().toISOString(),
-    }).eq('id', row.id);
     return NextResponse.json({
       animation_id: row.id,
-      piece_dir: out.pieceDir,
-      mp4_paths: out.mp4Paths,
-      duration_ms: Math.round(out.durationSeconds * 1000),
     });
   } catch (err) {
     return NextResponse.json({ error: (err as Error).message }, { status: 500 });

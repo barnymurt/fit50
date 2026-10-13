@@ -56,7 +56,7 @@ export async function exportPost(post: Post, outputDir: string, options?: { brow
     // <img src="./brand/icons/...> resolves.
     await page.route('**/brand/icons/*', async (route) => {
       const url = new URL(route.request().url());
-      const file = url.pathname.split('/').pop();
+      const file = url.pathname.split('/').pop() || '';
       try {
         const buf = await (await import('node:fs/promises')).readFile(join(BRAND, 'icons', file));
         await route.fulfill({ status: 200, contentType: 'image/webp', body: buf });

@@ -4,11 +4,11 @@
 
 import {
   textColourFor,
-  type Scale,
-  Tokens,
-  Ground,
-  Aspect,
-} from './tokens.js';
+  type TypeScale,
+  type Tokens,
+  type Ground,
+  type Aspect,
+} from './tokens';
 
 export function groundStyle(ground: Ground, tokens: Tokens) {
   return { backgroundColor: tokens.colours[ground] };
@@ -48,7 +48,7 @@ export function typeStyle(
     fontFamily: `${family}, ${fallback}`,
     fontSize: `${t.size}px`,
     lineHeight: t.line_height,
-    letterSpacing: `${t.tracking}em`,
+    letterSpacing: 'tracking' in t ? `${(t as any).tracking}em` : 'normal',
     margin: 0,
     padding: 0,
   };

@@ -12,7 +12,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 export const BRAND = join(__dirname, '..', 'brand');
 
 export type Ground = 'paper' | 'teal' | 'lavender' | 'ink' | 'white' | 'cream';
-export type Aspect = '4:5' | '9:16';
+export type Aspect = '4:5' | '9:16' | '1:1' | '16:9';
 export type Platform = 'instagram' | 'facebook' | 'tiktok';
 
 export interface Tokens {

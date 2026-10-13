@@ -61,6 +61,7 @@ export const Slide = z.object({
     'icon-card',
     'cta',
     'workout-line',
+    'photo-top',
   ]),
   ground: z.enum([
     'paper',
@@ -91,8 +92,8 @@ export const PostSource = z
 export const Post = z.object({
   id: z.string(),
   type: z.literal('carousel'),
-  platform: z.enum(['instagram', 'facebook', 'tiktok']),
-  aspect: z.enum(['4:5', '9:16']),
+  platform: z.enum(['instagram', 'facebook', 'tiktok', 'reels', 'shorts']),
+  aspect: z.enum(['4:5', '9:16', '1:1', '16:9']),
   pillar: z.string(),
   brief: z.string().optional(),
   status: z.enum(['draft', 'review', 'approved', 'exported']).default('draft'),
