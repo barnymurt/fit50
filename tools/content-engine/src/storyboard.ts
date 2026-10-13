@@ -30,6 +30,10 @@ export interface Storyboard {
   hook: string;
   cta: string;
   message_goal: 'reach' | 'saves' | 'signups' | 'link-clicks';
+  /** Display label of the model that wrote the beats
+   *  (e.g. 'claude-3-5-haiku-latest', 'MiniMax-M3',
+   *  'heuristic'). The storyboard route persists this. */
+  model?: string;
 }
 
 const GOAL_HOOKS: Record<string, string> = {
@@ -114,7 +118,9 @@ export async function generateStoryboard(input: {
   } catch {
     // fall through to heuristic
   }
-  return generateStoryboardHeuristic(input);
+  const heur = generateStoryboardHeuristic(input);
+  heur.model = 'platform-aware heuristic';
+  return heur;
 }
 
 export async function generateStoryboardLLM(input: {
@@ -154,6 +160,9 @@ Rules
 
   try {
     const res = await callLLM({ prompt, maxTokens: 1500, provider: input.provider || undefined, model: input.model || undefined });
+    // Apply the user's model override to the picked model so
+    // the display label reflects the actually-used model.
+    const usedModel = input.model || res.model;
     const cleaned = res.text.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim();
     let parsed: any;
     try { parsed = JSON.parse(cleaned); } catch { return null; }
@@ -175,6 +184,7 @@ Rules
       hook,
       cta,
       message_goal: input.message_goal,
+      model: usedModel,
     };
   } catch {
     return null;

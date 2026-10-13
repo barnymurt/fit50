@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 
+const MODEL_COOKIE = 'ce_llm_model';
+
 interface Status {
   available: Array<'anthropic' | 'minimax' | null>;
   active: 'anthropic' | 'minimax' | null;
@@ -46,6 +48,16 @@ export function ProviderPicker({ compact }: Props) {
 
   useEffect(() => { refresh(); }, []);
 
+  function getCookie(name: string): string {
+    if (typeof document === 'undefined') return '';
+    const m = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+    return m ? decodeURIComponent(m[1]) : '';
+  }
+  function setCookie(name: string, value: string, days = 365) {
+    if (typeof document === 'undefined') return;
+    document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${days * 24 * 60 * 60}; samesite=lax`;
+  }
+
   async function setProvider(p: 'anthropic' | 'minimax' | '') {
     setSaving(true);
     setSelected(p);
@@ -54,9 +66,19 @@ export function ProviderPicker({ compact }: Props) {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ provider: p }),
     });
-    setModel(MODELS[p as keyof typeof MODELS]?.models?.[0] || '');
+    if (p) {
+      setCookie(MODEL_COOKIE, MODELS[p as keyof typeof MODELS]?.models?.[0] || '');
+      setModel(MODELS[p as keyof typeof MODELS]?.models?.[0] || '');
+    } else {
+      setCookie(MODEL_COOKIE, '');
+    }
     setSaving(false);
     refresh();
+  }
+
+  function handleModelChange(m: string) {
+    setModel(m);
+    setCookie(MODEL_COOKIE, m);
   }
 
   const active = selected || status?.active || null;
@@ -105,7 +127,7 @@ export function ProviderPicker({ compact }: Props) {
           <span>Model</span>
           <select
             value={model}
-            onChange={(e) => setModel(e.target.value)}
+            onChange={(e) => handleModelChange(e.target.value)}
             disabled={!active}
             style={{ ...selectStyle, maxWidth: 360 }}
           >

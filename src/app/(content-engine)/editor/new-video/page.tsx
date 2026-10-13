@@ -33,18 +33,18 @@ export default function NewVideoPage() {
     if (formats.length === 0) { setError('Pick at least one platform.'); return; }
     setSubmitting(true);
     setError(null);
-    const r = await fetch('/api/ce/storyboards', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ idea: idea.trim(), message_goal: messageGoal, platforms: formats }),
-    });
-    const j = await r.json();
-    setSubmitting(false);
-    if (r.ok && j.storyboard_id) {
-      router.push(`/editor/new-video/${j.storyboard_id}/storyboard`);
-    } else {
-      setError(j.error || 'Generation failed.');
-    }
+      const r = await fetch('/api/ce/storyboards', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ idea: idea.trim(), message_goal: messageGoal, platforms: formats }),
+      });
+      const j = await r.json();
+      setSubmitting(false);
+      if (r.ok && j.storyboard_id) {
+        router.push(`/editor/new-video/${j.storyboard_id}/storyboard?model=${encodeURIComponent(j.model || '')}`);
+      } else {
+        setError(j.error || 'Generation failed.');
+      }
   }
 
   return (
