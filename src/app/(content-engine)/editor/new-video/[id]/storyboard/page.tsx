@@ -1,0 +1,167 @@
+'use client';
+
+import { useCallback, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+
+interface Beat {
+  n: number;
+  time_s: number;
+  what_happens: string;
+  voice_line: string;
+  bridge_to_next: string;
+}
+
+interface Storyboard {
+  id: string;
+  idea: string;
+  message_goal: 'reach' | 'saves' | 'signups' | 'link-clicks';
+  platforms: string[];
+  format: '9:16' | '4:5' | '1:1' | '16:9';
+  beats: Beat[];
+  status: 'pending' | 'approved' | 'rejected' | 'edited';
+  post_id: string | null;
+  created_at: string;
+}
+
+const GOAL_LABEL: Record<string, string> = {
+  reach: 'Reach',
+  saves: 'Saves',
+  signups: 'Sign-ups to premium',
+  'link-clicks': 'Link clicks',
+};
+
+export default function StoryboardReviewPage({ params }: { params: { id: string } }) {
+  const router = useRouter();
+  const storyboardId = params.id;
+  const [sb, setSb] = useState<Storyboard | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [editing, setEditing] = useState<Record<number, Partial<Beat>>>({});
+
+  useEffect(() => {
+    (async () => {
+      const r = await fetch(`/api/ce/storyboards/${storyboardId}`);
+      const j = await r.json();
+      if (r.ok) setSb(j.storyboard);
+      else setError(j.error || 'Failed to load storyboard.');
+    })();
+  }, [storyboardId]);
+
+  const updateBeat = useCallback((n: number, patch: Partial<Beat>) => {
+    setEditing((e) => ({ ...e, [n]: { ...e[n], ...patch } }));
+  }, []);
+  const effectiveBeat = (b: Beat): Beat => ({ ...b, ...editing[b.n] });
+
+  const submit = useCallback(async () => {
+    if (!sb) return;
+    setBusy(true);
+    setError(null);
+    const beats = sb.beats.map((b) => effectiveBeat(b));
+    const r = await fetch(`/api/ce/storyboards/${sb.id}/approve`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ beats }),
+    });
+    const j = await r.json();
+    setBusy(false);
+    if (r.ok && j.post_id) {
+      router.push(`/editor/${j.post_id}`);
+    } else {
+      setError(j.error || 'Approval failed.');
+    }
+  }, [sb, editing, router]);
+
+  if (error) return <div style={{ padding: 40, fontFamily: 'system-ui, sans-serif', color: '#E88B5A' }}>{error}</div>;
+  if (!sb) return <div style={{ padding: 40, fontFamily: 'system-ui, sans-serif' }}>Loading storyboard…</div>;
+
+  return (
+    <div style={{ padding: '32px 24px', maxWidth: 920, margin: '0 auto' }}>
+      <Link href="/editor/new-video" style={{ fontFamily: 'system-ui, sans-serif', fontSize: 12, color: 'rgba(26,26,26,0.7)' }}>
+        ← back to brief
+      </Link>
+      <p style={{ fontFamily: 'system-ui, sans-serif', fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#E88B5A', margin: '24px 0 4px' }}>
+        Storyboard review
+      </p>
+      <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 28, fontWeight: 400, color: '#1A1A1A', margin: '0 0 8px' }}>
+        {sb.idea}
+      </h1>
+      <p style={{ fontFamily: 'system-ui, sans-serif', fontSize: 12, color: 'rgba(26,26,26,0.7)', margin: '0 0 24px' }}>
+        Goal: {GOAL_LABEL[sb.message_goal]}. Platform: {sb.format}. Approve to generate the video, or edit the beats first.
+      </p>
+
+      <div style={{ display: 'grid', gap: 16, marginBottom: 24 }}>
+        {sb.beats.map((b) => {
+          const eb = effectiveBeat(b);
+          return (
+            <div key={b.n} style={{ background: '#FFFFFF', border: '1px solid rgba(26,26,26,0.12)', padding: 20 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+                <span style={{ background: '#1A1A1A', color: '#FAF6EE', fontFamily: 'system-ui, sans-serif', fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', padding: '2px 10px' }}>
+                  Beat {b.n}
+                </span>
+                <span style={{ fontFamily: 'system-ui, sans-serif', fontSize: 12, color: 'rgba(26,26,26,0.5)' }}>
+                  {b.time_s.toFixed(1)}s
+                </span>
+                <span style={{ flex: 1 }} />
+                <span style={{ fontFamily: 'system-ui, sans-serif', fontSize: 11, color: 'rgba(26,26,26,0.5)' }}>
+                  edit inline ↓
+                </span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr', gap: 8, marginBottom: 6 }}>
+                <label style={{ fontFamily: 'system-ui, sans-serif', fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(26,26,26,0.5)', alignSelf: 'center' }}>What happens</label>
+                <textarea
+                  value={eb.what_happens}
+                  onChange={(e) => updateBeat(b.n, { what_happens: e.target.value })}
+                  rows={2}
+                  style={{ ...beatInput, fontFamily: 'system-ui, sans-serif' }}
+                />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr', gap: 8, marginBottom: 6 }}>
+                <label style={{ fontFamily: 'system-ui, sans-serif', fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(26,26,26,0.5)', alignSelf: 'center' }}>Voice line</label>
+                <textarea
+                  value={eb.voice_line}
+                  onChange={(e) => updateBeat(b.n, { voice_line: e.target.value })}
+                  rows={1}
+                  style={{ ...beatInput, fontFamily: 'system-ui, sans-serif' }}
+                />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr', gap: 8 }}>
+                <label style={{ fontFamily: 'system-ui, sans-serif', fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(26,26,26,0.5)', alignSelf: 'center' }}>Bridge</label>
+                <input
+                  value={eb.bridge_to_next}
+                  onChange={(e) => updateBeat(b.n, { bridge_to_next: e.target.value })}
+                  style={beatInput}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+        <button onClick={submit} disabled={busy} style={primaryBtn}>
+          {busy ? 'Approving…' : 'Approve and generate video'}
+        </button>
+      </div>
+      {error && <p style={{ color: '#E88B5A', fontFamily: 'system-ui, sans-serif', fontSize: 13, marginTop: 12 }}>{error}</p>}
+    </div>
+  );
+}
+
+const beatInput: React.CSSProperties = {
+  width: '100%',
+  padding: '8px 10px',
+  background: 'rgba(242,217,162,0.19)',
+  border: '1px solid rgba(26,26,26,0.20)',
+  color: '#1A1A1A',
+  fontSize: 14,
+  fontFamily: 'system-ui, sans-serif',
+  resize: 'vertical',
+  boxSizing: 'border-box',
+};
+
+const primaryBtn: React.CSSProperties = {
+  background: '#1A1A1A', color: '#FAF6EE', border: 0, padding: '14px 24px',
+  fontFamily: 'system-ui, sans-serif', fontSize: 12, letterSpacing: '0.12em',
+  textTransform: 'uppercase', cursor: 'pointer',
+};

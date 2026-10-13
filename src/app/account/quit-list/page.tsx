@@ -262,7 +262,7 @@ export default function QuitListPage() {
       {/* Hero */}
       <section className="ql-hero">
         <div className="ql-wrap">
-          <span className="ql-eyebrow">Rule 04 companion · Clear Lungs</span>
+          <span className="ql-eyebrow">Rule 5 · Fresh Lungs</span>
           <h1 className="ql-h1">
             The <em>Quit List</em>.
           </h1>
