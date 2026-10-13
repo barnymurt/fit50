@@ -27,11 +27,15 @@ export interface LLMResponse {
 }
 
 export function pickProvider(): Provider {
+  // Priority order: explicit env override first, then MiniMax
+  // (the live FIT50 app's food section uses it for content
+  // generation, and the editor storyboard path now matches),
+  // then Anthropic as the fallback.
   const forced = (process.env.LLM_PROVIDER || '').toLowerCase();
   if (forced === 'anthropic') return process.env.ANTHROPIC_API_KEY ? 'anthropic' : null;
   if (forced === 'minimax')  return process.env.MINIMAX_API_KEY  ? 'minimax'  : null;
+  if (process.env.MINIMAX_API_KEY)  return 'minimax';
   if (process.env.ANTHROPIC_API_KEY) return 'anthropic';
-  if (process.env.MINIMAX_API_KEY) return 'minimax';
   return null;
 }
 
