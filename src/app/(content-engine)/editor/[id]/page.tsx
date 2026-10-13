@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
+import { AnimateModal } from './AnimateModal';
 
 interface PostRow {
   id: string;
@@ -66,6 +67,7 @@ export default function EditPage({ params }: { params: Promise<{ id: string }> }
   const [rewriteReason, setRewriteReason] = useState('');
   const [critic, setCritic] = useState<{ hook: number; bridges: number; payoff: number; weakest_slide: string | null; notes: string } | null>(null);
   const [criticBusy, setCriticBusy] = useState(false);
+  const [animateOpen, setAnimateOpen] = useState(false);
   const [postId, setPostId] = useState<string>('');
 
   useEffect(() => {
@@ -292,6 +294,7 @@ export default function EditPage({ params }: { params: Promise<{ id: string }> }
         <span style={{ fontSize: 12, color: 'rgba(26,26,26,0.5)' }}>{flags.length} flag{flags.length !== 1 ? 's' : ''}</span>
         <button onClick={() => saveDraft('manual save')} disabled={busy} style={primaryBtn}>Save</button>
         <button onClick={scorePost} disabled={busy || criticBusy} style={secondaryBtn}>{criticBusy ? 'Scoring…' : 'Score'}</button>
+        <button onClick={() => setAnimateOpen(true)} disabled={busy} style={secondaryBtn}>Animate</button>
         <button onClick={exportZip} disabled={busy} style={secondaryBtn}>Export</button>
       </div>
 
@@ -428,6 +431,13 @@ export default function EditPage({ params }: { params: Promise<{ id: string }> }
         />
       )}
       {critic && <CriticModal critic={critic} onClose={() => setCritic(null)} />}
+      {animateOpen && doc && (
+        <AnimateModal
+          postId={postId}
+          postBrief={doc.brief || null}
+          onClose={() => setAnimateOpen(false)}
+        />
+      )}
     </div>
   );
 }

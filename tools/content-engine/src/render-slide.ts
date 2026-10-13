@@ -38,17 +38,16 @@ function renderTemplate(slide: SlideT, aspect: Aspect, ground: Ground, marqueeId
   }
   return '';
 }
-}
 
 // Re-export so consumers can import from one place.
-import { loadTokens, typeScaleFor } from './tokens.js';
+import { loadTokens, typeScaleFor } from './tokens';
 
 export async function renderSlide(slide: SlideT, aspect: Aspect, ground: Ground, marqueeId: string) {
   const tokens = await loadTokens();
   return renderTemplate(slide, aspect, ground, marqueeId, tokens);
 }
 
-export async function renderPostHTML(post: import('./schema/post.js').Post) {
+export async function renderPostHTML(post: import('./schema/post').Post) {
   const tokens = await loadTokens();
   const aspect: Aspect = post.aspect;
   const marqueeId = post.marquee || 'marquee_default';
