@@ -2,7 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createAdminClient } from '@/lib/supabase-admin';
 import { isEditorSessionValid } from '@/lib/editor-auth';
-import { getPost } from '@/lib/ce-helpers';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
+
+const execFileAsync = promisify(execFile);
 
 const AnimationBody = z.object({
   style: z.enum(['cut-paper', 'crosshatch', 'riso', 'sketchbook', 'math', 'pixel', 'isometric']).default('cut-paper'),
@@ -10,7 +16,6 @@ const AnimationBody = z.object({
   seconds_per_slide: z.number().min(0.5).max(10).default(1.5),
 });
 
-// In-memory registry of running animations (cancel support).
 const running = new Map<string, { cancelled: boolean }>();
 
 export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
@@ -22,13 +27,16 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     if (!parsed.success) {
       return NextResponse.json({ error: 'schema_failed', issues: parsed.error.issues }, { status: 422 });
     }
-    const result = await getPost(id);
-    if (!result || !result.post || !result.version) return NextResponse.json({ error: 'not_found' }, { status: 404 });
+
+    const sb = createAdminClient() as any;
+    const { data: postRow, error: postErr } = await sb.from('content_posts').select('*').eq('id', id).maybeSingle();
+    if (postErr || !postRow) return NextResponse.json({ error: postErr?.message || 'not_found' }, { status: 404 });
+    const { data: ver, error: verErr } = await sb.from('content_post_versions').select('*').eq('id', postRow.current_version_id).maybeSingle();
+    if (verErr || !ver) return NextResponse.json({ error: 'no_doc' }, { status: 400 });
 
     const cancel = { cancelled: false };
     running.set(id, cancel);
 
-    const sb = createAdminClient() as any;
     const { data: row, error: insErr } = await sb.from('content_animations').insert({
       post_id: id,
       status: 'building',
@@ -42,52 +50,63 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     }).select('*').single();
     if (insErr) return NextResponse.json({ error: insErr.message }, { status: 500 });
 
-    // Use eval('require') to bypass webpack's static analysis
-    // of the import chain. The animate module transitively
-    // imports react-dom/server, which Next.js's static check
-    // refuses to bundle for the client. This route is only
-    // ever reached server-side, so the require is safe.
-    type AnimateModule = { runAnimation: (input: { post: unknown; style: string; formats: string[]; secondsPerSlide: number }) => Promise<{ pieceDir: string; framesDir: string; rendersDir: string; mp4Paths: Record<string, string>; durationSeconds: number }> };
-    // eslint-disable-next-line no-eval
-    const animateMod = eval('require')('../../../../../../tools/content-engine/src/animate.ts') as AnimateModule;
-    const runAnimation = animateMod.runAnimation;
-    let animation;
+    const tmpRoot = join(tmpdir(), `ce-anim-${id}-${Date.now()}`);
+    await mkdir(tmpRoot, { recursive: true });
+    const briefPath = join(tmpRoot, 'brief.json');
+    const outputPath = join(tmpRoot, 'output.json');
+    await writeFile(briefPath, JSON.stringify({
+      post: ver.doc,
+      style: parsed.data.style,
+      formats: parsed.data.formats,
+      secondsPerSlide: parsed.data.seconds_per_slide,
+    }));
+
     try {
       if (cancel.cancelled) throw new Error('cancelled');
-      animation = await runAnimation({
-        post: result.version.doc,
-        style: parsed.data.style,
-        formats: parsed.data.formats,
-        secondsPerSlide: parsed.data.seconds_per_slide,
+      await execFileAsync('npx', ['tsx', 'tools/content-engine/scripts/animate.ts', briefPath, outputPath], {
+        cwd: process.cwd(),
+        env: { ...process.env, NODE_ENV: 'production' },
+        timeout: 5 * 60 * 1000,
       });
-    } catch (err) {
+    } catch (err: any) {
+      let detail = err?.message || 'animate script failed';
+      try {
+        const out = JSON.parse(await readFile(outputPath, 'utf8'));
+        if (out?.error) detail = out.error;
+      } catch {}
       await sb.from('content_animations').update({
         status: 'failed',
-        error: (err as Error).message,
+        error: detail,
         updated_at: new Date().toISOString(),
       }).eq('id', row.id);
       running.delete(id);
-      return NextResponse.json({ error: (err as Error).message, animation_id: row.id }, { status: 500 });
+      return NextResponse.json({ error: detail, animation_id: row.id }, { status: 500 });
     }
     running.delete(id);
 
-    const mp4_paths: Record<string, string> = {};
-    for (const [k, v] of Object.entries(animation.mp4Paths)) {
-      mp4_paths[k] = v;
+    const out = JSON.parse(await readFile(outputPath, 'utf8'));
+    if (out?.error) {
+      await sb.from('content_animations').update({
+        status: 'failed',
+        error: out.error,
+        updated_at: new Date().toISOString(),
+      }).eq('id', row.id);
+      return NextResponse.json({ error: out.error, animation_id: row.id }, { status: 500 });
     }
+
     await sb.from('content_animations').update({
       status: 'ready',
-      piece_dir: animation.pieceDir,
-      mp4_paths,
-      frames_dir: animation.framesDir,
-      duration_ms: Math.round(animation.durationSeconds * 1000),
+      piece_dir: out.pieceDir,
+      mp4_paths: out.mp4Paths,
+      frames_dir: out.framesDir,
+      duration_ms: Math.round(out.durationSeconds * 1000),
       updated_at: new Date().toISOString(),
     }).eq('id', row.id);
     return NextResponse.json({
       animation_id: row.id,
-      piece_dir: animation.pieceDir,
-      mp4_paths,
-      duration_ms: Math.round(animation.durationSeconds * 1000),
+      piece_dir: out.pieceDir,
+      mp4_paths: out.mp4Paths,
+      duration_ms: Math.round(out.durationSeconds * 1000),
     });
   } catch (err) {
     return NextResponse.json({ error: (err as Error).message }, { status: 500 });

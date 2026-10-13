@@ -2,6 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createAdminClient } from '@/lib/supabase-admin';
 import { isEditorSessionValid } from '@/lib/editor-auth';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import { writeFile, readFile, mkdir } from 'node:fs/promises';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
+import { Post } from '@/ce-content-engine/schema/post';
+
+const execFileAsync = promisify(execFile);
 
 const PLATFORM_TO_ASPECT: Record<string, { aspect: '9:16' | '4:5' | '1:1' | '16:9'; priority: number }> = {
   tiktok:    { aspect: '9:16', priority: 5 },
@@ -11,7 +19,6 @@ const PLATFORM_TO_ASPECT: Record<string, { aspect: '9:16' | '4:5' | '1:1' | '16:
   facebook:  { aspect: '1:1',  priority: 1 },
 };
 
-// Goal-specific copy the user can tweak in the editor.
 const GOAL_HOOKS: Record<string, string> = {
   reach:        'Have you seen this?',
   saves:        'Save this for later.',
@@ -25,9 +32,6 @@ const GOAL_CTAS: Record<string, { eyebrow: string; headline: string; button: str
   'link-clicks': { eyebrow: 'Read more',   headline: 'Full story in bio', button: 'Tap to read' },
 };
 
-// Map the chosen platforms to the set of MP4 formats we'll
-// produce. One MP4 per format (e.g. tiktok + facebook →
-// 9:16 + 1:1).
 function formatsForPlatforms(platforms: string[]): string[] {
   const set = new Set<string>();
   for (const p of platforms) {
@@ -53,23 +57,14 @@ export async function POST(req: NextRequest) {
     }
     const { idea, message_goal, platforms } = parsed.data;
 
-    // Pick the dominant platform (highest priority) for the
-    // post's primary aspect; the animation runs once for the
-    // other formats by re-targeting the same piece.
     const sortedPlatforms = [...platforms].sort((a, b) => (PLATFORM_TO_ASPECT[b]?.priority || 0) - (PLATFORM_TO_ASPECT[a]?.priority || 0));
     const primary = sortedPlatforms[0];
     const aspect = (PLATFORM_TO_ASPECT[primary]?.aspect) || '9:16';
     const formats = formatsForPlatforms(platforms);
 
-    // Build the post id from a slug of the idea + a timestamp.
     const slug = idea.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 32) || 'video';
     const postId = `${slug}-${Date.now()}`;
 
-    // Stub the post's slides (the brief is the source of truth;
-    // Phase 7.1 wires the model to write the slides + voice).
-    // v1 derives as much as it can from the brief: hook, the
-    // first sentence of the idea, the second sentence, and a
-    // goal-specific CTA. The user opens the editor and tweaks.
     const sentences = idea.split(/(?<=[.!?])\s+/).filter(Boolean);
     const first = sentences[0] || idea;
     const rest = sentences.slice(1).join(' ') || '';
@@ -99,6 +94,8 @@ export async function POST(req: NextRequest) {
       checks: {},
     };
 
+    // Create the post + first version so the editor has
+    // something to show while the animation runs.
     const sb = createAdminClient() as any;
     const { data: postRow, error: postErr } = await sb.from('content_posts').insert({
       id: postId,
@@ -123,59 +120,75 @@ export async function POST(req: NextRequest) {
 
     await sb.from('content_posts').update({ current_version_id: ver.id, updated_at: new Date().toISOString() }).eq('id', postId);
 
-    // Kick off the animation. We pass the secondary-formats list
-    // (every format except the post's primary, since the post's
-    // primary is what the editor already shows in its preview).
-    const allFormats = formats as Array<'9:16' | '4:5' | '1:1' | '16:9'>;
-    // eslint-disable-next-line no-eval
-    const animateMod = eval('require')('../../../../../../tools/content-engine/src/animate.ts') as { runAnimation: (input: any) => Promise<{ pieceDir: string; framesDir: string; rendersDir: string; mp4Paths: Record<string, string>; durationSeconds: number }> };
+    // Spawn the animate CLI as a child process. The animate
+    // module transitively imports react-dom/server (via the
+    // existing Phase 1 renderer). Vercel's bundled production
+    // runtime can't include that import chain across the route
+    // boundary, so the route hands off to a tsx-spawned CLI that
+    // runs in its own Node process.
+    const tmpRoot = join(tmpdir(), `ce-newvideo-${postId}-${Date.now()}`);
+    await mkdir(tmpRoot, { recursive: true });
+    const briefPath = join(tmpRoot, 'brief.json');
+    const outputPath = join(tmpRoot, 'output.json');
+    await writeFile(briefPath, JSON.stringify({ post, style: 'cut-paper', formats, secondsPerSlide: 1.5 }));
+
     try {
-      const { data: animRow } = await sb.from('content_animations').insert({
-        post_id: postId,
-        status: 'building',
-        piece_dir: null,
-        style: 'cut-paper',
-        formats: allFormats,
-        mp4_paths: {},
-        frames_dir: null,
-        duration_ms: null,
-        error: null,
-      }).select('*').single();
-
-      const animation = await animateMod.runAnimation({
-        post,
-        style: 'cut-paper',
-        formats: allFormats,
-        secondsPerSlide: 1.5,
+      const { stdout } = await execFileAsync('npx', ['tsx', 'tools/content-engine/scripts/animate.ts', briefPath, outputPath], {
+        cwd: process.cwd(),
+        env: { ...process.env, NODE_ENV: 'production' },
+        timeout: 5 * 60 * 1000, // 5 min
       });
-
-      const mp4_paths: Record<string, string> = {};
-      for (const [k, v] of Object.entries(animation.mp4Paths)) mp4_paths[k] = v;
-      await sb.from('content_animations').update({
-        status: 'ready',
-        piece_dir: animation.pieceDir,
-        mp4_paths,
-        frames_dir: animation.framesDir,
-        duration_ms: Math.round(animation.durationSeconds * 1000),
-        updated_at: new Date().toISOString(),
-      }).eq('id', animRow.id);
-    } catch (err) {
-      const errMsg = (err as Error).message;
-      // Record the failure so the editor surfaces it.
+      void stdout; // debug
+    } catch (err: any) {
+      // Try to read the output JSON for the error message
+      let detail = err?.message || 'animate script failed';
+      try {
+        const out = JSON.parse(await readFile(outputPath, 'utf8'));
+        if (out?.error) detail = out.error;
+      } catch {}
       const { data: animRow } = await sb.from('content_animations').insert({
         post_id: postId,
         status: 'failed',
         piece_dir: null,
         style: 'cut-paper',
-        formats: allFormats,
+        formats,
         mp4_paths: {},
         frames_dir: null,
         duration_ms: null,
-        error: errMsg,
+        error: detail,
       });
-      // Best-effort; the editor's Animate modal will fetch this.
       void animRow;
+      return NextResponse.json({ post_id: postId, error: detail }, { status: 500 });
     }
+
+    // Read the result
+    const out = JSON.parse(await readFile(outputPath, 'utf8'));
+    if (out?.error) {
+      const { data: animRow } = await sb.from('content_animations').insert({
+        post_id: postId,
+        status: 'failed',
+        piece_dir: null,
+        style: 'cut-paper',
+        formats,
+        mp4_paths: {},
+        frames_dir: null,
+        duration_ms: null,
+        error: out.error,
+      });
+      void animRow;
+      return NextResponse.json({ post_id: postId, error: out.error }, { status: 500 });
+    }
+
+    const { data: animRow } = await sb.from('content_animations').insert({
+      post_id: postId,
+      status: 'ready',
+      piece_dir: out.pieceDir,
+      style: 'cut-paper',
+      formats,
+      mp4_paths: out.mp4Paths,
+      frames_dir: out.framesDir,
+      duration_ms: Math.round(out.durationSeconds * 1000),
+    });
 
     return NextResponse.json({ post_id: postId });
   } catch (err) {
