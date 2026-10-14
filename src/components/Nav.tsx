@@ -61,11 +61,11 @@ export default function Nav() {
           <Image
             src="/logos/fit50-challenge-logo.svg"
             alt="FIT50 challenge"
-            width={180}
-            height={42}
+            width={240}
+            height={56}
             priority
-            sizes="(max-width: 767px) 110px, 180px"
-            className="h-9 w-auto sm:h-10 md:h-11"
+            sizes="(max-width: 767px) 130px, 240px"
+            className="h-10 w-auto sm:h-12 md:h-14"
           />
         </Link>
 
