@@ -33,7 +33,7 @@ export default function Footer() {
             className="h-13 w-auto"
           />
           <p className="font-body text-paper/50 mt-4 max-w-sm">
-            50 Days �� 9 Habits �� 1 Finished Thing
+            50 Days · 9 Habits · 1 Finished Thing
           </p>
         </div>
       </div>
@@ -44,7 +44,7 @@ export default function Footer() {
             <a
               key={link.href}
               href={link.href}
-              className="font-body text-caption uppercase text-paper/60 hover:text-paper transition-colors"
+              className="font-body text-sm text-paper/60 hover:text-paper"
             >
               {link.label}
             </a>
@@ -53,7 +53,7 @@ export default function Footer() {
       </div>
 
       <p className="mt-10 font-body text-xs text-paper/40">
-        © 2026 FIT50. All rights reserved.
+        © FIT50Challenge. All rights reserved.
       </p>
     </Section>
   );

@@ -56,15 +56,16 @@ export default function Nav() {
           href="/"
           aria-label="FIT50 home"
           onClick={() => setMobileOpen(false)}
-          className="block"
+          className="block shrink-0"
         >
           <Image
             src="/logos/fit50-challenge-logo.svg"
             alt="FIT50 challenge"
-            width={120}
-            height={28}
+            width={180}
+            height={42}
             priority
-            className="h-7 w-auto"
+            sizes="(max-width: 767px) 110px, 180px"
+            className="h-9 w-auto sm:h-10 md:h-11"
           />
         </Link>
 
