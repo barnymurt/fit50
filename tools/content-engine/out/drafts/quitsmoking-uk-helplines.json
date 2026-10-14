@@ -1,0 +1,155 @@
+{
+  "id": "quitsmoking-uk-helplines",
+  "type": "carousel",
+  "platform": "facebook",
+  "aspect": "4:5",
+  "pillar": "quit-smoking",
+  "brief": "Three UK quit smoking services. Names exactly. No health claims.",
+  "status": "draft",
+  "version": 1,
+  "marquee": "marquee_quiet",
+  "source": {
+    "library": "libraries/quit-resources.json"
+  },
+  "slides": [
+    {
+      "id": "s1",
+      "template": "cover",
+      "ground": "teal",
+      "fields": {
+        "eyebrow": {
+          "text": "Quit · UK",
+          "by": "human",
+          "locked": true
+        },
+        "headline": {
+          "text": "*Three* services.",
+          "by": "human",
+          "locked": true
+        },
+        "sub": {
+          "text": "No judgement. One of them is yours.",
+          "by": "human"
+        }
+      }
+    },
+    {
+      "id": "s2",
+      "template": "list",
+      "ground": "paper",
+      "fields": {
+        "eyebrow": {
+          "text": "Phone and web",
+          "by": "human"
+        },
+        "headline": {
+          "text": "Pick the *one.*",
+          "by": "human"
+        },
+        "bridge": {
+          "text": "The link is in the bio",
+          "by": "human"
+        },
+        "items": [
+          {
+            "title": "NHS Smokefree",
+            "icon": null
+          },
+          {
+            "title": "NHS Smokefree Helpline",
+            "icon": null
+          },
+          {
+            "title": "Asthma + Lung UK",
+            "icon": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "s3",
+      "template": "statement",
+      "ground": "lavender",
+      "fields": {
+        "eyebrow": {
+          "text": "A line on the wall",
+          "by": "human"
+        },
+        "headline": {
+          "text": "*No* judgement.",
+          "by": "human"
+        },
+        "body": {
+          "text": "These services have been around for more than a decade. The people on the other end have heard every version of your day.",
+          "by": "human"
+        },
+        "bridge": {
+          "text": "Pick the one that fits",
+          "by": "human"
+        }
+      }
+    },
+    {
+      "id": "s4",
+      "template": "statement",
+      "ground": "ink",
+      "fields": {
+        "eyebrow": {
+          "text": "The Fresh Lungs rule",
+          "by": "human"
+        },
+        "headline": {
+          "text": "No cigarettes, *no vaping.*",
+          "by": "human"
+        },
+        "body": {
+          "text": "The rule on the site says exactly that. The services here treat both the same. Fresh Lungs is the rule name, not a line.",
+          "by": "human"
+        },
+        "bridge": {
+          "text": "The ruleset meets the wall",
+          "by": "human"
+        }
+      }
+    },
+    {
+      "id": "s5",
+      "template": "cta",
+      "ground": "paper",
+      "fields": {
+        "eyebrow": {
+          "text": "Save this",
+          "by": "human"
+        },
+        "headline": {
+          "text": "The link is in the *bio.*",
+          "by": "human"
+        },
+        "body": {
+          "text": "40 services, one per country, all in the bio. No health claims, no judgement. Pick the one and call.",
+          "by": "human"
+        },
+        "button": {
+          "text": "Save the list",
+          "by": "human"
+        }
+      }
+    }
+  ],
+  "caption": {
+    "text": "Three UK quit smoking services. No judgement. The link is in the bio.\n\n#fit50 #quitsmoking #freshlungs #nhs",
+    "hashtags": [
+      "#fit50",
+      "#quitsmoking",
+      "#freshlungs",
+      "#nhs"
+    ],
+    "by": "human"
+  },
+  "checks": {
+    "facts": "pending",
+    "voice_lint": "pending",
+    "design": "pending",
+    "fit": "pending"
+  }
+}

@@ -1,0 +1,152 @@
+{
+  "id": "drinks-cucumber-lime",
+  "type": "carousel",
+  "platform": "instagram",
+  "aspect": "4:5",
+  "pillar": "drinks-recipes",
+  "brief": "Cucumber lime agua fresca. 8 minutes. Two cues.",
+  "status": "draft",
+  "version": 1,
+  "marquee": "marquee_default",
+  "source": {
+    "recipe_id": "cucumber-lime",
+    "library": "libraries/drinks.json"
+  },
+  "slides": [
+    {
+      "id": "s1",
+      "template": "cover",
+      "ground": "ink",
+      "fields": {
+        "eyebrow": {
+          "text": "Drink · Zero proof",
+          "by": "human",
+          "locked": true
+        },
+        "headline": {
+          "text": "Cucumber *lime agua.*",
+          "by": "human",
+          "locked": true
+        },
+        "sub": {
+          "text": "8 minutes. Two ingredients.",
+          "by": "human"
+        }
+      }
+    },
+    {
+      "id": "s2",
+      "template": "list",
+      "ground": "paper",
+      "fields": {
+        "eyebrow": {
+          "text": "What you need",
+          "by": "human"
+        },
+        "headline": {
+          "text": "*Two* things.",
+          "by": "human"
+        },
+        "bridge": {
+          "text": "Plus sparkling water and honey",
+          "by": "human"
+        },
+        "items": [
+          {
+            "title": "1/2 cucumber, sliced",
+            "icon": "fresh-lungs"
+          },
+          {
+            "title": "30 ml lime juice",
+            "icon": "wet-lips"
+          }
+        ]
+      }
+    },
+    {
+      "id": "s3",
+      "template": "statement",
+      "ground": "lavender",
+      "fields": {
+        "eyebrow": {
+          "text": "The method",
+          "by": "human"
+        },
+        "headline": {
+          "text": "Muddle, *don’t blend.*",
+          "by": "human"
+        },
+        "body": {
+          "text": "Press the cucumber into the lime with a wooden spoon. Keep the slices whole so the glass looks the part.",
+          "by": "human"
+        },
+        "bridge": {
+          "text": "Sharp, not pulpy",
+          "by": "human"
+        }
+      }
+    },
+    {
+      "id": "s4",
+      "template": "statement",
+      "ground": "teal",
+      "fields": {
+        "eyebrow": {
+          "text": "Finish",
+          "by": "human"
+        },
+        "headline": {
+          "text": "Top with *sparkling* water.",
+          "by": "human"
+        },
+        "body": {
+          "text": "Stir in a teaspoon of honey if your limes are sharp. Pour over a tall glass of ice.",
+          "by": "human"
+        },
+        "bridge": {
+          "text": "Now the sharper cup",
+          "by": "human"
+        }
+      }
+    },
+    {
+      "id": "s5",
+      "template": "cta",
+      "ground": "paper",
+      "fields": {
+        "eyebrow": {
+          "text": "Save this",
+          "by": "human"
+        },
+        "headline": {
+          "text": "50 *zero-proof* drinks.",
+          "by": "human"
+        },
+        "body": {
+          "text": "All metric. All low-sugar. The link is in the bio.",
+          "by": "human"
+        },
+        "button": {
+          "text": "Save the recipe",
+          "by": "human"
+        }
+      }
+    }
+  ],
+  "caption": {
+    "text": "Cucumber lime agua. 8 minutes. The trick is muddling, not blending. Recipe in the bio.\n\n#fit50 #zeroproof #aguafresca #cucumber",
+    "hashtags": [
+      "#fit50",
+      "#zeroproof",
+      "#aguafresca",
+      "#cucumber"
+    ],
+    "by": "human"
+  },
+  "checks": {
+    "facts": "pending",
+    "voice_lint": "pending",
+    "design": "pending",
+    "fit": "pending"
+  }
+}
