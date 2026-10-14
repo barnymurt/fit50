@@ -51,7 +51,7 @@ export default function Nav() {
           : 'bg-transparent'
       }`}
     >
-      <div className="max-w-7xl mx-auto px-6 md:px-10 h-16 flex items-center justify-between">
+      <div className="max-w-7xl mx-auto px-6 md:px-10 h-20 flex items-center justify-between">
         <Link
           href="/"
           aria-label="FIT50 home"
@@ -61,11 +61,11 @@ export default function Nav() {
           <Image
             src="/logos/fit50-challenge-logo.svg"
             alt="FIT50 challenge"
-            width={240}
-            height={56}
+            width={320}
+            height={72}
             priority
-            sizes="(max-width: 767px) 130px, 240px"
-            className="h-10 w-auto sm:h-12 md:h-14"
+            sizes="(max-width: 767px) 150px, 320px"
+            className="h-12 w-auto sm:h-14 md:h-[72px]"
           />
         </Link>
 
