@@ -1,0 +1,178 @@
+{
+  "id": "workouts-line-b",
+  "type": "carousel",
+  "platform": "tiktok",
+  "aspect": "9:16",
+  "pillar": "workouts",
+  "brief": "Line B. Upper body, push. 5 moves, no kit.",
+  "status": "draft",
+  "version": 1,
+  "marquee": "marquee_default",
+  "source": {
+    "line_letter": "B",
+    "library": "libraries/workouts.json"
+  },
+  "slides": [
+    {
+      "id": "s1",
+      "template": "cover",
+      "ground": "ink",
+      "fields": {
+        "eyebrow": {
+          "text": "Day 12 · 50 days",
+          "by": "human",
+          "locked": true
+        },
+        "headline": {
+          "text": "Line *B*",
+          "by": "human",
+          "locked": true
+        },
+        "sub": {
+          "text": "Upper body, push. 20 minutes.",
+          "by": "human"
+        }
+      }
+    },
+    {
+      "id": "s2",
+      "template": "workout-line",
+      "ground": "paper",
+      "fields": {
+        "eyebrow": {
+          "text": "The line",
+          "by": "human"
+        },
+        "headline": {
+          "text": "B",
+          "by": "human"
+        },
+        "bridge": {
+          "text": "Five moves, all bodyweight",
+          "by": "human"
+        },
+        "letter": "B",
+        "exercises": [
+          {
+            "name": "Push-Up",
+            "sets": 4,
+            "reps": "8 to 12"
+          },
+          {
+            "name": "Pike Push-Up",
+            "sets": 3,
+            "reps": "8"
+          },
+          {
+            "name": "Dip (chair)",
+            "sets": 3,
+            "reps": "10"
+          },
+          {
+            "name": "Plank Shoulder Tap",
+            "sets": 3,
+            "reps": "10 each side"
+          },
+          {
+            "name": "Bear Crawl",
+            "sets": 2,
+            "reps": "30 seconds"
+          }
+        ],
+        "finisher": "1 minute shadow boxing"
+      }
+    },
+    {
+      "id": "s3",
+      "template": "list",
+      "ground": "lavender",
+      "fields": {
+        "eyebrow": {
+          "text": "The form",
+          "by": "human"
+        },
+        "headline": {
+          "text": "*Two* cues.",
+          "by": "human"
+        },
+        "bridge": {
+          "text": "Don’t bounce the dip",
+          "by": "human"
+        },
+        "items": [
+          {
+            "title": "Core tight on the push-up",
+            "icon": null
+          },
+          {
+            "title": "Slow on the way down",
+            "icon": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "s4",
+      "template": "statement",
+      "ground": "teal",
+      "fields": {
+        "eyebrow": {
+          "text": "Finisher",
+          "by": "human"
+        },
+        "headline": {
+          "text": "1 minute *shadow boxing.*",
+          "by": "human"
+        },
+        "body": {
+          "text": "Calm the heart rate. Cool the shoulders. Then stretch for 5 minutes.",
+          "by": "human"
+        },
+        "bridge": {
+          "text": "That’s the line done",
+          "by": "human"
+        }
+      }
+    },
+    {
+      "id": "s5",
+      "template": "cta",
+      "ground": "paper",
+      "fields": {
+        "eyebrow": {
+          "text": "Save this",
+          "by": "human"
+        },
+        "headline": {
+          "text": "Day 12. *One line.*",
+          "by": "human"
+        },
+        "body": {
+          "text": "Comment ‘B’ for the rest of the 50 days, one line a day. Link in bio for the free tracker.",
+          "by": "human"
+        },
+        "button": {
+          "text": "Comment B",
+          "by": "human"
+        }
+      }
+    }
+  ],
+  "caption": {
+    "text": "Day 12 of 50. Line B. 5 moves, no kit, 20 minutes. The hardest one is the dip.\n\n#fit50 #day12 #workout #lineB #50days",
+    "hashtags": [
+      "#fit50",
+      "#day12",
+      "#workout",
+      "#lineB",
+      "#50days"
+    ],
+    "by": "human"
+  },
+  "checks": {
+    "facts": "pending",
+    "voice_lint": "pending",
+    "design": "pending",
+    "fit": "pending"
+  }
+}

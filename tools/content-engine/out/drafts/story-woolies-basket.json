@@ -1,0 +1,146 @@
+{
+  "id": "story-woolies-basket",
+  "type": "carousel",
+  "platform": "instagram",
+  "aspect": "4:5",
+  "pillar": "origin-story",
+  "brief": "The Woolies basket. Day 1 of the ruleset. Four-pack of biscuits. Halfway to the car.",
+  "status": "draft",
+  "version": 1,
+  "marquee": "marquee_default",
+  "source": {
+    "library": "libraries/story-bank.md",
+    "episode": 1
+  },
+  "slides": [
+    {
+      "id": "s1",
+      "template": "cover",
+      "ground": "ink",
+      "fields": {
+        "eyebrow": {
+          "text": "Origin · One",
+          "by": "human",
+          "locked": true
+        },
+        "headline": {
+          "text": "The *Woolies basket.*",
+          "by": "human",
+          "locked": true
+        },
+        "sub": {
+          "text": "Day 1 of the ruleset.",
+          "by": "human"
+        }
+      }
+    },
+    {
+      "id": "s2",
+      "template": "statement",
+      "ground": "paper",
+      "fields": {
+        "eyebrow": {
+          "text": "The shop",
+          "by": "human"
+        },
+        "headline": {
+          "text": "*Two* litres of water.",
+          "by": "human"
+        },
+        "body": {
+          "text": "A tub of yoghurt. A bag of oats. Six bananas. And a four-pack of biscuits I bought like an idiot. The ruleset said Fuel Right.",
+          "by": "human"
+        },
+        "bridge": {
+          "text": "I made it halfway to the car",
+          "by": "human"
+        }
+      }
+    },
+    {
+      "id": "s3",
+      "template": "statement",
+      "ground": "lavender",
+      "fields": {
+        "eyebrow": {
+          "text": "The day",
+          "by": "human"
+        },
+        "headline": {
+          "text": "*Halfway* to the car.",
+          "by": "human"
+        },
+        "body": {
+          "text": "I ate the first one before the keys were in the ignition. The rules were three days old and the biscuit aisle had already won.",
+          "by": "human"
+        },
+        "bridge": {
+          "text": "The honest version",
+          "by": "human"
+        }
+      }
+    },
+    {
+      "id": "s4",
+      "template": "statement",
+      "ground": "teal",
+      "fields": {
+        "eyebrow": {
+          "text": "The lesson",
+          "by": "human"
+        },
+        "headline": {
+          "text": "The rules are the *rules.*",
+          "by": "human"
+        },
+        "body": {
+          "text": "A four-pack is still a four-pack, even with a caneca on the table. I learned that week, not day one.",
+          "by": "human"
+        },
+        "bridge": {
+          "text": "Then the ruleset stuck",
+          "by": "human"
+        }
+      }
+    },
+    {
+      "id": "s5",
+      "template": "cta",
+      "ground": "paper",
+      "fields": {
+        "eyebrow": {
+          "text": "Read more",
+          "by": "human"
+        },
+        "headline": {
+          "text": "The rest is *in the bio.*",
+          "by": "human"
+        },
+        "body": {
+          "text": "Eight episodes from the founder. Specific scenes, no TED-talk. The link is in the bio.",
+          "by": "human"
+        },
+        "button": {
+          "text": "Read the bank",
+          "by": "human"
+        }
+      }
+    }
+  ],
+  "caption": {
+    "text": "The Woolies basket. Day 1 of the ruleset. Halfway to the car. More in the bio.\n\n#fit50 #origin #day1 #woolies",
+    "hashtags": [
+      "#fit50",
+      "#origin",
+      "#day1",
+      "#woolies"
+    ],
+    "by": "human"
+  },
+  "checks": {
+    "facts": "pending",
+    "voice_lint": "pending",
+    "design": "pending",
+    "fit": "pending"
+  }
+}

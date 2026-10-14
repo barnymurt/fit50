@@ -1,0 +1,178 @@
+{
+  "id": "explain-day-1",
+  "type": "carousel",
+  "platform": "instagram",
+  "aspect": "4:5",
+  "pillar": "challenge-explainers",
+  "brief": "Day 1 of FIT50. The nine rules. No price. Link in bio.",
+  "status": "draft",
+  "version": 1,
+  "marquee": "marquee_default",
+  "source": {
+    "library": "facts.json"
+  },
+  "slides": [
+    {
+      "id": "s1",
+      "template": "cover",
+      "ground": "ink",
+      "fields": {
+        "eyebrow": {
+          "text": "Day 1 · 50 days",
+          "by": "human",
+          "locked": true
+        },
+        "headline": {
+          "text": "50 days. *9 habits.*",
+          "by": "human",
+          "locked": true
+        },
+        "sub": {
+          "text": "Could you do all nine?",
+          "by": "human"
+        }
+      }
+    },
+    {
+      "id": "s2",
+      "template": "list",
+      "ground": "paper",
+      "fields": {
+        "eyebrow": {
+          "text": "The 9 rules",
+          "by": "human"
+        },
+        "headline": {
+          "text": "*Five* for the body.",
+          "by": "human"
+        },
+        "bridge": {
+          "text": "The body’s the easy part",
+          "by": "human"
+        },
+        "items": [
+          {
+            "title": "Move Your Body",
+            "icon": "move-body"
+          },
+          {
+            "title": "Step It Up",
+            "icon": "step-it-up"
+          },
+          {
+            "title": "Wet The Lips",
+            "icon": "wet-lips"
+          },
+          {
+            "title": "Fuel Right",
+            "icon": "fuel-right"
+          },
+          {
+            "title": "Crispy Clarity",
+            "icon": "crispy-clarity"
+          }
+        ]
+      }
+    },
+    {
+      "id": "s3",
+      "template": "list",
+      "ground": "lavender",
+      "fields": {
+        "eyebrow": {
+          "text": "The 9 rules",
+          "by": "human"
+        },
+        "headline": {
+          "text": "*Four* for the head.",
+          "by": "human"
+        },
+        "bridge": {
+          "text": "Plus the streak",
+          "by": "human"
+        },
+        "items": [
+          {
+            "title": "Chill Out",
+            "icon": "chill-out"
+          },
+          {
+            "title": "Open Mind",
+            "icon": "open-mind"
+          },
+          {
+            "title": "Feed Your Brain",
+            "icon": "feed-brain"
+          },
+          {
+            "title": "Fresh Lungs",
+            "icon": "fresh-lungs"
+          }
+        ]
+      }
+    },
+    {
+      "id": "s4",
+      "template": "numeral",
+      "ground": "teal",
+      "fields": {
+        "eyebrow": {
+          "text": "The number",
+          "by": "human"
+        },
+        "headline": {
+          "text": "50 *days.*",
+          "by": "human"
+        },
+        "body": {
+          "text": "10,000 steps. 2.5 litres. 10 minutes. 5 books or 30 minutes. The numbers, exact.",
+          "by": "human"
+        },
+        "bridge": {
+          "text": "No slogans, just numbers",
+          "by": "human"
+        },
+        "number": "50"
+      }
+    },
+    {
+      "id": "s5",
+      "template": "cta",
+      "ground": "paper",
+      "fields": {
+        "eyebrow": {
+          "text": "Try day 1",
+          "by": "human"
+        },
+        "headline": {
+          "text": "Start *tomorrow.*",
+          "by": "human"
+        },
+        "body": {
+          "text": "Pick a day. Read the rules. The link is in the bio.",
+          "by": "human"
+        },
+        "button": {
+          "text": "Start the ruleset",
+          "by": "human"
+        }
+      }
+    }
+  ],
+  "caption": {
+    "text": "Day 1 of FIT50. 50 days. 9 habits. 10,000 steps. 2.5 litres. The link is in the bio.\n\n#fit50 #day1 #50days #9habits",
+    "hashtags": [
+      "#fit50",
+      "#day1",
+      "#50days",
+      "#9habits"
+    ],
+    "by": "human"
+  },
+  "checks": {
+    "facts": "pending",
+    "voice_lint": "pending",
+    "design": "pending",
+    "fit": "pending"
+  }
+}

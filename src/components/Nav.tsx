@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import Button from './Button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -53,10 +54,18 @@ export default function Nav() {
       <div className="max-w-7xl mx-auto px-6 md:px-10 h-16 flex items-center justify-between">
         <Link
           href="/"
-          className="font-display text-2xl text-ink tracking-tightest"
+          aria-label="FIT50 home"
           onClick={() => setMobileOpen(false)}
+          className="block"
         >
-          FIT50
+          <Image
+            src="/logos/fit50-challenge-logo.svg"
+            alt="FIT50 challenge"
+            width={120}
+            height={28}
+            priority
+            className="h-7 w-auto"
+          />
         </Link>
 
         {/* Desktop nav */}

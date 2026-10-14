@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Section from './Section';
 
 const FOOTER_LINKS = [
@@ -24,11 +25,15 @@ export default function Footer() {
     >
       <div className="grid grid-cols-1 md:grid-cols-12 gap-12 mb-16">
         <div className="md:col-span-5">
-          <h2 className="font-display text-display-2 text-paper leading-none">
-            FIT50
-          </h2>
+          <Image
+            src="/logos/fit50-challenge-logo-mono-white.svg"
+            alt="FIT50 challenge"
+            width={220}
+            height={52}
+            className="h-13 w-auto"
+          />
           <p className="font-body text-paper/50 mt-4 max-w-sm">
-            50 Days · 9 Habits · 1 Finished Thing
+            50 Days �� 9 Habits �� 1 Finished Thing
           </p>
         </div>
       </div>
