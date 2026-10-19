@@ -1,4 +1,4 @@
-// GET /api/_diag
+// GET /api/diag
 //
 // Read-only diagnostic for the cohort preview. Returns JSON
 // showing the env vars present in the current build, whether the
@@ -12,9 +12,7 @@
 // avoid leaking config to real visitors.
 //
 // This file ships ONCE for diagnosis and gets removed once the
-// preview works. Like every temporary affordance in this
-// codebase, it's named with a leading underscore so it's
-// visually obvious.
+// preview works.
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase';
 
