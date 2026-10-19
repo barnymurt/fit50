@@ -24,7 +24,7 @@ import { useCurrentCohort } from '@/hooks/useCurrentCohort';
 import { useAvailableCohorts } from '@/hooks/useAvailableCohorts';
 import { useCohortProgress } from '@/hooks/useCohortProgress';
 import { useCohortMembership } from '@/hooks/useCohortMembership';
-import { dateKeyLocal } from '@/lib/dates';
+import { dateKeyLocal, nowOrOverride } from '@/lib/dates';
 import { finishLineSentence } from '@/lib/cohort-events';
 import { cohortHomepageState } from '@/lib/cohort-visibility';
 import CohortCard from './CohortCard';
@@ -152,16 +152,21 @@ export default function CohortHomepageSection() {
     return null;
   }
 
+  // `now` honours the dev `?date=` override (see
+  // docs/user-stories/debug-cohort-date-override.md). On Vercel
+  // production deployments, `nowOrOverride()` returns `new Date()`
+  // — always.
+  const now = nowOrOverride();
   const daysAway = Math.max(
     0,
     Math.round(
       (new Date(head.start_date + 'T00:00:00').getTime() -
-        new Date(dateKeyLocal(new Date()) + 'T00:00:00').getTime()) /
+        new Date(dateKeyLocal(now) + 'T00:00:00').getTime()) /
         86_400_000
     )
   );
   const signupsOpen =
-    new Date() >= new Date(head.signups_open_at + 'T00:00:00');
+    now >= new Date(head.signups_open_at + 'T00:00:00');
   const headStart = new Date(
     head.start_date + 'T00:00:00'
   ).toLocaleDateString(undefined, {

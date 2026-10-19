@@ -49,6 +49,7 @@ per-feature stories of nearby features to see the existing spec.
 | Premium unlock (€5.99 one-time) | new_free, active_free | [premium-unlock.md](./premium-unlock.md) | (see account page) | — |
 | Streak protection (1 free pass / week) | premium, streak_broken | [streak-protection.md](./streak-protection.md) | `0038` | yes |
 | Cohort countdown + 9-tile log on the home page | anonymous, new_free, active_free, cohort_member | [cohort-countdown-on-homepage.md](./cohort-countdown-on-homepage.md) | (this build) | no |
+| Debug `?date=` param for the homepage cohort preview (dev-only) | account_mgmt | [debug-cohort-date-override.md](./debug-cohort-date-override.md) | (this build) | no |
 | Join the monthly cohort | anonymous, new_free, active_free | [join-a-cohort.md](./join-a-cohort.md) | `b31258e` | no |
 | Cohort high-five (5/day kudos) | cohort_member | [cohort-high-five.md](./cohort-high-five.md) | `e73ccb6` | no |
 | Cohort finish-line anchor message | cohort_member, new_free | [cohort-finish-line-message.md](./cohort-finish-line-message.md) | `269a236` | no |

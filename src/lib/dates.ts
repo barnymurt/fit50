@@ -7,6 +7,62 @@ export const CHALLENGE_DAYS = 50;
 export const MS_PER_DAY = 86_400_000;
 
 /**
+ * Dev-only date override.
+ *
+ * Reads `?date=YYYY-MM-DD` from `window.location.search` and returns
+ * that calendar date as a `Date` (set to local-tz midnight) if it's
+ * present and parseable. Otherwise returns `new Date()`.
+ *
+ * Scoped to non-production Vercel environments via `VERCEL_ENV`.
+ * When `VERCEL_ENV === 'production'` (the production deployment),
+ * the override is a no-op. On Preview and Development (and when
+ * `VERCEL_ENV` is unset, i.e. local dev), the override applies.
+ *
+ * This exists to support the `?date=` preview affordance documented
+ * in `docs/user-stories/debug-cohort-date-override.md`. Use is local,
+ * temporary, and easily reversed — see the story's "Implementation
+ * notes" section.
+ */
+export function devOverrideNow(): Date | null {
+  if (typeof window === 'undefined') return null;
+  // Vercel sets VERCEL_ENV to 'production' | 'preview' | 'development'.
+  // Production is the only env that should not honour the override.
+  if (process.env.VERCEL_ENV === 'production') return null;
+  const params = new URLSearchParams(window.location.search);
+  const raw = params.get('date');
+  if (!raw) return null;
+  const m = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return null;
+  const y = Number(m[1]);
+  const mo = Number(m[2]);
+  const d = Number(m[3]);
+  if (!Number.isFinite(y) || !Number.isFinite(mo) || !Number.isFinite(d)) return null;
+  if (mo < 1 || mo > 12) return null;
+  if (d < 1 || d > 31) return null;
+  const dt = new Date(y, mo - 1, d);
+  if (Number.isNaN(dt.getTime())) return null;
+  // Validate the rolled-over date matches the input. `new Date(2026, 1, 29)`
+  // silently becomes March 1 in non-leap years; we want to reject those.
+  if (
+    dt.getFullYear() !== y ||
+    dt.getMonth() !== mo - 1 ||
+    dt.getDate() !== d
+  ) return null;
+  return dt;
+}
+
+/**
+ * The "now" used by date-sensitive render code. Returns the dev
+ * `?date=` override in dev if one is set and valid, otherwise real
+ * `new Date()`. Centralising this here means removing the preview
+ * affordance is one function deletion.
+ */
+export function nowOrOverride(): Date {
+  const override = devOverrideNow();
+  return override ?? new Date();
+}
+
+/**
  * Strip the time component off a Date and return a `YYYY-MM-DD` string.
  * Two dates that fall on the same calendar day in the user's timezone
  * produce the same key, regardless of hour.
