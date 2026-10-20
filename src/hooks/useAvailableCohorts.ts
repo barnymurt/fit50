@@ -2,16 +2,21 @@
 
 // useAvailableCohorts
 //
-// Lists cohort rows the signed-in user could join right now — i.e.
-// sign-ups are open (signups_open_at <= today) and the cohort
-// hasn't started yet (start_date >= today). The list is whatever
-// the server returns after RLS filtering; since cohorts are
-// SELECT-visible to any signed-in user, the response is the
-// full upcoming list (no per-user scoping needed — the join API
-// rejects with 409 if the user is already in another live cohort).
+// Lists cohort rows the user could join right now — i.e. sign-ups
+// are open (signups_open_at <= today) and the cohort hasn't started
+// yet (start_date >= today). The list is whatever the server
+// returns after RLS filtering. Reads work for anonymous visitors
+// too — the `cohorts` table is SELECT-visible via the public-read
+// policy (migration 0047) since it contains only marketing columns.
+//
+// For the homepage cohort countdown, an optional `queryToday` lets
+// the caller shift "today" so the section can render against any
+// chosen calendar date — see `?date=` in
+// `docs/user-stories/debug-cohort-date-override.md`. The override
+// changes both the displayed day counter and the filter that
+// determines which cohorts are returned.
 
 import { useEffect, useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
 import { createClient } from '@/lib/supabase';
 
 export interface AvailableCohort {
@@ -21,23 +26,32 @@ export interface AvailableCohort {
   signups_open_at: string;
 }
 
-export function useAvailableCohorts(): {
+export interface UseAvailableCohortsOpts {
+  /**
+   * Override "today" for the cohort query (YYYY-MM-DD). When
+   * supplied, the filter window is computed against this date
+   * instead of `new Date()`. Defaults to real today.
+   */
+  queryToday?: string;
+}
+
+export function useAvailableCohorts(opts?: UseAvailableCohortsOpts): {
   cohorts: AvailableCohort[];
   loaded: boolean;
 } {
-  const { user } = useAuth();
   const supabase = createClient();
   const [cohorts, setCohorts] = useState<AvailableCohort[]>([]);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    if (!user || !supabase) {
+    if (!supabase) {
       setCohorts([]);
       setLoaded(true);
       return;
     }
     let cancelled = false;
-    const today = new Date().toISOString().slice(0, 10);
+    const today =
+      opts?.queryToday ?? new Date().toISOString().slice(0, 10);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const sb: any = supabase;
     (async () => {
@@ -57,7 +71,7 @@ export function useAvailableCohorts(): {
     return () => {
       cancelled = true;
     };
-  }, [user, supabase]);
+  }, [supabase, opts?.queryToday]);
 
   return { cohorts, loaded };
 }

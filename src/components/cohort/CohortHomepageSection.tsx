@@ -35,9 +35,15 @@ export default function CohortHomepageSection() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const tracker = useTrackerState();
+  // `now` honours the dev `?date=` override (see
+  // docs/user-stories/debug-cohort-date-override.md). On Vercel
+  // production deployments, `nowOrOverride()` returns `new Date()`
+  // — always.
+  const now = nowOrOverride();
+  const queryToday = dateKeyLocal(now);
   const { current, loaded: cohortLoaded } = useCurrentCohort();
   const { cohorts: availableCohorts, loaded: availableLoaded } =
-    useAvailableCohorts();
+    useAvailableCohorts({ queryToday });
   const progress = useCohortProgress(
     current?.cohortId ?? null,
     current?.startDate ?? null
@@ -152,11 +158,6 @@ export default function CohortHomepageSection() {
     return null;
   }
 
-  // `now` honours the dev `?date=` override (see
-  // docs/user-stories/debug-cohort-date-override.md). On Vercel
-  // production deployments, `nowOrOverride()` returns `new Date()`
-  // — always.
-  const now = nowOrOverride();
   const daysAway = Math.max(
     0,
     Math.round(

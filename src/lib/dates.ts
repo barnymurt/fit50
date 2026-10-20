@@ -13,21 +13,26 @@ export const MS_PER_DAY = 86_400_000;
  * that calendar date as a `Date` (set to local-tz midnight) if it's
  * present and parseable. Otherwise returns `new Date()`.
  *
- * Scoped to non-production Vercel environments via `VERCEL_ENV`.
- * When `VERCEL_ENV === 'production'` (the production deployment),
- * the override is a no-op. On Preview and Development (and when
- * `VERCEL_ENV` is unset, i.e. local dev), the override applies.
+ * Scoped to non-production Vercel environments by gating on
+ * `NEXT_PUBLIC_VERCEL_ENV` (inlined into the client bundle so
+ * server + client agree). Production deployments do NOT set this
+ * var — Vercel leaves it unset, which the helper treats as
+ * "production" and returns null. Preview environments set it to
+ * "preview"; local dev either sets it or leaves it unset; either
+ * way the override applies.
  *
  * This exists to support the `?date=` preview affordance documented
- * in `docs/user-stories/debug-cohort-date-override.md`. Use is local,
- * temporary, and easily reversed — see the story's "Implementation
- * notes" section.
+ * in `docs/user-stories/debug-cohort-date-override.md`. Use is
+ * local, temporary, and easily reversed — see the story's
+ * "Implementation notes" section.
  */
 export function devOverrideNow(): Date | null {
   if (typeof window === 'undefined') return null;
-  // Vercel sets VERCEL_ENV to 'production' | 'preview' | 'development'.
-  // Production is the only env that should not honour the override.
-  if (process.env.VERCEL_ENV === 'production') return null;
+  // NEXT_PUBLIC_VERCEL_ENV is inlined at build time so the value
+  // is available on both server (SSR) and client. Production is
+  // the value left when this var is unset.
+  const env = process.env.NEXT_PUBLIC_VERCEL_ENV;
+  if (env === undefined || env === 'production') return null;
   const params = new URLSearchParams(window.location.search);
   const raw = params.get('date');
   if (!raw) return null;

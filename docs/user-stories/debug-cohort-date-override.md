@@ -38,12 +38,14 @@ for the calendar date to roll over or fiddling with system clocks**.
       rest of the page (Tracker, FAQ, footer) and `/account` continue
       to render against real time. The `?date=` param does not
       affect day-number, streak, or macro math anywhere.
-- [ ] On a Vercel production deployment
-      (`process.env.VERCEL_ENV === 'production'`), the override is
-      a no-op — the URL is parsed, but the override is never applied
-      to render. Visiting `?date=2026-11-01` on production produces
-      the same render as visiting `/`. On Preview, Development, and
-      local dev the override applies as described above.
+- [ ] On a Vercel production deployment, where
+      `NEXT_PUBLIC_VERCEL_ENV` is unset (the default on production),
+      the override is a no-op — the URL is parsed, but the override
+      is never applied. Visiting `?date=2026-11-01` on production
+      produces the same render as visiting `/`. On Preview the
+      var is set to `"preview"` (via the project's Preview
+      environment scope) and the override applies as described
+      above.
 
 ## UX/UI risks
 
