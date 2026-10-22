@@ -260,9 +260,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { error: { message: 'Supabase not configured.' } };
     }
 
-    const { error } = await supabase.auth.resetPasswordForEmail(emailAddress, {
-      redirectTo: `${typeof window !== 'undefined' ? window.location.origin : ''}/account`,
-    });
+    // Send the recovery link to /account/reset-password, NOT /account.
+    // The reset-password page detects the recovery session, shows the
+    // new-password form, and calls updateUser({ password }). Landing on
+    // /account here would silently sign the user in on the password
+    // they forgot, which is the bug this fixes.
+    const origin =
+      typeof window !== 'undefined' ? window.location.origin : '';
+    const { error } = await supabase.auth.resetPasswordForEmail(
+      emailAddress,
+      { redirectTo: `${origin}/account/reset-password` }
+    );
 
     if (error) {
       return { error: { message: error.message } };

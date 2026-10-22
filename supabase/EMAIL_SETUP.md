@@ -2,6 +2,13 @@
 
 Supabase's built-in email sender is generic and not branded. To make the magic-link email come from **FIT50** with proper styling, set up Resend as a custom SMTP provider.
 
+> **The active auth flow is email + password.** The reset-password
+> template is the one every "Forgot password?" tap on `/account`
+> sends. The magic-link template is kept as a backup path — see
+> [AUTH_SETUP.md](./AUTH_SETUP.md) for why magic links were removed
+> as the primary flow but the email template was kept alongside the
+> reset one.
+
 ## Why Resend
 
 - **Built for developers** — clean API, great docs, fast setup
@@ -149,12 +156,111 @@ Drop this into Supabase's Magic Link template body. Simple, clean, on-brand:
 
 The `{{ .ConfirmationURL }}` is a Supabase template variable — Supabase replaces it with the actual magic link URL.
 
+### Reset Password template
+
+Drop this into **Authentication → Email Templates → Reset Password**. The
+subject is `Your FIT50 password reset`. The `{{ .ConfirmationURL }}`
+variable points at `/account/reset-password` (where the new-password
+form lives — see [password-reset-flow.md](../docs/user-stories/password-reset-flow.md)).
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; background: #FAF6EE; font-family: Georgia, serif;">
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background: #FAF6EE; padding: 48px 24px;">
+<tr>
+<td align="center">
+
+  <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="background: #FAF6EE; max-width: 560px;">
+
+    <!-- Logo / wordmark -->
+    <tr>
+      <td align="center" style="padding: 0 0 32px 0;">
+        <h1 style="margin: 0; font-family: Georgia, serif; font-weight: 400; font-size: 32px; letter-spacing: -0.02em; color: #1A1A1A;">FIT50</h1>
+        <p style="margin: 8px 0 0 0; font-family: -apple-system, sans-serif; font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; color: #1A1A1A; opacity: 0.6;">50 days. 9 habits. 1 fresh start.</p>
+      </td>
+    </tr>
+
+    <!-- Card -->
+    <tr>
+      <td style="background: #FEFEFE; border: 1px solid rgba(26, 26, 26, 0.12); padding: 40px;">
+
+        <p style="margin: 0 0 24px 0; font-family: -apple-system, sans-serif; font-size: 16px; line-height: 1.5; color: #1A1A1A;">
+          Reset your <strong style="font-weight: 600;">FIT50</strong> password.
+        </p>
+
+        <p style="margin: 0 0 32px 0; font-family: -apple-system, sans-serif; font-size: 16px; line-height: 1.5; color: #1A1A1A;">
+          Click the button below to set a new password. The link expires in 1 hour. If you didn’t ask for this, you can safely ignore the email — your password will stay exactly as it is.
+        </p>
+
+        <!-- Button -->
+        <table role="presentation" cellpadding="0" cellspacing="0" style="margin: 0 0 32px 0;">
+          <tr>
+            <td align="center" style="background: #1A1A1A;">
+              <a href="{{ .ConfirmationURL }}" target="_blank" style="display: inline-block; padding: 16px 32px; font-family: -apple-system, sans-serif; font-size: 14px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #FEFEFE; text-decoration: none;">Set a new password</a>
+            </td>
+          </tr>
+        </table>
+
+        <p style="margin: 0 0 8px 0; font-family: -apple-system, sans-serif; font-size: 13px; line-height: 1.5; color: #1A1A1A; opacity: 0.6;">
+          Or copy and paste this link into your browser:
+        </p>
+        <p style="margin: 0; font-family: monospace; font-size: 11px; line-height: 1.4; color: #1A1A1A; opacity: 0.6; word-break: break-all;">
+          {{ .ConfirmationURL }}
+        </p>
+
+      </td>
+    </tr>
+
+    <!-- Footer -->
+    <tr>
+      <td align="center" style="padding: 32px 0 0 0;">
+        <p style="margin: 0; font-family: -apple-system, sans-serif; font-size: 11px; line-height: 1.5; color: #1A1A1A; opacity: 0.4;">
+          You received this email because someone — hopefully you — asked to reset the password on your FIT50 account.
+          <br>If that wasn’t you, ignore this email. Nothing changes until you click the button.
+        </p>
+      </td>
+    </tr>
+
+  </table>
+
+</td>
+</tr>
+</table>
+
+</body>
+</html>
+```
+
 ## After setup
+
+### Magic link (legacy fallback)
 
 1. Trigger a magic link from the deployed site
 2. Check inbox — should arrive in seconds
 3. Click the button — should land on `https://fit50challenge.io/account` signed in
 4. If you see "redirect URL not allowed", check Supabase → URL Configuration → Redirect URLs
+
+### Reset password (the active flow)
+
+1. From `/account` while signed out, tap **Forgot password?** and
+   enter your email
+2. Check inbox — the email arrives from `FIT50
+   <hello@fit50challenge.io>` with subject `Your FIT50 password
+   reset`
+3. Click the button — should land on
+   `https://fit50challenge.io/account/reset-password` showing the
+   "Set a new password" form
+4. Enter a new password, submit, confirm you're redirected to
+   `/account` and signed in
+5. Sign out, sign back in with the new password — should succeed
+6. Sign in with the old password — should fail with the standard
+   "Email or password is incorrect" error
 
 ## Env vars
 

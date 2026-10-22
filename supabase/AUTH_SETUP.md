@@ -25,7 +25,15 @@ https://fit50challenge.io/**
 
 ### 3. Email Templates (Authentication → Email Templates → Reset Password)
 
-Customise the password reset email so it looks branded. See `EMAIL_SETUP.md` for the full HTML.
+Customise the password reset email so it looks branded. See
+`EMAIL_SETUP.md` for the full HTML, and
+[password-reset-flow.md](../docs/user-stories/password-reset-flow.md)
+for what the user sees after they click the link. The reset link
+points at `/account/reset-password` — that route renders the
+"Set a new password" form that calls `updateUser({ password })`.
+(Landing the recovery link on `/account` directly was the original
+bug — it silently signed the user in on the password they'd
+forgotten.)
 
 ## Why this is simpler
 
@@ -73,4 +81,4 @@ When sign-in is broken:
    NEXT_PUBLIC_SUPABASE_URL     = https://djblhxwdsazksgubhlrn.supabase.co
    NEXT_PUBLIC_SUPABASE_ANON_KEY = sb_publishable_...
    ```
-4. For password reset issues: check spam, verify your Resend SMTP setup (if configured), or just turn off email confirmation in Supabase temporarily to bypass
+4. For password reset issues: check spam, verify your Resend SMTP setup (if configured), confirm `redirectTo` is `/account/reset-password` (not `/account` — that's the silent-sign-in bug), or just turn off email confirmation in Supabase temporarily to bypass
