@@ -1,0 +1,43 @@
+# FIT50 — The 50-Day Challenge
+
+> A 50-day behaviour challenge built around nine daily rules, with habit tracking, a workout programme, macro and hydration logging, and a printable completion certificate. Free to start; a one-time payment unlocks cloud sync, streak protection and data export.
+
+FIT50 runs for fifty days. You keep a daily streak across nine rules, complete a short workout each day, log food and water, and finish with a certificate showing what you actually completed.
+
+## The nine rules
+
+Each rule is one concrete daily action. Tapping one is binary — done or not done. Missing a day breaks the streak unless you spend a streak-protection pass.
+
+1. Feed Your Brain — Read 5 books in 50 days, or give 30 minutes a day on a project you've been putting off.
+2. Move Your Body — Complete one workout from the four lines (A, B, C, D) every day.
+3. Fuel Right — Track your macros every day. Hit your protein, carb and fat targets.
+4. Crispy Clarity — No alcohol for 50 days.
+5. Fresh Lungs — No smoking, no vaping. Find your nicotine by healthier means for 50 days.
+6. Open Mind — Meditate for 10 minutes every day. Sit, breathe, notice.
+7. Step It Up — Walk 10,000 steps every day.
+8. Wet The Lips — Drink 2.5 litres of water every day.
+9. Chill Out — End every shower cold, building toward a fully cold shower by day 50.
+
+## Key pages
+
+- [Home](/): the full challenge pitch, rules, tracker, workouts and FAQ on one page
+- [About](/): the origin story behind the nine rules
+- [Macro calculator](/macrocalc): work out your daily calorie and macro targets
+- [Certificate](/certificate): the completion certificate, with a banana per streak-protection pass
+- [Privacy](/privacy): what is collected and how
+
+## Account area
+
+Sign-in is required. These pages are intentionally excluded from search engines and from this file: `/account` and its sub-pages (tracker, workouts, analytics, macros, drinks, meditation, quit list, fridge checklist, buddy).
+
+## Optional
+
+- [Privacy policy](/privacy): data handling and your rights
+- [Email](mailto:support@fit50challenge.io): support@fit50challenge.io
+
+## Notes
+
+- The quit-smoking and quit-alcohol resources are aimed at adults.
+- Free tools work without an account. Premium is a one-time €5.99 payment, not a subscription.
+- `/upgrade` redirects to the homepage sign-up section and has no page of its own.
+- `/redeem` is a code-entry form and is not indexed.

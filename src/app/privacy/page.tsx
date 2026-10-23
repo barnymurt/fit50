@@ -2,8 +2,9 @@ import type { Metadata } from 'next';
 import Section from '@/components/Section';
 
 export const metadata: Metadata = {
-  title: 'Privacy — FIT50',
+  title: 'Privacy',
   description: 'How FIT50 collects, uses, and protects your data. Applies to EU, UK, US, AU, BR, IN, and APAC users.',
+  alternates: { canonical: '/privacy' },
 };
 
 export default function PrivacyPage() {

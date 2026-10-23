@@ -3,9 +3,10 @@ import Heading from '@/components/Heading';
 import Button from '@/components/Button';
 
 export const metadata = {
-  title: 'About — FIT50',
+  title: 'About',
   description:
     'How a backyard ultra, a pile of books, and three beers at the pub became nine disciplines, fifty days, and one finished thing.',
+  alternates: { canonical: '/about' },
 };
 
 export default function AboutPage() {
