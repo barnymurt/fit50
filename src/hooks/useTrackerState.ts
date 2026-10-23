@@ -384,8 +384,8 @@ export function useTrackerState() {
         localLoaded?.closedDays ?? {};
 
       let serverStart: string | null = null;
-      let serverTaps: Record<string, boolean> = {};
-      let serverClosed: Record<number, Record<string, boolean>> = {};
+      const serverTaps: Record<string, boolean> = {};
+      const serverClosed: Record<number, Record<string, boolean>> = {};
       const staleStateDatesToFlush: string[] = [];
       if (supabase) {
         try {
