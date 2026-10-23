@@ -41,10 +41,16 @@ export const metadata: Metadata = {
     description: SITE_DESCRIPTION,
     images: [
       {
-        url: '/logos/fit50-challenge-logo.png',
-        width: 3000,
-        height: 1472,
-        alt: 'FIT50 - The 50-Day Challenge',
+        url: '/og/fit50-og-ink-1200x630.png',
+        width: 1200,
+        height: 630,
+        alt: 'FIT50 Challenge — 50 days. 9 habits. 1 fresh start.',
+      },
+      {
+        url: '/og/fit50-og-paper-1200x630.png',
+        width: 1200,
+        height: 630,
+        alt: 'FIT50 Challenge — 50 days. 9 habits. 1 fresh start.',
       },
     ],
   },
@@ -52,7 +58,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
-    images: ['/logos/fit50-challenge-logo.png'],
+    images: ['/og/fit50-og-ink-1200x630.png'],
   },
   robots: {
     index: true,
@@ -69,6 +75,18 @@ export const metadata: Metadata = {
   // and the rest all declare themselves as `/`. Canonicals are set per page.
 };
 
+// Links the site to its official social profile. `sameAs` is how search
+// engines tie an entity to verified accounts, so it belongs here as well as
+// in the footer.
+const structuredData = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: SITE_NAME,
+  url: SITE_URL,
+  description: SITE_DESCRIPTION,
+  sameAs: ["https://www.instagram.com/fit50challenge/"],
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -79,6 +97,10 @@ export default function RootLayout({
       <body
         className={`${fraunces.variable} ${inter.variable} ${lilitaOne.variable} font-body text-ink bg-paper antialiased`}
       >
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+        />
         <Providers>
           <div className="min-h-screen flex flex-col">
             <Nav />

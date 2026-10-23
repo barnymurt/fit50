@@ -15,6 +15,10 @@ const FOOTER_LINKS = [
   { href: '/redeem', label: 'Redeem code' },
 ];
 
+const SOCIAL_LINKS = [
+  { href: 'https://www.instagram.com/fit50challenge/', label: 'Instagram' },
+];
+
 export default function Footer() {
   return (
     <Section
@@ -50,6 +54,17 @@ export default function Footer() {
             </a>
           ))}
         </nav>
+        {SOCIAL_LINKS.map((link) => (
+          <a
+            key={link.href}
+            href={link.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-body text-caption uppercase text-paper/60 hover:text-paper transition-colors"
+          >
+            {link.label}
+          </a>
+        ))}
       </div>
 
       <p className="mt-10 font-body text-xs text-paper/40">
