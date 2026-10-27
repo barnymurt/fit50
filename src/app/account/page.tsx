@@ -629,7 +629,8 @@ export default function AccountPage() {
                 </span>
                 <br />
                 <span className="text-paper/70">
-                  photo a label, or describe your food to get the macros. Edit anything that looks off.
+                  say it, photo a label, or describe your food to get the
+                  macros. Edit anything that looks off.
                 </span>
               </p>
               <p>
