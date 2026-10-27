@@ -12,6 +12,7 @@ import type { ExtractedFood } from '@/lib/llm/types';
 import { VISION_CAPABLE_PROVIDERS } from '@/lib/llm/types';
 import { apiFetch } from '@/lib/api-fetch';
 import PhotoFoodScan from './PhotoFoodScan';
+import VoiceFoodCapture from './VoiceFoodCapture';
 
 // AddCustomFoodModal — owner-only food entry. On save, posts to
 // /api/foods/custom and on success calls `onCreated` with the new
@@ -24,11 +25,10 @@ import PhotoFoodScan from './PhotoFoodScan';
 // 'private' withdraws the submission.
 //
 // The "Or describe it" section above wires the OpenAI auto-fill hook
-// (`/api/foods/custom/extract`). The source field is hard-coded to
-// 'manual' here because the user reviews + edits before saving —
-// flipping it to 'llm' would misrepresent a row the user corrected.
-// A separate audit trail (description, confidence, prompt version)
-// could live on the row later.
+// (`/api/foods/custom/extract`). The `source` field records whether
+// the LLM filled the macros for the user ('llm') or the user typed
+// every number by hand ('manual'). A separate audit trail (the raw
+// OCR / speech transcript) lives in the `description` column.
 
 interface CreateInput {
   name: string;
@@ -45,6 +45,7 @@ interface CreateInput {
   aliases?: string[];
   submit_to_community?: boolean;
   source?: 'manual' | 'llm';
+  description?: string | null;
 }
 
 interface Props {
@@ -161,6 +162,11 @@ export default function AddCustomFoodModal({
   // aid when confidence is low). Null for typed-description entries.
   const [photoOcrText, setPhotoOcrText] = useState<string | null>(null);
 
+  // Voice-flow state — holds the raw transcript from the last voice
+  // capture so we can persist it on save, same as the photo path.
+  // Null when the description was typed by hand.
+  const [voiceTranscript, setVoiceTranscript] = useState<string | null>(null);
+
   // BYOK state — the user's own LLM key + provider. We never display
   // the secret; only whether it's set + a masked preview. If unset,
   // the modal shows an inline "add your key" prompt.
@@ -194,6 +200,7 @@ export default function AddCustomFoodModal({
       setExtractionResult(null);
       setExtractionError(null);
       setPhotoOcrText(null);
+      setVoiceTranscript(null);
       // Fetch the user's OpenAI key status. We only show the
       // auto-fill section as fully enabled when a key is on file.
       setKeyStatus(null);
@@ -400,6 +407,19 @@ const handleSubmit = async (e: React.FormEvent) => {
 
     setSubmitting(true);
     try {
+      // Provenance. The LLM filled the macros for us in three cases:
+      //   - voice capture  → voiceTranscript is set
+      //   - photo scan     → photoOcrText is set
+      //   - typed description → the LLM filled it from what the user
+      //     typed, so that counts too.
+      // A hand-typed description that the user never ran through
+      // "Auto-fill macros" is genuinely manual.
+      const usedLlm =
+        Boolean(voiceTranscript) ||
+        Boolean(photoOcrText) ||
+        Boolean(extractionResult);
+      const rawDescription = voiceTranscript ?? photoOcrText ?? null;
+
       const created = await onCreate({
         name: form.name,
         brand: form.brand || null,
@@ -414,11 +434,10 @@ const handleSubmit = async (e: React.FormEvent) => {
         standard_serving_label: form.standardServingLabel,
         aliases,
         submit_to_community: form.submitToCommunity,
-        // Photo flow: LLM did all the extraction → 'llm'.
-        // Typed description: user wrote the prose → 'manual'.
-        source: photoOcrText ? 'llm' : 'manual',
-        // Only populated for photo entries; null for typed.
-        ...(photoOcrText ? { description: photoOcrText } : {}),
+        source: usedLlm ? 'llm' : 'manual',
+        // Raw capture text (OCR transcript / spoken transcript) is
+        // the audit trail. Capped server-side at 4096 chars.
+        ...(rawDescription ? { description: rawDescription } : {}),
       });
       onCreated?.(created);
       onClose();
@@ -464,6 +483,25 @@ const handleSubmit = async (e: React.FormEvent) => {
             </button>
           </div>
 
+          {/* Voice capture — the primary path. Writes the spoken
+              transcript into the shared "Or describe it" textarea
+              below, so voice and typing converge on the same
+              auto-fill. Disabled until the user has an LLM key on
+              file (same gate as photo + typed). Renders nothing at
+              all in browsers without speech recognition. */}
+          <VoiceFoodCapture
+            disabled={keyStatus?.set === false}
+            disabledReason="Add your AI key below to unlock voice capture."
+            onTranscript={(text) => {
+              // The normalised transcript replaces whatever was in
+              // the textarea — the user can still edit it by hand
+              // afterwards, and their edits are what get sent.
+              setExtractDescription(text);
+              setVoiceTranscript(text);
+              setExtractionError(null);
+            }}
+          />
+
           {/* Photo scan — disabled until the user has an LLM key on
               file. Same gating as the typed-description path below. */}
           <PhotoFoodScan
@@ -492,7 +530,11 @@ const handleSubmit = async (e: React.FormEvent) => {
                 confidence: food.confidence,
                 notes: food.notes,
               });
-              setPhotoOcrText(meta.ocrText);
+              // `ocrText` is null on the vision-direct path (the
+              // model read the image itself, no OCR transcript).
+              // A sentinel keeps provenance honest so the row still
+              // records that the LLM did the work.
+              setPhotoOcrText(meta.ocrText ?? '[vision direct read]');
               setExtractionError(null);
             }}
           />
@@ -500,6 +542,9 @@ const handleSubmit = async (e: React.FormEvent) => {
           <div className="mb-4 p-3 bg-cream/30 border border-ink/15">
             <p className="font-body text-caption uppercase tracking-widest text-ink/50 mb-2">
               Or describe it
+            </p>
+            <p className="font-body text-caption text-ink/50 mb-2">
+              Speak it above, or type it here.
             </p>
             <textarea
               value={extractDescription}

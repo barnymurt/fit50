@@ -36,9 +36,8 @@ export interface CustomFoodRow {
   source: 'manual' | 'llm';
   submission_status: 'private' | 'pending_review' | 'published' | 'rejected';
   submitted_at: string | null;
-  /** Photo-flow only. Raw OCR text from the label image so the
-   *  user can audit what the model saw when confidence is low.
-   *  Never sent back to the LLM as a prompt. */
+  /** Photo / voice flow only. The raw OCR or speech transcript so
+   *  the user can audit what the model saw when confidence is low. */
   description: string | null;
   created_at: string;
   updated_at: string;
@@ -62,9 +61,10 @@ export interface CustomFoodCreate {
   aliases?: string[];
   submit_to_community?: boolean;
   source?: 'manual' | 'llm';
-  /** Photo-flow only. OCR'd raw text — persisted so the user
-   *  can audit what the model saw when confidence is low. */
-  description?: string;
+  /** Photo / voice flow only. The raw OCR or speech transcript —
+   *  persisted so the user can audit what the model saw when
+   *  confidence is low. */
+  description?: string | null;
 }
 
 export type CustomFoodPatch = Partial<Omit<CustomFoodCreate, 'submit_to_community'>> & {
